@@ -39,8 +39,8 @@ const sessionKey = 'wavehub.session';
 const sellerListingsKey = 'wavehub.sellerListings';
 const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
-const minOnlineCount = 94;
-const maxOnlineCount = 225;
+const minOnlineCount = 18;
+const maxOnlineCount = 61;
 const listingTypeConfig = {
   account: {
     type: 'account',
@@ -133,6 +133,10 @@ function getListingTitle(listing) {
 function getListingSellerName(listing) {
   const config = getListingConfig(listing);
   return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
+}
+
+function formatCountLabel(count, singular, plural) {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function formatLoginTime(value) {
@@ -404,6 +408,43 @@ function getSellerListings() {
 
 function saveSellerListings(listings) {
   writeJson(sellerListingsKey, listings);
+}
+
+function renderGameListingCounts() {
+  const countsByGame = getSellerListings().reduce((counts, listing) => {
+    const game = listing.game || '';
+
+    if (!game || listing.isActive === false || listing.status === 'inactive') {
+      return counts;
+    }
+
+    const type = getListingType(listing);
+    const gameCounts = counts[game] || { account: 0, skin: 0 };
+    gameCounts[type] += 1;
+    counts[game] = gameCounts;
+
+    return counts;
+  }, {});
+
+  document.querySelectorAll('.game-card:not(.carousel-clone)').forEach((card) => {
+    const game = card.dataset.game || card.querySelector('h3')?.textContent?.trim() || '';
+    const counts = countsByGame[game] || { account: 0, skin: 0 };
+    const stats = card.querySelector('.game-listing-counts');
+
+    if (!stats) {
+      return;
+    }
+
+    stats.innerHTML = '';
+
+    const accounts = document.createElement('span');
+    accounts.textContent = formatCountLabel(counts.account, 'account', 'accounts');
+
+    const skins = document.createElement('span');
+    skins.textContent = formatCountLabel(counts.skin, 'skin', 'skins');
+
+    stats.append(accounts, skins);
+  });
 }
 
 function getGameInitials(game) {
@@ -688,6 +729,7 @@ sellerForm?.addEventListener('submit', (event) => {
   };
 
   saveSellerListings([...getSellerListings(), listing]);
+  renderGameListingCounts();
   renderSellerListings();
   refreshCarousels();
   closeSellerModal({ resetForm: true });
@@ -793,6 +835,7 @@ window.addEventListener('storage', (event) => {
   }
 
   if (event.key === sellerListingsKey) {
+    renderGameListingCounts();
     renderSellerListings();
     refreshCarousels();
   }
@@ -800,6 +843,7 @@ window.addEventListener('storage', (event) => {
 
 populateSellerGames();
 updateSellerTypeFields();
+renderGameListingCounts();
 renderSellerListings();
 initCarousels();
 renderOnlineCount();
