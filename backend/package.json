@@ -1,0 +1,31 @@
+{
+  "name": "wavehub-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.27",
+    "@nestjs/core": "^11.1.27",
+    "@nestjs/platform-express": "^11.1.27",
+    "@nestjs/typeorm": "^11.0.2",
+    "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "pg": "^8.21.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^1.0.0"
+  },
+  "overrides": {
+    "multer": "^2.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.1.6"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+*.tsbuildinfo
+*.log
+.env
+data/
+
+backend/node_modules/
+backend/dist/
+backend/data/
+frontend/node_modules/
+frontend/.next/
+frontend/next-env.d.ts

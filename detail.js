@@ -1,0 +1,532 @@
+const menuToggle = document.getElementById('menuToggle');
+const scrim = document.getElementById('scrim');
+const sideLinks = document.querySelectorAll('.side-link');
+const profileButton = document.getElementById('profileButton');
+const profileDropdown = document.getElementById('profileDropdown');
+const profileAvatar = document.getElementById('profileAvatar');
+const profilePanelAvatar = document.getElementById('profilePanelAvatar');
+const profileUsername = document.getElementById('profileUsername');
+const profileMeta = document.getElementById('profileMeta');
+const profileFullName = document.getElementById('profileFullName');
+const profileHandle = document.getElementById('profileHandle');
+const accountUsername = document.getElementById('accountUsername');
+const accountName = document.getElementById('accountName');
+const accountId = document.getElementById('accountId');
+const accountLoggedIn = document.getElementById('accountLoggedIn');
+const logoutButton = document.getElementById('logoutButton');
+const authEntryActions = document.getElementById('authEntryActions');
+const onlineCount = document.getElementById('onlineCount');
+const messageCount = document.getElementById('messageCount');
+const detailLayout = document.getElementById('detailLayout');
+const detailEmpty = document.getElementById('detailEmpty');
+const detailBackLink = document.getElementById('detailBackLink');
+const detailKicker = document.getElementById('detailKicker');
+const detailTitle = document.getElementById('detailTitle');
+const detailDescription = document.getElementById('detailDescription');
+const detailSeller = document.getElementById('detailSeller');
+const detailGame = document.getElementById('detailGame');
+const detailDelivery = document.getElementById('detailDelivery');
+const detailStatusText = document.getElementById('detailStatusText');
+const detailLongDescription = document.getElementById('detailLongDescription');
+const detailIncluded = document.getElementById('detailIncluded');
+const detailTag = document.getElementById('detailTag');
+const detailPrice = document.getElementById('detailPrice');
+const buyButton = document.getElementById('buyButton');
+const buyStatus = document.getElementById('buyStatus');
+const priceOfferForm = document.getElementById('priceOfferForm');
+const offerPriceInput = document.getElementById('offerPrice');
+const offerMessageInput = document.getElementById('offerMessage');
+const offerStatus = document.getElementById('offerStatus');
+
+const sellerListingsKey = 'wavehub.sellerListings';
+const localUsersKey = 'wavehub.users';
+const sessionKey = 'wavehub.session';
+const priceOffersKey = 'wavehub.priceOffers';
+const minOnlineCount = 94;
+const maxOnlineCount = 225;
+let activeOffer = null;
+
+const serviceDetails = {
+  'pubg-mobile-ace-booster-rank-push': {
+    type: 'service',
+    title: 'PUBG Ace Booster',
+    description: 'Fast rank push with verified delivery and progress updates.',
+    longDescription: 'A verified PUBG Mobile booster helps push your rank safely with clear checkpoints, delivery updates and agreed play windows before the order starts.',
+    seller: 'Top 100 Player',
+    game: 'PUBG Mobile',
+    delivery: '6-24 hours',
+    status: 'Verified booster',
+    tag: 'Hot',
+    tagClass: 'hot',
+    price: '$18',
+    included: ['Rank push plan', 'Progress updates', 'Safe login handoff', 'Final delivery report'],
+  },
+  'call-of-duty-codm-coaching-pro-player': {
+    type: 'service',
+    title: 'CODM Pro Coaching',
+    description: 'One-on-one aim, movement and ranked strategy session.',
+    longDescription: 'A CODM coach reviews your current playstyle, runs a focused live session and gives practical drills for aim control, positioning and ranked decision-making.',
+    seller: 'NeroRush',
+    game: 'Call of Duty',
+    delivery: '1 hour session',
+    status: 'Pro coach',
+    tag: 'Pro',
+    tagClass: 'pro',
+    price: '$25/hr',
+    included: ['Live coaching call', 'Aim and movement review', 'Ranked strategy notes', 'Personal practice plan'],
+  },
+  'mobile-legends-mythic-rank-teammate': {
+    type: 'service',
+    title: 'MLBB Mythic Duo',
+    description: 'Play with a verified carry and climb safely in duo queue.',
+    longDescription: 'Queue with a verified Mobile Legends player for coordinated duo games, role planning and steady rank progress without risky shortcuts.',
+    seller: 'MythX',
+    game: 'Mobile Legends',
+    delivery: 'Per game',
+    status: 'Verified teammate',
+    tag: 'Team',
+    tagClass: 'team',
+    price: '$12/game',
+    included: ['Duo queue session', 'Role coordination', 'Draft suggestions', 'Post-game notes'],
+  },
+  'free-fire-weekly-tournament-squad-entry': {
+    type: 'service',
+    title: 'Free Fire Cup Slot',
+    description: 'Weekly tournament entry for squads with prize tracking.',
+    longDescription: 'Reserve a squad slot in a weekly Free Fire cup with match schedule, prize tracking and admin support through the event window.',
+    seller: 'WaveHub Events',
+    game: 'Free Fire',
+    delivery: 'Weekly event',
+    status: 'Event slot',
+    tag: 'Event',
+    tagClass: 'event',
+    price: '$9',
+    included: ['Squad entry slot', 'Match schedule', 'Prize tracking', 'Event support'],
+  },
+};
+
+function readJson(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function setSidebarOpen(isOpen) {
+  document.body.classList.toggle('sidebar-open', isOpen);
+  menuToggle?.setAttribute('aria-expanded', String(isOpen));
+
+  if (scrim) {
+    scrim.hidden = !isOpen;
+  }
+}
+
+function setProfileOpen(isOpen) {
+  if (!profileDropdown || !profileButton) {
+    return;
+  }
+
+  profileDropdown.hidden = !isOpen;
+  profileButton.setAttribute('aria-expanded', String(isOpen));
+}
+
+function getCurrentAccount() {
+  const session = readJson(sessionKey, null);
+  const users = readJson(localUsersKey, []);
+  const sessionUser = session?.user || null;
+  const storedUser = users.find((user) => user.username === sessionUser?.username);
+  const user = sessionUser ? { ...storedUser, ...sessionUser } : null;
+
+  return { session, user };
+}
+
+function getInitials(user) {
+  const source = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || 'G';
+  return source
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
+function getDisplayName(user) {
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+  return fullName || user?.username || 'Guest account';
+}
+
+function getShortId(id) {
+  return id ? String(id).slice(0, 8) : '-';
+}
+
+function formatLoginTime(value) {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatListingPrice(value) {
+  const price = Number(value);
+
+  if (!Number.isFinite(price)) {
+    return '$0';
+  }
+
+  return `$${Number.isInteger(price) ? price : price.toFixed(2)}`;
+}
+
+function getNumericPrice(value) {
+  const match = String(value || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function getSellerListings() {
+  const listings = readJson(sellerListingsKey, []);
+  return Array.isArray(listings) ? listings : [];
+}
+
+function getProductDetail(id) {
+  const listing = getSellerListings().find((item) => item.id === id);
+
+  if (!listing) {
+    return null;
+  }
+
+  return {
+    id,
+    type: 'product',
+    title: listing.title || `${listing.game} Account`,
+    description: listing.description || 'Gaming account listing from the WaveHub marketplace.',
+    longDescription: listing.description || 'This marketplace product is listed by a WaveHub seller with delivery details confirmed before purchase.',
+    seller: listing.sellerName || `${listing.game} account seller`,
+    sellerUsername: listing.sellerUsername || '',
+    game: listing.game || 'Marketplace',
+    delivery: 'After seller confirmation',
+    status: 'Marketplace listing',
+    tag: listing.game || 'Account',
+    tagClass: 'account',
+    price: formatListingPrice(listing.price),
+    included: ['Account delivery details', 'Seller confirmation', 'WaveHub order record', 'Post-purchase support window'],
+  };
+}
+
+function getDetailOffer() {
+  const params = new URLSearchParams(window.location.search);
+  const type = params.get('type');
+  const id = params.get('id');
+
+  if (!id) {
+    return null;
+  }
+
+  if (type === 'product') {
+    return getProductDetail(id);
+  }
+
+  if (type === 'service') {
+    return serviceDetails[id] ? { id, ...serviceDetails[id] } : null;
+  }
+
+  return serviceDetails[id] ? { id, ...serviceDetails[id] } : getProductDetail(id);
+}
+
+function setStatus(type, message) {
+  if (!buyStatus) {
+    return;
+  }
+
+  buyStatus.className = type ? `seller-status ${type}` : 'seller-status';
+  buyStatus.textContent = message;
+}
+
+function setOfferStatus(type, message) {
+  if (!offerStatus) {
+    return;
+  }
+
+  offerStatus.className = type ? `seller-status ${type}` : 'seller-status';
+  offerStatus.textContent = message;
+}
+
+function getPriceOffers() {
+  const offers = readJson(priceOffersKey, []);
+  return Array.isArray(offers) ? offers : [];
+}
+
+function getReceivedOfferCount(username) {
+  if (!username) {
+    return 0;
+  }
+
+  return getPriceOffers().filter((offer) => offer.sellerUsername === username).length;
+}
+
+function savePriceOffer(offer) {
+  writeJson(priceOffersKey, [offer, ...getPriceOffers()]);
+}
+
+function buildOfferMessage(offer, buyerName, offeredPrice, note) {
+  const base = `${buyerName} offered ${offeredPrice} for ${offer.title}.`;
+  return note ? `${base} Message: ${note}` : base;
+}
+
+function renderProfile() {
+  const { session, user } = getCurrentAccount();
+  const username = user?.username || 'Guest';
+  const displayName = user ? getDisplayName(user) : 'Guest account';
+  const initials = user ? getInitials(user) : '?';
+  const isSignedIn = Boolean(user?.username);
+
+  if (profileAvatar) profileAvatar.textContent = initials;
+  if (profilePanelAvatar) profilePanelAvatar.textContent = initials;
+  if (profileUsername) profileUsername.textContent = username;
+  if (profileMeta) profileMeta.textContent = isSignedIn ? 'Signed in' : 'Not signed in';
+  if (profileFullName) profileFullName.textContent = displayName;
+  if (profileHandle) profileHandle.textContent = isSignedIn ? `@${username}` : '@guest';
+  if (accountUsername) accountUsername.textContent = username;
+  if (accountName) accountName.textContent = isSignedIn ? displayName : 'Not signed in';
+  if (accountId) accountId.textContent = getShortId(user?.id);
+  if (accountLoggedIn) accountLoggedIn.textContent = formatLoginTime(session?.loggedInAt);
+
+  if (logoutButton) {
+    logoutButton.hidden = !isSignedIn;
+    logoutButton.disabled = !isSignedIn;
+  }
+
+  if (authEntryActions) {
+    authEntryActions.hidden = isSignedIn;
+  }
+
+  if (messageCount) {
+    messageCount.textContent = String(getReceivedOfferCount(user?.username));
+  }
+}
+
+function renderOnlineCount() {
+  if (!onlineCount) {
+    return;
+  }
+
+  const count = Math.floor(Math.random() * (maxOnlineCount - minOnlineCount + 1)) + minOnlineCount;
+  onlineCount.textContent = `${count} online`;
+}
+
+function renderIncluded(items) {
+  if (!detailIncluded) {
+    return;
+  }
+
+  detailIncluded.innerHTML = '';
+
+  items.forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = item;
+    detailIncluded.appendChild(li);
+  });
+}
+
+function renderDetail() {
+  const offer = getDetailOffer();
+
+  if (!offer) {
+    activeOffer = null;
+    if (detailLayout) detailLayout.hidden = true;
+    if (detailEmpty) detailEmpty.hidden = false;
+    if (detailTitle) detailTitle.textContent = 'Offer not found';
+    return;
+  }
+
+  activeOffer = offer;
+  document.title = `${offer.title} - WaveHub`;
+
+  if (detailLayout) detailLayout.hidden = false;
+  if (detailEmpty) detailEmpty.hidden = true;
+  if (detailBackLink) detailBackLink.href = offer.type === 'product' ? 'marketplace.html' : 'index.html';
+  document.querySelector('[data-section="Favorites"]')?.setAttribute(
+    'href',
+    offer.type === 'product' ? 'marketplace.html#favorites' : 'index.html#favorites',
+  );
+  if (detailKicker) detailKicker.textContent = offer.type === 'product' ? 'Product detail' : 'Service detail';
+  if (detailTitle) detailTitle.textContent = offer.title;
+  if (detailDescription) detailDescription.textContent = offer.description;
+  if (detailSeller) detailSeller.textContent = offer.seller;
+  if (detailGame) detailGame.textContent = offer.game;
+  if (detailDelivery) detailDelivery.textContent = offer.delivery;
+  if (detailStatusText) detailStatusText.textContent = offer.status;
+  if (detailLongDescription) detailLongDescription.textContent = offer.longDescription;
+  if (detailTag) {
+    detailTag.className = `service-tag ${offer.tagClass || 'account'}`;
+    detailTag.textContent = offer.tag;
+  }
+  if (detailPrice) detailPrice.textContent = offer.price;
+  if (buyButton) buyButton.textContent = offer.type === 'product' ? 'Buy product' : 'Buy service';
+  if (offerPriceInput) {
+    offerPriceInput.value = '';
+    offerPriceInput.placeholder = `Offer below ${formatListingPrice(getNumericPrice(offer.price) || 1)}`;
+  }
+
+  renderIncluded(offer.included || []);
+}
+
+menuToggle?.addEventListener('click', () => {
+  setSidebarOpen(!document.body.classList.contains('sidebar-open'));
+});
+
+scrim?.addEventListener('click', () => setSidebarOpen(false));
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    setSidebarOpen(false);
+    setProfileOpen(false);
+  }
+});
+
+document.addEventListener('click', (event) => {
+  const target = event.target;
+
+  if (target instanceof Node && profileButton?.contains(target)) {
+    return;
+  }
+
+  if (target instanceof Node && profileDropdown?.contains(target)) {
+    return;
+  }
+
+  setProfileOpen(false);
+});
+
+sideLinks.forEach((link) => {
+  link.addEventListener('click', (event) => {
+    if (link.getAttribute('href') !== '#') {
+      return;
+    }
+
+    event.preventDefault();
+    sideLinks.forEach((item) => item.classList.remove('active'));
+    link.classList.add('active');
+    setSidebarOpen(false);
+  });
+});
+
+profileButton?.addEventListener('click', () => {
+  setProfileOpen(profileDropdown?.hidden ?? true);
+});
+
+logoutButton?.addEventListener('click', () => {
+  localStorage.removeItem(sessionKey);
+  renderProfile();
+  setProfileOpen(false);
+});
+
+buyButton?.addEventListener('click', () => {
+  const { user } = getCurrentAccount();
+
+  if (!user?.username) {
+    setStatus('error', 'Please log in before buying.');
+    setProfileOpen(true);
+    profileButton?.focus();
+    return;
+  }
+
+  setStatus('success', 'Order request is ready. The seller will confirm details shortly.');
+});
+
+priceOfferForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  setOfferStatus('', '');
+
+  const { user } = getCurrentAccount();
+
+  if (!user?.username) {
+    setOfferStatus('error', 'Please log in before sending a price offer.');
+    setProfileOpen(true);
+    profileButton?.focus();
+    return;
+  }
+
+  if (!activeOffer) {
+    setOfferStatus('error', 'Offer is not available right now.');
+    return;
+  }
+
+  if (activeOffer.sellerUsername && activeOffer.sellerUsername === user.username) {
+    setOfferStatus('error', 'You cannot send a price offer to your own listing.');
+    return;
+  }
+
+  const amount = Number(offerPriceInput?.value);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    setOfferStatus('error', 'Please enter a valid price.');
+    return;
+  }
+
+  const offeredPrice = formatListingPrice(amount);
+  const buyerName = getDisplayName(user);
+  const note = offerMessageInput?.value.trim() || '';
+  const priceOffer = {
+    id: window.crypto?.randomUUID?.() || String(Date.now()),
+    itemId: activeOffer.id,
+    itemType: activeOffer.type,
+    itemTitle: activeOffer.title,
+    detailUrl: `detail.html?type=${activeOffer.type}&id=${encodeURIComponent(activeOffer.id)}`,
+    game: activeOffer.game,
+    askingPrice: activeOffer.price,
+    offeredPrice,
+    amount,
+    message: buildOfferMessage(activeOffer, buyerName, offeredPrice, note),
+    note,
+    buyerUsername: user.username,
+    buyerName,
+    sellerUsername: activeOffer.sellerUsername || '',
+    sellerName: activeOffer.seller,
+    status: 'sent',
+    createdAt: new Date().toISOString(),
+  };
+
+  savePriceOffer(priceOffer);
+  priceOfferForm.reset();
+  renderProfile();
+  setOfferStatus('success', activeOffer.sellerUsername
+    ? 'Price offer sent to the seller messages.'
+    : 'Price offer saved in your sent messages.');
+});
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 920) {
+    setSidebarOpen(false);
+  }
+});
+
+window.addEventListener('storage', (event) => {
+  if (event.key === sessionKey || event.key === localUsersKey || event.key === priceOffersKey) {
+    renderProfile();
+  }
+
+  if (event.key === sellerListingsKey) {
+    renderDetail();
+  }
+});
+
+renderOnlineCount();
+renderProfile();
+renderDetail();

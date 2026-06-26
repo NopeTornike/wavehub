@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaveHub - Account</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="auth-page">
+  <main class="auth-page-shell">
+    <section class="auth-card" aria-labelledby="authTitle">
+      <a class="auth-brand" href="index.html" aria-label="Back to WaveHub">
+        <span class="brand-mark">W</span>
+        <span class="brand-text">
+          <strong>WAVEHUB</strong>
+          <small>boost trade win</small>
+        </span>
+      </a>
+
+      <div class="auth-card-head">
+        <p class="section-kicker">WaveHub account</p>
+        <h1 id="authTitle">Log in or create account</h1>
+      </div>
+
+      <div class="auth-tabs" role="tablist" aria-label="Authentication">
+        <button class="auth-tab active" id="loginModeButton" type="button" role="tab" aria-selected="true">Log in</button>
+        <button class="auth-tab" id="registerModeButton" type="button" role="tab" aria-selected="false">Register</button>
+      </div>
+
+      <form class="auth-form" id="loginForm" novalidate>
+        <label>
+          <span>Username</span>
+          <input id="loginUsername" name="username" type="text" autocomplete="username" placeholder="your_username" required />
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Password" required />
+        </label>
+        <p class="auth-status" id="loginStatus" aria-live="polite"></p>
+        <button class="auth-submit-button" type="submit">Log in</button>
+      </form>
+
+      <form class="auth-form" id="registerForm" novalidate hidden>
+        <label>
+          <span>Username</span>
+          <input id="registerUsername" name="username" type="text" autocomplete="username" placeholder="choose_username" required />
+        </label>
+        <div class="auth-split">
+          <label>
+            <span>First name</span>
+            <input id="firstName" name="firstName" type="text" autocomplete="given-name" placeholder="First name" required />
+          </label>
+          <label>
+            <span>Last name</span>
+            <input id="lastName" name="lastName" type="text" autocomplete="family-name" placeholder="Last name" required />
+          </label>
+        </div>
+        <label>
+          <span>Password</span>
+          <input id="registerPassword" name="password" type="password" autocomplete="new-password" placeholder="At least 6 characters" minlength="6" required />
+        </label>
+        <label>
+          <span>Confirm password</span>
+          <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Repeat password" minlength="6" required />
+        </label>
+        <p class="auth-status" id="registerStatus" aria-live="polite"></p>
+        <button class="auth-submit-button" type="submit">Create account</button>
+      </form>
+
+      <a class="auth-back-link" href="marketplace.html">Back to marketplace</a>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+</body>
+</html>
