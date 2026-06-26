@@ -176,6 +176,15 @@ button {
   color: var(--pink-2);
 }
 
+.nav-icon-home img,
+.nav-icon-marketplace img,
+.nav-icon-settings img {
+  width: 24px;
+  height: 24px;
+  display: block;
+  object-fit: contain;
+}
+
 .nav-icon-heart::before {
   content: "\2665";
   color: currentColor;
@@ -1091,7 +1100,7 @@ button {
 
 .marketplace-toolbar {
   display: grid;
-  grid-template-columns: repeat(2, minmax(180px, 240px));
+  grid-template-columns: repeat(3, minmax(160px, 240px));
   gap: 12px;
   align-items: end;
   padding: 14px;
@@ -1131,11 +1140,12 @@ button {
 
 .marketplace-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
   gap: 12px;
 }
 
 .marketplace-card {
+  min-width: 0;
   min-height: 224px;
   display: grid;
   align-content: start;
@@ -1149,25 +1159,35 @@ button {
 
 .marketplace-card-top,
 .marketplace-card-meta {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .marketplace-card-top {
+  flex-wrap: wrap;
   justify-content: space-between;
 }
 
 .marketplace-card-actions {
-  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex: 1 1 124px;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   margin-left: auto;
 }
 
 .marketplace-card-top strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: white;
   font-size: 18px;
+  text-align: right;
 }
 
 .marketplace-card h3 {
@@ -1189,13 +1209,24 @@ button {
 }
 
 .marketplace-card-meta {
+  flex-wrap: wrap;
   margin-top: auto;
   color: #c2cada;
   font-size: 12px;
   font-weight: 800;
 }
 
+.marketplace-card-meta span:not(.avatar) {
+  flex: 1 1 130px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .marketplace-card-meta button {
+  max-width: 100%;
+  flex: 0 0 auto;
   min-height: 34px;
   margin-left: auto;
   border: 1px solid rgba(255, 47, 143, 0.36);
@@ -1746,6 +1777,36 @@ button {
   font-weight: 800;
 }
 
+.game-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 3px;
+}
+
+.game-card-actions a {
+  min-width: 0;
+  min-height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 47, 143, 0.28);
+  border-radius: 8px;
+  color: var(--pink-2);
+  background: rgba(255, 47, 143, 0.08);
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.game-card-actions a:hover,
+.game-card-actions a:focus-visible {
+  border-color: rgba(255, 47, 143, 0.58);
+  background: rgba(255, 47, 143, 0.16);
+}
+
 .service-card {
   min-height: 216px;
   display: grid;
@@ -1800,6 +1861,10 @@ button {
 
 .service-tag.account {
   background: linear-gradient(135deg, var(--cyan), var(--violet));
+}
+
+.service-tag.skin {
+  background: linear-gradient(135deg, var(--pink), #f59e0b);
 }
 
 .save-button {
@@ -2077,5 +2142,10 @@ button {
 
   .hero-actions a {
     width: 100%;
+  }
+
+  .marketplace-card-meta button {
+    width: 100%;
+    margin-left: 0;
   }
 }

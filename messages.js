@@ -118,6 +118,10 @@ function formatOfferTime(value) {
   });
 }
 
+function normalizePriceText(value) {
+  return String(value || '').replace(/\$(\d+(?:\.\d+)?)/g, '$1 GEL');
+}
+
 function getPriceOffers() {
   const offers = readJson(priceOffersKey, []);
   return Array.isArray(offers) ? offers : [];
@@ -172,7 +176,7 @@ function createMessageCard(offer, mode) {
   tag.textContent = mode === 'received' ? 'Received' : 'Sent';
 
   const price = document.createElement('strong');
-  price.textContent = offer.offeredPrice;
+  price.textContent = normalizePriceText(offer.offeredPrice);
 
   top.append(tag, price);
 
@@ -180,7 +184,7 @@ function createMessageCard(offer, mode) {
   title.textContent = offer.itemTitle;
 
   const message = document.createElement('p');
-  message.textContent = offer.message;
+  message.textContent = normalizePriceText(offer.message);
 
   const meta = document.createElement('div');
   meta.className = 'message-meta';
@@ -188,7 +192,7 @@ function createMessageCard(offer, mode) {
   participant.textContent = mode === 'received' ? `From ${offer.buyerName}` : `To ${offer.sellerName}`;
 
   const ask = document.createElement('span');
-  ask.textContent = `Ask ${offer.askingPrice}`;
+  ask.textContent = `Ask ${normalizePriceText(offer.askingPrice)}`;
 
   const time = document.createElement('span');
   time.textContent = formatOfferTime(offer.createdAt);

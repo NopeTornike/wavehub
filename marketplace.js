@@ -2,6 +2,7 @@ const menuToggle = document.getElementById('menuToggle');
 const scrim = document.getElementById('scrim');
 const sideLinks = document.querySelectorAll('.side-link');
 const searchInput = document.getElementById('marketplaceSearch');
+const productTypeFilter = document.getElementById('productTypeFilter');
 const gameFilter = document.getElementById('gameFilter');
 const priceSort = document.getElementById('priceSort');
 const marketplaceGrid = document.getElementById('marketplaceGrid');
@@ -12,7 +13,9 @@ const sellerModal = document.getElementById('sellerModal');
 const sellerCloseButton = document.getElementById('sellerCloseButton');
 const sellerCancelButton = document.getElementById('sellerCancelButton');
 const sellerForm = document.getElementById('sellerForm');
+const sellerProductType = document.getElementById('sellerProductType');
 const sellerGame = document.getElementById('sellerGame');
+const sellerTitleLabel = document.getElementById('sellerTitleLabel');
 const sellerTitle = document.getElementById('sellerTitle');
 const sellerPrice = document.getElementById('sellerPrice');
 const sellerDescription = document.getElementById('sellerDescription');
@@ -40,6 +43,34 @@ const sessionKey = 'wavehub.session';
 const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
 const games = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
+const listingTypeConfig = {
+  account: {
+    type: 'account',
+    label: 'Account',
+    pluralLabel: 'Accounts',
+    tagClass: 'account',
+    tagLabel: 'Account',
+    titleLabel: 'Account title',
+    titlePlaceholder: 'PUBG Mobile Ace account',
+    descriptionPlaceholder: 'Rank, skins, level, delivery details...',
+    sellerNoun: 'account seller',
+    searchTerms: 'account product listing',
+    actionLabel: 'Order',
+  },
+  skin: {
+    type: 'skin',
+    label: 'Skin',
+    pluralLabel: 'Skins',
+    tagClass: 'skin',
+    tagLabel: 'Skin',
+    titleLabel: 'Skin name',
+    titlePlaceholder: 'AK-47 Neon Rider skin',
+    descriptionPlaceholder: 'Rarity, condition, platform and delivery details...',
+    sellerNoun: 'skin seller',
+    searchTerms: 'skin cosmetic item marketplace buy sell',
+    actionLabel: 'Buy',
+  },
+};
 
 function readJson(key, fallback) {
   try {
@@ -139,6 +170,20 @@ function applyInitialHash() {
   }
 }
 
+function applyInitialFilters() {
+  const params = new URLSearchParams(window.location.search);
+  const type = params.get('type');
+  const game = params.get('game');
+
+  if (productTypeFilter && (type === 'account' || type === 'skin')) {
+    productTypeFilter.value = type;
+  }
+
+  if (gameFilter && game && [...gameFilter.options].some((option) => option.value === game)) {
+    gameFilter.value = game;
+  }
+}
+
 function setSidebarOpen(isOpen) {
   document.body.classList.toggle('sidebar-open', isOpen);
   menuToggle?.setAttribute('aria-expanded', String(isOpen));
@@ -170,10 +215,10 @@ function formatListingPrice(value) {
   const price = Number(value);
 
   if (!Number.isFinite(price)) {
-    return '$0';
+    return '0 GEL';
   }
 
-  return `$${Number.isInteger(price) ? price : price.toFixed(2)}`;
+  return `${Number.isInteger(price) ? price : price.toFixed(2)} GEL`;
 }
 
 function getGameInitials(game) {
@@ -186,6 +231,25 @@ function getGameInitials(game) {
     .toUpperCase();
 
   return initials || 'WH';
+}
+
+function getListingType(listing) {
+  return listing?.listingType === 'skin' ? 'skin' : 'account';
+}
+
+function getListingConfig(listingOrType) {
+  const type = typeof listingOrType === 'string' ? listingOrType : getListingType(listingOrType);
+  return listingTypeConfig[type] || listingTypeConfig.account;
+}
+
+function getListingTitle(listing) {
+  const config = getListingConfig(listing);
+  return listing.title || `${listing.game} ${config.label}`;
+}
+
+function getListingSellerName(listing) {
+  const config = getListingConfig(listing);
+  return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
 }
 
 function getInitials(user) {
@@ -300,8 +364,26 @@ function populateGameSelects() {
   });
 }
 
+function updateSellerTypeFields() {
+  const config = getListingConfig(sellerProductType?.value || 'account');
+
+  if (sellerTitleLabel) {
+    sellerTitleLabel.textContent = config.titleLabel;
+  }
+
+  if (sellerTitle) {
+    sellerTitle.placeholder = config.titlePlaceholder;
+    sellerTitle.required = config.type === 'skin';
+  }
+
+  if (sellerDescription) {
+    sellerDescription.placeholder = config.descriptionPlaceholder;
+  }
+}
+
 function getFilteredListings() {
   const query = searchInput?.value.trim().toLowerCase() || '';
+  const selectedType = productTypeFilter?.value || 'all';
   const selectedGame = gameFilter?.value || 'all';
   const sortMode = priceSort?.value || 'newest';
   const isFavoritesView = getActiveSection() === 'Favorites';
@@ -311,11 +393,14 @@ function getFilteredListings() {
       : [],
   );
   const listings = getSellerListings().filter((listing) => {
+    const listingType = getListingType(listing);
+    const config = getListingConfig(listingType);
+    const matchesType = selectedType === 'all' || listingType === selectedType;
     const matchesGame = selectedGame === 'all' || listing.game === selectedGame;
-    const haystack = [listing.game, listing.title, listing.description].join(' ').toLowerCase();
+    const haystack = [listing.game, getListingTitle(listing), listing.description, config.searchTerms].join(' ').toLowerCase();
     const matchesFavorites = !isFavoritesView || favoriteIds.has(getFavoriteId(listing));
 
-    return matchesGame && matchesFavorites && (!query || haystack.includes(query));
+    return matchesType && matchesGame && matchesFavorites && (!query || haystack.includes(query));
   });
 
   if (sortMode === 'asc') {
@@ -332,21 +417,24 @@ function getFilteredListings() {
 }
 
 function getProductFavorite(listing) {
+  const config = getListingConfig(listing);
+
   return {
     id: getFavoriteId(listing),
     type: 'product',
     listingId: listing.id || '',
-    search: [listing.game, listing.title, listing.description, 'account product listing'].join(' ').toLowerCase(),
-    title: listing.title || `${listing.game} Account`,
+    search: [listing.game, getListingTitle(listing), listing.description, config.searchTerms].join(' ').toLowerCase(),
+    title: getListingTitle(listing),
     description: listing.description || '',
-    seller: listing.sellerName || `${listing.game} account`,
+    seller: getListingSellerName(listing),
     price: formatListingPrice(listing.price),
-    tag: listing.game || 'Account',
+    tag: `${listing.game || 'Marketplace'} ${config.label}`,
     savedAt: new Date().toISOString(),
   };
 }
 
 function createMarketplaceCard(listing) {
+  const config = getListingConfig(listing);
   const card = document.createElement('article');
   card.className = 'marketplace-card';
   card.dataset.listingId = listing.id;
@@ -355,8 +443,8 @@ function createMarketplaceCard(listing) {
   top.className = 'marketplace-card-top';
 
   const tag = document.createElement('span');
-  tag.className = 'service-tag account';
-  tag.textContent = listing.game;
+  tag.className = `service-tag ${config.tagClass}`;
+  tag.textContent = config.tagLabel;
 
   const price = document.createElement('strong');
   price.textContent = formatListingPrice(listing.price);
@@ -376,7 +464,7 @@ function createMarketplaceCard(listing) {
   top.append(tag, actions);
 
   const title = document.createElement('h3');
-  title.textContent = listing.title || `${listing.game} Account`;
+  title.textContent = getListingTitle(listing);
 
   const description = document.createElement('p');
   description.textContent = listing.description;
@@ -389,11 +477,11 @@ function createMarketplaceCard(listing) {
   avatar.textContent = getGameInitials(listing.game);
 
   const account = document.createElement('span');
-  account.textContent = listing.sellerName || `${listing.game} account`;
+  account.textContent = `${listing.game || 'Marketplace'} / ${getListingSellerName(listing)}`;
 
   const action = document.createElement('button');
   action.type = 'button';
-  action.textContent = 'Order';
+  action.textContent = config.actionLabel;
   action.addEventListener('click', () => {
     const detailUrl = getDetailUrl(listing);
 
@@ -455,6 +543,7 @@ function openSellerModal() {
 
   setProfileOpen(false);
   setSidebarOpen(false);
+  updateSellerTypeFields();
   setSellerStatus('', '');
   sellerModal.hidden = false;
   sellerButton?.setAttribute('aria-expanded', 'true');
@@ -471,6 +560,7 @@ function closeSellerModal({ resetForm = false } = {}) {
 
   if (resetForm) {
     sellerForm?.reset();
+    updateSellerTypeFields();
     setSellerStatus('', '');
   }
 }
@@ -540,6 +630,7 @@ logoutButton?.addEventListener('click', () => {
 sellerButton?.addEventListener('click', openSellerModal);
 sellerCloseButton?.addEventListener('click', () => closeSellerModal({ resetForm: true }));
 sellerCancelButton?.addEventListener('click', () => closeSellerModal({ resetForm: true }));
+sellerProductType?.addEventListener('change', updateSellerTypeFields);
 
 sellerModal?.addEventListener('click', (event) => {
   if (event.target === sellerModal) {
@@ -585,7 +676,10 @@ sellerForm?.addEventListener('submit', (event) => {
   event.preventDefault();
 
   const game = sellerGame?.value.trim() || '';
-  const title = sellerTitle?.value.trim() || `${game} Account`;
+  const listingType = sellerProductType?.value === 'skin' ? 'skin' : 'account';
+  const config = getListingConfig(listingType);
+  const titleValue = sellerTitle?.value.trim() || '';
+  const title = titleValue || `${game} ${config.label}`;
   const price = Number(sellerPrice?.value);
   const description = sellerDescription?.value.trim() || '';
 
@@ -594,15 +688,21 @@ sellerForm?.addEventListener('submit', (event) => {
     return;
   }
 
+  if (listingType === 'skin' && !titleValue) {
+    setSellerStatus('error', 'Please write the skin name.');
+    return;
+  }
+
   const sellerUser = getCurrentAccount().user;
   const listing = {
     id: window.crypto?.randomUUID?.() || String(Date.now()),
+    listingType,
     game,
     title,
     price,
     description,
     sellerUsername: sellerUser?.username || '',
-    sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} account seller`,
+    sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} ${config.sellerNoun}`,
     createdAt: new Date().toISOString(),
   };
 
@@ -612,6 +712,7 @@ sellerForm?.addEventListener('submit', (event) => {
 });
 
 searchInput?.addEventListener('input', renderMarketplace);
+productTypeFilter?.addEventListener('change', renderMarketplace);
 gameFilter?.addEventListener('change', renderMarketplace);
 priceSort?.addEventListener('change', renderMarketplace);
 
@@ -633,6 +734,8 @@ window.addEventListener('storage', (event) => {
 });
 
 populateGameSelects();
+applyInitialFilters();
+updateSellerTypeFields();
 renderOnlineCount();
 renderProfile();
 applyInitialHash();

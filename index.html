@@ -19,11 +19,15 @@
 
       <nav class="side-nav" aria-label="Main pages">
         <a class="side-link active" href="index.html" data-section="Home">
-          <span class="nav-icon" aria-hidden="true">H</span>
+          <span class="nav-icon nav-icon-home" aria-hidden="true">
+            <img src="assets/home-icon.png" alt="" />
+          </span>
           <span>Home</span>
         </a>
         <a class="side-link" href="marketplace.html" data-section="Marketplace">
-          <span class="nav-icon" aria-hidden="true">M</span>
+          <span class="nav-icon nav-icon-marketplace" aria-hidden="true">
+            <img src="assets/cart-icon.png" alt="" />
+          </span>
           <span>Marketplace</span>
         </a>
         <!-- <a class="side-link" href="#" data-section="Team Finder">
@@ -48,7 +52,7 @@
           <span class="nav-pill" id="messageCount">0</span>
         </a>
         <a class="side-link" href="#" data-section="Wallet">
-          <span class="nav-icon" aria-hidden="true">$</span>
+          <span class="nav-icon" aria-hidden="true">₾</span>
           <span>Wallet</span>
         </a>
         <a class="side-link" href="#" data-section="Favorites">
@@ -60,7 +64,9 @@
           <span>Reviews</span>
         </a> -->
         <a class="side-link" href="#" data-section="Settings">
-          <span class="nav-icon" aria-hidden="true">S</span>
+          <span class="nav-icon nav-icon-settings" aria-hidden="true">
+            <img src="assets/settings-icon.png" alt="" />
+          </span>
           <span>Settings</span>
         </a>
       </nav>
@@ -80,12 +86,20 @@
         <div class="seller-modal-head">
           <div>
             <p class="section-kicker">Seller offer</p>
-            <h2 id="sellerModalTitle">Sell an Account</h2>
+            <h2 id="sellerModalTitle">Sell Accounts or Skins</h2>
           </div>
           <button class="seller-close-button" id="sellerCloseButton" type="button" aria-label="Close seller form">x</button>
         </div>
 
         <form class="seller-form" id="sellerForm">
+          <label>
+            <span>Listing type</span>
+            <select id="sellerProductType" name="productType" required>
+              <option value="account">Account</option>
+              <option value="skin">Skin</option>
+            </select>
+          </label>
+
           <label>
             <span>Game</span>
             <select id="sellerGame" name="game" required>
@@ -94,13 +108,13 @@
           </label>
 
           <label>
-            <span>Account title</span>
+            <span id="sellerTitleLabel">Account title</span>
             <input id="sellerTitle" name="title" type="text" maxlength="44" placeholder="PUBG Mobile Ace account" autocomplete="off" />
           </label>
 
           <label>
-            <span>Price</span>
-            <input id="sellerPrice" name="price" type="number" min="1" step="1" placeholder="25" required />
+            <span>Price (GEL)</span>
+            <input id="sellerPrice" name="price" type="number" min="1" step="1" placeholder="50" required />
           </label>
 
           <label>
@@ -263,6 +277,10 @@
                 <h3>PUBG Mobile</h3>
                 <div class="rating" aria-label="4.8 out of 5">4.8 / 5</div>
                 <p><span>12.5K players</span><span>345 services</span></p>
+                <div class="game-card-actions">
+                  <a href="marketplace.html?type=account&amp;game=PUBG%20Mobile">Accounts</a>
+                  <a href="marketplace.html?type=skin&amp;game=PUBG%20Mobile">Skins</a>
+                </div>
               </div>
             </article>
 
@@ -274,6 +292,10 @@
                 <h3>Call of Duty</h3>
                 <div class="rating" aria-label="4.7 out of 5">4.7 / 5</div>
                 <p><span>8.7K players</span><span>189 services</span></p>
+                <div class="game-card-actions">
+                  <a href="marketplace.html?type=account&amp;game=Call%20of%20Duty">Accounts</a>
+                  <a href="marketplace.html?type=skin&amp;game=Call%20of%20Duty">Skins</a>
+                </div>
               </div>
             </article>
 
@@ -285,6 +307,10 @@
                 <h3>CS2</h3>
                 <div class="rating" aria-label="4.8 out of 5">4.8 / 5</div>
                 <p><span>9.4K players</span><span>218 services</span></p>
+                <div class="game-card-actions">
+                  <a href="marketplace.html?type=account&amp;game=CS2">Accounts</a>
+                  <a href="marketplace.html?type=skin&amp;game=CS2">Skins</a>
+                </div>
               </div>
             </article>
 
@@ -296,6 +322,10 @@
                 <h3>Mobile Legends</h3>
                 <div class="rating" aria-label="4.9 out of 5">4.9 / 5</div>
                 <p><span>15.3K players</span><span>332 services</span></p>
+                <div class="game-card-actions">
+                  <a href="marketplace.html?type=account&amp;game=Mobile%20Legends">Accounts</a>
+                  <a href="marketplace.html?type=skin&amp;game=Mobile%20Legends">Skins</a>
+                </div>
               </div>
             </article>
 
@@ -307,6 +337,10 @@
                 <h3>Free Fire</h3>
                 <div class="rating" aria-label="4.6 out of 5">4.6 / 5</div>
                 <p><span>7.2K players</span><span>154 services</span></p>
+                <div class="game-card-actions">
+                  <a href="marketplace.html?type=account&amp;game=Free%20Fire">Accounts</a>
+                  <a href="marketplace.html?type=skin&amp;game=Free%20Fire">Skins</a>
+                </div>
               </div>
             </article>
 
@@ -318,6 +352,10 @@
                 <h3>Roblox</h3>
                 <div class="rating" aria-label="4.8 out of 5">4.8 / 5</div>
                 <p><span>5.9K players</span><span>267 services</span></p>
+                <div class="game-card-actions">
+                  <a href="marketplace.html?type=account&amp;game=Roblox">Accounts</a>
+                  <a href="marketplace.html?type=skin&amp;game=Roblox">Skins</a>
+                </div>
               </div>
             </article>
           </div>
@@ -347,7 +385,7 @@
                 <span>Top 100 Player</span>
               </div>
               <div class="price-row">
-                <strong>$18</strong>
+                <strong>18 GEL</strong>
                 <button type="button">Order</button>
               </div>
             </article>
@@ -364,7 +402,7 @@
                 <span>NeroRush</span>
               </div>
               <div class="price-row">
-                <strong>$25/hr</strong>
+                <strong>25 GEL/hr</strong>
                 <button type="button">Book</button>
               </div>
             </article>
@@ -381,7 +419,7 @@
                 <span>MythX</span>
               </div>
               <div class="price-row">
-                <strong>$12/game</strong>
+                <strong>12 GEL/game</strong>
                 <button type="button">Invite</button>
               </div>
             </article>
@@ -398,7 +436,7 @@
                 <span>WaveHub Events</span>
               </div>
               <div class="price-row">
-                <strong>$9</strong>
+                <strong>9 GEL</strong>
                 <button type="button">Join</button>
               </div>
             </article>

@@ -44,6 +44,30 @@ const sessionKey = 'wavehub.session';
 const priceOffersKey = 'wavehub.priceOffers';
 const minOnlineCount = 94;
 const maxOnlineCount = 225;
+const listingTypeConfig = {
+  account: {
+    type: 'account',
+    label: 'Account',
+    tagClass: 'account',
+    tagLabel: 'Account',
+    sellerNoun: 'account seller',
+    description: 'Gaming account listing from the WaveHub marketplace.',
+    longDescription: 'This marketplace account is listed by a WaveHub seller with delivery details confirmed before purchase.',
+    status: 'Account listing',
+    included: ['Account delivery details', 'Seller confirmation', 'WaveHub order record', 'Post-purchase support window'],
+  },
+  skin: {
+    type: 'skin',
+    label: 'Skin',
+    tagClass: 'skin',
+    tagLabel: 'Skin',
+    sellerNoun: 'skin seller',
+    description: 'Gaming skin listing from the WaveHub marketplace.',
+    longDescription: 'This skin is listed by a WaveHub seller with item details, transfer method and delivery timing confirmed before purchase.',
+    status: 'Skin listing',
+    included: ['Skin transfer details', 'Seller confirmation', 'WaveHub order record', 'Post-purchase support window'],
+  },
+};
 let activeOffer = null;
 
 const serviceDetails = {
@@ -58,7 +82,7 @@ const serviceDetails = {
     status: 'Verified booster',
     tag: 'Hot',
     tagClass: 'hot',
-    price: '$18',
+    price: '18 GEL',
     included: ['Rank push plan', 'Progress updates', 'Safe login handoff', 'Final delivery report'],
   },
   'call-of-duty-codm-coaching-pro-player': {
@@ -72,7 +96,7 @@ const serviceDetails = {
     status: 'Pro coach',
     tag: 'Pro',
     tagClass: 'pro',
-    price: '$25/hr',
+    price: '25 GEL/hr',
     included: ['Live coaching call', 'Aim and movement review', 'Ranked strategy notes', 'Personal practice plan'],
   },
   'mobile-legends-mythic-rank-teammate': {
@@ -86,7 +110,7 @@ const serviceDetails = {
     status: 'Verified teammate',
     tag: 'Team',
     tagClass: 'team',
-    price: '$12/game',
+    price: '12 GEL/game',
     included: ['Duo queue session', 'Role coordination', 'Draft suggestions', 'Post-game notes'],
   },
   'free-fire-weekly-tournament-squad-entry': {
@@ -100,7 +124,7 @@ const serviceDetails = {
     status: 'Event slot',
     tag: 'Event',
     tagClass: 'event',
-    price: '$9',
+    price: '9 GEL',
     included: ['Squad entry slot', 'Match schedule', 'Prize tracking', 'Event support'],
   },
 };
@@ -188,10 +212,10 @@ function formatListingPrice(value) {
   const price = Number(value);
 
   if (!Number.isFinite(price)) {
-    return '$0';
+    return '0 GEL';
   }
 
-  return `$${Number.isInteger(price) ? price : price.toFixed(2)}`;
+  return `${Number.isInteger(price) ? price : price.toFixed(2)} GEL`;
 }
 
 function getNumericPrice(value) {
@@ -204,6 +228,25 @@ function getSellerListings() {
   return Array.isArray(listings) ? listings : [];
 }
 
+function getListingType(listing) {
+  return listing?.listingType === 'skin' ? 'skin' : 'account';
+}
+
+function getListingConfig(listingOrType) {
+  const type = typeof listingOrType === 'string' ? listingOrType : getListingType(listingOrType);
+  return listingTypeConfig[type] || listingTypeConfig.account;
+}
+
+function getListingTitle(listing) {
+  const config = getListingConfig(listing);
+  return listing.title || `${listing.game} ${config.label}`;
+}
+
+function getListingSellerName(listing) {
+  const config = getListingConfig(listing);
+  return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
+}
+
 function getProductDetail(id) {
   const listing = getSellerListings().find((item) => item.id === id);
 
@@ -211,21 +254,25 @@ function getProductDetail(id) {
     return null;
   }
 
+  const config = getListingConfig(listing);
+
   return {
     id,
     type: 'product',
-    title: listing.title || `${listing.game} Account`,
-    description: listing.description || 'Gaming account listing from the WaveHub marketplace.',
-    longDescription: listing.description || 'This marketplace product is listed by a WaveHub seller with delivery details confirmed before purchase.',
-    seller: listing.sellerName || `${listing.game} account seller`,
+    productType: config.type,
+    productLabel: config.label,
+    title: getListingTitle(listing),
+    description: listing.description || config.description,
+    longDescription: listing.description || config.longDescription,
+    seller: getListingSellerName(listing),
     sellerUsername: listing.sellerUsername || '',
     game: listing.game || 'Marketplace',
     delivery: 'After seller confirmation',
-    status: 'Marketplace listing',
-    tag: listing.game || 'Account',
-    tagClass: 'account',
+    status: config.status,
+    tag: config.tagLabel,
+    tagClass: config.tagClass,
     price: formatListingPrice(listing.price),
-    included: ['Account delivery details', 'Seller confirmation', 'WaveHub order record', 'Post-purchase support window'],
+    included: config.included,
   };
 }
 
@@ -365,7 +412,9 @@ function renderDetail() {
     'href',
     offer.type === 'product' ? 'marketplace.html#favorites' : 'index.html#favorites',
   );
-  if (detailKicker) detailKicker.textContent = offer.type === 'product' ? 'Product detail' : 'Service detail';
+  if (detailKicker) {
+    detailKicker.textContent = offer.type === 'product' ? `${offer.productLabel || 'Product'} detail` : 'Service detail';
+  }
   if (detailTitle) detailTitle.textContent = offer.title;
   if (detailDescription) detailDescription.textContent = offer.description;
   if (detailSeller) detailSeller.textContent = offer.seller;
@@ -378,7 +427,9 @@ function renderDetail() {
     detailTag.textContent = offer.tag;
   }
   if (detailPrice) detailPrice.textContent = offer.price;
-  if (buyButton) buyButton.textContent = offer.type === 'product' ? 'Buy product' : 'Buy service';
+  if (buyButton) {
+    buyButton.textContent = offer.type === 'product' ? `Buy ${(offer.productLabel || 'product').toLowerCase()}` : 'Buy service';
+  }
   if (offerPriceInput) {
     offerPriceInput.value = '';
     offerPriceInput.placeholder = `Offer below ${formatListingPrice(getNumericPrice(offer.price) || 1)}`;

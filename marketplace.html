@@ -19,11 +19,15 @@
 
       <nav class="side-nav" aria-label="Main pages">
         <a class="side-link" href="index.html" data-section="Home">
-          <span class="nav-icon" aria-hidden="true">H</span>
+          <span class="nav-icon nav-icon-home" aria-hidden="true">
+            <img src="assets/home-icon.png" alt="" />
+          </span>
           <span>Home</span>
         </a>
         <a class="side-link active" href="marketplace.html" data-section="Marketplace">
-          <span class="nav-icon" aria-hidden="true">M</span>
+          <span class="nav-icon nav-icon-marketplace" aria-hidden="true">
+            <img src="assets/cart-icon.png" alt="" />
+          </span>
           <span>Marketplace</span>
         </a>
         <a class="side-link" href="#" data-section="Coaching">
@@ -40,7 +44,7 @@
           <span class="nav-pill" id="messageCount">0</span>
         </a>
         <a class="side-link" href="#" data-section="Wallet">
-          <span class="nav-icon" aria-hidden="true">$</span>
+          <span class="nav-icon" aria-hidden="true">₾</span>
           <span>Wallet</span>
         </a>
         <a class="side-link" href="#" data-section="Favorites">
@@ -48,7 +52,9 @@
           <span>Favorites</span>
         </a>
         <a class="side-link" href="#" data-section="Settings">
-          <span class="nav-icon" aria-hidden="true">S</span>
+          <span class="nav-icon nav-icon-settings" aria-hidden="true">
+            <img src="assets/settings-icon.png" alt="" />
+          </span>
           <span>Settings</span>
         </a>
       </nav>
@@ -66,12 +72,20 @@
         <div class="seller-modal-head">
           <div>
             <p class="section-kicker">Seller offer</p>
-            <h2 id="sellerModalTitle">Sell an Account</h2>
+            <h2 id="sellerModalTitle">Sell Accounts or Skins</h2>
           </div>
           <button class="seller-close-button" id="sellerCloseButton" type="button" aria-label="Close seller form">x</button>
         </div>
 
         <form class="seller-form" id="sellerForm">
+          <label>
+            <span>Listing type</span>
+            <select id="sellerProductType" name="productType" required>
+              <option value="account">Account</option>
+              <option value="skin">Skin</option>
+            </select>
+          </label>
+
           <label>
             <span>Game</span>
             <select id="sellerGame" name="game" required>
@@ -80,13 +94,13 @@
           </label>
 
           <label>
-            <span>Account title</span>
+            <span id="sellerTitleLabel">Account title</span>
             <input id="sellerTitle" name="title" type="text" maxlength="44" placeholder="PUBG Mobile Ace account" autocomplete="off" />
           </label>
 
           <label>
-            <span>Price</span>
-            <input id="sellerPrice" name="price" type="number" min="1" step="1" placeholder="25" required />
+            <span>Price (GEL)</span>
+            <input id="sellerPrice" name="price" type="number" min="1" step="1" placeholder="50" required />
           </label>
 
           <label>
@@ -114,7 +128,7 @@
 
         <label class="search-box" aria-label="Search marketplace">
           <span class="search-icon" aria-hidden="true">/</span>
-          <input id="marketplaceSearch" type="search" placeholder="Search accounts..." autocomplete="off" />
+          <input id="marketplaceSearch" type="search" placeholder="Search accounts, skins or games..." autocomplete="off" />
         </label>
 
         <div class="top-actions">
@@ -175,7 +189,7 @@
 
       <section class="marketplace-head" aria-labelledby="marketplaceTitle">
         <div>
-          <p class="section-kicker">Account marketplace</p>
+          <p class="section-kicker">Account and skin marketplace</p>
           <h1 id="marketplaceTitle">Marketplace</h1>
         </div>
         <div class="marketplace-total" aria-label="Visible listings">
@@ -186,6 +200,15 @@
 
       <section class="marketplace-toolbar" aria-label="Marketplace filters">
         <label>
+          <span>Product</span>
+          <select id="productTypeFilter">
+            <option value="all">All products</option>
+            <option value="account">Accounts</option>
+            <option value="skin">Skins</option>
+          </select>
+        </label>
+
+        <label>
           <span>Game</span>
           <select id="gameFilter">
             <option value="all">All games</option>
@@ -193,7 +216,7 @@
         </label>
 
         <label>
-          <span>Price</span>
+          <span>Price (GEL)</span>
           <select id="priceSort">
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -207,7 +230,7 @@
         <div class="section-heading">
           <div>
             <p class="section-kicker">Live listings</p>
-            <h2 id="marketplaceListTitle">Account Listings</h2>
+            <h2 id="marketplaceListTitle">Accounts & Skins</h2>
           </div>
         </div>
 

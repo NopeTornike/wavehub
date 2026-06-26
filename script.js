@@ -10,7 +10,9 @@ const sellerModal = document.getElementById('sellerModal');
 const sellerCloseButton = document.getElementById('sellerCloseButton');
 const sellerCancelButton = document.getElementById('sellerCancelButton');
 const sellerForm = document.getElementById('sellerForm');
+const sellerProductType = document.getElementById('sellerProductType');
 const sellerGame = document.getElementById('sellerGame');
+const sellerTitleLabel = document.getElementById('sellerTitleLabel');
 const sellerTitle = document.getElementById('sellerTitle');
 const sellerPrice = document.getElementById('sellerPrice');
 const sellerDescription = document.getElementById('sellerDescription');
@@ -39,6 +41,32 @@ const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
 const minOnlineCount = 94;
 const maxOnlineCount = 225;
+const listingTypeConfig = {
+  account: {
+    type: 'account',
+    label: 'Account',
+    tagClass: 'account',
+    tagLabel: 'Account',
+    titleLabel: 'Account title',
+    titlePlaceholder: 'PUBG Mobile Ace account',
+    descriptionPlaceholder: 'Rank, skins, level, delivery details...',
+    sellerNoun: 'account seller',
+    searchTerms: 'account seller listing product',
+    actionLabel: 'Order',
+  },
+  skin: {
+    type: 'skin',
+    label: 'Skin',
+    tagClass: 'skin',
+    tagLabel: 'Skin',
+    titleLabel: 'Skin name',
+    titlePlaceholder: 'AK-47 Neon Rider skin',
+    descriptionPlaceholder: 'Rarity, condition, platform and delivery details...',
+    sellerNoun: 'skin seller',
+    searchTerms: 'skin cosmetic item marketplace buy sell',
+    actionLabel: 'Buy',
+  },
+};
 
 function setSidebarOpen(isOpen) {
   document.body.classList.toggle('sidebar-open', isOpen);
@@ -86,6 +114,25 @@ function getShortId(id) {
   }
 
   return String(id).slice(0, 8);
+}
+
+function getListingType(listing) {
+  return listing?.listingType === 'skin' ? 'skin' : 'account';
+}
+
+function getListingConfig(listingOrType) {
+  const type = typeof listingOrType === 'string' ? listingOrType : getListingType(listingOrType);
+  return listingTypeConfig[type] || listingTypeConfig.account;
+}
+
+function getListingTitle(listing) {
+  const config = getListingConfig(listing);
+  return listing.title || `${listing.game} ${config.label}`;
+}
+
+function getListingSellerName(listing) {
+  const config = getListingConfig(listing);
+  return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
 }
 
 function formatLoginTime(value) {
@@ -300,6 +347,23 @@ function populateSellerGames() {
   }
 }
 
+function updateSellerTypeFields() {
+  const config = getListingConfig(sellerProductType?.value || 'account');
+
+  if (sellerTitleLabel) {
+    sellerTitleLabel.textContent = config.titleLabel;
+  }
+
+  if (sellerTitle) {
+    sellerTitle.placeholder = config.titlePlaceholder;
+    sellerTitle.required = config.type === 'skin';
+  }
+
+  if (sellerDescription) {
+    sellerDescription.placeholder = config.descriptionPlaceholder;
+  }
+}
+
 function initCarousels() {
   carouselTracks.forEach((track) => {
     if (track.dataset.carouselReady === 'true') {
@@ -358,24 +422,25 @@ function formatListingPrice(value) {
   const price = Number(value);
 
   if (!Number.isFinite(price)) {
-    return '$0';
+    return '0 GEL';
   }
 
-  return `$${Number.isInteger(price) ? price : price.toFixed(2)}`;
+  return `${Number.isInteger(price) ? price : price.toFixed(2)} GEL`;
 }
 
 function createSellerListingCard(listing) {
+  const config = getListingConfig(listing);
   const card = document.createElement('article');
   card.className = 'service-card seller-listing-card';
-  card.dataset.search = [listing.game, listing.title, listing.description, 'account seller listing'].join(' ').toLowerCase();
+  card.dataset.search = [listing.game, getListingTitle(listing), listing.description, config.searchTerms].join(' ').toLowerCase();
   card.dataset.listingId = listing.id;
 
   const top = document.createElement('div');
   top.className = 'service-top';
 
   const tag = document.createElement('span');
-  tag.className = 'service-tag account';
-  tag.textContent = 'Account';
+  tag.className = `service-tag ${config.tagClass}`;
+  tag.textContent = config.tagLabel;
 
   const saveButton = document.createElement('button');
   saveButton.className = 'save-button';
@@ -387,7 +452,7 @@ function createSellerListingCard(listing) {
   top.append(tag, saveButton);
 
   const title = document.createElement('h3');
-  title.textContent = listing.title || `${listing.game} Account`;
+  title.textContent = getListingTitle(listing);
 
   const description = document.createElement('p');
   description.textContent = listing.description;
@@ -400,7 +465,7 @@ function createSellerListingCard(listing) {
   avatar.textContent = getGameInitials(listing.game);
 
   const seller = document.createElement('span');
-  seller.textContent = listing.sellerName || `${listing.game} account`;
+  seller.textContent = getListingSellerName(listing);
 
   sellerRow.append(avatar, seller);
 
@@ -412,7 +477,7 @@ function createSellerListingCard(listing) {
 
   const action = document.createElement('button');
   action.type = 'button';
-  action.textContent = 'Order';
+  action.textContent = config.actionLabel;
 
   priceRow.append(price, action);
   card.append(top, title, description, sellerRow, priceRow);
@@ -450,6 +515,7 @@ function openSellerModal() {
   }
 
   populateSellerGames();
+  updateSellerTypeFields();
   setProfileOpen(false);
   setSidebarOpen(false);
   setSellerStatus('', '');
@@ -468,6 +534,7 @@ function closeSellerModal({ resetForm = false } = {}) {
 
   if (resetForm) {
     sellerForm?.reset();
+    updateSellerTypeFields();
     setSellerStatus('', '');
   }
 }
@@ -578,6 +645,8 @@ sellerCancelButton?.addEventListener('click', () => {
   closeSellerModal({ resetForm: true });
 });
 
+sellerProductType?.addEventListener('change', updateSellerTypeFields);
+
 sellerModal?.addEventListener('click', (event) => {
   if (event.target === sellerModal) {
     closeSellerModal({ resetForm: true });
@@ -588,7 +657,10 @@ sellerForm?.addEventListener('submit', (event) => {
   event.preventDefault();
 
   const game = sellerGame?.value.trim() || '';
-  const title = sellerTitle?.value.trim() || `${game} Account`;
+  const listingType = sellerProductType?.value === 'skin' ? 'skin' : 'account';
+  const config = getListingConfig(listingType);
+  const titleValue = sellerTitle?.value.trim() || '';
+  const title = titleValue || `${game} ${config.label}`;
   const price = Number(sellerPrice?.value);
   const description = sellerDescription?.value.trim() || '';
 
@@ -597,15 +669,21 @@ sellerForm?.addEventListener('submit', (event) => {
     return;
   }
 
+  if (listingType === 'skin' && !titleValue) {
+    setSellerStatus('error', 'Please write the skin name.');
+    return;
+  }
+
   const sellerUser = getCurrentAccount().user;
   const listing = {
     id: window.crypto?.randomUUID?.() || String(Date.now()),
+    listingType,
     game,
     title,
     price,
     description,
     sellerUsername: sellerUser?.username || '',
-    sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} account seller`,
+    sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} ${config.sellerNoun}`,
     createdAt: new Date().toISOString(),
   };
 
@@ -713,9 +791,15 @@ window.addEventListener('storage', (event) => {
   if (event.key === sessionKey || event.key === localUsersKey || event.key === favoritesKey || event.key === priceOffersKey) {
     renderProfile();
   }
+
+  if (event.key === sellerListingsKey) {
+    renderSellerListings();
+    refreshCarousels();
+  }
 });
 
 populateSellerGames();
+updateSellerTypeFields();
 renderSellerListings();
 initCarousels();
 renderOnlineCount();
