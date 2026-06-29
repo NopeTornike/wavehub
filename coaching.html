@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaveHub - Coaching</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="coaching-body">
+  <div class="coach-page">
+    <header class="coach-topbar" aria-label="WaveHub coaching navigation">
+      <a class="coach-brand" href="index.html" aria-label="WaveHub home">
+        <span class="coach-brand-mark">W</span>
+        <strong>WAVEHUB</strong>
+      </a>
+
+      <nav class="coach-nav" aria-label="Coaching sections">
+        <a href="index.html">Home</a>
+        <a class="active" href="coaching.html">Browse Coaches</a>
+        <a href="coaching.html?service=rank-push">Rank Push</a>
+        <a href="coaching.html?service=duo-play">Duo Play</a>
+        <a href="#">Streams</a>
+        <a href="#">Blog</a>
+      </nav>
+
+      <div class="coach-top-actions">
+        <label class="coach-search" aria-label="Search coaches">
+          <input id="coachSearch" type="search" placeholder="Search coaches..." autocomplete="off" />
+          <span aria-hidden="true"></span>
+        </label>
+        <a class="coach-icon-button" href="messages.html" aria-label="Messages" title="Messages">
+          <span aria-hidden="true">M</span>
+        </a>
+        <button class="coach-icon-button has-badge" type="button" aria-label="Notifications" title="Notifications">
+          <span aria-hidden="true">N</span>
+        </button>
+        <button class="coach-profile" type="button" aria-label="Profile menu">
+          <span class="coach-profile-avatar">?</span>
+          <span>
+            <strong>ProCoach</strong>
+            <small>Coach Panel</small>
+          </span>
+        </button>
+      </div>
+    </header>
+
+    <main class="coach-shell">
+      <aside class="coach-filter-panel" aria-label="Coach filters">
+        <div class="coach-filter-head">
+          <strong>FILTERS</strong>
+          <button id="resetFilters" type="button">Reset</button>
+        </div>
+
+        <form class="coach-filters" id="coachFilters">
+          <fieldset>
+            <legend>
+              Game
+              <button class="coach-collapse" type="button" aria-label="Toggle game filters"></button>
+            </legend>
+            <label><input type="checkbox" name="game" value="PUBG Mobile" /> <span>PUBG Mobile</span></label>
+            <label><input type="checkbox" name="game" value="COD Mobile" /> <span>COD Mobile</span></label>
+            <label><input type="checkbox" name="game" value="Valorant" /> <span>Valorant</span></label>
+            <label><input type="checkbox" name="game" value="Fortnite" /> <span>Fortnite</span></label>
+            <label><input type="checkbox" name="game" value="Apex Legends" /> <span>Apex Legends</span></label>
+            <button class="coach-show-more" type="button">Show More</button>
+          </fieldset>
+
+          <fieldset>
+            <legend>
+              Service Type
+              <button class="coach-collapse" type="button" aria-label="Toggle service filters"></button>
+            </legend>
+            <label><input type="checkbox" name="service" value="Coaching" /> <span>Coaching</span></label>
+            <label><input type="checkbox" name="service" value="Rank Push" /> <span>Rank Push</span></label>
+            <label><input type="checkbox" name="service" value="Duo Play" /> <span>Duo Play</span></label>
+            <label><input type="checkbox" name="service" value="Game Analysis" /> <span>Game Analysis</span></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Price Range</legend>
+            <input id="priceRange" type="range" min="5" max="100" value="100" />
+            <div class="coach-range-labels">
+              <span>$5</span>
+              <span id="priceRangeLabel">$100+</span>
+            </div>
+          </fieldset>
+
+          <label class="coach-select-label">
+            <span>Rank</span>
+            <select id="rankFilter">
+              <option value="all">Any Rank</option>
+              <option value="ace">Ace or higher</option>
+              <option value="immortal">Immortal or higher</option>
+              <option value="diamond">Diamond or higher</option>
+              <option value="master">Master or higher</option>
+            </select>
+          </label>
+
+          <label class="coach-select-label">
+            <span>Availability</span>
+            <select id="availabilityFilter">
+              <option value="all">Any Time</option>
+              <option value="now">Available Now</option>
+              <option value="today">Today</option>
+              <option value="weekend">Weekend</option>
+            </select>
+          </label>
+
+          <label class="coach-select-label">
+            <span>Language</span>
+            <select id="languageFilter">
+              <option value="all">Any Language</option>
+              <option value="EN">English</option>
+              <option value="GE">Georgian</option>
+              <option value="RU">Russian</option>
+            </select>
+          </label>
+        </form>
+      </aside>
+
+      <section class="coach-browse" aria-labelledby="coachBrowseTitle">
+        <div class="coach-heading-row">
+          <div>
+            <h1 id="coachBrowseTitle"><span class="coach-heading-icon" aria-hidden="true"></span>Browse Coaches</h1>
+            <p>Find the perfect coach to level up your game</p>
+          </div>
+
+          <div class="coach-sort-row">
+            <label>
+              <span class="sr-only">Sort coaches</span>
+              <select id="coachSort">
+                <option value="rating">Sort by: Rating (High to Low)</option>
+                <option value="price-low">Sort by: Price (Low to High)</option>
+                <option value="price-high">Sort by: Price (High to Low)</option>
+                <option value="reviews">Sort by: Reviews</option>
+              </select>
+            </label>
+            <div class="coach-view-toggle" aria-label="View mode">
+              <button class="active" type="button" data-view="grid" aria-label="Grid view"></button>
+              <button type="button" data-view="list" aria-label="List view"></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="coach-game-tabs" id="coachGameTabs" aria-label="Game filters">
+          <button class="active" type="button" data-game="all">All Games</button>
+          <button type="button" data-game="PUBG Mobile">PUBG Mobile</button>
+          <button type="button" data-game="COD Mobile">COD Mobile</button>
+          <button type="button" data-game="Valorant">Valorant</button>
+          <button type="button" data-game="Fortnite">Fortnite</button>
+          <button type="button" data-game="Apex Legends">Apex Legends</button>
+          <button type="button" data-game="LOL: Wild Rift">LOL: Wild Rift</button>
+          <button type="button" data-game="more">More</button>
+        </div>
+
+        <div class="coach-result-row">
+          <span></span>
+          <strong id="coachResultCount">127 Coaches found</strong>
+        </div>
+
+        <div class="coach-grid" id="coachGrid"></div>
+        <div class="coach-empty" id="coachEmpty" hidden>No coaches found.</div>
+
+        <nav class="coach-pagination" aria-label="Coach pages">
+          <button type="button" data-page="prev" aria-label="Previous page">&lt;</button>
+          <button class="active" type="button" data-page="1">1</button>
+          <button type="button" data-page="2">2</button>
+          <button type="button" data-page="3">3</button>
+          <span>...</span>
+          <button type="button" data-page="7">7</button>
+          <button type="button" data-page="next" aria-label="Next page">&gt;</button>
+        </nav>
+      </section>
+    </main>
+  </div>
+
+  <script src="coaching.js"></script>
+</body>
+</html>
