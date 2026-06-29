@@ -15,6 +15,7 @@ const sellerGame = document.getElementById('sellerGame');
 const sellerTitleLabel = document.getElementById('sellerTitleLabel');
 const sellerTitle = document.getElementById('sellerTitle');
 const sellerPrice = document.getElementById('sellerPrice');
+const sellerImage = document.getElementById('sellerImage');
 const sellerDescription = document.getElementById('sellerDescription');
 const sellerStatus = document.getElementById('sellerStatus');
 const profileButton = document.getElementById('profileButton');
@@ -169,6 +170,46 @@ function renderOnlineCount() {
 
 function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function readSellerImageData() {
+  const file = sellerImage?.files?.[0];
+
+  if (!file) {
+    return Promise.resolve('');
+  }
+
+  if (!file.type.startsWith('image/')) {
+    return Promise.resolve('');
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.addEventListener('load', () => {
+      const image = new Image();
+
+      image.addEventListener('load', () => {
+        const maxSide = 1280;
+        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        canvas.width = width;
+        canvas.height = height;
+        context?.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.84));
+      });
+
+      image.addEventListener('error', () => reject(new Error('Image could not be loaded.')));
+      image.src = String(reader.result || '');
+    });
+
+    reader.addEventListener('error', () => reject(new Error('Image could not be read.')));
+    reader.readAsDataURL(file);
+  });
 }
 
 function getCurrentAccount() {
@@ -694,7 +735,7 @@ sellerModal?.addEventListener('click', (event) => {
   }
 });
 
-sellerForm?.addEventListener('submit', (event) => {
+sellerForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const game = sellerGame?.value.trim() || '';
@@ -715,6 +756,15 @@ sellerForm?.addEventListener('submit', (event) => {
     return;
   }
 
+  let imageData = '';
+
+  try {
+    imageData = await readSellerImageData();
+  } catch {
+    setSellerStatus('error', 'Could not read the product image.');
+    return;
+  }
+
   const sellerUser = getCurrentAccount().user;
   const listing = {
     id: window.crypto?.randomUUID?.() || String(Date.now()),
@@ -723,6 +773,8 @@ sellerForm?.addEventListener('submit', (event) => {
     title,
     price,
     description,
+    imageData,
+    imageName: sellerImage?.files?.[0]?.name || '',
     sellerUsername: sellerUser?.username || '',
     sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} ${config.sellerNoun}`,
     createdAt: new Date().toISOString(),

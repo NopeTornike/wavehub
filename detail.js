@@ -19,7 +19,15 @@ const onlineCount = document.getElementById('onlineCount');
 const messageCount = document.getElementById('messageCount');
 const detailLayout = document.getElementById('detailLayout');
 const detailEmpty = document.getElementById('detailEmpty');
+const detailTabButtons = document.querySelectorAll('.detail-tabs button');
 const detailBackLink = document.getElementById('detailBackLink');
+const detailBreadcrumb = document.getElementById('detailBreadcrumb');
+const detailHeroImage = document.getElementById('detailHeroImage');
+const detailHeroTag = document.getElementById('detailHeroTag');
+const detailHeroDelivery = document.getElementById('detailHeroDelivery');
+const detailGalleryCount = document.getElementById('detailGalleryCount');
+const detailThumbnails = document.getElementById('detailThumbnails');
+const detailSaveButton = document.getElementById('detailSaveButton');
 const detailKicker = document.getElementById('detailKicker');
 const detailTitle = document.getElementById('detailTitle');
 const detailDescription = document.getElementById('detailDescription');
@@ -29,9 +37,15 @@ const detailDelivery = document.getElementById('detailDelivery');
 const detailStatusText = document.getElementById('detailStatusText');
 const detailLongDescription = document.getElementById('detailLongDescription');
 const detailIncluded = document.getElementById('detailIncluded');
+const detailSellerScore = document.getElementById('detailSellerScore');
+const detailQualityScore = document.getElementById('detailQualityScore');
+const detailPopularity = document.getElementById('detailPopularity');
 const detailTag = document.getElementById('detailTag');
+const detailSideDelivery = document.getElementById('detailSideDelivery');
 const detailPrice = document.getElementById('detailPrice');
 const buyButton = document.getElementById('buyButton');
+const wishlistButton = document.getElementById('wishlistButton');
+const messageSellerButton = document.getElementById('messageSellerButton');
 const buyStatus = document.getElementById('buyStatus');
 const priceOfferForm = document.getElementById('priceOfferForm');
 const offerPriceInput = document.getElementById('offerPrice');
@@ -41,9 +55,18 @@ const offerStatus = document.getElementById('offerStatus');
 const sellerListingsKey = 'wavehub.sellerListings';
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
+const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
 const minOnlineCount = 94;
 const maxOnlineCount = 225;
+const gameVisualConfig = {
+  'PUBG Mobile': { coverClass: 'cover-pubg', label: 'PUBG' },
+  'Call of Duty': { coverClass: 'cover-cod', label: 'COD' },
+  CS2: { coverClass: 'cover-cs2', label: 'CS2' },
+  'Mobile Legends': { coverClass: 'cover-ml', label: 'MLBB' },
+  'Free Fire': { coverClass: 'cover-freefire', label: 'FF' },
+  Roblox: { coverClass: 'cover-roblox', label: 'RBX' },
+};
 const listingTypeConfig = {
   account: {
     type: 'account',
@@ -169,6 +192,84 @@ function getCurrentAccount() {
   return { session, user };
 }
 
+function getUserFavorites(username) {
+  if (!username) {
+    return [];
+  }
+
+  const favoritesByUser = readJson(favoritesKey, {});
+  const source = favoritesByUser && typeof favoritesByUser === 'object' && !Array.isArray(favoritesByUser)
+    ? favoritesByUser
+    : {};
+  const favorites = source[username];
+
+  return Array.isArray(favorites) ? favorites : [];
+}
+
+function saveUserFavorites(username, favorites) {
+  const favoritesByUser = readJson(favoritesKey, {});
+  const source = favoritesByUser && typeof favoritesByUser === 'object' && !Array.isArray(favoritesByUser)
+    ? favoritesByUser
+    : {};
+
+  writeJson(favoritesKey, {
+    ...source,
+    [username]: favorites,
+  });
+}
+
+function getFavoriteId(offer) {
+  if (!offer?.id) {
+    return '';
+  }
+
+  return offer.type === 'product' ? `listing:${offer.id}` : `service:${offer.id}`;
+}
+
+function getOfferFavorite(offer) {
+  return {
+    id: getFavoriteId(offer),
+    type: offer.type,
+    listingId: offer.type === 'product' ? offer.id : '',
+    serviceId: offer.type === 'service' ? offer.id : '',
+    search: [offer.game, offer.title, offer.description, offer.seller].join(' ').toLowerCase(),
+    title: offer.title,
+    description: offer.description || '',
+    seller: offer.seller,
+    price: offer.price,
+    tag: `${offer.game || 'WaveHub'} ${offer.productLabel || offer.tag || 'Offer'}`,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+function setWishlistState(isSaved) {
+  if (wishlistButton) {
+    wishlistButton.textContent = isSaved ? 'Saved' : 'Add to Wishlist';
+    wishlistButton.setAttribute('aria-pressed', String(isSaved));
+  }
+
+  if (detailSaveButton) {
+    detailSaveButton.classList.toggle('saved', isSaved);
+    detailSaveButton.setAttribute('aria-pressed', String(isSaved));
+    detailSaveButton.setAttribute('aria-label', isSaved ? 'Remove from wishlist' : 'Add to wishlist');
+  }
+}
+
+function stableHash(value) {
+  return String(value || '').split('').reduce((hash, char) => (
+    ((hash << 5) - hash + char.charCodeAt(0)) >>> 0
+  ), 2166136261);
+}
+
+function getStableScore(seed, offset = 0) {
+  const score = 92 + ((stableHash(`${seed}-${offset}`) % 8) / 10);
+  return score.toFixed(1);
+}
+
+function getStablePopularity(seed) {
+  return (1200 + (stableHash(seed) % 98000)).toLocaleString();
+}
+
 function getInitials(user) {
   const source = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || 'G';
   return source
@@ -255,6 +356,7 @@ function getProductDetail(id) {
   }
 
   const config = getListingConfig(listing);
+  const seed = `${listing.id}-${listing.game}-${getListingTitle(listing)}`;
 
   return {
     id,
@@ -267,11 +369,16 @@ function getProductDetail(id) {
     seller: getListingSellerName(listing),
     sellerUsername: listing.sellerUsername || '',
     game: listing.game || 'Marketplace',
-    delivery: 'After seller confirmation',
+    delivery: config.type === 'skin' ? 'Instant delivery' : 'After seller confirmation',
     status: config.status,
     tag: config.tagLabel,
     tagClass: config.tagClass,
     price: formatListingPrice(listing.price),
+    imageData: listing.imageData || '',
+    imageName: listing.imageName || '',
+    sellerScore: getStableScore(seed, 1),
+    productScore: getStableScore(seed, 2),
+    popularity: getStablePopularity(seed),
     included: config.included,
   };
 }
@@ -366,6 +473,8 @@ function renderProfile() {
   if (messageCount) {
     messageCount.textContent = String(getReceivedOfferCount(user?.username));
   }
+
+  syncWishlistForActiveOffer();
 }
 
 function renderOnlineCount() {
@@ -391,6 +500,83 @@ function renderIncluded(items) {
   });
 }
 
+function getVisualConfig(game) {
+  return gameVisualConfig[game] || { coverClass: '', label: 'WH' };
+}
+
+function applyHeroVisual(visual, index, total) {
+  if (!detailHeroImage) {
+    return;
+  }
+
+  detailHeroImage.className = `detail-hero-image ${visual.coverClass || ''}`.trim();
+  detailHeroImage.style.backgroundImage = visual.src
+    ? `linear-gradient(180deg, rgba(5, 8, 19, 0.03), rgba(5, 8, 19, 0.22)), url("${visual.src}")`
+    : '';
+  detailHeroImage.dataset.label = visual.label || '';
+
+  if (detailGalleryCount) {
+    detailGalleryCount.textContent = `${index + 1} / ${total}`;
+  }
+}
+
+function getGalleryVisuals(offer) {
+  const config = getVisualConfig(offer.game);
+  const labels = ['Preview', 'Loadout', 'Inventory', 'Rarity', 'Delivery', 'Stats'];
+  const visuals = labels.map((label) => ({
+    label,
+    coverClass: config.coverClass,
+    src: '',
+  }));
+
+  if (offer.imageData) {
+    visuals[0] = { label: offer.imageName || 'Uploaded image', coverClass: '', src: offer.imageData };
+  }
+
+  return visuals;
+}
+
+function renderGallery(offer) {
+  const visuals = getGalleryVisuals(offer);
+  applyHeroVisual(visuals[0], 0, visuals.length);
+
+  if (!detailThumbnails) {
+    return;
+  }
+
+  detailThumbnails.innerHTML = '';
+
+  visuals.forEach((visual, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `detail-thumbnail ${visual.coverClass || ''}`.trim();
+    button.setAttribute('aria-label', `Show ${visual.label}`);
+    button.classList.toggle('active', index === 0);
+
+    if (visual.src) {
+      button.style.backgroundImage = `linear-gradient(180deg, rgba(5, 8, 19, 0.02), rgba(5, 8, 19, 0.22)), url("${visual.src}")`;
+    }
+
+    const label = document.createElement('span');
+    label.textContent = visual.label;
+    button.appendChild(label);
+
+    button.addEventListener('click', () => {
+      detailThumbnails.querySelectorAll('.detail-thumbnail').forEach((item) => item.classList.remove('active'));
+      button.classList.add('active');
+      applyHeroVisual(visual, index, visuals.length);
+    });
+
+    detailThumbnails.appendChild(button);
+  });
+}
+
+function syncWishlistForActiveOffer() {
+  const { user } = getCurrentAccount();
+  const isSaved = Boolean(activeOffer && user?.username && getUserFavorites(user.username).some((item) => item.id === getFavoriteId(activeOffer)));
+  setWishlistState(isSaved);
+}
+
 function renderDetail() {
   const offer = getDetailOffer();
 
@@ -412,6 +598,15 @@ function renderDetail() {
     'href',
     offer.type === 'product' ? 'marketplace.html#favorites' : 'index.html#favorites',
   );
+  if (detailBreadcrumb) {
+    detailBreadcrumb.textContent = [
+      'Home',
+      offer.type === 'product' ? 'Marketplace' : 'Services',
+      offer.game,
+      offer.productLabel || offer.tag || 'Offer',
+      offer.title,
+    ].filter(Boolean).join(' / ');
+  }
   if (detailKicker) {
     detailKicker.textContent = offer.type === 'product' ? `${offer.productLabel || 'Product'} detail` : 'Service detail';
   }
@@ -426,16 +621,27 @@ function renderDetail() {
     detailTag.className = `service-tag ${offer.tagClass || 'account'}`;
     detailTag.textContent = offer.tag;
   }
+  if (detailHeroTag) {
+    detailHeroTag.className = `service-tag ${offer.tagClass || 'account'}`;
+    detailHeroTag.textContent = offer.tag;
+  }
+  if (detailHeroDelivery) detailHeroDelivery.textContent = offer.delivery;
+  if (detailSideDelivery) detailSideDelivery.textContent = offer.delivery;
   if (detailPrice) detailPrice.textContent = offer.price;
+  if (detailSellerScore) detailSellerScore.textContent = offer.sellerScore || '9.8';
+  if (detailQualityScore) detailQualityScore.textContent = offer.productScore || '9.4';
+  if (detailPopularity) detailPopularity.textContent = offer.popularity || '52,210';
   if (buyButton) {
-    buyButton.textContent = offer.type === 'product' ? `Buy ${(offer.productLabel || 'product').toLowerCase()}` : 'Buy service';
+    buyButton.textContent = offer.type === 'product' ? 'Buy Now' : 'Buy service';
   }
   if (offerPriceInput) {
     offerPriceInput.value = '';
     offerPriceInput.placeholder = `Offer below ${formatListingPrice(getNumericPrice(offer.price) || 1)}`;
   }
 
+  renderGallery(offer);
   renderIncluded(offer.included || []);
+  syncWishlistForActiveOffer();
 }
 
 menuToggle?.addEventListener('click', () => {
@@ -482,6 +688,19 @@ profileButton?.addEventListener('click', () => {
   setProfileOpen(profileDropdown?.hidden ?? true);
 });
 
+detailTabButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    const targetId = button.dataset.detailTarget || '';
+    const target = targetId ? document.getElementById(targetId) : null;
+
+    detailTabButtons.forEach((item) => item.classList.toggle('active', item === button));
+
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
 logoutButton?.addEventListener('click', () => {
   localStorage.removeItem(sessionKey);
   renderProfile();
@@ -499,6 +718,46 @@ buyButton?.addEventListener('click', () => {
   }
 
   setStatus('success', 'Order request is ready. The seller will confirm details shortly.');
+});
+
+[wishlistButton, detailSaveButton].forEach((button) => {
+  button?.addEventListener('click', () => {
+    const { user } = getCurrentAccount();
+
+    if (!user?.username) {
+      setStatus('error', 'Please log in before saving this product.');
+      setProfileOpen(true);
+      profileButton?.focus();
+      return;
+    }
+
+    if (!activeOffer) {
+      return;
+    }
+
+    const favorite = getOfferFavorite(activeOffer);
+    const favorites = getUserFavorites(user.username);
+    const isSaved = favorites.some((item) => item.id === favorite.id);
+    const nextFavorites = isSaved
+      ? favorites.filter((item) => item.id !== favorite.id)
+      : [...favorites.filter((item) => item.id !== favorite.id), favorite];
+
+    saveUserFavorites(user.username, nextFavorites);
+    setWishlistState(!isSaved);
+  });
+});
+
+messageSellerButton?.addEventListener('click', () => {
+  const { user } = getCurrentAccount();
+
+  if (!user?.username) {
+    setStatus('error', 'Please log in before messaging the seller.');
+    setProfileOpen(true);
+    profileButton?.focus();
+    return;
+  }
+
+  window.location.href = 'messages.html';
 });
 
 priceOfferForm?.addEventListener('submit', (event) => {
@@ -569,7 +828,7 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === sessionKey || event.key === localUsersKey || event.key === priceOffersKey) {
+  if (event.key === sessionKey || event.key === localUsersKey || event.key === priceOffersKey || event.key === favoritesKey) {
     renderProfile();
   }
 

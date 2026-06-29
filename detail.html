@@ -135,45 +135,124 @@
 
         <article class="detail-layout" id="detailLayout">
           <div class="detail-main">
-            <p class="section-kicker" id="detailKicker">Offer</p>
-            <h1 id="detailTitle">Loading...</h1>
-            <p class="detail-lead" id="detailDescription"></p>
+            <nav class="detail-breadcrumb" id="detailBreadcrumb" aria-label="Product path">
+              Home / Marketplace / Product
+            </nav>
 
-            <div class="detail-meta-grid" aria-label="Offer information">
-              <div>
-                <span>Seller</span>
-                <strong id="detailSeller">-</strong>
+            <section class="detail-gallery-card" id="detailGallery" aria-label="Product gallery">
+              <div class="detail-hero-image" id="detailHeroImage">
+                <div class="detail-hero-badges">
+                  <span class="service-tag account" id="detailHeroTag">Offer</span>
+                  <span class="detail-delivery-chip" id="detailHeroDelivery">Instant delivery</span>
+                </div>
+                <button class="detail-hero-save" id="detailSaveButton" type="button" aria-label="Add to wishlist"></button>
+                <span class="detail-gallery-count" id="detailGalleryCount">1 / 6</span>
               </div>
-              <div>
-                <span>Game</span>
-                <strong id="detailGame">-</strong>
-              </div>
-              <div>
-                <span>Delivery</span>
-                <strong id="detailDelivery">-</strong>
-              </div>
-              <div>
-                <span>Status</span>
-                <strong id="detailStatusText">Verified</strong>
-              </div>
+
+              <div class="detail-thumbnails" id="detailThumbnails" aria-label="Product thumbnails"></div>
+            </section>
+
+            <div class="detail-title-block">
+              <p class="section-kicker" id="detailKicker">Offer</p>
+              <h1 id="detailTitle">Loading...</h1>
+              <p class="detail-lead" id="detailDescription"></p>
             </div>
 
-            <section class="detail-section" aria-labelledby="detailInfoTitle">
-              <h2 id="detailInfoTitle">Details</h2>
-              <p id="detailLongDescription"></p>
-            </section>
+            <div class="detail-tabs" aria-label="Product detail sections">
+              <button class="active" type="button" data-detail-target="detailOverview">Overview</button>
+              <button type="button" data-detail-target="detailDetails">Details</button>
+              <button type="button" data-detail-target="detailGallery">Gallery</button>
+              <button type="button" data-detail-target="detailReviews">Reviews</button>
+            </div>
 
-            <section class="detail-section" aria-labelledby="detailIncludedTitle">
-              <h2 id="detailIncludedTitle">Included</h2>
-              <ul id="detailIncluded"></ul>
-            </section>
+            <div class="detail-info-grid" id="detailOverview">
+              <section class="detail-section detail-summary-card" id="detailDetails" aria-labelledby="detailInfoTitle">
+                <h2 id="detailInfoTitle">Product Summary</h2>
+                <p id="detailLongDescription"></p>
+
+                <div class="detail-meta-grid" aria-label="Offer information">
+                  <div>
+                    <span>Seller</span>
+                    <strong id="detailSeller">-</strong>
+                  </div>
+                  <div>
+                    <span>Game</span>
+                    <strong id="detailGame">-</strong>
+                  </div>
+                  <div>
+                    <span>Delivery</span>
+                    <strong id="detailDelivery">-</strong>
+                  </div>
+                  <div>
+                    <span>Status</span>
+                    <strong id="detailStatusText">Verified</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section class="detail-section detail-score-card" aria-label="Product scores">
+                <div>
+                  <span>Seller Score</span>
+                  <strong id="detailSellerScore">9.8</strong>
+                  <small>Elite</small>
+                </div>
+                <div>
+                  <span>Product Score</span>
+                  <strong id="detailQualityScore">9.4</strong>
+                  <small>Premium</small>
+                </div>
+                <div>
+                  <span>Popularity</span>
+                  <strong id="detailPopularity">52,210</strong>
+                  <small>views</small>
+                </div>
+              </section>
+
+              <section class="detail-section detail-included-card" aria-labelledby="detailIncludedTitle">
+                <h2 id="detailIncludedTitle">Included</h2>
+                <ul id="detailIncluded"></ul>
+              </section>
+
+              <section class="detail-section detail-reviews-card" id="detailReviews" aria-labelledby="detailReviewsTitle">
+                <h2 id="detailReviewsTitle">Reviews</h2>
+                <p>Verified buyer reviews will appear here after completed orders.</p>
+              </section>
+            </div>
           </div>
 
           <aside class="detail-buy-panel" aria-label="Buy offer">
-            <span class="service-tag account" id="detailTag">Offer</span>
-            <strong id="detailPrice">0 GEL</strong>
+            <div class="detail-buy-head">
+              <strong id="detailPrice">0 GEL</strong>
+              <button class="detail-share-button" type="button" aria-label="Share product">Share</button>
+            </div>
+            <div class="detail-buy-tags">
+              <span class="service-tag account" id="detailTag">Offer</span>
+              <span class="detail-delivery-chip" id="detailSideDelivery">Instant delivery</span>
+            </div>
+
+            <div class="detail-buy-scores" aria-label="Marketplace scores">
+              <div>
+                <span>Seller Score</span>
+                <strong>9.8</strong>
+                <small>Elite</small>
+              </div>
+              <div>
+                <span>Product Score</span>
+                <strong>9.4</strong>
+                <small>Premium</small>
+              </div>
+            </div>
+
             <button class="detail-buy-button" id="buyButton" type="button">Buy now</button>
+            <div class="detail-secondary-actions">
+              <button id="wishlistButton" type="button">Add to Wishlist</button>
+              <button id="messageSellerButton" type="button">Message Seller</button>
+            </div>
             <p class="seller-status" id="buyStatus" aria-live="polite"></p>
+            <div class="detail-protection">
+              <strong>WaveHub Protection</strong>
+              <span>This order is protected by seller confirmation and WaveHub order history.</span>
+            </div>
 
             <form class="price-offer-form" id="priceOfferForm">
               <label>
