@@ -28,6 +28,12 @@ const detailHeroDelivery = document.getElementById('detailHeroDelivery');
 const detailGalleryCount = document.getElementById('detailGalleryCount');
 const detailThumbnails = document.getElementById('detailThumbnails');
 const detailSaveButton = document.getElementById('detailSaveButton');
+const detailBasicInfoPanel = document.getElementById('detailBasicInfoPanel');
+const detailBasicStatus = document.getElementById('detailBasicStatus');
+const detailBasicGame = document.getElementById('detailBasicGame');
+const detailBasicLevel = document.getElementById('detailBasicLevel');
+const detailBasicViews = document.getElementById('detailBasicViews');
+const detailBasicSeller = document.getElementById('detailBasicSeller');
 const detailKicker = document.getElementById('detailKicker');
 const detailTitle = document.getElementById('detailTitle');
 const detailDescription = document.getElementById('detailDescription');
@@ -35,6 +41,8 @@ const detailSeller = document.getElementById('detailSeller');
 const detailGame = document.getElementById('detailGame');
 const detailDelivery = document.getElementById('detailDelivery');
 const detailStatusText = document.getElementById('detailStatusText');
+const detailLevel = document.getElementById('detailLevel');
+const detailViews = document.getElementById('detailViews');
 const detailLongDescription = document.getElementById('detailLongDescription');
 const detailIncluded = document.getElementById('detailIncluded');
 const detailSellerScore = document.getElementById('detailSellerScore');
@@ -59,6 +67,15 @@ const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
 const minOnlineCount = 94;
 const maxOnlineCount = 225;
+const accountTypeImages = {
+  basic: 'assets/basic-account.png',
+  'full-collection': 'assets/full-collection-account.png',
+  fullcollection: 'assets/full-collection-account.png',
+  og: 'assets/og-account.png',
+  premium: 'assets/premium-account.png',
+  ranked: 'assets/ranked-account.png',
+  rare: 'assets/rare-account.png',
+};
 const gameVisualConfig = {
   'PUBG Mobile': { coverClass: 'cover-pubg', label: 'PUBG' },
   'Call of Duty': { coverClass: 'cover-cod', label: 'COD' },
@@ -270,6 +287,32 @@ function getStablePopularity(seed) {
   return (1200 + (stableHash(seed) % 98000)).toLocaleString();
 }
 
+function formatAccountStatus(value) {
+  const status = String(value || 'basic').toLowerCase();
+  const labels = {
+    basic: 'Basic Account',
+    'full-collection': 'Full Collection Account',
+    fullcollection: 'Full Collection Account',
+    og: 'OG Account',
+    premium: 'Premium Account',
+    ranked: 'Ranked Account',
+    rare: 'Rare Account',
+    elite: 'Elite Account',
+  };
+
+  return labels[status] || 'Basic Account';
+}
+
+function getAccountTypeImage(value) {
+  const status = String(value || 'basic').trim().toLowerCase();
+  return accountTypeImages[status] || '';
+}
+
+function formatNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number.toLocaleString() : '-';
+}
+
 function getInitials(user) {
   const source = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || 'G';
   return source
@@ -357,6 +400,12 @@ function getProductDetail(id) {
 
   const config = getListingConfig(listing);
   const seed = `${listing.id}-${listing.game}-${getListingTitle(listing)}`;
+  const accountStatus = listing.accountStatus || (config.type === 'account' ? 'basic' : '');
+  const accountLevel = Number(listing.accountLevel) || (config.type === 'account' ? 1 + (stableHash(seed) % 100) : '');
+  const accountViews = Number(listing.accountViews) || 1200 + (stableHash(`${seed}-views`) % 98000);
+  const galleryImages = Array.isArray(listing.galleryImages)
+    ? listing.galleryImages.filter(Boolean)
+    : [listing.imageData].filter(Boolean);
 
   return {
     id,
@@ -370,15 +419,20 @@ function getProductDetail(id) {
     sellerUsername: listing.sellerUsername || '',
     game: listing.game || 'Marketplace',
     delivery: config.type === 'skin' ? 'Instant delivery' : 'After seller confirmation',
-    status: config.status,
-    tag: config.tagLabel,
+    status: config.type === 'account' ? formatAccountStatus(accountStatus) : config.status,
+    tag: config.type === 'account' ? formatAccountStatus(accountStatus) : config.tagLabel,
     tagClass: config.tagClass,
     price: formatListingPrice(listing.price),
     imageData: listing.imageData || '',
+    galleryImages,
     imageName: listing.imageName || '',
+    accountStatus,
+    accountStatusLabel: accountStatus ? formatAccountStatus(accountStatus) : config.label,
+    accountLevel,
+    accountViews,
     sellerScore: getStableScore(seed, 1),
     productScore: getStableScore(seed, 2),
-    popularity: getStablePopularity(seed),
+    popularity: formatNumber(accountViews) === '-' ? getStablePopularity(seed) : formatNumber(accountViews),
     included: config.included,
   };
 }
@@ -509,11 +563,15 @@ function applyHeroVisual(visual, index, total) {
     return;
   }
 
-  detailHeroImage.className = `detail-hero-image ${visual.coverClass || ''}`.trim();
+  detailHeroImage.className = `detail-hero-image ${visual.coverClass || ''} ${visual.isBasicCard ? 'is-basic-card' : ''}`.trim();
   detailHeroImage.style.backgroundImage = visual.src
     ? `linear-gradient(180deg, rgba(5, 8, 19, 0.03), rgba(5, 8, 19, 0.22)), url("${visual.src}")`
     : '';
   detailHeroImage.dataset.label = visual.label || '';
+
+  if (detailBasicInfoPanel) {
+    detailBasicInfoPanel.hidden = !visual.isBasicCard;
+  }
 
   if (detailGalleryCount) {
     detailGalleryCount.textContent = `${index + 1} / ${total}`;
@@ -527,11 +585,40 @@ function getGalleryVisuals(offer) {
     label,
     coverClass: config.coverClass,
     src: '',
+    isBasicCard: false,
   }));
+  const uploadedImages = Array.isArray(offer.galleryImages) ? offer.galleryImages : [offer.imageData].filter(Boolean);
 
-  if (offer.imageData) {
-    visuals[0] = { label: offer.imageName || 'Uploaded image', coverClass: '', src: offer.imageData };
+  const accountTypeImage = offer.productType === 'account' ? getAccountTypeImage(offer.accountStatus) : '';
+
+  if (accountTypeImage) {
+    visuals[0] = {
+      label: offer.accountStatusLabel || 'Account card',
+      coverClass: '',
+      src: accountTypeImage,
+      isBasicCard: true,
+    };
+
+    uploadedImages.slice(0, 5).forEach((src, index) => {
+      visuals[index + 1] = {
+        label: `Upload ${index + 1}`,
+        coverClass: '',
+        src,
+        isBasicCard: false,
+      };
+    });
+
+    return visuals;
   }
+
+  uploadedImages.slice(0, 6).forEach((src, index) => {
+    visuals[index] = {
+      label: index === 0 ? (offer.imageName || 'Uploaded image') : `Upload ${index + 1}`,
+      coverClass: '',
+      src,
+      isBasicCard: false,
+    };
+  });
 
   return visuals;
 }
@@ -616,6 +703,8 @@ function renderDetail() {
   if (detailGame) detailGame.textContent = offer.game;
   if (detailDelivery) detailDelivery.textContent = offer.delivery;
   if (detailStatusText) detailStatusText.textContent = offer.status;
+  if (detailLevel) detailLevel.textContent = formatNumber(offer.accountLevel);
+  if (detailViews) detailViews.textContent = offer.popularity || formatNumber(offer.accountViews);
   if (detailLongDescription) detailLongDescription.textContent = offer.longDescription;
   if (detailTag) {
     detailTag.className = `service-tag ${offer.tagClass || 'account'}`;
@@ -631,6 +720,11 @@ function renderDetail() {
   if (detailSellerScore) detailSellerScore.textContent = offer.sellerScore || '9.8';
   if (detailQualityScore) detailQualityScore.textContent = offer.productScore || '9.4';
   if (detailPopularity) detailPopularity.textContent = offer.popularity || '52,210';
+  if (detailBasicStatus) detailBasicStatus.textContent = offer.accountStatusLabel || offer.tag;
+  if (detailBasicGame) detailBasicGame.textContent = offer.game;
+  if (detailBasicLevel) detailBasicLevel.textContent = formatNumber(offer.accountLevel);
+  if (detailBasicViews) detailBasicViews.textContent = offer.popularity || formatNumber(offer.accountViews);
+  if (detailBasicSeller) detailBasicSeller.textContent = offer.seller;
   if (buyButton) {
     buyButton.textContent = offer.type === 'product' ? 'Buy Now' : 'Buy service';
   }

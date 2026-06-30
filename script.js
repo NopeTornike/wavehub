@@ -14,6 +14,9 @@ const sellerProductType = document.getElementById('sellerProductType');
 const sellerGame = document.getElementById('sellerGame');
 const sellerTitleLabel = document.getElementById('sellerTitleLabel');
 const sellerTitle = document.getElementById('sellerTitle');
+const sellerAccountStatus = document.getElementById('sellerAccountStatus');
+const sellerAccountLevel = document.getElementById('sellerAccountLevel');
+const sellerAccountViews = document.getElementById('sellerAccountViews');
 const sellerPrice = document.getElementById('sellerPrice');
 const sellerImage = document.getElementById('sellerImage');
 const sellerDescription = document.getElementById('sellerDescription');
@@ -136,6 +139,22 @@ function getListingSellerName(listing) {
   return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
 }
 
+function formatAccountStatus(value) {
+  const status = String(value || 'basic').trim().toLowerCase();
+  const labels = {
+    basic: 'Basic Account',
+    'full-collection': 'Full Collection Account',
+    fullcollection: 'Full Collection Account',
+    og: 'OG Account',
+    premium: 'Premium Account',
+    ranked: 'Ranked Account',
+    rare: 'Rare Account',
+    elite: 'Elite Account',
+  };
+
+  return labels[status] || 'Basic Account';
+}
+
 function formatCountLabel(count, singular, plural) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
@@ -172,14 +191,8 @@ function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-function readSellerImageData() {
-  const file = sellerImage?.files?.[0];
-
-  if (!file) {
-    return Promise.resolve('');
-  }
-
-  if (!file.type.startsWith('image/')) {
+function readImageFileData(file) {
+  if (!file || !file.type.startsWith('image/')) {
     return Promise.resolve('');
   }
 
@@ -190,7 +203,7 @@ function readSellerImageData() {
       const image = new Image();
 
       image.addEventListener('load', () => {
-        const maxSide = 1280;
+        const maxSide = 900;
         const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
         const width = Math.max(1, Math.round(image.width * scale));
         const height = Math.max(1, Math.round(image.height * scale));
@@ -200,7 +213,7 @@ function readSellerImageData() {
         canvas.width = width;
         canvas.height = height;
         context?.drawImage(image, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.84));
+        resolve(canvas.toDataURL('image/jpeg', 0.76));
       });
 
       image.addEventListener('error', () => reject(new Error('Image could not be loaded.')));
@@ -210,6 +223,16 @@ function readSellerImageData() {
     reader.addEventListener('error', () => reject(new Error('Image could not be read.')));
     reader.readAsDataURL(file);
   });
+}
+
+function readSellerImageData() {
+  const files = Array.from(sellerImage?.files || []).filter((file) => file.type.startsWith('image/')).slice(0, 6);
+
+  if (!files.length) {
+    return Promise.resolve([]);
+  }
+
+  return Promise.all(files.map(readImageFileData)).then((items) => items.filter(Boolean));
 }
 
 function getCurrentAccount() {
@@ -394,6 +417,7 @@ function populateSellerGames() {
 
 function updateSellerTypeFields() {
   const config = getListingConfig(sellerProductType?.value || 'account');
+  const isAccount = config.type === 'account';
 
   if (sellerTitleLabel) {
     sellerTitleLabel.textContent = config.titleLabel;
@@ -407,6 +431,10 @@ function updateSellerTypeFields() {
   if (sellerDescription) {
     sellerDescription.placeholder = config.descriptionPlaceholder;
   }
+
+  document.querySelectorAll('.seller-account-field').forEach((field) => {
+    field.hidden = !isAccount;
+  });
 }
 
 function initCarousels() {
@@ -522,7 +550,9 @@ function createSellerListingCard(listing) {
 
   const tag = document.createElement('span');
   tag.className = `service-tag ${config.tagClass}`;
-  tag.textContent = config.tagLabel;
+  tag.textContent = config.type === 'account' && listing.accountStatus
+    ? formatAccountStatus(listing.accountStatus)
+    : config.tagLabel;
 
   const saveButton = document.createElement('button');
   saveButton.className = 'save-button';
@@ -756,16 +786,19 @@ sellerForm?.addEventListener('submit', async (event) => {
     return;
   }
 
-  let imageData = '';
+  let galleryImages = [];
 
   try {
-    imageData = await readSellerImageData();
+    galleryImages = await readSellerImageData();
   } catch {
     setSellerStatus('error', 'Could not read the product image.');
     return;
   }
 
   const sellerUser = getCurrentAccount().user;
+  const accountStatus = sellerAccountStatus?.value || 'basic';
+  const accountLevel = Number(sellerAccountLevel?.value) || '';
+  const accountViews = Number(sellerAccountViews?.value) || '';
   const listing = {
     id: window.crypto?.randomUUID?.() || String(Date.now()),
     listingType,
@@ -773,8 +806,12 @@ sellerForm?.addEventListener('submit', async (event) => {
     title,
     price,
     description,
-    imageData,
+    imageData: galleryImages[0] || '',
+    galleryImages,
     imageName: sellerImage?.files?.[0]?.name || '',
+    accountStatus: listingType === 'account' ? accountStatus : '',
+    accountLevel: listingType === 'account' ? accountLevel : '',
+    accountViews: listingType === 'account' ? accountViews : '',
     sellerUsername: sellerUser?.username || '',
     sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} ${config.sellerNoun}`,
     createdAt: new Date().toISOString(),

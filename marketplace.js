@@ -17,6 +17,9 @@ const sellerProductType = document.getElementById('sellerProductType');
 const sellerGame = document.getElementById('sellerGame');
 const sellerTitleLabel = document.getElementById('sellerTitleLabel');
 const sellerTitle = document.getElementById('sellerTitle');
+const sellerAccountStatus = document.getElementById('sellerAccountStatus');
+const sellerAccountLevel = document.getElementById('sellerAccountLevel');
+const sellerAccountViews = document.getElementById('sellerAccountViews');
 const sellerPrice = document.getElementById('sellerPrice');
 const sellerImage = document.getElementById('sellerImage');
 const sellerDescription = document.getElementById('sellerDescription');
@@ -44,6 +47,15 @@ const sessionKey = 'wavehub.session';
 const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
 const games = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
+const accountTypeImages = {
+  basic: 'assets/basic-account.png',
+  'full-collection': 'assets/full-collection-account.png',
+  fullcollection: 'assets/full-collection-account.png',
+  og: 'assets/og-account.png',
+  premium: 'assets/premium-account.png',
+  ranked: 'assets/ranked-account.png',
+  rare: 'assets/rare-account.png',
+};
 const listingTypeConfig = {
   account: {
     type: 'account',
@@ -85,14 +97,8 @@ function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-function readSellerImageData() {
-  const file = sellerImage?.files?.[0];
-
-  if (!file) {
-    return Promise.resolve('');
-  }
-
-  if (!file.type.startsWith('image/')) {
+function readImageFileData(file) {
+  if (!file || !file.type.startsWith('image/')) {
     return Promise.resolve('');
   }
 
@@ -103,7 +109,7 @@ function readSellerImageData() {
       const image = new Image();
 
       image.addEventListener('load', () => {
-        const maxSide = 1280;
+        const maxSide = 900;
         const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
         const width = Math.max(1, Math.round(image.width * scale));
         const height = Math.max(1, Math.round(image.height * scale));
@@ -113,7 +119,7 @@ function readSellerImageData() {
         canvas.width = width;
         canvas.height = height;
         context?.drawImage(image, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.84));
+        resolve(canvas.toDataURL('image/jpeg', 0.76));
       });
 
       image.addEventListener('error', () => reject(new Error('Image could not be loaded.')));
@@ -123,6 +129,16 @@ function readSellerImageData() {
     reader.addEventListener('error', () => reject(new Error('Image could not be read.')));
     reader.readAsDataURL(file);
   });
+}
+
+function readSellerImageData() {
+  const files = Array.from(sellerImage?.files || []).filter((file) => file.type.startsWith('image/')).slice(0, 6);
+
+  if (!files.length) {
+    return Promise.resolve([]);
+  }
+
+  return Promise.all(files.map(readImageFileData)).then((items) => items.filter(Boolean));
 }
 
 function getCurrentAccount() {
@@ -293,6 +309,95 @@ function getListingSellerName(listing) {
   return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
 }
 
+function formatAccountStatus(value) {
+  const status = String(value || 'basic').trim().toLowerCase();
+  const labels = {
+    basic: 'Basic Account',
+    'full-collection': 'Full Collection Account',
+    fullcollection: 'Full Collection Account',
+    og: 'OG Account',
+    premium: 'Premium Account',
+    ranked: 'Ranked Account',
+    rare: 'Rare Account',
+    elite: 'Elite Account',
+  };
+
+  return labels[status] || 'Basic Account';
+}
+
+function getAccountTypeImage(value) {
+  const status = String(value || 'basic').trim().toLowerCase();
+  return accountTypeImages[status] || '';
+}
+
+function formatCount(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return String(value || '0');
+  }
+
+  return number.toLocaleString('en-US');
+}
+
+function getStableHash(value) {
+  const source = String(value || 'wavehub');
+  let hash = 0;
+
+  for (let index = 0; index < source.length; index += 1) {
+    hash = ((hash << 5) - hash) + source.charCodeAt(index);
+    hash |= 0;
+  }
+
+  return Math.abs(hash);
+}
+
+function getStableNumber(seed, min, max) {
+  return min + (getStableHash(seed) % (max - min + 1));
+}
+
+function getCardLevel(listing) {
+  return Number(listing.accountLevel) || getStableNumber(`${listing.id}:level`, 42, 96);
+}
+
+function getCardViews(listing) {
+  return Number(listing.accountViews) || getStableNumber(`${listing.id}:views`, 620, 1850);
+}
+
+function getCardLikes(listing) {
+  return getStableNumber(`${listing.id}:likes`, 42, 118);
+}
+
+function getCardScore(listing) {
+  return (9 + (getStableNumber(`${listing.id}:score`, 2, 8) / 10)).toFixed(1);
+}
+
+function getMarketplaceCardImage(listing, config) {
+  if (config.type === 'account') {
+    return getAccountTypeImage(listing.accountStatus) || listing.imageData || '';
+  }
+
+  return listing.imageData || '';
+}
+
+function getProductStats(listing, config) {
+  const seed = listing.id || `${listing.game}:${getListingTitle(listing)}`;
+
+  if (config.type === 'skin') {
+    return [
+      { symbol: '#', value: '1', label: 'Skin Item' },
+      { symbol: '*', value: getStableNumber(`${seed}:rarity`, 82, 99), label: 'Rarity Score' },
+      { symbol: 'W', value: 'Instant', label: 'Delivery' },
+    ];
+  }
+
+  return [
+    { symbol: '#', value: getStableNumber(`${seed}:outfits`, 8, 28), label: 'Mythic Outfits' },
+    { symbol: '+', value: getStableNumber(`${seed}:guns`, 32, 118), label: 'Upgradable Guns' },
+    { symbol: 'UC', value: formatCount(getStableNumber(`${seed}:uc`, 1400, 6200)), label: 'UC Balance' },
+  ];
+}
+
 function getInitials(user) {
   const source = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || 'G';
   return source
@@ -407,6 +512,7 @@ function populateGameSelects() {
 
 function updateSellerTypeFields() {
   const config = getListingConfig(sellerProductType?.value || 'account');
+  const isAccount = config.type === 'account';
 
   if (sellerTitleLabel) {
     sellerTitleLabel.textContent = config.titleLabel;
@@ -420,6 +526,10 @@ function updateSellerTypeFields() {
   if (sellerDescription) {
     sellerDescription.placeholder = config.descriptionPlaceholder;
   }
+
+  document.querySelectorAll('.seller-account-field').forEach((field) => {
+    field.hidden = !isAccount;
+  });
 }
 
 function getFilteredListings() {
@@ -474,18 +584,199 @@ function getProductFavorite(listing) {
   };
 }
 
+function createProductShowcaseCard(listing) {
+  const config = getListingConfig(listing);
+  const card = document.createElement('article');
+  const detailUrl = getDetailUrl(listing);
+  const level = getCardLevel(listing);
+  const score = getCardScore(listing);
+  const productTitle = getListingTitle(listing);
+  const sellerName = getListingSellerName(listing);
+  const primaryLabel = config.type === 'account' ? formatAccountStatus(listing.accountStatus) : 'Skin';
+  const image = getMarketplaceCardImage(listing, config);
+
+  card.className = `marketplace-card product-showcase-card ${config.type}-showcase-card`;
+  card.dataset.listingId = listing.id;
+
+  const cover = document.createElement('div');
+  cover.className = 'product-showcase-cover';
+  cover.dataset.game = getGameInitials(listing.game);
+
+  if (image) {
+    cover.classList.add('has-image');
+    cover.style.backgroundImage = `linear-gradient(180deg, rgba(5, 8, 19, 0.02), rgba(5, 8, 19, 0.72)), url("${image}")`;
+  }
+
+  const badges = document.createElement('div');
+  badges.className = 'product-showcase-badges';
+
+  const typeBadge = document.createElement('span');
+  typeBadge.className = 'showcase-badge showcase-badge-gold';
+  typeBadge.textContent = primaryLabel;
+
+  const instantBadge = document.createElement('span');
+  instantBadge.className = 'showcase-badge showcase-badge-green';
+  instantBadge.textContent = 'Instant';
+
+  badges.append(typeBadge, instantBadge);
+
+  const saveButton = document.createElement('button');
+  saveButton.className = 'save-button product-showcase-save';
+  saveButton.type = 'button';
+  saveButton.dataset.favoriteId = getFavoriteId(listing);
+  saveButton.setAttribute('aria-label', 'Save product');
+  saveButton.setAttribute('aria-pressed', 'false');
+  saveButton.title = 'Save product';
+
+  const coverInfo = document.createElement('div');
+  coverInfo.className = 'product-showcase-cover-info';
+
+  const rankRow = document.createElement('div');
+  rankRow.className = 'product-showcase-rank';
+
+  const rankSymbol = document.createElement('span');
+  rankSymbol.className = 'showcase-symbol';
+  rankSymbol.textContent = config.type === 'skin' ? '*' : 'W';
+
+  const rankCopy = document.createElement('span');
+  const rankTitle = document.createElement('strong');
+  rankTitle.textContent = config.type === 'skin' ? productTitle : (listing.accountStatus ? primaryLabel.replace(' Account', '') : listing.game || 'WaveHub');
+  const rankMeta = document.createElement('small');
+  rankMeta.textContent = config.type === 'skin' ? listing.game || 'WaveHub' : `Lv. ${formatCount(level)}`;
+  rankCopy.append(rankTitle, rankMeta);
+  rankRow.append(rankSymbol, rankCopy);
+
+  const stats = document.createElement('div');
+  stats.className = 'product-showcase-stats';
+
+  getProductStats(listing, config).forEach((item) => {
+    const stat = document.createElement('span');
+    const statTop = document.createElement('strong');
+    const statIcon = document.createElement('i');
+    const statLabel = document.createElement('small');
+
+    statIcon.textContent = item.symbol;
+    statTop.append(statIcon, document.createTextNode(String(item.value)));
+    statLabel.textContent = item.label;
+    stat.append(statTop, statLabel);
+    stats.appendChild(stat);
+  });
+
+  coverInfo.append(rankRow, stats);
+  cover.append(badges, saveButton, coverInfo);
+
+  const body = document.createElement('div');
+  body.className = 'product-showcase-body';
+
+  const seller = document.createElement('div');
+  seller.className = 'product-showcase-seller';
+
+  const sellerAvatar = document.createElement('span');
+  sellerAvatar.className = 'product-showcase-avatar';
+  sellerAvatar.textContent = getGameInitials(sellerName);
+
+  const sellerCopy = document.createElement('span');
+  const sellerTitle = document.createElement('strong');
+  sellerTitle.textContent = sellerName;
+
+  const sellerGame = document.createElement('small');
+  sellerGame.textContent = listing.game || 'WaveHub';
+
+  const sellerRating = document.createElement('small');
+  sellerRating.textContent = '* 4.9 (328)';
+
+  sellerCopy.append(sellerTitle, sellerGame, sellerRating);
+  seller.append(sellerAvatar, sellerCopy);
+
+  const scoreBox = document.createElement('div');
+  scoreBox.className = 'product-showcase-score';
+
+  const scoreLabel = document.createElement('small');
+  scoreLabel.textContent = 'Wave Score';
+
+  const scoreRow = document.createElement('span');
+  const scoreIcon = document.createElement('b');
+  scoreIcon.textContent = 'WS';
+  const scoreValue = document.createElement('strong');
+  scoreValue.textContent = score;
+  scoreRow.append(scoreIcon, scoreValue);
+
+  const scoreMeta = document.createElement('em');
+  scoreMeta.textContent = Number(score) >= 9.6 ? 'Excellent' : 'Premium';
+
+  scoreBox.append(scoreLabel, scoreRow, scoreMeta);
+  body.append(seller, scoreBox);
+
+  const footer = document.createElement('div');
+  footer.className = 'product-showcase-footer';
+
+  const price = document.createElement('strong');
+  price.className = 'product-showcase-price';
+  price.textContent = formatListingPrice(listing.price);
+
+  const social = document.createElement('span');
+  social.className = 'product-showcase-social';
+  social.textContent = `○ ${formatCount(getCardViews(listing))}  ♡ ${formatCount(getCardLikes(listing))}`;
+
+  const cartButton = document.createElement('button');
+  cartButton.className = 'product-showcase-cart';
+  cartButton.type = 'button';
+  cartButton.textContent = '+';
+  cartButton.setAttribute('aria-label', 'Order product');
+  cartButton.addEventListener('click', () => {
+    if (detailUrl) {
+      window.location.href = detailUrl;
+    }
+  });
+
+  const detailButton = document.createElement('button');
+  detailButton.className = 'product-showcase-details';
+  detailButton.type = 'button';
+  detailButton.textContent = 'View Details';
+  detailButton.addEventListener('click', () => {
+    if (detailUrl) {
+      window.location.href = detailUrl;
+    }
+  });
+
+  footer.append(price, social, cartButton, detailButton);
+  card.append(cover, body, footer);
+
+  return card;
+}
+
 function createMarketplaceCard(listing) {
   const config = getListingConfig(listing);
+  const shouldUseShowcase = config.type === 'account' || config.type === 'skin';
+
+  if (shouldUseShowcase) {
+    return createProductShowcaseCard(listing);
+  }
+
   const card = document.createElement('article');
   card.className = 'marketplace-card';
   card.dataset.listingId = listing.id;
+  const isBasicAccount = config.type === 'account' && (listing.accountStatus || 'basic') === 'basic';
+
+  if (isBasicAccount || listing.imageData) {
+    const cover = document.createElement('div');
+    cover.className = isBasicAccount ? 'marketplace-card-cover account-basic-cover' : 'marketplace-card-cover';
+
+    if (!isBasicAccount && listing.imageData) {
+      cover.style.backgroundImage = `linear-gradient(180deg, rgba(5, 8, 19, 0.02), rgba(5, 8, 19, 0.32)), url("${listing.imageData}")`;
+    }
+
+    card.appendChild(cover);
+  }
 
   const top = document.createElement('div');
   top.className = 'marketplace-card-top';
 
   const tag = document.createElement('span');
   tag.className = `service-tag ${config.tagClass}`;
-  tag.textContent = config.tagLabel;
+  tag.textContent = config.type === 'account' && listing.accountStatus
+    ? formatAccountStatus(listing.accountStatus)
+    : config.tagLabel;
 
   const price = document.createElement('strong');
   price.textContent = formatListingPrice(listing.price);
@@ -734,16 +1025,19 @@ sellerForm?.addEventListener('submit', async (event) => {
     return;
   }
 
-  let imageData = '';
+  let galleryImages = [];
 
   try {
-    imageData = await readSellerImageData();
+    galleryImages = await readSellerImageData();
   } catch {
     setSellerStatus('error', 'Could not read the product image.');
     return;
   }
 
   const sellerUser = getCurrentAccount().user;
+  const accountStatus = sellerAccountStatus?.value || 'basic';
+  const accountLevel = Number(sellerAccountLevel?.value) || '';
+  const accountViews = Number(sellerAccountViews?.value) || '';
   const listing = {
     id: window.crypto?.randomUUID?.() || String(Date.now()),
     listingType,
@@ -751,8 +1045,12 @@ sellerForm?.addEventListener('submit', async (event) => {
     title,
     price,
     description,
-    imageData,
+    imageData: galleryImages[0] || '',
+    galleryImages,
     imageName: sellerImage?.files?.[0]?.name || '',
+    accountStatus: listingType === 'account' ? accountStatus : '',
+    accountLevel: listingType === 'account' ? accountLevel : '',
+    accountViews: listingType === 'account' ? accountViews : '',
     sellerUsername: sellerUser?.username || '',
     sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} ${config.sellerNoun}`,
     createdAt: new Date().toISOString(),

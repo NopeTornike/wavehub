@@ -106,15 +106,37 @@
             <input id="sellerTitle" name="title" type="text" maxlength="44" placeholder="PUBG Mobile Ace account" autocomplete="off" />
           </label>
 
+          <label class="seller-account-field">
+            <span>Account type</span>
+            <select id="sellerAccountStatus" name="accountStatus">
+              <option value="basic">Basic Account</option>
+              <option value="full-collection">Full Collection Account</option>
+              <option value="og">OG Account</option>
+              <option value="premium">Premium Account</option>
+              <option value="ranked">Ranked Account</option>
+              <option value="rare">Rare Account</option>
+            </select>
+          </label>
+
+          <label class="seller-account-field">
+            <span>Account level</span>
+            <input id="sellerAccountLevel" name="accountLevel" type="number" min="1" step="1" placeholder="27" />
+          </label>
+
+          <label class="seller-account-field">
+            <span>Views</span>
+            <input id="sellerAccountViews" name="accountViews" type="number" min="0" step="1" placeholder="1200" />
+          </label>
+
           <label>
             <span>Price (GEL)</span>
             <input id="sellerPrice" name="price" type="number" min="1" step="1" placeholder="50" required />
           </label>
 
           <label class="seller-image-field">
-            <span>Product image</span>
-            <input id="sellerImage" name="image" type="file" accept="image/*" />
-            <small>Shown on the product detail page.</small>
+            <span>Product images</span>
+            <input id="sellerImage" name="image" type="file" accept="image/*" multiple />
+            <small>Shown in the product gallery.</small>
           </label>
 
           <label>
