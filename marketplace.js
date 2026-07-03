@@ -19,7 +19,6 @@ const sellerTitleLabel = document.getElementById('sellerTitleLabel');
 const sellerTitle = document.getElementById('sellerTitle');
 const sellerAccountStatus = document.getElementById('sellerAccountStatus');
 const sellerAccountLevel = document.getElementById('sellerAccountLevel');
-const sellerAccountViews = document.getElementById('sellerAccountViews');
 const sellerPrice = document.getElementById('sellerPrice');
 const sellerImage = document.getElementById('sellerImage');
 const sellerDescription = document.getElementById('sellerDescription');
@@ -214,6 +213,33 @@ function setSaveButtonState(button, isSaved) {
   button.title = isSaved ? 'Remove from favorites' : 'Save product';
 }
 
+function toggleProductFavorite(listing, username) {
+  const favorite = getProductFavorite(listing);
+  const favorites = getUserFavorites(username);
+  const wasSaved = favorites.some((item) => item.id === favorite.id);
+  const nextFavorites = wasSaved
+    ? favorites.filter((item) => item.id !== favorite.id)
+    : [...favorites.filter((item) => item.id !== favorite.id), favorite];
+
+  saveUserFavorites(username, nextFavorites);
+  return !wasSaved;
+}
+
+function getFavoriteCount(favoriteId) {
+  if (!favoriteId) {
+    return 0;
+  }
+
+  const favoritesByUser = readJson(favoritesKey, {});
+  const source = favoritesByUser && typeof favoritesByUser === 'object' && !Array.isArray(favoritesByUser)
+    ? favoritesByUser
+    : {};
+
+  return Object.values(source).reduce((count, favorites) => (
+    count + (Array.isArray(favorites) && favorites.some((favorite) => favorite.id === favoriteId) ? 1 : 0)
+  ), 0);
+}
+
 function applyInitialHash() {
   if (window.location.hash !== '#favorites') {
     return;
@@ -299,6 +325,12 @@ function getListingConfig(listingOrType) {
   return listingTypeConfig[type] || listingTypeConfig.account;
 }
 
+function normalizeAccountStatus(value) {
+  const status = String(value || 'basic').trim().toLowerCase();
+
+  return status === 'fullcollection' ? 'full-collection' : status;
+}
+
 function getListingTitle(listing) {
   const config = getListingConfig(listing);
   return listing.title || `${listing.game} ${config.label}`;
@@ -310,11 +342,10 @@ function getListingSellerName(listing) {
 }
 
 function formatAccountStatus(value) {
-  const status = String(value || 'basic').trim().toLowerCase();
+  const status = normalizeAccountStatus(value);
   const labels = {
     basic: 'Basic Account',
     'full-collection': 'Full Collection Account',
-    fullcollection: 'Full Collection Account',
     og: 'OG Account',
     premium: 'Premium Account',
     ranked: 'Ranked Account',
@@ -326,8 +357,12 @@ function formatAccountStatus(value) {
 }
 
 function getAccountTypeImage(value) {
-  const status = String(value || 'basic').trim().toLowerCase();
+  const status = normalizeAccountStatus(value);
   return accountTypeImages[status] || '';
+}
+
+function getAccountStatusClass(value) {
+  return `account-status-${normalizeAccountStatus(value)}`;
 }
 
 function formatCount(value) {
@@ -340,36 +375,20 @@ function formatCount(value) {
   return number.toLocaleString('en-US');
 }
 
-function getStableHash(value) {
-  const source = String(value || 'wavehub');
-  let hash = 0;
-
-  for (let index = 0; index < source.length; index += 1) {
-    hash = ((hash << 5) - hash) + source.charCodeAt(index);
-    hash |= 0;
-  }
-
-  return Math.abs(hash);
-}
-
-function getStableNumber(seed, min, max) {
-  return min + (getStableHash(seed) % (max - min + 1));
-}
-
 function getCardLevel(listing) {
-  return Number(listing.accountLevel) || getStableNumber(`${listing.id}:level`, 42, 96);
+  return Number(listing.accountLevel) || '';
 }
 
 function getCardViews(listing) {
-  return Number(listing.accountViews) || getStableNumber(`${listing.id}:views`, 620, 1850);
+  return Number(listing.accountViews) || 0;
 }
 
 function getCardLikes(listing) {
-  return getStableNumber(`${listing.id}:likes`, 42, 118);
+  return getFavoriteCount(getFavoriteId(listing));
 }
 
 function getCardScore(listing) {
-  return (9 + (getStableNumber(`${listing.id}:score`, 2, 8) / 10)).toFixed(1);
+  return getFavoriteCount(getFavoriteId(listing));
 }
 
 function getMarketplaceCardImage(listing, config) {
@@ -381,20 +400,18 @@ function getMarketplaceCardImage(listing, config) {
 }
 
 function getProductStats(listing, config) {
-  const seed = listing.id || `${listing.game}:${getListingTitle(listing)}`;
-
   if (config.type === 'skin') {
     return [
       { symbol: '#', value: '1', label: 'Skin Item' },
-      { symbol: '*', value: getStableNumber(`${seed}:rarity`, 82, 99), label: 'Rarity Score' },
+      { symbol: 'G', value: listing.game || '-', label: 'Game' },
       { symbol: 'W', value: 'Instant', label: 'Delivery' },
     ];
   }
 
   return [
-    { symbol: '#', value: getStableNumber(`${seed}:outfits`, 8, 28), label: 'Mythic Outfits' },
-    { symbol: '+', value: getStableNumber(`${seed}:guns`, 32, 118), label: 'Upgradable Guns' },
-    { symbol: 'UC', value: formatCount(getStableNumber(`${seed}:uc`, 1400, 6200)), label: 'UC Balance' },
+    { symbol: '#', value: formatAccountStatus(listing.accountStatus).replace(' Account', ''), label: 'Type' },
+    { symbol: 'LV', value: getCardLevel(listing) ? formatCount(getCardLevel(listing)) : '-', label: 'Level' },
+    { symbol: 'V', value: formatCount(getCardViews(listing)), label: 'Views' },
   ];
 }
 
@@ -589,7 +606,7 @@ function createProductShowcaseCard(listing) {
   const card = document.createElement('article');
   const detailUrl = getDetailUrl(listing);
   const level = getCardLevel(listing);
-  const score = getCardScore(listing);
+  const favoriteCount = getCardScore(listing);
   const productTitle = getListingTitle(listing);
   const sellerName = getListingSellerName(listing);
   const primaryLabel = config.type === 'account' ? formatAccountStatus(listing.accountStatus) : 'Skin';
@@ -597,6 +614,10 @@ function createProductShowcaseCard(listing) {
 
   card.className = `marketplace-card product-showcase-card ${config.type}-showcase-card`;
   card.dataset.listingId = listing.id;
+
+  if (config.type === 'account') {
+    card.classList.add(getAccountStatusClass(listing.accountStatus));
+  }
 
   const cover = document.createElement('div');
   cover.className = 'product-showcase-cover';
@@ -642,7 +663,7 @@ function createProductShowcaseCard(listing) {
   const rankTitle = document.createElement('strong');
   rankTitle.textContent = config.type === 'skin' ? productTitle : (listing.accountStatus ? primaryLabel.replace(' Account', '') : listing.game || 'WaveHub');
   const rankMeta = document.createElement('small');
-  rankMeta.textContent = config.type === 'skin' ? listing.game || 'WaveHub' : `Lv. ${formatCount(level)}`;
+  rankMeta.textContent = config.type === 'skin' ? listing.game || 'WaveHub' : `Lv. ${level ? formatCount(level) : '-'}`;
   rankCopy.append(rankTitle, rankMeta);
   rankRow.append(rankSymbol, rankCopy);
 
@@ -683,29 +704,12 @@ function createProductShowcaseCard(listing) {
   sellerGame.textContent = listing.game || 'WaveHub';
 
   const sellerRating = document.createElement('small');
-  sellerRating.textContent = '* 4.9 (328)';
+  sellerRating.textContent = `${formatCount(favoriteCount)} saved`;
 
   sellerCopy.append(sellerTitle, sellerGame, sellerRating);
   seller.append(sellerAvatar, sellerCopy);
 
-  const scoreBox = document.createElement('div');
-  scoreBox.className = 'product-showcase-score';
-
-  const scoreLabel = document.createElement('small');
-  scoreLabel.textContent = 'Wave Score';
-
-  const scoreRow = document.createElement('span');
-  const scoreIcon = document.createElement('b');
-  scoreIcon.textContent = 'WS';
-  const scoreValue = document.createElement('strong');
-  scoreValue.textContent = score;
-  scoreRow.append(scoreIcon, scoreValue);
-
-  const scoreMeta = document.createElement('em');
-  scoreMeta.textContent = Number(score) >= 9.6 ? 'Excellent' : 'Premium';
-
-  scoreBox.append(scoreLabel, scoreRow, scoreMeta);
-  body.append(seller, scoreBox);
+  body.appendChild(seller);
 
   const footer = document.createElement('div');
   footer.className = 'product-showcase-footer';
@@ -756,7 +760,11 @@ function createMarketplaceCard(listing) {
   const card = document.createElement('article');
   card.className = 'marketplace-card';
   card.dataset.listingId = listing.id;
-  const isBasicAccount = config.type === 'account' && (listing.accountStatus || 'basic') === 'basic';
+  const isBasicAccount = config.type === 'account' && normalizeAccountStatus(listing.accountStatus) === 'basic';
+
+  if (config.type === 'account') {
+    card.classList.add(getAccountStatusClass(listing.accountStatus));
+  }
 
   if (isBasicAccount || listing.imageData) {
     const cover = document.createElement('div');
@@ -977,6 +985,9 @@ document.addEventListener('click', (event) => {
     return;
   }
 
+  event.preventDefault();
+  event.stopPropagation();
+
   const card = button.closest('.marketplace-card');
   const listingId = card?.dataset.listingId || '';
   const listing = getSellerListings().find((item) => item.id === listingId);
@@ -993,14 +1004,7 @@ document.addEventListener('click', (event) => {
     return;
   }
 
-  const favorite = getProductFavorite(listing);
-  const favorites = getUserFavorites(user.username);
-  const isSaved = !favorites.some((item) => item.id === favorite.id);
-  const nextFavorites = isSaved
-    ? [...favorites.filter((item) => item.id !== favorite.id), favorite]
-    : favorites.filter((item) => item.id !== favorite.id);
-
-  saveUserFavorites(user.username, nextFavorites);
+  setSaveButtonState(button, toggleProductFavorite(listing, user.username));
   renderMarketplace();
 });
 
@@ -1037,7 +1041,6 @@ sellerForm?.addEventListener('submit', async (event) => {
   const sellerUser = getCurrentAccount().user;
   const accountStatus = sellerAccountStatus?.value || 'basic';
   const accountLevel = Number(sellerAccountLevel?.value) || '';
-  const accountViews = Number(sellerAccountViews?.value) || '';
   const listing = {
     id: window.crypto?.randomUUID?.() || String(Date.now()),
     listingType,
@@ -1050,7 +1053,7 @@ sellerForm?.addEventListener('submit', async (event) => {
     imageName: sellerImage?.files?.[0]?.name || '',
     accountStatus: listingType === 'account' ? accountStatus : '',
     accountLevel: listingType === 'account' ? accountLevel : '',
-    accountViews: listingType === 'account' ? accountViews : '',
+    accountViews: 0,
     sellerUsername: sellerUser?.username || '',
     sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} ${config.sellerNoun}`,
     createdAt: new Date().toISOString(),

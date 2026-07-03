@@ -1272,18 +1272,51 @@ button {
 }
 
 .product-showcase-card {
+  --account-neon: var(--pink);
+  --account-neon-rgb: 255, 47, 143;
   position: relative;
   min-height: 0;
   gap: 10px;
   padding: 10px;
   overflow: hidden;
-  border-color: rgba(255, 47, 143, 0.36);
+  border-color: rgba(var(--account-neon-rgb), 0.62);
   background:
-    linear-gradient(145deg, rgba(255, 47, 143, 0.08), transparent 44%),
+    linear-gradient(145deg, rgba(var(--account-neon-rgb), 0.12), transparent 44%),
     rgba(5, 8, 19, 0.96);
   box-shadow:
-    0 0 0 1px rgba(255, 47, 143, 0.08) inset,
+    0 0 0 1px rgba(var(--account-neon-rgb), 0.18) inset,
+    0 0 22px rgba(var(--account-neon-rgb), 0.2),
     0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.product-showcase-card.account-status-basic {
+  --account-neon: #b9c2d0;
+  --account-neon-rgb: 185, 194, 208;
+}
+
+.product-showcase-card.account-status-full-collection {
+  --account-neon: #35ff9a;
+  --account-neon-rgb: 53, 255, 154;
+}
+
+.product-showcase-card.account-status-og {
+  --account-neon: #ff345f;
+  --account-neon-rgb: 255, 52, 95;
+}
+
+.product-showcase-card.account-status-premium {
+  --account-neon: #ffd45a;
+  --account-neon-rgb: 255, 212, 90;
+}
+
+.product-showcase-card.account-status-ranked {
+  --account-neon: #38a4ff;
+  --account-neon-rgb: 56, 164, 255;
+}
+
+.product-showcase-card.account-status-rare {
+  --account-neon: #c77dff;
+  --account-neon-rgb: 199, 125, 255;
 }
 
 .product-showcase-card::before {
@@ -1292,7 +1325,7 @@ button {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  box-shadow: 0 0 24px rgba(255, 47, 143, 0.14) inset;
+  box-shadow: 0 0 26px rgba(var(--account-neon-rgb), 0.22) inset;
 }
 
 .product-showcase-cover {
@@ -1301,14 +1334,15 @@ button {
   display: grid;
   align-items: end;
   overflow: hidden;
-  border: 1px solid rgba(255, 47, 143, 0.32);
+  border: 1px solid rgba(var(--account-neon-rgb), 0.46);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 68% 22%, rgba(245, 184, 74, 0.22), transparent 24%),
-    linear-gradient(140deg, rgba(255, 47, 143, 0.13), rgba(5, 8, 19, 0.92) 56%),
+    radial-gradient(circle at 68% 22%, rgba(var(--account-neon-rgb), 0.22), transparent 24%),
+    linear-gradient(140deg, rgba(var(--account-neon-rgb), 0.14), rgba(5, 8, 19, 0.92) 56%),
     rgba(8, 13, 27, 0.94);
   background-position: center;
   background-size: cover;
+  box-shadow: 0 0 18px rgba(var(--account-neon-rgb), 0.18);
 }
 
 .product-showcase-cover::after {
@@ -1357,8 +1391,12 @@ button {
 }
 
 .showcase-badge-gold {
-  border-color: rgba(245, 184, 74, 0.5);
-  background: linear-gradient(135deg, rgba(245, 184, 74, 0.46), rgba(91, 52, 7, 0.72));
+  border-color: rgba(var(--account-neon-rgb), 0.62);
+  color: #fff;
+  background: linear-gradient(135deg, rgba(var(--account-neon-rgb), 0.5), rgba(5, 8, 19, 0.82));
+  box-shadow:
+    0 0 14px rgba(var(--account-neon-rgb), 0.3),
+    0 0 18px rgba(0, 0, 0, 0.28);
 }
 
 .showcase-badge-green {
@@ -1368,7 +1406,9 @@ button {
 }
 
 .product-showcase-save.save-button {
-  right: 10px;
+  top: 48px;
+  right: 14px;
+  bottom: auto;
   width: 30px;
   height: 30px;
   border-color: rgba(255, 47, 143, 0.36);
@@ -1400,13 +1440,13 @@ button {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(245, 184, 74, 0.38);
+  border: 1px solid rgba(var(--account-neon-rgb), 0.48);
   border-radius: 999px;
-  color: var(--gold);
-  background: rgba(245, 184, 74, 0.1);
+  color: var(--account-neon);
+  background: rgba(var(--account-neon-rgb), 0.1);
   font-size: 14px;
   font-weight: 950;
-  box-shadow: 0 0 18px rgba(245, 184, 74, 0.14);
+  box-shadow: 0 0 18px rgba(var(--account-neon-rgb), 0.18);
 }
 
 .product-showcase-rank span:last-child {
@@ -1428,9 +1468,7 @@ button {
 }
 
 .product-showcase-rank small,
-.product-showcase-seller small,
-.product-showcase-score small,
-.product-showcase-score em {
+.product-showcase-seller small {
   color: var(--muted);
   font-size: 10px;
   font-style: normal;
@@ -1485,8 +1523,7 @@ button {
 .product-showcase-body {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(78px, auto);
-  gap: 10px;
+  grid-template-columns: 1fr;
   align-items: center;
 }
 
@@ -1517,45 +1554,10 @@ button {
   gap: 2px;
 }
 
-.product-showcase-score {
-  min-width: 78px;
-  display: grid;
-  justify-items: end;
-  gap: 2px;
-}
-
-.product-showcase-score span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.product-showcase-score b {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(255, 47, 143, 0.44);
-  border-radius: 8px;
-  color: var(--pink-2);
-  background: rgba(255, 47, 143, 0.12);
-  font-size: 11px;
-}
-
-.product-showcase-score strong {
-  color: white;
-  font-size: 22px;
-  line-height: 1;
-}
-
-.product-showcase-score em {
-  color: var(--green);
-}
-
 .product-showcase-footer {
   min-width: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 34px auto;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, auto);
   gap: 8px;
   align-items: center;
 }
@@ -1571,6 +1573,7 @@ button {
 .product-showcase-social {
   min-width: 0;
   overflow: hidden;
+  grid-column: 1;
   color: #c7d0e3;
   font-size: 10px;
   font-weight: 850;
@@ -1591,6 +1594,9 @@ button {
 
 .product-showcase-cart {
   width: 34px;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
   padding: 0;
   color: var(--pink-2);
   background: rgba(255, 47, 143, 0.12);
@@ -1598,6 +1604,9 @@ button {
 }
 
 .product-showcase-details {
+  width: 100%;
+  grid-column: 2;
+  grid-row: 2;
   padding: 0 12px;
   white-space: nowrap;
 }
@@ -1920,6 +1929,15 @@ button {
   color: white;
   border-bottom-color: var(--pink);
   background: linear-gradient(180deg, rgba(255, 47, 143, 0.12), transparent);
+}
+
+.detail-tab-panels {
+  display: grid;
+  gap: 14px;
+}
+
+.detail-tab-panel[hidden] {
+  display: none;
 }
 
 .detail-info-grid {
@@ -2928,20 +2946,18 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .product-showcase-score {
-    justify-items: start;
-  }
-
   .product-showcase-footer {
-    grid-template-columns: auto 34px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 34px;
   }
 
   .product-showcase-social {
-    grid-column: 1 / -1;
-    order: 3;
+    grid-column: 1;
+    grid-row: 2;
   }
 
   .product-showcase-details {
+    grid-column: 1 / -1;
+    grid-row: 3;
     width: 100%;
     padding-inline: 8px;
   }

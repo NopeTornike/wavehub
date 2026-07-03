@@ -20,6 +20,7 @@ const messageCount = document.getElementById('messageCount');
 const detailLayout = document.getElementById('detailLayout');
 const detailEmpty = document.getElementById('detailEmpty');
 const detailTabButtons = document.querySelectorAll('.detail-tabs button');
+const detailTabPanels = document.querySelectorAll('.detail-tab-panel');
 const detailBackLink = document.getElementById('detailBackLink');
 const detailBreadcrumb = document.getElementById('detailBreadcrumb');
 const detailHeroImage = document.getElementById('detailHeroImage');
@@ -46,8 +47,14 @@ const detailViews = document.getElementById('detailViews');
 const detailLongDescription = document.getElementById('detailLongDescription');
 const detailIncluded = document.getElementById('detailIncluded');
 const detailSellerScore = document.getElementById('detailSellerScore');
+const detailSellerScoreLabel = document.getElementById('detailSellerScoreLabel');
 const detailQualityScore = document.getElementById('detailQualityScore');
+const detailQualityScoreLabel = document.getElementById('detailQualityScoreLabel');
 const detailPopularity = document.getElementById('detailPopularity');
+const detailSideSellerScore = document.getElementById('detailSideSellerScore');
+const detailSideSellerScoreLabel = document.getElementById('detailSideSellerScoreLabel');
+const detailSideQualityScore = document.getElementById('detailSideQualityScore');
+const detailSideQualityScoreLabel = document.getElementById('detailSideQualityScoreLabel');
 const detailTag = document.getElementById('detailTag');
 const detailSideDelivery = document.getElementById('detailSideDelivery');
 const detailPrice = document.getElementById('detailPrice');
@@ -235,6 +242,21 @@ function saveUserFavorites(username, favorites) {
   });
 }
 
+function getFavoriteCount(favoriteId) {
+  if (!favoriteId) {
+    return 0;
+  }
+
+  const favoritesByUser = readJson(favoritesKey, {});
+  const source = favoritesByUser && typeof favoritesByUser === 'object' && !Array.isArray(favoritesByUser)
+    ? favoritesByUser
+    : {};
+
+  return Object.values(source).reduce((count, favorites) => (
+    count + (Array.isArray(favorites) && favorites.some((favorite) => favorite.id === favoriteId) ? 1 : 0)
+  ), 0);
+}
+
 function getFavoriteId(offer) {
   if (!offer?.id) {
     return '';
@@ -263,28 +285,15 @@ function setWishlistState(isSaved) {
   if (wishlistButton) {
     wishlistButton.textContent = isSaved ? 'Saved' : 'Add to Wishlist';
     wishlistButton.setAttribute('aria-pressed', String(isSaved));
+    wishlistButton.title = isSaved ? 'Remove from wishlist' : 'Add to wishlist';
   }
 
   if (detailSaveButton) {
     detailSaveButton.classList.toggle('saved', isSaved);
     detailSaveButton.setAttribute('aria-pressed', String(isSaved));
     detailSaveButton.setAttribute('aria-label', isSaved ? 'Remove from wishlist' : 'Add to wishlist');
+    detailSaveButton.title = isSaved ? 'Remove from wishlist' : 'Add to wishlist';
   }
-}
-
-function stableHash(value) {
-  return String(value || '').split('').reduce((hash, char) => (
-    ((hash << 5) - hash + char.charCodeAt(0)) >>> 0
-  ), 2166136261);
-}
-
-function getStableScore(seed, offset = 0) {
-  const score = 92 + ((stableHash(`${seed}-${offset}`) % 8) / 10);
-  return score.toFixed(1);
-}
-
-function getStablePopularity(seed) {
-  return (1200 + (stableHash(seed) % 98000)).toLocaleString();
 }
 
 function formatAccountStatus(value) {
@@ -309,8 +318,12 @@ function getAccountTypeImage(value) {
 }
 
 function formatNumber(value) {
+  if (value === '' || value === null || value === undefined) {
+    return '-';
+  }
+
   const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number.toLocaleString() : '-';
+  return Number.isFinite(number) && number >= 0 ? number.toLocaleString() : '-';
 }
 
 function getInitials(user) {
@@ -372,6 +385,33 @@ function getSellerListings() {
   return Array.isArray(listings) ? listings : [];
 }
 
+function saveSellerListings(listings) {
+  writeJson(sellerListingsKey, listings);
+}
+
+function incrementListingViews(id) {
+  let updatedListing = null;
+  const listings = getSellerListings().map((listing) => {
+    if (listing.id !== id) {
+      return listing;
+    }
+
+    const nextViews = (Number(listing.accountViews) || 0) + 1;
+    updatedListing = {
+      ...listing,
+      accountViews: nextViews,
+    };
+
+    return updatedListing;
+  });
+
+  if (updatedListing) {
+    saveSellerListings(listings);
+  }
+
+  return updatedListing;
+}
+
 function getListingType(listing) {
   return listing?.listingType === 'skin' ? 'skin' : 'account';
 }
@@ -391,18 +431,20 @@ function getListingSellerName(listing) {
   return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
 }
 
-function getProductDetail(id) {
-  const listing = getSellerListings().find((item) => item.id === id);
+function getProductDetail(id, { countView = true } = {}) {
+  const listing = countView
+    ? incrementListingViews(id)
+    : getSellerListings().find((item) => item.id === id);
 
   if (!listing) {
     return null;
   }
 
   const config = getListingConfig(listing);
-  const seed = `${listing.id}-${listing.game}-${getListingTitle(listing)}`;
   const accountStatus = listing.accountStatus || (config.type === 'account' ? 'basic' : '');
-  const accountLevel = Number(listing.accountLevel) || (config.type === 'account' ? 1 + (stableHash(seed) % 100) : '');
-  const accountViews = Number(listing.accountViews) || 1200 + (stableHash(`${seed}-views`) % 98000);
+  const accountLevel = Number(listing.accountLevel) || '';
+  const accountViews = Number(listing.accountViews) || 0;
+  const favoriteCount = getFavoriteCount(`listing:${id}`);
   const galleryImages = Array.isArray(listing.galleryImages)
     ? listing.galleryImages.filter(Boolean)
     : [listing.imageData].filter(Boolean);
@@ -430,14 +472,15 @@ function getProductDetail(id) {
     accountStatusLabel: accountStatus ? formatAccountStatus(accountStatus) : config.label,
     accountLevel,
     accountViews,
-    sellerScore: getStableScore(seed, 1),
-    productScore: getStableScore(seed, 2),
-    popularity: formatNumber(accountViews) === '-' ? getStablePopularity(seed) : formatNumber(accountViews),
+    sellerScore: listing.sellerScore || '-',
+    productScore: listing.productScore || favoriteCount,
+    popularity: formatNumber(accountViews),
+    favoriteCount,
     included: config.included,
   };
 }
 
-function getDetailOffer() {
+function getDetailOffer({ countView = true } = {}) {
   const params = new URLSearchParams(window.location.search);
   const type = params.get('type');
   const id = params.get('id');
@@ -447,14 +490,14 @@ function getDetailOffer() {
   }
 
   if (type === 'product') {
-    return getProductDetail(id);
+    return getProductDetail(id, { countView });
   }
 
   if (type === 'service') {
     return serviceDetails[id] ? { id, ...serviceDetails[id] } : null;
   }
 
-  return serviceDetails[id] ? { id, ...serviceDetails[id] } : getProductDetail(id);
+  return serviceDetails[id] ? { id, ...serviceDetails[id] } : getProductDetail(id, { countView });
 }
 
 function setStatus(type, message) {
@@ -664,8 +707,56 @@ function syncWishlistForActiveOffer() {
   setWishlistState(isSaved);
 }
 
-function renderDetail() {
-  const offer = getDetailOffer();
+function toggleActiveOfferFavorite(username) {
+  if (!activeOffer) {
+    return false;
+  }
+
+  const favorite = getOfferFavorite(activeOffer);
+  const favorites = getUserFavorites(username);
+  const wasSaved = favorites.some((item) => item.id === favorite.id);
+  const nextFavorites = wasSaved
+    ? favorites.filter((item) => item.id !== favorite.id)
+    : [...favorites.filter((item) => item.id !== favorite.id), favorite];
+
+  saveUserFavorites(username, nextFavorites);
+  return !wasSaved;
+}
+
+function setActiveDetailTab(targetId = 'detailOverview') {
+  const nextTargetId = document.getElementById(targetId)?.classList.contains('detail-tab-panel')
+    ? targetId
+    : 'detailOverview';
+
+  detailTabButtons.forEach((button) => {
+    const isActive = button.dataset.detailTarget === nextTargetId;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-selected', String(isActive));
+  });
+
+  detailTabPanels.forEach((panel) => {
+    panel.hidden = panel.id !== nextTargetId;
+  });
+}
+
+function renderOfferMetrics(offer) {
+  if (!offer) {
+    return;
+  }
+
+  if (detailSellerScore) detailSellerScore.textContent = offer.sellerScore || '-';
+  if (detailSellerScoreLabel) detailSellerScoreLabel.textContent = offer.sellerScore && offer.sellerScore !== '-' ? 'Rated' : 'No rating';
+  if (detailQualityScore) detailQualityScore.textContent = formatNumber(offer.productScore);
+  if (detailQualityScoreLabel) detailQualityScoreLabel.textContent = offer.productScore === 1 ? 'saved' : 'saves';
+  if (detailPopularity) detailPopularity.textContent = offer.popularity || formatNumber(offer.accountViews);
+  if (detailSideSellerScore) detailSideSellerScore.textContent = offer.sellerScore || '-';
+  if (detailSideSellerScoreLabel) detailSideSellerScoreLabel.textContent = offer.sellerScore && offer.sellerScore !== '-' ? 'Rated' : 'No rating';
+  if (detailSideQualityScore) detailSideQualityScore.textContent = formatNumber(offer.productScore);
+  if (detailSideQualityScoreLabel) detailSideQualityScoreLabel.textContent = offer.favoriteCount === 1 ? 'saved' : 'saves';
+}
+
+function renderDetail({ countView = true } = {}) {
+  const offer = getDetailOffer({ countView });
 
   if (!offer) {
     activeOffer = null;
@@ -717,9 +808,7 @@ function renderDetail() {
   if (detailHeroDelivery) detailHeroDelivery.textContent = offer.delivery;
   if (detailSideDelivery) detailSideDelivery.textContent = offer.delivery;
   if (detailPrice) detailPrice.textContent = offer.price;
-  if (detailSellerScore) detailSellerScore.textContent = offer.sellerScore || '9.8';
-  if (detailQualityScore) detailQualityScore.textContent = offer.productScore || '9.4';
-  if (detailPopularity) detailPopularity.textContent = offer.popularity || '52,210';
+  renderOfferMetrics(offer);
   if (detailBasicStatus) detailBasicStatus.textContent = offer.accountStatusLabel || offer.tag;
   if (detailBasicGame) detailBasicGame.textContent = offer.game;
   if (detailBasicLevel) detailBasicLevel.textContent = formatNumber(offer.accountLevel);
@@ -735,6 +824,7 @@ function renderDetail() {
 
   renderGallery(offer);
   renderIncluded(offer.included || []);
+  setActiveDetailTab('detailOverview');
   syncWishlistForActiveOffer();
 }
 
@@ -785,13 +875,8 @@ profileButton?.addEventListener('click', () => {
 detailTabButtons.forEach((button) => {
   button.addEventListener('click', () => {
     const targetId = button.dataset.detailTarget || '';
-    const target = targetId ? document.getElementById(targetId) : null;
 
-    detailTabButtons.forEach((item) => item.classList.toggle('active', item === button));
-
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    setActiveDetailTab(targetId);
   });
 });
 
@@ -815,7 +900,10 @@ buyButton?.addEventListener('click', () => {
 });
 
 [wishlistButton, detailSaveButton].forEach((button) => {
-  button?.addEventListener('click', () => {
+  button?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     const { user } = getCurrentAccount();
 
     if (!user?.username) {
@@ -829,15 +917,11 @@ buyButton?.addEventListener('click', () => {
       return;
     }
 
-    const favorite = getOfferFavorite(activeOffer);
-    const favorites = getUserFavorites(user.username);
-    const isSaved = favorites.some((item) => item.id === favorite.id);
-    const nextFavorites = isSaved
-      ? favorites.filter((item) => item.id !== favorite.id)
-      : [...favorites.filter((item) => item.id !== favorite.id), favorite];
+    setWishlistState(toggleActiveOfferFavorite(user.username));
 
-    saveUserFavorites(user.username, nextFavorites);
-    setWishlistState(!isSaved);
+    activeOffer.favoriteCount = getFavoriteCount(getFavoriteId(activeOffer));
+    activeOffer.productScore = activeOffer.favoriteCount;
+    renderOfferMetrics(activeOffer);
   });
 });
 
@@ -927,7 +1011,7 @@ window.addEventListener('storage', (event) => {
   }
 
   if (event.key === sellerListingsKey) {
-    renderDetail();
+    renderDetail({ countView: false });
   }
 });
 
