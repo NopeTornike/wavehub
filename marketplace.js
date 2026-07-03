@@ -39,12 +39,16 @@ const logoutButton = document.getElementById('logoutButton');
 const authEntryActions = document.getElementById('authEntryActions');
 const onlineCount = document.getElementById('onlineCount');
 const messageCount = document.getElementById('messageCount');
+const cartButton = document.getElementById('cartButton');
+const cartCount = document.getElementById('cartCount');
+const cartTotal = document.getElementById('cartTotal');
 
 const sellerListingsKey = 'wavehub.sellerListings';
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
+const cartKey = 'wavehub.cart';
 const games = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
 const accountTypeImages = {
   basic: 'assets/basic-account.png',
@@ -193,6 +197,53 @@ function getFavoriteId(listing) {
 
 function getDetailUrl(listing) {
   return listing?.id ? `detail.html?type=product&id=${encodeURIComponent(listing.id)}` : '';
+}
+
+function getCartItems() {
+  const cartItems = readJson(cartKey, []);
+  return Array.isArray(cartItems) ? cartItems : [];
+}
+
+function saveCartItems(items) {
+  writeJson(cartKey, items);
+}
+
+function getCartItem(listing) {
+  const config = getListingConfig(listing);
+
+  return {
+    id: getFavoriteId(listing),
+    listingId: listing.id || '',
+    title: getListingTitle(listing),
+    productType: config.label,
+    game: listing.game || 'Marketplace',
+    seller: getListingSellerName(listing),
+    price: Number(listing.price) || 0,
+    priceText: formatListingPrice(listing.price),
+    imageData: getMarketplaceCardImage(listing, config),
+    detailUrl: getDetailUrl(listing),
+    addedAt: new Date().toISOString(),
+  };
+}
+
+function getCartTotal(items = getCartItems()) {
+  return items.reduce((total, item) => total + (Number(item.price) || 0), 0);
+}
+
+function addListingToCart(listing) {
+  const item = getCartItem(listing);
+  const items = getCartItems();
+  const exists = items.some((cartItem) => cartItem.id === item.id);
+  const nextItems = exists
+    ? items.map((cartItem) => (cartItem.id === item.id ? { ...cartItem, ...item, addedAt: cartItem.addedAt } : cartItem))
+    : [...items, item];
+
+  saveCartItems(nextItems);
+  return !exists;
+}
+
+function removeCartItem(id) {
+  saveCartItems(getCartItems().filter((item) => item.id !== id));
 }
 
 function getActiveSection() {
@@ -726,11 +777,12 @@ function createProductShowcaseCard(listing) {
   cartButton.className = 'product-showcase-cart';
   cartButton.type = 'button';
   cartButton.textContent = '+';
-  cartButton.setAttribute('aria-label', 'Order product');
-  cartButton.addEventListener('click', () => {
-    if (detailUrl) {
-      window.location.href = detailUrl;
-    }
+  cartButton.setAttribute('aria-label', 'Add product to cart');
+  cartButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    addListingToCart(listing);
+    renderCart();
   });
 
   const detailButton = document.createElement('button');
@@ -823,11 +875,8 @@ function createMarketplaceCard(listing) {
   action.type = 'button';
   action.textContent = config.actionLabel;
   action.addEventListener('click', () => {
-    const detailUrl = getDetailUrl(listing);
-
-    if (detailUrl) {
-      window.location.href = detailUrl;
-    }
+    addListingToCart(listing);
+    renderCart();
   });
 
   meta.append(avatar, account, action);
@@ -874,6 +923,19 @@ function setSellerStatus(type, message) {
 
   sellerStatus.className = type ? `seller-status ${type}` : 'seller-status';
   sellerStatus.textContent = message;
+}
+
+function renderCart() {
+  const items = getCartItems();
+  const total = getCartTotal(items);
+
+  if (cartCount) {
+    cartCount.textContent = String(items.length);
+  }
+
+  if (cartTotal) {
+    cartTotal.textContent = formatListingPrice(total);
+  }
 }
 
 function openSellerModal() {
@@ -1084,6 +1146,10 @@ window.addEventListener('storage', (event) => {
   if (event.key === sellerListingsKey || event.key === favoritesKey) {
     renderMarketplace();
   }
+
+  if (event.key === cartKey) {
+    renderCart();
+  }
 });
 
 populateGameSelects();
@@ -1093,3 +1159,4 @@ renderOnlineCount();
 renderProfile();
 applyInitialHash();
 renderMarketplace();
+renderCart();
