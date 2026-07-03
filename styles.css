@@ -1406,8 +1406,8 @@ button {
 }
 
 .product-showcase-save.save-button {
-  top: 48px;
-  right: 14px;
+  top: 118px;
+  right: -160px;
   bottom: auto;
   width: 30px;
   height: 30px;
