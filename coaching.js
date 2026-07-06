@@ -19,152 +19,7 @@ let activeGame = 'all';
 let activePage = '1';
 let activeView = 'grid';
 
-const coaches = [
-  {
-    game: 'PUBG Mobile',
-    service: 'Coaching',
-    rank: 'Conqueror',
-    tier: 'ace',
-    rating: 4.9,
-    reviews: 124,
-    price: 15,
-    tags: ['Experienced', 'Fast Responder'],
-    language: 'EN',
-    availability: 'now',
-  },
-  {
-    game: 'PUBG Mobile',
-    service: 'Rank Push',
-    rank: 'Ace Dominator',
-    tier: 'ace',
-    rating: 4.8,
-    reviews: 98,
-    price: 12,
-    tags: ['100+ Sessions', 'Fast Responder'],
-    language: 'EN',
-    availability: 'today',
-  },
-  {
-    game: 'Valorant',
-    service: 'Coaching',
-    rank: 'Immortal 3',
-    tier: 'immortal',
-    rating: 4.8,
-    reviews: 76,
-    price: 18,
-    tags: ['Pro Player', 'Fast Responder'],
-    language: 'EN',
-    availability: 'now',
-  },
-  {
-    game: 'COD Mobile',
-    service: 'Rank Push',
-    rank: 'Legendary',
-    tier: 'ace',
-    rating: 4.7,
-    reviews: 65,
-    price: 10,
-    tags: ['100+ Sessions', 'Fast Responder'],
-    language: 'EN',
-    availability: 'weekend',
-  },
-  {
-    game: 'Fortnite',
-    service: 'Coaching',
-    rank: 'Diamond IV',
-    tier: 'diamond',
-    rating: 4.7,
-    reviews: 54,
-    price: 9,
-    tags: ['Friendly', 'Fast Responder'],
-    language: 'GE',
-    availability: 'today',
-  },
-  {
-    game: 'PUBG Mobile',
-    service: 'Coaching',
-    rank: 'Conqueror',
-    tier: 'ace',
-    rating: 4.6,
-    reviews: 41,
-    price: 14,
-    tags: ['50+ Sessions', 'Fast Responder'],
-    language: 'EN',
-    availability: 'now',
-  },
-  {
-    game: 'Apex Legends',
-    service: 'Coaching',
-    rank: 'Master',
-    tier: 'master',
-    rating: 4.6,
-    reviews: 38,
-    price: 11,
-    tags: ['Pro Player', 'Fast Responder'],
-    language: 'RU',
-    availability: 'today',
-  },
-  {
-    game: 'PUBG Mobile',
-    service: 'Rank Push',
-    rank: 'Ace',
-    tier: 'ace',
-    rating: 4.5,
-    reviews: 32,
-    price: 8,
-    tags: ['Budget Friendly', 'Fast Responder'],
-    language: 'EN',
-    availability: 'weekend',
-  },
-  {
-    game: 'Valorant',
-    service: 'Coaching',
-    rank: 'Immortal 2',
-    tier: 'immortal',
-    rating: 4.5,
-    reviews: 28,
-    price: 16,
-    tags: ['Pro Player', '100+ Sessions'],
-    language: 'EN',
-    availability: 'now',
-  },
-  {
-    game: 'COD Mobile',
-    service: 'Coaching',
-    rank: 'Grandmaster V',
-    tier: 'master',
-    rating: 4.4,
-    reviews: 25,
-    price: 9,
-    tags: ['Friendly', 'Fast Responder'],
-    language: 'GE',
-    availability: 'today',
-  },
-  {
-    game: 'Fortnite',
-    service: 'Coaching',
-    rank: 'Diamond I',
-    tier: 'diamond',
-    rating: 4.4,
-    reviews: 22,
-    price: 8,
-    tags: ['Budget Friendly', 'Fast Responder'],
-    language: 'EN',
-    availability: 'weekend',
-  },
-  {
-    game: 'LOL: Wild Rift',
-    service: 'Coaching',
-    rank: 'Challenger',
-    tier: 'master',
-    rating: 4.3,
-    reviews: 19,
-    price: 12,
-    tags: ['Experienced', 'Fast Responder'],
-    language: 'EN',
-    availability: 'now',
-  },
-];
+const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
 
 function getSelectedValues(name) {
   if (!coachFilters) {
@@ -185,6 +40,20 @@ function getGameShortName(game) {
   };
 
   return labels[game] || 'WH';
+}
+
+function getCoachInitials(coach) {
+  return String(coach.name || coach.game || 'WH')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
+function getCoachBookingUrl(coach) {
+  return `coach-book-session.html?coach=${encodeURIComponent(coach.id || coach.name || coach.game)}`;
 }
 
 function isFiltered() {
@@ -269,14 +138,15 @@ function createCoachCard(coach) {
   const card = document.createElement('article');
   card.className = 'coach-card';
   card.dataset.game = coach.game;
+  card.dataset.coachId = coach.id || '';
   card.innerHTML = `
     <div class="coach-card-main">
       <div class="coach-avatar-ring">
-        <span>?</span>
+        <span>${getCoachInitials(coach)}</span>
         <i></i>
       </div>
       <div class="coach-card-copy">
-        <h2>Unknown</h2>
+        <h2>${coach.name || 'Wave Coach'}</h2>
         <p class="coach-rank-line">
           <span class="coach-rank-dot ${coach.tier}" aria-hidden="true"></span>
           <span>${coach.rank}</span>
@@ -293,7 +163,7 @@ function createCoachCard(coach) {
 
     <div class="coach-price-row">
       <p><strong>$${coach.price}</strong> <span>/hour</span></p>
-      <button type="button">Book Session</button>
+      <a href="${getCoachBookingUrl(coach)}" aria-label="Book a session with ${coach.name || 'this coach'}">Book Session</a>
     </div>
 
     <div class="coach-card-tags">
@@ -362,6 +232,15 @@ function applyServiceParam() {
   }
 }
 
+function applySearchParam() {
+  const params = new URLSearchParams(window.location.search);
+  const query = params.get('search');
+
+  if (query && coachSearch) {
+    coachSearch.value = query;
+  }
+}
+
 coachSearch?.addEventListener('input', renderCoaches);
 coachFilters?.addEventListener('change', () => {
   updatePriceLabel();
@@ -423,5 +302,6 @@ document.querySelectorAll('.coach-collapse').forEach((button) => {
 });
 
 applyServiceParam();
+applySearchParam();
 updatePriceLabel();
 renderCoaches();

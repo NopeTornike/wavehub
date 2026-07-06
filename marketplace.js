@@ -154,6 +154,15 @@ function getCurrentAccount() {
   return { session, user };
 }
 
+function getUserByUsername(username) {
+  if (!username) {
+    return null;
+  }
+
+  const users = readJson(localUsersKey, []);
+  return Array.isArray(users) ? users.find((user) => user.username === username) || null : null;
+}
+
 function getUserFavorites(username) {
   if (!username) {
     return [];
@@ -389,7 +398,8 @@ function getListingTitle(listing) {
 
 function getListingSellerName(listing) {
   const config = getListingConfig(listing);
-  return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
+  const sellerUser = getUserByUsername(listing.sellerUsername);
+  return sellerUser ? getDisplayName(sellerUser) : listing.sellerName || `${listing.game} ${config.sellerNoun}`;
 }
 
 function formatAccountStatus(value) {
@@ -742,10 +752,17 @@ function createProductShowcaseCard(listing) {
 
   const seller = document.createElement('div');
   seller.className = 'product-showcase-seller';
+  const sellerUser = getUserByUsername(listing.sellerUsername);
+  const sellerPhoto = sellerUser?.photoData || listing.sellerAvatar || '';
 
   const sellerAvatar = document.createElement('span');
   sellerAvatar.className = 'product-showcase-avatar';
-  sellerAvatar.textContent = getGameInitials(sellerName);
+  if (sellerPhoto) {
+    sellerAvatar.classList.add('avatar-image');
+    sellerAvatar.style.backgroundImage = `url("${sellerPhoto}")`;
+  } else {
+    sellerAvatar.textContent = getGameInitials(sellerName);
+  }
 
   const sellerCopy = document.createElement('span');
   const sellerTitle = document.createElement('strong');
@@ -776,8 +793,15 @@ function createProductShowcaseCard(listing) {
   const cartButton = document.createElement('button');
   cartButton.className = 'product-showcase-cart';
   cartButton.type = 'button';
-  cartButton.textContent = '+';
   cartButton.setAttribute('aria-label', 'Add product to cart');
+
+  const cartIcon = document.createElement('img');
+  cartIcon.className = 'cart-icon-image';
+  cartIcon.src = 'assets/cart-icon.png';
+  cartIcon.alt = '';
+  cartIcon.setAttribute('aria-hidden', 'true');
+  cartButton.appendChild(cartIcon);
+
   cartButton.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -928,6 +952,8 @@ function setSellerStatus(type, message) {
 function renderCart() {
   const items = getCartItems();
   const total = getCartTotal(items);
+
+  window.renderGlobalCartCount?.(items.length);
 
   if (cartCount) {
     cartCount.textContent = String(items.length);
@@ -1118,6 +1144,7 @@ sellerForm?.addEventListener('submit', async (event) => {
     accountViews: 0,
     sellerUsername: sellerUser?.username || '',
     sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} ${config.sellerNoun}`,
+    sellerAvatar: sellerUser?.photoData || '',
     createdAt: new Date().toISOString(),
   };
 

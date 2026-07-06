@@ -30,6 +30,7 @@ const cartKey = 'wavehub.cart';
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const priceOffersKey = 'wavehub.priceOffers';
+const purchasesKey = 'wavehub.purchases';
 
 function readJson(key, fallback) {
   try {
@@ -68,6 +69,15 @@ function getCartTotal(items = getCartItems()) {
 
 function removeCartItem(id) {
   saveCartItems(getCartItems().filter((item) => item.id !== id));
+}
+
+function getPurchases() {
+  const purchases = readJson(purchasesKey, []);
+  return Array.isArray(purchases) ? purchases : [];
+}
+
+function savePurchases(purchases) {
+  writeJson(purchasesKey, purchases);
 }
 
 function getCurrentAccount() {
@@ -207,6 +217,8 @@ function renderCart() {
   const items = getFilteredCartItems();
   const total = getCartTotal(allItems);
 
+  window.renderGlobalCartCount?.(allItems.length);
+
   if (cartCount) cartCount.textContent = String(allItems.length);
   if (cartNavCount) cartNavCount.textContent = String(allItems.length);
   if (cartSummaryCount) cartSummaryCount.textContent = String(allItems.length);
@@ -339,6 +351,18 @@ checkoutButton?.addEventListener('click', () => {
     profileButton?.focus();
     return;
   }
+
+  savePurchases([
+    ...getPurchases(),
+    {
+      id: window.crypto?.randomUUID?.() || String(Date.now()),
+      buyerUsername: user.username,
+      items,
+      total: getCartTotal(items),
+      status: 'Checkout request',
+      purchasedAt: new Date().toISOString(),
+    },
+  ]);
 
   if (checkoutStatus) {
     checkoutStatus.className = 'seller-status success';

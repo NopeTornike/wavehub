@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WaveHub - Cart</title>
+  <title>WaveHub - Profile</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -47,14 +47,14 @@
           <span class="nav-icon nav-icon-heart" aria-hidden="true"></span>
           <span>Favorites</span>
         </a>
-        <a class="side-link active" href="cart.html" data-section="Cart">
+        <a class="side-link" href="cart.html" data-section="Cart">
           <span class="nav-icon" aria-hidden="true">
             <img class="cart-icon-image" src="assets/cart-icon.png" alt="" />
           </span>
           <span>Cart</span>
           <span class="nav-pill" id="cartNavCount" data-cart-count>0</span>
         </a>
-        <a class="side-link" href="profile.html" data-section="Settings">
+        <a class="side-link active" href="profile.html" data-section="Settings">
           <span class="nav-icon" aria-hidden="true">S</span>
           <span>Settings</span>
         </a>
@@ -76,16 +76,16 @@
           <span></span>
         </button>
 
-        <label class="search-box" aria-label="Search cart">
+        <label class="search-box" aria-label="Search profile">
           <span class="search-icon" aria-hidden="true">/</span>
-          <input id="cartSearch" type="search" placeholder="Search cart products..." autocomplete="off" />
+          <input id="profileSearch" type="search" placeholder="Search your listings or purchases..." autocomplete="off" />
         </label>
 
         <div class="top-actions">
           <a class="icon-button" href="messages.html" aria-label="Messages" title="Messages">
             <span aria-hidden="true">@</span>
           </a>
-          <a class="icon-button cart-top-button" href="cart.html" aria-label="Cart" title="Cart" aria-current="page">
+          <a class="icon-button cart-top-button" href="cart.html" aria-label="Cart" title="Cart">
             <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />
             <strong class="cart-badge" data-cart-count>0</strong>
           </a>
@@ -94,87 +94,97 @@
           </button>
           <a class="seller-button" href="marketplace.html">Marketplace</a>
           <div class="profile-menu" id="profileMenu">
-            <button class="profile-chip" id="profileButton" type="button" aria-label="Profile" aria-haspopup="true" aria-expanded="false">
+            <button class="profile-chip" id="profileButton" type="button" aria-label="Profile">
               <span class="avatar avatar-hot" id="profileAvatar">?</span>
               <span>
                 <strong id="profileUsername">Guest</strong>
                 <small id="profileMeta">Not signed in</small>
               </span>
             </button>
-
-            <div class="profile-dropdown" id="profileDropdown" hidden>
-              <div class="profile-dropdown-head">
-                <span class="avatar avatar-hot" id="profilePanelAvatar">?</span>
-                <div>
-                  <strong id="profileFullName">Guest account</strong>
-                  <small id="profileHandle">@guest</small>
-                </div>
-              </div>
-
-              <div class="account-details" aria-label="Account details">
-                <div>
-                  <span>Username</span>
-                  <strong id="accountUsername">Guest</strong>
-                </div>
-                <div>
-                  <span>Name</span>
-                  <strong id="accountName">Not signed in</strong>
-                </div>
-                <div>
-                  <span>Account ID</span>
-                  <strong id="accountId">-</strong>
-                </div>
-                <div>
-                  <span>Logged in</span>
-                  <strong id="accountLoggedIn">-</strong>
-                </div>
-              </div>
-
-              <div class="auth-entry-actions" id="authEntryActions">
-                <a class="auth-open-button" href="auth.html?mode=login">Log in</a>
-                <a class="auth-open-button primary" href="auth.html?mode=register">Create account</a>
-              </div>
-
-              <button class="logout-button" id="logoutButton" type="button">Log out</button>
-            </div>
           </div>
         </div>
       </header>
 
-      <section class="marketplace-head" aria-labelledby="cartTitle">
+      <section class="marketplace-head" aria-labelledby="profileTitle">
         <div>
-          <p class="section-kicker">Checkout</p>
-          <h1 id="cartTitle">Cart</h1>
+          <p class="section-kicker">Account control</p>
+          <h1 id="profileTitle">Profile</h1>
         </div>
-        <div class="marketplace-total" aria-label="Cart products">
-          <strong id="cartCount">0</strong>
-          <span>products</span>
+        <div class="marketplace-total" aria-label="Profile records">
+          <strong id="profileRecordCount">0</strong>
+          <span>records</span>
         </div>
       </section>
 
-      <section class="cart-page-layout" aria-label="Cart products">
-        <div class="cart-page-main">
-          <div class="cart-list cart-page-list" id="cartList"></div>
-          <div class="marketplace-empty" id="cartEmpty" hidden>Cart is empty.</div>
+      <section class="profile-login-panel" id="profileLoginPanel" hidden>
+        <h2>Sign in required</h2>
+        <p>Log in or create an account to manage your profile.</p>
+        <div>
+          <a class="auth-open-button primary" href="auth.html?mode=login">Log in</a>
+          <a class="auth-open-button" href="auth.html?mode=register">Create account</a>
         </div>
+      </section>
 
-        <aside class="cart-checkout-panel" aria-label="Checkout summary">
-          <div>
-            <span>Subtotal</span>
-            <strong id="cartSubtotal">0 GEL</strong>
+      <section class="profile-control-layout" id="profileControlLayout" hidden>
+        <form class="profile-settings-card" id="profileForm">
+          <div class="profile-photo-row">
+            <span class="profile-photo-preview avatar avatar-hot" id="profilePhotoPreview">?</span>
+            <label>
+              <span>Profile photo</span>
+              <input id="profilePhotoInput" type="file" accept="image/*" />
+            </label>
           </div>
-          <div>
-            <span>Items</span>
-            <strong id="cartSummaryCount">0</strong>
+
+          <div class="profile-form-grid">
+            <label>
+              <span>Username</span>
+              <input id="profileUsernameInput" type="text" readonly />
+            </label>
+            <label>
+              <span>First name</span>
+              <input id="profileFirstNameInput" type="text" maxlength="40" autocomplete="given-name" />
+            </label>
+            <label>
+              <span>Last name</span>
+              <input id="profileLastNameInput" type="text" maxlength="40" autocomplete="family-name" />
+            </label>
           </div>
-          <button class="cart-checkout-button" id="checkoutButton" type="button">Checkout</button>
-          <p class="seller-status" id="checkoutStatus" aria-live="polite"></p>
-        </aside>
+
+          <div class="profile-form-actions">
+            <button class="seller-submit-button" type="submit">Save Changes</button>
+            <button class="secondary-seller-action" id="profileLogoutButton" type="button">Log out</button>
+            <p class="seller-status" id="profileStatus" aria-live="polite"></p>
+          </div>
+        </form>
+
+        <section class="profile-record-section" aria-labelledby="profileListingsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Seller panel</p>
+              <h2 id="profileListingsTitle">My Listings</h2>
+            </div>
+            <a href="marketplace.html">Add listing</a>
+          </div>
+          <div class="profile-record-grid" id="profileListings"></div>
+          <div class="marketplace-empty" id="profileListingsEmpty" hidden>No listings yet.</div>
+        </section>
+
+        <section class="profile-record-section" aria-labelledby="profilePurchasesTitle">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Checkout history</p>
+              <h2 id="profilePurchasesTitle">My Purchases</h2>
+            </div>
+            <a href="cart.html">Open cart</a>
+          </div>
+          <div class="profile-record-grid" id="profilePurchases"></div>
+          <div class="marketplace-empty" id="profilePurchasesEmpty" hidden>No purchases yet.</div>
+        </section>
       </section>
     </main>
   </div>
 
-  <script src="cart.js"></script>
+  <script src="profile.js"></script>
   <script src="cart-nav.js"></script>
   <script src="profile-nav.js"></script>
 </body>

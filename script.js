@@ -136,7 +136,8 @@ function getListingTitle(listing) {
 
 function getListingSellerName(listing) {
   const config = getListingConfig(listing);
-  return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
+  const sellerUser = getUserByUsername(listing.sellerUsername);
+  return sellerUser ? getDisplayName(sellerUser) : listing.sellerName || `${listing.game} ${config.sellerNoun}`;
 }
 
 function formatAccountStatus(value) {
@@ -243,6 +244,15 @@ function getCurrentAccount() {
   const user = sessionUser ? { ...storedUser, ...sessionUser } : null;
 
   return { session, user };
+}
+
+function getUserByUsername(username) {
+  if (!username) {
+    return null;
+  }
+
+  const users = readJson(localUsersKey, []);
+  return Array.isArray(users) ? users.find((user) => user.username === username) || null : null;
 }
 
 function getUserFavorites(username) {
@@ -571,10 +581,17 @@ function createSellerListingCard(listing) {
 
   const sellerRow = document.createElement('div');
   sellerRow.className = 'seller-row';
+  const sellerUser = getUserByUsername(listing.sellerUsername);
+  const sellerPhoto = sellerUser?.photoData || listing.sellerAvatar || '';
 
   const avatar = document.createElement('span');
   avatar.className = 'avatar avatar-blue';
-  avatar.textContent = getGameInitials(listing.game);
+  if (sellerPhoto) {
+    avatar.classList.add('avatar-image');
+    avatar.style.backgroundImage = `url("${sellerPhoto}")`;
+  } else {
+    avatar.textContent = getGameInitials(listing.game);
+  }
 
   const seller = document.createElement('span');
   seller.textContent = getListingSellerName(listing);
@@ -814,6 +831,7 @@ sellerForm?.addEventListener('submit', async (event) => {
     accountViews: listingType === 'account' ? accountViews : '',
     sellerUsername: sellerUser?.username || '',
     sellerName: sellerUser ? getDisplayName(sellerUser) : `${game} ${config.sellerNoun}`,
+    sellerAvatar: sellerUser?.photoData || '',
     createdAt: new Date().toISOString(),
   };
 

@@ -47,7 +47,14 @@
           <span class="nav-icon nav-icon-heart" aria-hidden="true"></span>
           <span>Favorites</span>
         </a>
-        <a class="side-link" href="#" data-section="Settings">
+        <a class="side-link" href="cart.html" data-section="Cart">
+          <span class="nav-icon" aria-hidden="true">
+            <img class="cart-icon-image" src="assets/cart-icon.png" alt="" />
+          </span>
+          <span>Cart</span>
+          <span class="nav-pill" id="cartNavCount" data-cart-count>0</span>
+        </a>
+        <a class="side-link" href="profile.html" data-section="Settings">
           <span class="nav-icon" aria-hidden="true">S</span>
           <span>Settings</span>
         </a>
@@ -151,6 +158,10 @@
         <div class="top-actions">
           <a class="icon-button" href="messages.html" aria-label="Messages" title="Messages">
             <span aria-hidden="true">@</span>
+          </a>
+          <a class="icon-button cart-top-button" href="cart.html" aria-label="Cart" title="Cart">
+            <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />
+            <strong class="cart-badge" data-cart-count>0</strong>
           </a>
           <button class="icon-button has-alert" type="button" aria-label="Notifications" title="Notifications">
             <span aria-hidden="true">!</span>
@@ -257,7 +268,10 @@
 
       <footer class="marketplace-cart-footer" aria-label="Cart">
         <a class="marketplace-cart-button" id="cartButton" href="cart.html">
-          <span>Cart</span>
+          <span>
+            <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />
+            Cart
+          </span>
           <strong id="cartCount">0</strong>
           <small id="cartTotal">0 GEL</small>
         </a>
@@ -266,5 +280,7 @@
   </div>
 
   <script src="marketplace.js"></script>
+  <script src="cart-nav.js"></script>
+  <script src="profile-nav.js"></script>
 </body>
 </html>

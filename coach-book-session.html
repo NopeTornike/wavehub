@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaveHub - Book Session</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="coaching-body">
+  <div class="coach-page">
+    <header class="coach-topbar" aria-label="WaveHub coaching navigation">
+      <a class="coach-brand" href="index.html" aria-label="WaveHub home">
+        <span class="coach-brand-mark">W</span>
+        <strong>WAVEHUB</strong>
+      </a>
+
+      <nav class="coach-nav" aria-label="Coaching sections">
+        <a class="active" href="coaching.html">Browse Coaches</a>
+        <a href="coaching.html?service=rank-push">Rank Push</a>
+        <a href="coaching.html?service=duo-play">Duo Play</a>
+        <a href="cart.html">Cart</a>
+        <a href="#">Streams</a>
+        <a href="#">Blog</a>
+      </nav>
+
+      <div class="coach-top-actions">
+        <label class="coach-search" aria-label="Search coaches">
+          <input id="coachProfileSearch" type="search" placeholder="Search coaches..." autocomplete="off" />
+          <span aria-hidden="true"></span>
+        </label>
+        <a class="coach-icon-button" href="messages.html" aria-label="Messages" title="Messages">
+          <span aria-hidden="true">M</span>
+        </a>
+        <a class="coach-icon-button coach-cart-button" href="cart.html" aria-label="Cart" title="Cart">
+          <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />
+          <strong class="cart-badge" data-cart-count>0</strong>
+        </a>
+        <button class="coach-icon-button has-badge" type="button" aria-label="Notifications" title="Notifications">
+          <span aria-hidden="true">N</span>
+        </button>
+        <button class="coach-profile" type="button" aria-label="Profile menu">
+          <span class="coach-profile-avatar">W</span>
+          <span>
+            <strong>WaveRider</strong>
+            <small>$320.50</small>
+          </span>
+        </button>
+      </div>
+    </header>
+
+    <main class="coach-profile-shell" id="coachBookingRoot" aria-live="polite"></main>
+  </div>
+
+  <script src="coaches-data.js"></script>
+  <script src="cart-nav.js"></script>
+  <script src="coach-book-session.js"></script>
+  <script src="profile-nav.js"></script>
+</body>
+</html>

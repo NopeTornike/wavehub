@@ -9,13 +9,20 @@
 <body class="auth-page">
   <main class="auth-page-shell">
     <section class="auth-card" aria-labelledby="authTitle">
-      <a class="auth-brand" href="index.html" aria-label="Back to WaveHub">
-        <span class="brand-mark">W</span>
-        <span class="brand-text">
-          <strong>WAVEHUB</strong>
-          <small>boost trade win</small>
-        </span>
-      </a>
+      <div class="auth-card-top">
+        <a class="auth-brand" href="index.html" aria-label="Back to WaveHub">
+          <span class="brand-mark">W</span>
+          <span class="brand-text">
+            <strong>WAVEHUB</strong>
+            <small>boost trade win</small>
+          </span>
+        </a>
+
+        <a class="auth-cart-link" href="cart.html" aria-label="Cart" title="Cart">
+          <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />
+          <strong class="cart-badge" data-cart-count>0</strong>
+        </a>
+      </div>
 
       <div class="auth-card-head">
         <p class="section-kicker">WaveHub account</p>
@@ -72,5 +79,6 @@
   </main>
 
   <script src="auth.js"></script>
+  <script src="cart-nav.js"></script>
 </body>
 </html>

@@ -216,6 +216,15 @@ function getCurrentAccount() {
   return { session, user };
 }
 
+function getUserByUsername(username) {
+  if (!username) {
+    return null;
+  }
+
+  const users = readJson(localUsersKey, []);
+  return Array.isArray(users) ? users.find((user) => user.username === username) || null : null;
+}
+
 function getUserFavorites(username) {
   if (!username) {
     return [];
@@ -428,7 +437,8 @@ function getListingTitle(listing) {
 
 function getListingSellerName(listing) {
   const config = getListingConfig(listing);
-  return listing.sellerName || `${listing.game} ${config.sellerNoun}`;
+  const sellerUser = getUserByUsername(listing.sellerUsername);
+  return sellerUser ? getDisplayName(sellerUser) : listing.sellerName || `${listing.game} ${config.sellerNoun}`;
 }
 
 function getProductDetail(id, { countView = true } = {}) {

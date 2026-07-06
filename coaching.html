@@ -19,6 +19,7 @@
         <a class="active" href="coaching.html">Browse Coaches</a>
         <a href="coaching.html?service=rank-push">Rank Push</a>
         <a href="coaching.html?service=duo-play">Duo Play</a>
+        <a href="cart.html">Cart</a>
         <a href="#">Streams</a>
         <a href="#">Blog</a>
       </nav>
@@ -30,6 +31,10 @@
         </label>
         <a class="coach-icon-button" href="messages.html" aria-label="Messages" title="Messages">
           <span aria-hidden="true">M</span>
+        </a>
+        <a class="coach-icon-button coach-cart-button" href="cart.html" aria-label="Cart" title="Cart">
+          <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />
+          <strong class="cart-badge" data-cart-count>0</strong>
         </a>
         <button class="coach-icon-button has-badge" type="button" aria-label="Notifications" title="Notifications">
           <span aria-hidden="true">N</span>
@@ -174,6 +179,9 @@
     </main>
   </div>
 
+  <script src="coaches-data.js"></script>
   <script src="coaching.js"></script>
+  <script src="cart-nav.js"></script>
+  <script src="profile-nav.js"></script>
 </body>
 </html>
