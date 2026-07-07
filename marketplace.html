@@ -123,8 +123,14 @@
 
           <label class="seller-image-field">
             <span>Product images</span>
-            <input id="sellerImage" name="image" type="file" accept="image/*" multiple />
-            <small>Shown in the product gallery.</small>
+            <span class="upload-control">
+              <span class="upload-icon" aria-hidden="true"></span>
+              <span class="upload-copy">
+                <strong>Upload files</strong>
+                <small>PNG, JPG or WEBP. Shown in the product gallery.</small>
+              </span>
+              <input id="sellerImage" name="image" type="file" accept="image/*" multiple />
+            </span>
           </label>
 
           <label>

@@ -16,6 +16,20 @@ const profileListings = document.getElementById('profileListings');
 const profileListingsEmpty = document.getElementById('profileListingsEmpty');
 const profilePurchases = document.getElementById('profilePurchases');
 const profilePurchasesEmpty = document.getElementById('profilePurchasesEmpty');
+const profileListingModal = document.getElementById('profileListingModal');
+const profileListingForm = document.getElementById('profileListingForm');
+const profileListingIdInput = document.getElementById('profileListingId');
+const profileListingTypeInput = document.getElementById('profileListingType');
+const profileListingGameInput = document.getElementById('profileListingGame');
+const profileListingTitleInput = document.getElementById('profileListingTitle');
+const profileListingAccountStatusInput = document.getElementById('profileListingAccountStatus');
+const profileListingAccountLevelInput = document.getElementById('profileListingAccountLevel');
+const profileListingPriceInput = document.getElementById('profileListingPrice');
+const profileListingImageInput = document.getElementById('profileListingImage');
+const profileListingDescriptionInput = document.getElementById('profileListingDescription');
+const profileListingStatus = document.getElementById('profileListingStatus');
+const profileListingCloseButton = document.getElementById('profileListingCloseButton');
+const profileListingCancelButton = document.getElementById('profileListingCancelButton');
 const onlineCount = document.getElementById('onlineCount');
 const messageCount = document.getElementById('messageCount');
 
@@ -24,6 +38,9 @@ const sessionKey = 'wavehub.session';
 const sellerListingsKey = 'wavehub.sellerListings';
 const purchasesKey = 'wavehub.purchases';
 const priceOffersKey = 'wavehub.priceOffers';
+const cartKey = 'wavehub.cart';
+const favoritesKey = 'wavehub.favorites';
+const listingGames = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
 
 function readJson(key, fallback) {
   try {
@@ -152,6 +169,88 @@ function saveSellerListings(listings) {
   writeJson(sellerListingsKey, listings);
 }
 
+function getCartItems() {
+  const items = readJson(cartKey, []);
+  return Array.isArray(items) ? items : [];
+}
+
+function saveCartItems(items) {
+  writeJson(cartKey, items);
+  window.renderGlobalCartCount?.(items);
+}
+
+function formatListingType(listing) {
+  const accountTypes = {
+    basic: 'Basic Account',
+    'full-collection': 'Full Collection Account',
+    og: 'OG Account',
+    premium: 'Premium Account',
+    ranked: 'Ranked Account',
+    rare: 'Rare Account',
+  };
+
+  if (listing?.listingType === 'account') {
+    return accountTypes[listing.accountStatus] || 'Account';
+  }
+
+  return listing?.listingType === 'skin' ? 'Skin' : 'Listing';
+}
+
+function syncCartListing(listing) {
+  if (!listing?.id) {
+    return;
+  }
+
+  const items = getCartItems();
+  let changed = false;
+  const nextItems = items.map((item) => {
+    if (item.listingId !== listing.id && item.id !== `listing:${listing.id}`) {
+      return item;
+    }
+
+    changed = true;
+    return {
+      ...item,
+      title: listing.title || item.title,
+      productType: formatListingType(listing),
+      game: listing.game || item.game,
+      price: Number(listing.price) || 0,
+      priceText: formatListingPrice(listing.price),
+      imageData: listing.imageData || item.imageData,
+      detailUrl: getDetailUrl(listing),
+    };
+  });
+
+  if (changed) {
+    saveCartItems(nextItems);
+  }
+}
+
+function removeListingReferences(listingId) {
+  if (!listingId) {
+    return;
+  }
+
+  const favoriteId = `listing:${listingId}`;
+  const favoritesByUser = readJson(favoritesKey, {});
+  if (favoritesByUser && typeof favoritesByUser === 'object' && !Array.isArray(favoritesByUser)) {
+    const nextFavorites = Object.fromEntries(
+      Object.entries(favoritesByUser).map(([username, favorites]) => [
+        username,
+        Array.isArray(favorites) ? favorites.filter((id) => id !== favoriteId) : favorites,
+      ])
+    );
+    writeJson(favoritesKey, nextFavorites);
+  }
+
+  saveCartItems(getCartItems().filter((item) => item.listingId !== listingId && item.id !== favoriteId));
+
+  const offers = readJson(priceOffersKey, []);
+  if (Array.isArray(offers)) {
+    writeJson(priceOffersKey, offers.filter((offer) => offer.listingId !== listingId));
+  }
+}
+
 function getPurchases() {
   const purchases = readJson(purchasesKey, []);
   return Array.isArray(purchases) ? purchases : [];
@@ -189,6 +288,90 @@ function readImageFileData(file) {
     reader.addEventListener('error', () => reject(new Error('Image could not be read.')));
     reader.readAsDataURL(file);
   });
+}
+
+async function readImageFilesData(fileList) {
+  const files = Array.from(fileList || []).filter((file) => file.type.startsWith('image/')).slice(0, 6);
+
+  if (!files.length) {
+    return [];
+  }
+
+  return Promise.all(files.map((file) => readImageFileData(file)));
+}
+
+function populateListingGameOptions(selectedGame = '') {
+  if (!profileListingGameInput) {
+    return;
+  }
+
+  const games = listingGames.includes(selectedGame) || !selectedGame
+    ? listingGames
+    : [selectedGame, ...listingGames];
+
+  profileListingGameInput.innerHTML = '';
+  games.forEach((game) => {
+    const option = document.createElement('option');
+    option.value = game;
+    option.textContent = game;
+    option.selected = game === selectedGame;
+    profileListingGameInput.appendChild(option);
+  });
+}
+
+function setListingStatus(type, message) {
+  if (!profileListingStatus) {
+    return;
+  }
+
+  profileListingStatus.className = type ? `seller-status ${type}` : 'seller-status';
+  profileListingStatus.textContent = message;
+}
+
+function setListingModalOpen(isOpen) {
+  if (!profileListingModal) {
+    return;
+  }
+
+  profileListingModal.hidden = !isOpen;
+  document.body.classList.toggle('modal-open', isOpen);
+
+  if (!isOpen) {
+    setListingStatus('', '');
+    profileListingForm?.reset();
+  }
+}
+
+function syncAccountFieldsVisibility(listingType) {
+  const showAccountFields = listingType === 'account';
+  document.querySelectorAll('.profile-listing-account-field').forEach((field) => {
+    field.hidden = !showAccountFields;
+  });
+}
+
+function openListingEditor(listingId) {
+  const { user } = getCurrentAccount();
+  const listing = getSellerListings().find((item) => item.id === listingId && item.sellerUsername === user?.username);
+
+  if (!listing) {
+    setStatus('error', 'Listing was not found for this account.');
+    return;
+  }
+
+  populateListingGameOptions(listing.game || '');
+  if (profileListingIdInput) profileListingIdInput.value = listing.id || '';
+  const listingType = ['account', 'skin'].includes(listing.listingType) ? listing.listingType : 'account';
+  if (profileListingTypeInput) profileListingTypeInput.value = listingType;
+  if (profileListingTitleInput) profileListingTitleInput.value = listing.title || '';
+  if (profileListingAccountStatusInput) profileListingAccountStatusInput.value = listing.accountStatus || 'basic';
+  if (profileListingAccountLevelInput) profileListingAccountLevelInput.value = listing.accountLevel || '';
+  if (profileListingPriceInput) profileListingPriceInput.value = listing.price || '';
+  if (profileListingDescriptionInput) profileListingDescriptionInput.value = listing.description || '';
+  if (profileListingImageInput) profileListingImageInput.value = '';
+  syncAccountFieldsVisibility(listingType);
+  setListingStatus('', '');
+  setListingModalOpen(true);
+  profileListingTitleInput?.focus();
 }
 
 function getDetailUrl(listing) {
@@ -234,6 +417,27 @@ function createRecordCard(item, type) {
     : `${formatListingPrice(item.price)} / ${formatDate(item.createdAt)}`;
 
   copy.append(title, meta, footer);
+
+  if (type === 'listing') {
+    const actions = document.createElement('div');
+    actions.className = 'profile-record-actions';
+
+    const editButton = document.createElement('button');
+    editButton.className = 'profile-record-action';
+    editButton.type = 'button';
+    editButton.dataset.editListingId = item.id || '';
+    editButton.textContent = 'Edit';
+
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'profile-record-action danger';
+    deleteButton.type = 'button';
+    deleteButton.dataset.deleteListingId = item.id || '';
+    deleteButton.textContent = 'Delete';
+
+    actions.append(editButton, deleteButton);
+    copy.appendChild(actions);
+  }
+
   card.append(thumb, copy);
   return card;
 }
@@ -304,8 +508,13 @@ function renderPage() {
   const { user } = getCurrentAccount();
   const isSignedIn = Boolean(user?.username);
 
-  if (profileLoginPanel) profileLoginPanel.hidden = isSignedIn;
-  if (profileControlLayout) profileControlLayout.hidden = !isSignedIn;
+  if (profileLoginPanel) {
+    profileLoginPanel.hidden = isSignedIn;
+  }
+
+  if (profileControlLayout) {
+    profileControlLayout.hidden = !isSignedIn;
+  }
 
   if (!isSignedIn) {
     if (profileRecordCount) profileRecordCount.textContent = '0';
@@ -374,7 +583,126 @@ scrim?.addEventListener('click', () => setSidebarOpen(false));
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     setSidebarOpen(false);
+    setListingModalOpen(false);
   }
+});
+
+profileListingCloseButton?.addEventListener('click', () => setListingModalOpen(false));
+profileListingCancelButton?.addEventListener('click', () => setListingModalOpen(false));
+profileListingTypeInput?.addEventListener('change', () => {
+  syncAccountFieldsVisibility(profileListingTypeInput.value || '');
+});
+
+profileListingModal?.addEventListener('click', (event) => {
+  if (event.target === profileListingModal) {
+    setListingModalOpen(false);
+  }
+});
+
+profileListings?.addEventListener('click', (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  const editButton = target?.closest('[data-edit-listing-id]');
+  const deleteButton = target?.closest('[data-delete-listing-id]');
+
+  if (editButton instanceof HTMLElement) {
+    openListingEditor(editButton.dataset.editListingId || '');
+    return;
+  }
+
+  if (!(deleteButton instanceof HTMLElement)) {
+    return;
+  }
+
+  const listingId = deleteButton.dataset.deleteListingId || '';
+  const { user } = getCurrentAccount();
+  const listings = getSellerListings();
+  const listing = listings.find((item) => item.id === listingId && item.sellerUsername === user?.username);
+
+  if (!listing) {
+    setStatus('error', 'Listing was not found for this account.');
+    return;
+  }
+
+  const shouldDelete = window.confirm(`Delete "${listing.title || 'this listing'}"?`);
+  if (!shouldDelete) {
+    return;
+  }
+
+  saveSellerListings(listings.filter((item) => item.id !== listingId));
+  removeListingReferences(listingId);
+  setStatus('success', 'Listing deleted.');
+  renderPage();
+});
+
+profileListingForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const { user } = getCurrentAccount();
+  const listingId = profileListingIdInput?.value || '';
+  const listings = getSellerListings();
+  const listing = listings.find((item) => item.id === listingId && item.sellerUsername === user?.username);
+
+  if (!listing) {
+    setListingStatus('error', 'Listing was not found for this account.');
+    return;
+  }
+
+  const title = profileListingTitleInput?.value.trim() || '';
+  const requestedListingType = profileListingTypeInput?.value || 'account';
+  const listingType = ['account', 'skin'].includes(requestedListingType) ? requestedListingType : 'account';
+  const game = profileListingGameInput?.value.trim() || '';
+  const price = Number(profileListingPriceInput?.value);
+  const description = profileListingDescriptionInput?.value.trim() || '';
+
+  if (!title || !game || !Number.isFinite(price) || price <= 0 || !description) {
+    setListingStatus('error', 'Fill title, game, price and description.');
+    return;
+  }
+
+  let galleryImages = Array.isArray(listing.galleryImages) ? [...listing.galleryImages] : [];
+  let imageData = listing.imageData || galleryImages[0] || '';
+  let imageName = listing.imageName || '';
+
+  if (profileListingImageInput?.files?.length) {
+    try {
+      galleryImages = await readImageFilesData(profileListingImageInput.files);
+      imageData = galleryImages[0] || imageData;
+      imageName = Array.from(profileListingImageInput.files).map((file) => file.name).join(', ');
+    } catch {
+      setListingStatus('error', 'Could not read product images.');
+      return;
+    }
+  }
+
+  let updatedListing = null;
+  const nextListings = listings.map((item) => {
+    if (item.id !== listingId) {
+      return item;
+    }
+
+    updatedListing = {
+      ...item,
+      listingType,
+      game,
+      title,
+      price,
+      description,
+      accountStatus: listingType === 'account' ? profileListingAccountStatusInput?.value || 'basic' : '',
+      accountLevel: listingType === 'account' ? profileListingAccountLevelInput?.value.trim() || '' : '',
+      imageData,
+      galleryImages,
+      imageName,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return updatedListing;
+  });
+
+  saveSellerListings(nextListings);
+  syncCartListing(updatedListing);
+  setListingModalOpen(false);
+  setStatus('success', 'Listing updated.');
+  renderPage();
 });
 
 profilePhotoInput?.addEventListener('change', async () => {

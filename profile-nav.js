@@ -78,6 +78,10 @@
     const profileHandle = document.getElementById('profileHandle');
     const accountUsername = document.getElementById('accountUsername');
     const accountName = document.getElementById('accountName');
+    const authEntryActions = document.getElementById('authEntryActions');
+    const logoutButton = document.getElementById('logoutButton');
+    const profileLoginPanel = document.getElementById('profileLoginPanel');
+    const profileControlLayout = document.getElementById('profileControlLayout');
 
     if (profileUsername) profileUsername.textContent = username;
     if (profileMeta) profileMeta.textContent = isSignedIn ? 'Manage profile' : 'Not signed in';
@@ -85,6 +89,13 @@
     if (profileHandle) profileHandle.textContent = isSignedIn ? `@${username}` : '@guest';
     if (accountUsername) accountUsername.textContent = username;
     if (accountName) accountName.textContent = displayName;
+    if (authEntryActions) authEntryActions.hidden = isSignedIn;
+    if (logoutButton) {
+      logoutButton.hidden = !isSignedIn;
+      logoutButton.disabled = !isSignedIn;
+    }
+    if (profileLoginPanel) profileLoginPanel.hidden = isSignedIn;
+    if (profileControlLayout) profileControlLayout.hidden = !isSignedIn;
 
     document.querySelectorAll('.coach-profile').forEach((button) => {
       const strong = button.querySelector('strong');
