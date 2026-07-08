@@ -205,6 +205,64 @@
         </div>
       </section>
 
+      <section class="public-profile-layout" id="publicProfileLayout" hidden>
+        <section class="public-profile-hero" aria-labelledby="publicProfileName">
+          <span class="public-profile-avatar avatar avatar-hot" id="publicProfileAvatar">?</span>
+          <div class="public-profile-copy">
+            <p class="section-kicker">Public profile</p>
+            <h2 id="publicProfileName">User profile</h2>
+            <span id="publicProfileHandle">@user</span>
+            <small id="publicProfileJoined">Joined -</small>
+          </div>
+          <a class="auth-open-button" id="publicProfileMessage" href="messages.html">Message</a>
+        </section>
+
+        <section class="public-profile-stats" aria-label="Seller statistics">
+          <article>
+            <span>Registered</span>
+            <strong id="publicProfileRegistered">-</strong>
+          </article>
+          <article>
+            <span>For sale</span>
+            <strong id="publicProfileListed">0</strong>
+          </article>
+          <article>
+            <span>Sold</span>
+            <strong id="publicProfileSold">0</strong>
+          </article>
+          <article>
+            <span>Reviews</span>
+            <strong id="publicProfileReviewCount">0</strong>
+          </article>
+          <article>
+            <span>Rating</span>
+            <strong id="publicProfileRating">-</strong>
+          </article>
+        </section>
+
+        <section class="profile-record-section" aria-labelledby="publicProfileListingsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Marketplace</p>
+              <h2 id="publicProfileListingsTitle">Listings for Sale</h2>
+            </div>
+          </div>
+          <div class="profile-record-grid" id="publicProfileListings"></div>
+          <div class="marketplace-empty" id="publicProfileListingsEmpty" hidden>No public listings yet.</div>
+        </section>
+
+        <section class="profile-record-section" aria-labelledby="publicProfileReviewsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Buyer feedback</p>
+              <h2 id="publicProfileReviewsTitle">Reviews</h2>
+            </div>
+          </div>
+          <div class="public-review-list" id="publicProfileReviews"></div>
+          <div class="marketplace-empty" id="publicProfileReviewsEmpty" hidden>No reviews yet.</div>
+        </section>
+      </section>
+
       <section class="profile-control-layout" id="profileControlLayout" hidden>
         <form class="profile-settings-card" id="profileForm">
           <div class="profile-photo-row">
@@ -239,6 +297,7 @@
 
           <div class="profile-form-actions">
             <button class="seller-submit-button" type="submit">Save Changes</button>
+            <a class="secondary-seller-action" id="profilePublicLink" href="#">View public profile</a>
             <button class="secondary-seller-action" id="profileLogoutButton" type="button">Log out</button>
             <p class="seller-status" id="profileStatus" aria-live="polite"></p>
           </div>

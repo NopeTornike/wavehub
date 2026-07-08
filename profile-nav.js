@@ -58,6 +58,8 @@
   function renderProfileSurfaces() {
     const { user } = getCurrentAccount();
     const isSignedIn = Boolean(user?.username);
+    const isPublicProfile = window.location.pathname.endsWith('profile.html')
+      && Boolean(new URLSearchParams(window.location.search).get('user'));
     const username = user?.username || 'Guest';
     const displayName = isSignedIn ? getDisplayName(user) : 'Not signed in';
 
@@ -82,6 +84,7 @@
     const logoutButton = document.getElementById('logoutButton');
     const profileLoginPanel = document.getElementById('profileLoginPanel');
     const profileControlLayout = document.getElementById('profileControlLayout');
+    const publicProfileLayout = document.getElementById('publicProfileLayout');
 
     if (profileUsername) profileUsername.textContent = username;
     if (profileMeta) profileMeta.textContent = isSignedIn ? 'Manage profile' : 'Not signed in';
@@ -94,8 +97,11 @@
       logoutButton.hidden = !isSignedIn;
       logoutButton.disabled = !isSignedIn;
     }
-    if (profileLoginPanel) profileLoginPanel.hidden = isSignedIn;
-    if (profileControlLayout) profileControlLayout.hidden = !isSignedIn;
+    if (!isPublicProfile) {
+      if (profileLoginPanel) profileLoginPanel.hidden = isSignedIn;
+      if (profileControlLayout) profileControlLayout.hidden = !isSignedIn;
+      if (publicProfileLayout) publicProfileLayout.hidden = true;
+    }
 
     document.querySelectorAll('.coach-profile').forEach((button) => {
       const strong = button.querySelector('strong');

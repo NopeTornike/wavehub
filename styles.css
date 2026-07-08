@@ -927,6 +927,7 @@ button {
 
 .profile-login-panel,
 .profile-settings-card,
+.public-profile-hero,
 .profile-record-section {
   border: 1px solid rgba(255, 47, 143, 0.24);
   border-radius: 8px;
@@ -944,6 +945,7 @@ button {
 }
 
 .profile-login-panel[hidden],
+.public-profile-layout[hidden],
 .profile-control-layout[hidden] {
   display: none;
 }
@@ -973,6 +975,156 @@ button {
 .profile-control-layout {
   display: grid;
   gap: 18px;
+}
+
+.public-profile-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.public-profile-hero {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 20px;
+}
+
+.public-profile-avatar {
+  width: 88px;
+  height: 88px;
+  font-size: 26px;
+}
+
+.public-profile-copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.public-profile-copy h2,
+.public-profile-copy span,
+.public-profile-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-profile-copy h2 {
+  margin: 0;
+  color: white;
+  font-size: clamp(24px, 4vw, 38px);
+  line-height: 1;
+}
+
+.public-profile-copy span {
+  color: var(--pink-2);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.public-profile-copy small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.public-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.public-profile-stats article {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(8, 13, 27, 0.78);
+}
+
+.public-profile-stats span {
+  overflow: hidden;
+  color: var(--muted-2);
+  font-size: 11px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.public-profile-stats strong {
+  overflow-wrap: anywhere;
+  color: white;
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 950;
+}
+
+.public-review-list {
+  display: grid;
+  gap: 12px;
+}
+
+.public-review-card {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.public-review-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.public-review-head strong,
+.public-review-head small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-review-head strong {
+  color: white;
+  font-size: 14px;
+}
+
+.public-review-head small,
+.public-review-card span {
+  color: var(--muted-2);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.public-review-rating {
+  flex: 0 0 auto;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(53, 208, 127, 0.32);
+  border-radius: 7px;
+  color: #9bf3be;
+  background: rgba(53, 208, 127, 0.1);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.public-review-card p {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .profile-settings-card {
@@ -1317,10 +1469,14 @@ button {
 .secondary-seller-action,
 .seller-submit-button {
   min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 16px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 950;
+  text-decoration: none;
 }
 
 .seller-submit-button {
@@ -2121,10 +2277,13 @@ button {
   font-weight: 800;
 }
 
-.marketplace-card-meta span:not(.avatar) {
+.marketplace-card-meta span:not(.avatar),
+.marketplace-card-meta a {
   flex: 1 1 130px;
   min-width: 0;
   overflow: hidden;
+  color: inherit;
+  text-decoration: none;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2403,6 +2562,15 @@ button {
   display: flex;
   align-items: center;
   gap: 9px;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.product-showcase-seller:hover strong,
+a.product-showcase-seller:focus-visible strong,
+.marketplace-card-meta a:hover,
+.marketplace-card-meta a:focus-visible {
+  color: var(--pink-2);
 }
 
 .product-showcase-avatar {
@@ -2930,6 +3098,19 @@ button {
   font-size: 13px;
 }
 
+.detail-profile-link {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.detail-profile-link:hover,
+.detail-profile-link:focus-visible {
+  color: var(--pink-2);
+}
+
 .detail-section {
   display: grid;
   gap: 10px;
@@ -2946,6 +3127,59 @@ button {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.65;
+}
+
+.detail-review-summary {
+  color: var(--pink-2);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.detail-review-list {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-review-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.detail-review-form[hidden] {
+  display: none;
+}
+
+.detail-review-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.detail-review-form select,
+.detail-review-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.26);
+  padding: 0 12px;
+  font: inherit;
+}
+
+.detail-review-form select {
+  min-height: 42px;
+}
+
+.detail-review-form textarea {
+  min-height: 96px;
+  padding-block: 10px;
+  resize: vertical;
 }
 
 .detail-section ul {
@@ -3720,7 +3954,8 @@ button {
   }
 
   .profile-form-grid,
-  .profile-record-grid {
+  .profile-record-grid,
+  .public-profile-stats {
     grid-template-columns: 1fr;
   }
 
@@ -3853,14 +4088,25 @@ button {
   }
 
   .profile-photo-row,
-  .profile-record-card {
+  .profile-record-card,
+  .public-profile-hero {
     grid-template-columns: 1fr;
   }
 
   .profile-photo-preview,
-  .profile-record-thumb {
+  .profile-record-thumb,
+  .public-profile-avatar {
     width: 100%;
     max-width: 120px;
+  }
+
+  .public-profile-hero {
+    justify-items: start;
+  }
+
+  .public-review-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .detail-hero-image {

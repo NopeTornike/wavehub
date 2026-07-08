@@ -46,6 +46,14 @@ const detailLevel = document.getElementById('detailLevel');
 const detailViews = document.getElementById('detailViews');
 const detailLongDescription = document.getElementById('detailLongDescription');
 const detailIncluded = document.getElementById('detailIncluded');
+const detailReviews = document.getElementById('detailReviews');
+const detailReviewSummary = document.getElementById('detailReviewSummary');
+const detailReviewList = document.getElementById('detailReviewList');
+const detailReviewsEmpty = document.getElementById('detailReviewsEmpty');
+const detailReviewForm = document.getElementById('detailReviewForm');
+const detailReviewRating = document.getElementById('detailReviewRating');
+const detailReviewComment = document.getElementById('detailReviewComment');
+const detailReviewStatus = document.getElementById('detailReviewStatus');
 const detailSellerScore = document.getElementById('detailSellerScore');
 const detailSellerScoreLabel = document.getElementById('detailSellerScoreLabel');
 const detailQualityScore = document.getElementById('detailQualityScore');
@@ -72,6 +80,8 @@ const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
+const purchasesKey = 'wavehub.purchases';
+const sellerReviewsKey = 'wavehub.sellerReviews';
 const minOnlineCount = 94;
 const maxOnlineCount = 225;
 const accountTypeImages = {
@@ -225,6 +235,10 @@ function getUserByUsername(username) {
   return Array.isArray(users) ? users.find((user) => user.username === username) || null : null;
 }
 
+function getPublicProfileUrl(username) {
+  return username ? `profile.html?user=${encodeURIComponent(username)}` : '#';
+}
+
 function getUserFavorites(username) {
   if (!username) {
     return [];
@@ -249,6 +263,108 @@ function saveUserFavorites(username, favorites) {
     ...source,
     [username]: favorites,
   });
+}
+
+function getPurchases() {
+  const purchases = readJson(purchasesKey, []);
+  return Array.isArray(purchases) ? purchases : [];
+}
+
+function savePurchases(purchases) {
+  writeJson(purchasesKey, purchases);
+}
+
+function getSellerReviews(username) {
+  if (!username) {
+    return [];
+  }
+
+  const reviews = readJson(sellerReviewsKey, []);
+  return Array.isArray(reviews)
+    ? reviews
+        .filter((review) => review.sellerUsername === username)
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    : [];
+}
+
+function saveSellerReview(review) {
+  const reviews = readJson(sellerReviewsKey, []);
+  const source = Array.isArray(reviews) ? reviews : [];
+  const nextReviews = source.some((item) => item.id === review.id)
+    ? source.map((item) => (item.id === review.id ? review : item))
+    : [review, ...source];
+
+  writeJson(sellerReviewsKey, nextReviews);
+}
+
+function getAverageRating(reviews) {
+  if (!reviews.length) {
+    return null;
+  }
+
+  const total = reviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0);
+  return total / reviews.length;
+}
+
+function formatRating(value) {
+  return Number.isFinite(value) ? value.toFixed(1) : '-';
+}
+
+function formatReviewDate(value) {
+  const date = new Date(value || '');
+
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  return date.toLocaleDateString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function getReviewablePurchase(offer, buyerUsername) {
+  if (!offer?.sellerUsername || !buyerUsername || offer.sellerUsername === buyerUsername) {
+    return null;
+  }
+
+  return getPurchases().find((purchase) => (
+    purchase.buyerUsername === buyerUsername
+    && Array.isArray(purchase.items)
+    && purchase.items.some((item) => (
+      item.listingId
+        ? item.listingId === offer.id
+        : item.sellerUsername === offer.sellerUsername
+    ))
+  )) || null;
+}
+
+function getPurchaseItemFromOffer(offer) {
+  return {
+    id: getFavoriteId(offer),
+    listingId: offer.type === 'product' ? offer.id : '',
+    serviceId: offer.type === 'service' ? offer.id : '',
+    title: offer.title,
+    productType: offer.productLabel || offer.tag || 'Offer',
+    game: offer.game || 'WaveHub',
+    seller: offer.seller,
+    sellerUsername: offer.sellerUsername || '',
+    price: getNumericPrice(offer.price),
+    priceText: offer.price,
+    imageData: offer.imageData || '',
+    detailUrl: `detail.html?type=${offer.type}&id=${encodeURIComponent(offer.id)}`,
+  };
+}
+
+function getExistingReview(offer, buyerUsername) {
+  if (!offer?.sellerUsername || !buyerUsername) {
+    return null;
+  }
+
+  return getSellerReviews(offer.sellerUsername).find((review) => (
+    review.buyerUsername === buyerUsername && review.listingId === offer.id
+  )) || null;
 }
 
 function getFavoriteCount(favoriteId) {
@@ -455,6 +571,8 @@ function getProductDetail(id, { countView = true } = {}) {
   const accountLevel = Number(listing.accountLevel) || '';
   const accountViews = Number(listing.accountViews) || 0;
   const favoriteCount = getFavoriteCount(`listing:${id}`);
+  const sellerReviews = getSellerReviews(listing.sellerUsername || '');
+  const sellerAverageRating = getAverageRating(sellerReviews);
   const galleryImages = Array.isArray(listing.galleryImages)
     ? listing.galleryImages.filter(Boolean)
     : [listing.imageData].filter(Boolean);
@@ -482,7 +600,8 @@ function getProductDetail(id, { countView = true } = {}) {
     accountStatusLabel: accountStatus ? formatAccountStatus(accountStatus) : config.label,
     accountLevel,
     accountViews,
-    sellerScore: listing.sellerScore || '-',
+    sellerScore: sellerAverageRating === null ? '-' : formatRating(sellerAverageRating),
+    sellerReviewCount: sellerReviews.length,
     productScore: listing.productScore || favoriteCount,
     popularity: formatNumber(accountViews),
     favoriteCount,
@@ -754,15 +873,103 @@ function renderOfferMetrics(offer) {
     return;
   }
 
+  const sellerRatingLabel = offer.sellerReviewCount
+    ? `${formatNumber(offer.sellerReviewCount)} ${offer.sellerReviewCount === 1 ? 'review' : 'reviews'}`
+    : 'No rating';
+
   if (detailSellerScore) detailSellerScore.textContent = offer.sellerScore || '-';
-  if (detailSellerScoreLabel) detailSellerScoreLabel.textContent = offer.sellerScore && offer.sellerScore !== '-' ? 'Rated' : 'No rating';
+  if (detailSellerScoreLabel) detailSellerScoreLabel.textContent = sellerRatingLabel;
   if (detailQualityScore) detailQualityScore.textContent = formatNumber(offer.productScore);
   if (detailQualityScoreLabel) detailQualityScoreLabel.textContent = offer.productScore === 1 ? 'saved' : 'saves';
   if (detailPopularity) detailPopularity.textContent = offer.popularity || formatNumber(offer.accountViews);
   if (detailSideSellerScore) detailSideSellerScore.textContent = offer.sellerScore || '-';
-  if (detailSideSellerScoreLabel) detailSideSellerScoreLabel.textContent = offer.sellerScore && offer.sellerScore !== '-' ? 'Rated' : 'No rating';
+  if (detailSideSellerScoreLabel) detailSideSellerScoreLabel.textContent = sellerRatingLabel;
   if (detailSideQualityScore) detailSideQualityScore.textContent = formatNumber(offer.productScore);
   if (detailSideQualityScoreLabel) detailSideQualityScoreLabel.textContent = offer.favoriteCount === 1 ? 'saved' : 'saves';
+}
+
+function setReviewStatus(type, message) {
+  if (!detailReviewStatus) {
+    return;
+  }
+
+  detailReviewStatus.className = type ? `seller-status ${type}` : 'seller-status';
+  detailReviewStatus.textContent = message;
+}
+
+function createDetailReviewCard(review) {
+  const card = document.createElement('article');
+  card.className = 'public-review-card';
+
+  const head = document.createElement('div');
+  head.className = 'public-review-head';
+
+  const buyer = document.createElement('strong');
+  buyer.textContent = review.buyerName || review.buyerUsername || 'Verified buyer';
+
+  const rating = document.createElement('span');
+  rating.className = 'public-review-rating';
+  rating.textContent = `${formatRating(Number(review.rating))}/5`;
+
+  const date = document.createElement('small');
+  date.textContent = formatReviewDate(review.createdAt);
+
+  head.append(buyer, rating, date);
+
+  const item = document.createElement('span');
+  item.textContent = review.itemTitle ? `Order: ${review.itemTitle}` : 'Marketplace order';
+
+  const body = document.createElement('p');
+  body.textContent = review.comment || 'No written comment.';
+
+  card.append(head, item, body);
+  return card;
+}
+
+function renderOfferReviews(offer) {
+  if (!detailReviews || !offer) {
+    return;
+  }
+
+  const reviews = getSellerReviews(offer.sellerUsername || '');
+  const averageRating = getAverageRating(reviews);
+  const { user } = getCurrentAccount();
+  const reviewablePurchase = offer.type === 'product'
+    ? getReviewablePurchase(offer, user?.username)
+    : null;
+  const existingReview = getExistingReview(offer, user?.username);
+
+  if (detailReviewSummary) {
+    detailReviewSummary.textContent = reviews.length
+      ? `${formatRating(averageRating)}/5 from ${formatNumber(reviews.length)} ${reviews.length === 1 ? 'review' : 'reviews'}`
+      : 'No seller reviews yet.';
+  }
+
+  if (detailReviewList) {
+    detailReviewList.innerHTML = '';
+    reviews.forEach((review) => {
+      detailReviewList.appendChild(createDetailReviewCard(review));
+    });
+  }
+
+  if (detailReviewsEmpty) {
+    detailReviewsEmpty.hidden = reviews.length > 0;
+  }
+
+  if (detailReviewForm) {
+    const canReview = Boolean(reviewablePurchase && offer.sellerUsername && user?.username);
+    detailReviewForm.hidden = !canReview;
+    detailReviewForm.dataset.reviewId = existingReview?.id || '';
+    detailReviewForm.dataset.purchaseId = reviewablePurchase?.id || '';
+
+    if (canReview) {
+      if (detailReviewRating) detailReviewRating.value = String(existingReview?.rating || 5);
+      if (detailReviewComment) detailReviewComment.value = existingReview?.comment || '';
+      setReviewStatus('', existingReview ? 'You can update your review for this order.' : '');
+    } else {
+      setReviewStatus('', '');
+    }
+  }
 }
 
 function renderDetail({ countView = true } = {}) {
@@ -800,7 +1007,13 @@ function renderDetail({ countView = true } = {}) {
   }
   if (detailTitle) detailTitle.textContent = offer.title;
   if (detailDescription) detailDescription.textContent = offer.description;
-  if (detailSeller) detailSeller.textContent = offer.seller;
+  if (detailSeller) {
+    detailSeller.textContent = offer.seller;
+    if (detailSeller instanceof HTMLAnchorElement) {
+      detailSeller.href = offer.sellerUsername ? getPublicProfileUrl(offer.sellerUsername) : '#';
+      detailSeller.toggleAttribute('aria-disabled', !offer.sellerUsername);
+    }
+  }
   if (detailGame) detailGame.textContent = offer.game;
   if (detailDelivery) detailDelivery.textContent = offer.delivery;
   if (detailStatusText) detailStatusText.textContent = offer.status;
@@ -834,6 +1047,7 @@ function renderDetail({ countView = true } = {}) {
 
   renderGallery(offer);
   renderIncluded(offer.included || []);
+  renderOfferReviews(offer);
   setActiveDetailTab('detailOverview');
   syncWishlistForActiveOffer();
 }
@@ -906,7 +1120,33 @@ buyButton?.addEventListener('click', () => {
     return;
   }
 
-  setStatus('success', 'Order request is ready. The seller will confirm details shortly.');
+  if (!activeOffer) {
+    setStatus('error', 'Offer is not available right now.');
+    return;
+  }
+
+  if (activeOffer.sellerUsername && activeOffer.sellerUsername === user.username) {
+    setStatus('error', 'You cannot buy your own listing.');
+    return;
+  }
+
+  if (activeOffer.type === 'product') {
+    const item = getPurchaseItemFromOffer(activeOffer);
+    savePurchases([
+      ...getPurchases(),
+      {
+        id: window.crypto?.randomUUID?.() || String(Date.now()),
+        buyerUsername: user.username,
+        items: [item],
+        total: Number(item.price) || 0,
+        status: 'Checkout request',
+        purchasedAt: new Date().toISOString(),
+      },
+    ]);
+    renderDetail({ countView: false });
+  }
+
+  setStatus('success', 'Order request is saved. The seller will confirm details shortly.');
 });
 
 [wishlistButton, detailSaveButton].forEach((button) => {
@@ -1009,6 +1249,66 @@ priceOfferForm?.addEventListener('submit', (event) => {
     : 'Price offer saved in your sent messages.');
 });
 
+detailReviewForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  setReviewStatus('', '');
+
+  const { user } = getCurrentAccount();
+
+  if (!user?.username) {
+    setReviewStatus('error', 'Please log in before writing a review.');
+    setProfileOpen(true);
+    profileButton?.focus();
+    return;
+  }
+
+  if (!activeOffer?.sellerUsername) {
+    setReviewStatus('error', 'This seller cannot be reviewed yet.');
+    return;
+  }
+
+  if (activeOffer.sellerUsername === user.username) {
+    setReviewStatus('error', 'You cannot review your own listing.');
+    return;
+  }
+
+  const purchase = getReviewablePurchase(activeOffer, user.username);
+
+  if (!purchase) {
+    setReviewStatus('error', 'You can review this seller after buying from them.');
+    return;
+  }
+
+  const rating = Number(detailReviewRating?.value);
+  const comment = detailReviewComment?.value.trim() || '';
+
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5 || !comment) {
+    setReviewStatus('error', 'Choose a rating and write a short review.');
+    return;
+  }
+
+  const existingReview = getExistingReview(activeOffer, user.username);
+  const review = {
+    id: existingReview?.id || window.crypto?.randomUUID?.() || String(Date.now()),
+    sellerUsername: activeOffer.sellerUsername,
+    sellerName: activeOffer.seller,
+    buyerUsername: user.username,
+    buyerName: getDisplayName(user),
+    listingId: activeOffer.id,
+    itemTitle: activeOffer.title,
+    purchaseId: purchase.id,
+    rating,
+    comment,
+    createdAt: existingReview?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  saveSellerReview(review);
+  renderDetail({ countView: false });
+  setActiveDetailTab('detailReviews');
+  setReviewStatus('success', existingReview ? 'Review updated.' : 'Review saved.');
+});
+
 window.addEventListener('resize', () => {
   if (window.innerWidth > 920) {
     setSidebarOpen(false);
@@ -1016,8 +1316,9 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === sessionKey || event.key === localUsersKey || event.key === priceOffersKey || event.key === favoritesKey) {
+  if ([sessionKey, localUsersKey, priceOffersKey, favoritesKey, purchasesKey, sellerReviewsKey].includes(event.key)) {
     renderProfile();
+    renderDetail({ countView: false });
   }
 
   if (event.key === sellerListingsKey) {

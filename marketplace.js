@@ -208,6 +208,10 @@ function getDetailUrl(listing) {
   return listing?.id ? `detail.html?type=product&id=${encodeURIComponent(listing.id)}` : '';
 }
 
+function getPublicProfileUrl(username) {
+  return username ? `profile.html?user=${encodeURIComponent(username)}` : '';
+}
+
 function getCartItems() {
   const cartItems = readJson(cartKey, []);
   return Array.isArray(cartItems) ? cartItems : [];
@@ -227,6 +231,7 @@ function getCartItem(listing) {
     productType: config.label,
     game: listing.game || 'Marketplace',
     seller: getListingSellerName(listing),
+    sellerUsername: listing.sellerUsername || '',
     price: Number(listing.price) || 0,
     priceText: formatListingPrice(listing.price),
     imageData: getMarketplaceCardImage(listing, config),
@@ -750,8 +755,12 @@ function createProductShowcaseCard(listing) {
   const body = document.createElement('div');
   body.className = 'product-showcase-body';
 
-  const seller = document.createElement('div');
+  const seller = document.createElement(listing.sellerUsername ? 'a' : 'div');
   seller.className = 'product-showcase-seller';
+  if (seller instanceof HTMLAnchorElement) {
+    seller.href = getPublicProfileUrl(listing.sellerUsername);
+    seller.setAttribute('aria-label', `Open ${sellerName} public profile`);
+  }
   const sellerUser = getUserByUsername(listing.sellerUsername);
   const sellerPhoto = sellerUser?.photoData || listing.sellerAvatar || '';
 
@@ -892,8 +901,12 @@ function createMarketplaceCard(listing) {
   avatar.className = 'avatar avatar-blue';
   avatar.textContent = getGameInitials(listing.game);
 
-  const account = document.createElement('span');
+  const account = document.createElement(listing.sellerUsername ? 'a' : 'span');
   account.textContent = `${listing.game || 'Marketplace'} / ${getListingSellerName(listing)}`;
+  if (account instanceof HTMLAnchorElement) {
+    account.href = getPublicProfileUrl(listing.sellerUsername);
+    account.setAttribute('aria-label', `Open ${getListingSellerName(listing)} public profile`);
+  }
 
   const action = document.createElement('button');
   action.type = 'button';

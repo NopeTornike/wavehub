@@ -1,8 +1,24 @@
 const menuToggle = document.getElementById('menuToggle');
 const scrim = document.getElementById('scrim');
 const profileSearch = document.getElementById('profileSearch');
+const profileTitle = document.getElementById('profileTitle');
 const profileRecordCount = document.getElementById('profileRecordCount');
 const profileLoginPanel = document.getElementById('profileLoginPanel');
+const publicProfileLayout = document.getElementById('publicProfileLayout');
+const publicProfileAvatar = document.getElementById('publicProfileAvatar');
+const publicProfileName = document.getElementById('publicProfileName');
+const publicProfileHandle = document.getElementById('publicProfileHandle');
+const publicProfileJoined = document.getElementById('publicProfileJoined');
+const publicProfileMessage = document.getElementById('publicProfileMessage');
+const publicProfileRegistered = document.getElementById('publicProfileRegistered');
+const publicProfileListed = document.getElementById('publicProfileListed');
+const publicProfileSold = document.getElementById('publicProfileSold');
+const publicProfileReviewCount = document.getElementById('publicProfileReviewCount');
+const publicProfileRating = document.getElementById('publicProfileRating');
+const publicProfileListings = document.getElementById('publicProfileListings');
+const publicProfileListingsEmpty = document.getElementById('publicProfileListingsEmpty');
+const publicProfileReviews = document.getElementById('publicProfileReviews');
+const publicProfileReviewsEmpty = document.getElementById('publicProfileReviewsEmpty');
 const profileControlLayout = document.getElementById('profileControlLayout');
 const profileForm = document.getElementById('profileForm');
 const profilePhotoPreview = document.getElementById('profilePhotoPreview');
@@ -10,6 +26,7 @@ const profilePhotoInput = document.getElementById('profilePhotoInput');
 const profileUsernameInput = document.getElementById('profileUsernameInput');
 const profileFirstNameInput = document.getElementById('profileFirstNameInput');
 const profileLastNameInput = document.getElementById('profileLastNameInput');
+const profilePublicLink = document.getElementById('profilePublicLink');
 const profileLogoutButton = document.getElementById('profileLogoutButton');
 const profileStatus = document.getElementById('profileStatus');
 const profileListings = document.getElementById('profileListings');
@@ -37,6 +54,7 @@ const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const sellerListingsKey = 'wavehub.sellerListings';
 const purchasesKey = 'wavehub.purchases';
+const sellerReviewsKey = 'wavehub.sellerReviews';
 const priceOffersKey = 'wavehub.priceOffers';
 const cartKey = 'wavehub.cart';
 const favoritesKey = 'wavehub.favorites';
@@ -64,6 +82,23 @@ function getCurrentAccount() {
   const user = sessionUser ? { ...sessionUser, ...storedUser } : null;
 
   return { session, user };
+}
+
+function getPublicProfileUsername() {
+  return new URLSearchParams(window.location.search).get('user')?.trim().toLowerCase() || '';
+}
+
+function getPublicProfileUrl(username) {
+  return username ? `profile.html?user=${encodeURIComponent(username)}` : 'profile.html';
+}
+
+function getUserByUsername(username) {
+  if (!username) {
+    return null;
+  }
+
+  const users = readJson(localUsersKey, []);
+  return Array.isArray(users) ? users.find((user) => user.username === username) || null : null;
 }
 
 function getInitials(user) {
@@ -99,6 +134,73 @@ function formatDate(value) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatProfileDate(value) {
+  const date = new Date(value || '');
+
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  return date.toLocaleDateString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function formatCount(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString('en-US') : '0';
+}
+
+function getSellerReviews(username) {
+  if (!username) {
+    return [];
+  }
+
+  const reviews = readJson(sellerReviewsKey, []);
+  return Array.isArray(reviews)
+    ? reviews
+        .filter((review) => review.sellerUsername === username)
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    : [];
+}
+
+function getAverageRating(reviews) {
+  if (!reviews.length) {
+    return null;
+  }
+
+  const total = reviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0);
+  return total / reviews.length;
+}
+
+function formatRating(value) {
+  return Number.isFinite(value) ? value.toFixed(1) : '-';
+}
+
+function getSellerSoldItems(username, listings = getSellerListings(), user = getUserByUsername(username)) {
+  if (!username) {
+    return [];
+  }
+
+  const listingIds = new Set(listings.map((listing) => listing.id).filter(Boolean));
+  const displayName = user ? getDisplayName(user) : '';
+
+  return getPurchases()
+    .flatMap((purchase) => (Array.isArray(purchase.items) ? purchase.items : []).map((item) => ({
+      ...item,
+      purchaseId: purchase.id,
+      status: purchase.status,
+      purchasedAt: purchase.purchasedAt,
+    })))
+    .filter((item) => (
+      item.sellerUsername === username
+      || (item.listingId && listingIds.has(item.listingId))
+      || (displayName && item.seller === displayName)
+    ));
 }
 
 function getReceivedOfferCount(username) {
@@ -442,6 +544,135 @@ function createRecordCard(item, type) {
   return card;
 }
 
+function createPublicReviewCard(review) {
+  const card = document.createElement('article');
+  card.className = 'public-review-card';
+
+  const head = document.createElement('div');
+  head.className = 'public-review-head';
+
+  const reviewer = document.createElement('strong');
+  reviewer.textContent = review.buyerName || review.buyerUsername || 'Verified buyer';
+
+  const rating = document.createElement('span');
+  rating.className = 'public-review-rating';
+  rating.textContent = `${formatRating(Number(review.rating))}/5`;
+
+  const date = document.createElement('small');
+  date.textContent = formatProfileDate(review.createdAt);
+
+  head.append(reviewer, rating, date);
+
+  const item = document.createElement('span');
+  item.textContent = review.itemTitle ? `Order: ${review.itemTitle}` : 'Marketplace order';
+
+  const body = document.createElement('p');
+  body.textContent = review.comment || 'No written comment.';
+
+  card.append(head, item, body);
+  return card;
+}
+
+function renderPublicListings(user) {
+  if (!publicProfileListings || !publicProfileListingsEmpty) {
+    return [];
+  }
+
+  const query = getSearchQuery();
+  const listings = getSellerListings()
+    .filter((listing) => listing.sellerUsername === user?.username)
+    .filter((listing) => {
+      const haystack = [listing.title, listing.game, listing.description].join(' ').toLowerCase();
+      return !query || haystack.includes(query);
+    })
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  publicProfileListings.innerHTML = '';
+  listings.forEach((listing) => {
+    publicProfileListings.appendChild(createRecordCard({ ...listing, detailUrl: getDetailUrl(listing) }, 'publicListing'));
+  });
+  publicProfileListingsEmpty.hidden = listings.length > 0;
+
+  return listings;
+}
+
+function renderPublicReviews(reviews) {
+  if (!publicProfileReviews || !publicProfileReviewsEmpty) {
+    return [];
+  }
+
+  const query = getSearchQuery();
+  const filteredReviews = reviews.filter((review) => {
+    const haystack = [review.buyerName, review.buyerUsername, review.itemTitle, review.comment].join(' ').toLowerCase();
+    return !query || haystack.includes(query);
+  });
+
+  publicProfileReviews.innerHTML = '';
+  filteredReviews.forEach((review) => {
+    publicProfileReviews.appendChild(createPublicReviewCard(review));
+  });
+  publicProfileReviewsEmpty.hidden = filteredReviews.length > 0;
+
+  return filteredReviews;
+}
+
+function renderPublicProfile(user) {
+  const listings = getSellerListings().filter((listing) => listing.sellerUsername === user?.username);
+  const soldItems = getSellerSoldItems(user?.username, listings, user);
+  const reviews = getSellerReviews(user?.username);
+  const averageRating = getAverageRating(reviews);
+  const joinedDate = formatProfileDate(user?.createdAt);
+
+  if (profileLoginPanel) profileLoginPanel.hidden = true;
+  if (profileControlLayout) profileControlLayout.hidden = true;
+  if (publicProfileLayout) publicProfileLayout.hidden = false;
+
+  if (!user) {
+    document.title = 'Profile not found - WaveHub';
+    if (profileTitle) profileTitle.textContent = 'Public Profile';
+    applyAvatar(publicProfileAvatar, null);
+    if (profileRecordCount) profileRecordCount.textContent = '0';
+    if (publicProfileName) publicProfileName.textContent = 'Profile not found';
+    if (publicProfileHandle) publicProfileHandle.textContent = '@unknown';
+    if (publicProfileJoined) publicProfileJoined.textContent = 'This public profile is unavailable.';
+    if (publicProfileRegistered) publicProfileRegistered.textContent = '-';
+    if (publicProfileListed) publicProfileListed.textContent = '0';
+    if (publicProfileSold) publicProfileSold.textContent = '0';
+    if (publicProfileReviewCount) publicProfileReviewCount.textContent = '0';
+    if (publicProfileRating) publicProfileRating.textContent = '-';
+    if (publicProfileListings) publicProfileListings.innerHTML = '';
+    if (publicProfileReviews) publicProfileReviews.innerHTML = '';
+    if (publicProfileListingsEmpty) {
+      publicProfileListingsEmpty.hidden = false;
+      publicProfileListingsEmpty.textContent = 'User was not found.';
+    }
+    if (publicProfileReviewsEmpty) {
+      publicProfileReviewsEmpty.hidden = false;
+      publicProfileReviewsEmpty.textContent = 'No reviews yet.';
+    }
+    return;
+  }
+
+  document.title = `${getDisplayName(user)} - WaveHub Profile`;
+  if (profileTitle) profileTitle.textContent = 'Public Profile';
+  if (profileSearch) profileSearch.placeholder = 'Search public listings or reviews...';
+  applyAvatar(publicProfileAvatar, user);
+  if (publicProfileName) publicProfileName.textContent = getDisplayName(user);
+  if (publicProfileHandle) publicProfileHandle.textContent = `@${user.username}`;
+  if (publicProfileJoined) publicProfileJoined.textContent = `Joined ${joinedDate}`;
+  if (publicProfileMessage) publicProfileMessage.href = 'messages.html';
+  if (publicProfileRegistered) publicProfileRegistered.textContent = joinedDate;
+  if (publicProfileListed) publicProfileListed.textContent = formatCount(listings.length);
+  if (publicProfileSold) publicProfileSold.textContent = formatCount(soldItems.length);
+  if (publicProfileReviewCount) publicProfileReviewCount.textContent = formatCount(reviews.length);
+  if (publicProfileRating) publicProfileRating.textContent = averageRating === null ? '-' : `${formatRating(averageRating)}/5`;
+
+  const shownListings = renderPublicListings(user);
+  const shownReviews = renderPublicReviews(reviews);
+  if (profileRecordCount) profileRecordCount.textContent = String(shownListings.length + shownReviews.length);
+  if (messageCount) messageCount.textContent = String(getReceivedOfferCount(getCurrentAccount().user?.username));
+}
+
 function renderProfileForm(user) {
   if (!user) {
     return;
@@ -450,6 +681,7 @@ function renderProfileForm(user) {
   if (profileUsernameInput) profileUsernameInput.value = user.username || '';
   if (profileFirstNameInput) profileFirstNameInput.value = user.firstName || '';
   if (profileLastNameInput) profileLastNameInput.value = user.lastName || '';
+  if (profilePublicLink) profilePublicLink.href = getPublicProfileUrl(user.username);
   applyAvatar(profilePhotoPreview, user);
 }
 
@@ -505,8 +737,29 @@ function renderPurchases(user) {
 }
 
 function renderPage() {
+  const publicUsername = getPublicProfileUsername();
+  const publicUser = publicUsername ? getUserByUsername(publicUsername) : null;
+
+  if (publicUsername) {
+    renderPublicProfile(publicUser);
+    window.wavehubRenderProfileSurfaces?.();
+    return;
+  }
+
   const { user } = getCurrentAccount();
   const isSignedIn = Boolean(user?.username);
+
+  if (publicProfileLayout) {
+    publicProfileLayout.hidden = true;
+  }
+
+  if (profileTitle) {
+    profileTitle.textContent = 'Profile';
+  }
+
+  if (profileSearch) {
+    profileSearch.placeholder = 'Search your listings or purchases...';
+  }
 
   if (profileLoginPanel) {
     profileLoginPanel.hidden = isSignedIn;
@@ -768,7 +1021,7 @@ profileLogoutButton?.addEventListener('click', () => {
 profileSearch?.addEventListener('input', renderPage);
 
 window.addEventListener('storage', (event) => {
-  if ([localUsersKey, sessionKey, sellerListingsKey, purchasesKey, priceOffersKey].includes(event.key)) {
+  if ([localUsersKey, sessionKey, sellerListingsKey, purchasesKey, sellerReviewsKey, priceOffersKey].includes(event.key)) {
     renderPage();
   }
 });
