@@ -664,6 +664,267 @@ button {
   opacity: 0.5;
 }
 
+.wallet-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(320px, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.wallet-balance-panel,
+.wallet-buy-panel,
+.wallet-history-section {
+  border: 1px solid rgba(255, 47, 143, 0.24);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 47, 143, 0.08), transparent 38%),
+    rgba(8, 13, 27, 0.9);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+}
+
+.wallet-balance-panel {
+  min-height: 238px;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding: 22px;
+}
+
+.wallet-balance-panel h2,
+.wallet-buy-panel h2,
+.wallet-history-section h2 {
+  margin: 0;
+  color: white;
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.wallet-balance-panel strong {
+  color: white;
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 0.95;
+}
+
+.wallet-balance-panel span {
+  color: var(--pink-2);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.wallet-buy-panel {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.wallet-buy-panel label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.wallet-buy-panel input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.26);
+  padding: 0 12px;
+  font: inherit;
+}
+
+.wallet-buy-panel input:focus {
+  border-color: rgba(255, 47, 143, 0.62);
+  box-shadow: 0 0 0 3px rgba(255, 47, 143, 0.12);
+}
+
+.wallet-amount-stepper {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.wallet-amount-stepper input {
+  min-height: 46px;
+  border: 0;
+  border-inline: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  text-align: center;
+  font-weight: 950;
+}
+
+.wallet-amount-stepper input:focus {
+  box-shadow: none;
+}
+
+.wallet-amount-stepper input::-webkit-outer-spin-button,
+.wallet-amount-stepper input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.wallet-amount-stepper input[type="number"] {
+  appearance: textfield;
+}
+
+.wallet-amount-stepper button {
+  width: 44px;
+  height: 46px;
+  border: 0;
+  color: white;
+  background: rgba(255, 47, 143, 0.12);
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.wallet-amount-stepper button:hover,
+.wallet-amount-stepper button:focus-visible {
+  background: rgba(255, 47, 143, 0.22);
+}
+
+.wallet-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wallet-quick-actions button {
+  min-height: 38px;
+  border: 1px solid rgba(255, 47, 143, 0.3);
+  border-radius: 8px;
+  color: white;
+  background: rgba(255, 47, 143, 0.1);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.wallet-quick-actions button:hover,
+.wallet-quick-actions button:focus-visible {
+  border-color: rgba(255, 47, 143, 0.7);
+  background: rgba(255, 47, 143, 0.18);
+}
+
+.wallet-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+}
+
+.wallet-price-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.wallet-price-row strong {
+  color: white;
+  font-size: 18px;
+}
+
+.wallet-history-section {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.wallet-history-section .section-heading > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.wallet-transaction-list {
+  display: grid;
+  gap: 10px;
+}
+
+.wallet-transaction-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+}
+
+.wallet-transaction-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: white;
+  background: rgba(255, 47, 143, 0.16);
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.wallet-transaction-icon.completed {
+  background: rgba(15, 214, 130, 0.18);
+  color: var(--green);
+}
+
+.wallet-transaction-icon.failed {
+  background: rgba(255, 77, 109, 0.16);
+  color: var(--red);
+}
+
+.wallet-transaction-copy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.wallet-transaction-copy strong,
+.wallet-transaction-copy span,
+.wallet-transaction-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wallet-transaction-copy strong {
+  color: white;
+  font-size: 14px;
+}
+
+.wallet-transaction-copy span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wallet-transaction-copy small {
+  color: var(--pink-2);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.wallet-transaction-amount {
+  color: white;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
 .profile-login-panel,
 .profile-settings-card,
 .profile-record-section {
@@ -3454,6 +3715,10 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .wallet-layout {
+    grid-template-columns: 1fr;
+  }
+
   .profile-form-grid,
   .profile-record-grid {
     grid-template-columns: 1fr;
@@ -3461,6 +3726,10 @@ button {
 
   .cart-checkout-panel {
     position: static;
+  }
+
+  .wallet-quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .topbar {
@@ -5818,6 +6087,169 @@ button {
   color: white;
 }
 
+.coach-calendar-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(129, 151, 199, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 47, 143, 0.08), rgba(44, 224, 255, 0.04)),
+    rgba(3, 8, 19, 0.58);
+  padding: 14px;
+}
+
+.coach-calendar-head,
+.coach-slot-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.coach-calendar-head > div:first-child,
+.coach-slot-panel > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.coach-calendar-head strong,
+.coach-slot-panel strong {
+  color: white;
+  font-size: 15px;
+}
+
+.coach-calendar-head small,
+.coach-slot-panel small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--coach-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coach-calendar-nav {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 34px minmax(118px, auto) 34px;
+  align-items: center;
+  gap: 8px;
+}
+
+.coach-calendar-nav button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(199, 211, 236, 0.28);
+  border-radius: 8px;
+  color: white;
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.coach-calendar-nav button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.coach-calendar-nav span {
+  color: #d7dfee;
+  font-size: 12px;
+  font-weight: 950;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.coach-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.coach-calendar-grid button {
+  min-width: 0;
+  min-height: 76px;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  border: 1px solid rgba(129, 151, 199, 0.22);
+  border-radius: 8px;
+  color: #d7dfee;
+  background: rgba(5, 11, 26, 0.78);
+  padding: 8px 5px;
+}
+
+.coach-calendar-grid button:hover,
+.coach-calendar-grid button.active {
+  border-color: rgba(255, 47, 143, 0.62);
+  color: white;
+  background:
+    linear-gradient(180deg, rgba(255, 47, 143, 0.22), rgba(136, 78, 255, 0.08)),
+    rgba(5, 11, 26, 0.86);
+  box-shadow: 0 0 0 3px rgba(255, 47, 143, 0.08);
+}
+
+.coach-calendar-grid span,
+.coach-calendar-grid small {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.coach-calendar-grid strong {
+  color: white;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.coach-calendar-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  border: 1px dashed rgba(129, 151, 199, 0.22);
+  border-radius: 8px;
+  color: var(--coach-muted);
+  padding: 18px;
+  text-align: center;
+}
+
+.coach-session-slots {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.coach-session-slots button {
+  min-width: 72px;
+  min-height: 36px;
+  border: 1px solid rgba(129, 151, 199, 0.24);
+  border-radius: 8px;
+  color: #d7dfee;
+  background: rgba(3, 8, 19, 0.72);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.coach-session-slots button:hover,
+.coach-session-slots button.active {
+  border-color: rgba(35, 208, 113, 0.62);
+  color: white;
+  background: rgba(35, 208, 113, 0.14);
+}
+
+.coach-session-slots span {
+  color: var(--coach-muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .coach-booking-status {
   min-height: 18px;
   margin: -4px 0 0;
@@ -6010,6 +6442,10 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .coach-calendar-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
   .coach-similar-next {
     min-height: 54px;
     border-radius: 8px;
@@ -6067,6 +6503,21 @@ button {
   .coach-time-groups {
     gap: 16px;
   }
+
+  .coach-calendar-head,
+  .coach-slot-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .coach-calendar-nav {
+    width: 100%;
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+  }
+
+  .coach-session-slots {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 560px) {
@@ -6096,6 +6547,10 @@ button {
   .coach-protection-row,
   .coach-similar-grid {
     grid-template-columns: 1fr;
+  }
+
+  .coach-calendar-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .coach-profile-metric {

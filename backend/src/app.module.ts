@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { PaymentsModule } from './payments/payments.module';
 import { User } from './users/user.entity';
 
 const useDatabase = Boolean(process.env.DATABASE_HOST) && process.env.USE_FILE_STORE !== 'true';
@@ -22,6 +23,7 @@ const useDatabase = Boolean(process.env.DATABASE_HOST) && process.env.USE_FILE_S
         ]
       : []),
     AuthModule,
+    PaymentsModule,
   ],
 })
 export class AppModule {}

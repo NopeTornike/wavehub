@@ -206,7 +206,7 @@ function getFilteredCartItems() {
     return items;
   }
 
-  return items.filter((item) => [item.title, item.game, item.seller, item.productType]
+  return items.filter((item) => [item.title, item.game, item.seller, item.productType, item.sessionLabel]
     .join(' ')
     .toLowerCase()
     .includes(query));
@@ -258,7 +258,9 @@ function renderCart() {
     title.textContent = item.title;
 
     const meta = document.createElement('span');
-    meta.textContent = `${item.game} / ${item.seller}`;
+    meta.textContent = item.sessionLabel
+      ? `${item.game} / ${item.seller} / ${item.sessionLabel}`
+      : `${item.game} / ${item.seller}`;
 
     const price = document.createElement('small');
     price.textContent = item.priceText || formatListingPrice(item.price);

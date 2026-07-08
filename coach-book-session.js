@@ -6,6 +6,11 @@
   const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
   const params = new URLSearchParams(window.location.search);
   const requestedCoach = params.get('coach') || params.get('id') || '';
+  const bookingState = {
+    monthOffset: 0,
+    selectedDate: '',
+    selectedTime: '',
+  };
 
   const languageLabels = {
     EN: 'English',
@@ -356,24 +361,147 @@
     `;
   }
 
-  function renderAvailability(coach) {
-    const groups = toList(coach.availableTimes || coach.availabilitySlots)
-      .map(renderTimeGroup)
-      .filter(Boolean);
+  function getDateKey(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-');
+  }
 
-    if (!groups.length) {
-      return '';
+  function formatCalendarDate(date) {
+    return date.toLocaleDateString([], {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  function getDefaultTimes(coach, date) {
+    const day = date.getDay();
+    const isWeekend = day === 0 || day === 6;
+
+    if (coach.availability === 'weekend' && !isWeekend) {
+      return [];
     }
 
+    if (coach.availability === 'now') {
+      return isWeekend ? ['12:00', '14:00', '17:00', '20:00'] : ['18:00', '19:30', '21:00'];
+    }
+
+    if (coach.availability === 'today') {
+      return isWeekend ? ['13:00', '16:00', '19:00'] : ['17:00', '18:30', '20:00'];
+    }
+
+    return isWeekend ? ['12:00', '15:00', '18:00'] : ['18:00', '20:00'];
+  }
+
+  function getTimesForDate(coach, date) {
+    const dateKey = getDateKey(date);
+    const groups = toList(coach.availableTimes || coach.availabilitySlots);
+    const matchedGroup = groups.find((group) => {
+      const groupDate = group.date || group.day || group.key;
+      return groupDate === dateKey || groupDate === date.toLocaleDateString([], { weekday: 'long' });
+    });
+
+    if (matchedGroup) {
+      return toList(matchedGroup.times);
+    }
+
+    return getDefaultTimes(coach, date);
+  }
+
+  function getCalendarDates(coach, monthOffset = bookingState.monthOffset) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const monthStart = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+    const days = [];
+
+    for (let day = 1; day <= monthEnd.getDate(); day += 1) {
+      const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
+      if (date >= today && getTimesForDate(coach, date).length) {
+        days.push(date);
+      }
+    }
+
+    return days;
+  }
+
+  function ensureBookingSelection(coach) {
+    const visibleDates = getCalendarDates(coach);
+    const allDates = visibleDates.length ? visibleDates : getCalendarDates(coach, bookingState.monthOffset + 1);
+
+    if (!visibleDates.length && allDates.length) {
+      bookingState.monthOffset += 1;
+    }
+
+    if (!bookingState.selectedDate || !allDates.some((date) => getDateKey(date) === bookingState.selectedDate)) {
+      bookingState.selectedDate = allDates[0] ? getDateKey(allDates[0]) : '';
+    }
+
+    const selectedDate = bookingState.selectedDate ? new Date(`${bookingState.selectedDate}T00:00:00`) : null;
+    const times = selectedDate ? getTimesForDate(coach, selectedDate) : [];
+
+    if (!bookingState.selectedTime || !times.includes(bookingState.selectedTime)) {
+      bookingState.selectedTime = times[0] || '';
+    }
+  }
+
+  function renderBookingCalendar(coach) {
+    ensureBookingSelection(coach);
+
+    const monthDate = new Date();
+    monthDate.setMonth(monthDate.getMonth() + bookingState.monthOffset, 1);
+    const dates = getCalendarDates(coach);
+    const selectedDate = bookingState.selectedDate ? new Date(`${bookingState.selectedDate}T00:00:00`) : null;
+    const selectedTimes = selectedDate ? getTimesForDate(coach, selectedDate) : [];
+    const monthLabel = monthDate.toLocaleDateString([], { month: 'long', year: 'numeric' });
+    const summary = bookingState.selectedDate && bookingState.selectedTime
+      ? `${formatCalendarDate(selectedDate)} at ${bookingState.selectedTime}`
+      : 'Select a date and time';
+
     return `
-      <div class="coach-time-row">
-        <div>
-          <strong>Available Times</strong>
-          ${hasText(coach.timezone) ? `<small>${escapeHtml(coach.timezone)}</small>` : ''}
+      <div class="coach-calendar-card">
+        <div class="coach-calendar-head">
+          <div>
+            <strong>Session Calendar</strong>
+            ${hasText(coach.timezone) ? `<small>${escapeHtml(coach.timezone)}</small>` : '<small>Local coach time</small>'}
+          </div>
+          <div class="coach-calendar-nav" aria-label="Calendar month controls">
+            <button type="button" data-calendar-nav="prev" ${bookingState.monthOffset <= 0 ? 'disabled' : ''} aria-label="Previous month">&lt;</button>
+            <span>${escapeHtml(monthLabel)}</span>
+            <button type="button" data-calendar-nav="next" aria-label="Next month">&gt;</button>
+          </div>
         </div>
-        ${hasText(coach.fullScheduleUrl) ? `<a href="${escapeHtml(coach.fullScheduleUrl)}">View full schedule</a>` : ''}
+
+        <div class="coach-calendar-grid" aria-label="Available session dates">
+          ${dates.map((date) => {
+            const dateKey = getDateKey(date);
+            const isSelected = dateKey === bookingState.selectedDate;
+            return `
+              <button class="${isSelected ? 'active' : ''}" type="button" data-session-date="${escapeHtml(dateKey)}" aria-pressed="${String(isSelected)}">
+                <span>${escapeHtml(date.toLocaleDateString([], { weekday: 'short' }))}</span>
+                <strong>${date.getDate()}</strong>
+                <small>${escapeHtml(date.toLocaleDateString([], { month: 'short' }))}</small>
+              </button>
+            `;
+          }).join('') || '<p class="coach-calendar-empty">No available days this month.</p>'}
+        </div>
+
+        <div class="coach-slot-panel">
+          <div>
+            <strong>Choose Time</strong>
+            <small>${escapeHtml(summary)}</small>
+          </div>
+          <div class="coach-session-slots" aria-label="Available session times">
+            ${selectedTimes.map((time) => {
+              const isSelected = time === bookingState.selectedTime;
+              return `<button class="${isSelected ? 'active' : ''}" type="button" data-session-time="${escapeHtml(time)}" aria-pressed="${String(isSelected)}">${escapeHtml(time)}</button>`;
+            }).join('') || '<span>No slots for selected day.</span>'}
+          </div>
+        </div>
       </div>
-      <div class="coach-time-groups">${groups.join('')}</div>
     `;
   }
 
@@ -418,8 +546,14 @@
   }
 
   function getCoachCartItem(coach) {
+    const sessionDate = bookingState.selectedDate || '';
+    const sessionTime = bookingState.selectedTime || '';
+    const sessionLabel = sessionDate && sessionTime
+      ? `${formatCalendarDate(new Date(`${sessionDate}T00:00:00`))} at ${sessionTime}`
+      : 'Unscheduled session';
+
     return {
-      id: `coach:${coach.id}:session`,
+      id: `coach:${coach.id}:session:${sessionDate}:${sessionTime}`,
       listingId: coach.id,
       title: `${coach.name} Coaching Session`,
       productType: 'Coaching',
@@ -429,11 +563,18 @@
       priceText: `$${Number(coach.price) || 0} /hour`,
       imageData: coach.image,
       detailUrl: getCoachUrl(coach),
+      sessionDate,
+      sessionTime,
+      sessionLabel,
       addedAt: new Date().toISOString(),
     };
   }
 
   function addCoachToCart(coach) {
+    if (!bookingState.selectedDate || !bookingState.selectedTime) {
+      return null;
+    }
+
     const item = getCoachCartItem(coach);
     const items = Array.isArray(readJson(cartKey, [])) ? readJson(cartKey, []) : [];
     const exists = items.some((cartItem) => cartItem.id === item.id);
@@ -523,12 +664,12 @@
             <span>Starting from</span>
             <strong>$${Number(coach.price) || 0}<small>/hour</small></strong>
           </div>
-          <button class="coach-book-primary" type="button" data-action="book">Book Session</button>
+          <button class="coach-book-primary" type="button" data-action="book">Book Selected Session</button>
           <a class="coach-book-secondary" href="messages.html">Message Coach</a>
           <button class="coach-book-secondary" type="button" data-action="wishlist">Add to Wishlist</button>
         </div>
 
-        ${renderAvailability(coach)}
+        ${renderBookingCalendar(coach)}
 
         <p class="coach-booking-status" id="coachBookingStatus" aria-live="polite"></p>
 
@@ -578,9 +719,34 @@
     const target = event.target instanceof Element ? event.target : null;
     const tab = target?.closest('[data-profile-tab]');
     const action = target?.closest('[data-action]');
+    const dateButton = target?.closest('[data-session-date]');
+    const timeButton = target?.closest('[data-session-time]');
+    const calendarNav = target?.closest('[data-calendar-nav]');
 
     if (tab) {
       setActiveTab(tab.dataset.profileTab || 'overview');
+      return;
+    }
+
+    if (calendarNav) {
+      const direction = calendarNav.dataset.calendarNav;
+      bookingState.monthOffset = Math.max(0, bookingState.monthOffset + (direction === 'next' ? 1 : -1));
+      bookingState.selectedDate = '';
+      bookingState.selectedTime = '';
+      renderCoachPage(activeCoach);
+      return;
+    }
+
+    if (dateButton) {
+      bookingState.selectedDate = dateButton.dataset.sessionDate || '';
+      bookingState.selectedTime = '';
+      renderCoachPage(activeCoach);
+      return;
+    }
+
+    if (timeButton) {
+      bookingState.selectedTime = timeButton.dataset.sessionTime || '';
+      renderCoachPage(activeCoach);
       return;
     }
 
@@ -592,7 +758,13 @@
 
     if (actionName === 'book') {
       const added = addCoachToCart(activeCoach);
-      setStatus('success', added ? 'Session added to cart.' : 'Session is already in your cart.');
+      if (added === null) {
+        setStatus('error', 'Choose a date and time first.');
+        return;
+      }
+
+      const item = getCoachCartItem(activeCoach);
+      setStatus('success', added ? `${item.sessionLabel} added to cart.` : `${item.sessionLabel} is already in your cart.`);
     } else if (actionName === 'wishlist') {
       const saved = toggleWishlist(activeCoach);
       setStatus('success', saved ? 'Coach added to wishlist.' : 'Coach removed from wishlist.');
