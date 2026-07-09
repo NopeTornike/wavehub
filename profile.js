@@ -31,6 +31,9 @@ const profileLogoutButton = document.getElementById('profileLogoutButton');
 const profileStatus = document.getElementById('profileStatus');
 const profileListings = document.getElementById('profileListings');
 const profileListingsEmpty = document.getElementById('profileListingsEmpty');
+const profileSessions = document.getElementById('profileSessions');
+const profileSessionsEmpty = document.getElementById('profileSessionsEmpty');
+const profileAddSessionButton = document.getElementById('profileAddSessionButton');
 const profilePurchases = document.getElementById('profilePurchases');
 const profilePurchasesEmpty = document.getElementById('profilePurchasesEmpty');
 const profileListingModal = document.getElementById('profileListingModal');
@@ -47,6 +50,17 @@ const profileListingDescriptionInput = document.getElementById('profileListingDe
 const profileListingStatus = document.getElementById('profileListingStatus');
 const profileListingCloseButton = document.getElementById('profileListingCloseButton');
 const profileListingCancelButton = document.getElementById('profileListingCancelButton');
+const profileSessionModal = document.getElementById('profileSessionModal');
+const profileSessionForm = document.getElementById('profileSessionForm');
+const profileSessionIdInput = document.getElementById('profileSessionId');
+const profileSessionCoachInput = document.getElementById('profileSessionCoach');
+const profileSessionGameInput = document.getElementById('profileSessionGame');
+const profileSessionPriceInput = document.getElementById('profileSessionPrice');
+const profileSessionDateInput = document.getElementById('profileSessionDate');
+const profileSessionTimeInput = document.getElementById('profileSessionTime');
+const profileSessionStatus = document.getElementById('profileSessionStatus');
+const profileSessionCloseButton = document.getElementById('profileSessionCloseButton');
+const profileSessionCancelButton = document.getElementById('profileSessionCancelButton');
 const onlineCount = document.getElementById('onlineCount');
 const messageCount = document.getElementById('messageCount');
 
@@ -59,6 +73,8 @@ const priceOffersKey = 'wavehub.priceOffers';
 const cartKey = 'wavehub.cart';
 const favoritesKey = 'wavehub.favorites';
 const listingGames = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
+const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
+const sessionTimeOptions = ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '18:30', '19:00', '19:30', '20:00', '21:00'];
 
 function readJson(key, fallback) {
   try {
@@ -281,6 +297,187 @@ function saveCartItems(items) {
   window.renderGlobalCartCount?.(items);
 }
 
+function getCoachingSessions(username = getCurrentAccount().user?.username) {
+  if (!username) {
+    return [];
+  }
+
+  return getCartItems().filter((item) => (
+    (item.productType === 'Coaching' || String(item.id || '').startsWith('coach:'))
+    && item.buyerUsername === username
+  ));
+}
+
+function getCoachGames(coach) {
+  const games = Array.isArray(coach?.games) ? coach.games.filter(Boolean) : [];
+  return games.length ? games : [coach?.game].filter(Boolean);
+}
+
+function getCoachById(coachId) {
+  return coaches.find((coach) => coach.id === coachId)
+    || coaches.find((coach) => coach.name === coachId)
+    || null;
+}
+
+function getSlug(value) {
+  const source = String(value || 'session').trim();
+  const latinSlug = source
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return latinSlug || encodeURIComponent(source).replace(/%/g, '').toLowerCase().slice(0, 48) || 'session';
+}
+
+function getDateKey(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+function getTodayKey() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return getDateKey(today);
+}
+
+function formatSessionDate(value) {
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value || '-';
+  }
+
+  return date.toLocaleDateString([], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function getSessionLabel(game, date, time) {
+  return game && date && time ? `${game} / ${formatSessionDate(date)} at ${time}` : 'Unscheduled session';
+}
+
+function populateSessionCoachOptions(selectedCoachId = '') {
+  if (!profileSessionCoachInput) {
+    return;
+  }
+
+  const coach = getCoachById(selectedCoachId);
+  profileSessionCoachInput.value = coach?.name || selectedCoachId || '';
+}
+
+function populateSessionGameOptions(coach, selectedGame = '') {
+  if (!profileSessionGameInput) {
+    return;
+  }
+
+  profileSessionGameInput.value = selectedGame || getCoachGames(coach)[0] || '';
+}
+
+function populateSessionTimeOptions(selectedTime = '') {
+  if (!profileSessionTimeInput) {
+    return;
+  }
+
+  const times = sessionTimeOptions.includes(selectedTime) || !selectedTime
+    ? sessionTimeOptions
+    : [selectedTime, ...sessionTimeOptions];
+
+  profileSessionTimeInput.innerHTML = '';
+  times.forEach((time) => {
+    const option = document.createElement('option');
+    option.value = time;
+    option.textContent = time;
+    option.selected = time === selectedTime;
+    profileSessionTimeInput.appendChild(option);
+  });
+}
+
+function setSessionStatus(type, message) {
+  if (!profileSessionStatus) {
+    return;
+  }
+
+  profileSessionStatus.className = type ? `seller-status ${type}` : 'seller-status';
+  profileSessionStatus.textContent = message;
+}
+
+function setSessionModalOpen(isOpen) {
+  if (!profileSessionModal) {
+    return;
+  }
+
+  profileSessionModal.hidden = !isOpen;
+  document.body.classList.toggle('modal-open', isOpen || !profileListingModal?.hidden);
+
+  if (!isOpen) {
+    setSessionStatus('', '');
+    profileSessionForm?.reset();
+  }
+}
+
+function buildCoachSessionItem(coachName, sessionGame, sessionDate, sessionTime, sessionPrice, existingItem = {}) {
+  const { user } = getCurrentAccount();
+  const coachId = existingItem.listingId || `custom-${getSlug(coachName)}`;
+  const buyerUsername = existingItem.buyerUsername || user?.username || '';
+  const buyerName = existingItem.buyerName || (user ? getDisplayName(user) : '');
+  const price = Number(sessionPrice ?? existingItem.price) || 0;
+  const sessionLabel = getSessionLabel(sessionGame, sessionDate, sessionTime);
+
+  return {
+    ...existingItem,
+    id: existingItem.id || `coach:${buyerUsername || 'guest'}:${coachId}:${getSlug(sessionGame)}:${sessionDate}:${sessionTime}`,
+    listingId: coachId,
+    title: `${coachName || existingItem.seller || 'Coach'} Coaching Session`,
+    productType: 'Coaching',
+    game: sessionGame,
+    seller: coachName || existingItem.seller || 'Coach',
+    buyerUsername,
+    buyerName,
+    price,
+    priceText: `${price} GEL/hour`,
+    imageData: existingItem.imageData || '',
+    detailUrl: existingItem.detailUrl || 'coaching.html',
+    sessionDate,
+    sessionTime,
+    sessionLabel,
+    addedAt: existingItem.addedAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function syncSessionControlsForCoach(selectedGame = '') {
+  populateSessionGameOptions(null, selectedGame || profileSessionGameInput?.value || '');
+}
+
+function openSessionEditor(sessionId = '') {
+  const session = sessionId ? getCoachingSessions(getCurrentAccount().user?.username).find((item) => item.id === sessionId) : null;
+  const coach = getCoachById(session?.listingId || '');
+  const selectedCoachId = session?.seller || session?.listingId || coach?.name || '';
+  const selectedGame = session?.game || getCoachGames(coach)[0] || '';
+  const selectedDate = session?.sessionDate || getTodayKey();
+  const selectedTime = session?.sessionTime || sessionTimeOptions[0];
+
+  populateSessionCoachOptions(selectedCoachId);
+  populateSessionGameOptions(coach, selectedGame);
+  populateSessionTimeOptions(selectedTime);
+
+  if (profileSessionIdInput) profileSessionIdInput.value = session?.id || '';
+  if (profileSessionDateInput) {
+    profileSessionDateInput.min = getTodayKey();
+    profileSessionDateInput.value = selectedDate;
+  }
+  if (profileSessionPriceInput) profileSessionPriceInput.value = session?.price || '';
+
+  setSessionStatus('', '');
+  setSessionModalOpen(true);
+  profileSessionCoachInput?.focus();
+}
+
 function formatListingType(listing) {
   const accountTypes = {
     basic: 'Basic Account',
@@ -436,7 +633,7 @@ function setListingModalOpen(isOpen) {
   }
 
   profileListingModal.hidden = !isOpen;
-  document.body.classList.toggle('modal-open', isOpen);
+  document.body.classList.toggle('modal-open', isOpen || !profileSessionModal?.hidden);
 
   if (!isOpen) {
     setListingStatus('', '');
@@ -509,31 +706,41 @@ function createRecordCard(item, type) {
   title.textContent = item.title || 'Untitled';
 
   const meta = document.createElement('span');
-  meta.textContent = type === 'purchase'
+  meta.textContent = type === 'purchase' || type === 'session'
     ? `${item.game || 'WaveHub'} / ${item.seller || 'Seller'}`
     : `${item.game || 'WaveHub'} / ${item.listingType || 'listing'}`;
 
   const footer = document.createElement('small');
-  footer.textContent = type === 'purchase'
+  footer.textContent = type === 'session'
+    ? `${item.sessionLabel || 'Unscheduled session'} / ${item.priceText || formatListingPrice(item.price)}`
+    : type === 'purchase'
     ? `${item.status || 'Checkout request'} / ${formatDate(item.purchasedAt || item.createdAt)}`
     : `${formatListingPrice(item.price)} / ${formatDate(item.createdAt)}`;
 
   copy.append(title, meta, footer);
 
-  if (type === 'listing') {
+  if (type === 'listing' || type === 'session') {
     const actions = document.createElement('div');
     actions.className = 'profile-record-actions';
 
     const editButton = document.createElement('button');
     editButton.className = 'profile-record-action';
     editButton.type = 'button';
-    editButton.dataset.editListingId = item.id || '';
+    if (type === 'session') {
+      editButton.dataset.editSessionId = item.id || '';
+    } else {
+      editButton.dataset.editListingId = item.id || '';
+    }
     editButton.textContent = 'Edit';
 
     const deleteButton = document.createElement('button');
     deleteButton.className = 'profile-record-action danger';
     deleteButton.type = 'button';
-    deleteButton.dataset.deleteListingId = item.id || '';
+    if (type === 'session') {
+      deleteButton.dataset.deleteSessionId = item.id || '';
+    } else {
+      deleteButton.dataset.deleteListingId = item.id || '';
+    }
     deleteButton.textContent = 'Delete';
 
     actions.append(editButton, deleteButton);
@@ -708,6 +915,28 @@ function renderListings(user) {
   return listings;
 }
 
+function renderSessions(user) {
+  if (!profileSessions || !profileSessionsEmpty) {
+    return [];
+  }
+
+  const query = getSearchQuery();
+  const sessions = getCoachingSessions(user?.username)
+    .filter((session) => {
+      const haystack = [session.title, session.game, session.seller, session.sessionLabel].join(' ').toLowerCase();
+      return !query || haystack.includes(query);
+    })
+    .sort((a, b) => new Date(b.addedAt || b.updatedAt || 0) - new Date(a.addedAt || a.updatedAt || 0));
+
+  profileSessions.innerHTML = '';
+  sessions.forEach((session) => {
+    profileSessions.appendChild(createRecordCard(session, 'session'));
+  });
+  profileSessionsEmpty.hidden = sessions.length > 0;
+
+  return sessions;
+}
+
 function renderPurchases(user) {
   if (!profilePurchases || !profilePurchasesEmpty) {
     return [];
@@ -758,7 +987,7 @@ function renderPage() {
   }
 
   if (profileSearch) {
-    profileSearch.placeholder = 'Search your listings or purchases...';
+    profileSearch.placeholder = 'Search your listings, sessions or purchases...';
   }
 
   if (profileLoginPanel) {
@@ -776,8 +1005,9 @@ function renderPage() {
 
   renderProfileForm(user);
   const listings = renderListings(user);
+  const sessions = renderSessions(user);
   const purchases = renderPurchases(user);
-  if (profileRecordCount) profileRecordCount.textContent = String(listings.length + purchases.length);
+  if (profileRecordCount) profileRecordCount.textContent = String(listings.length + sessions.length + purchases.length);
   if (messageCount) messageCount.textContent = String(getReceivedOfferCount(user.username));
   window.wavehubRenderProfileSurfaces?.();
 }
@@ -837,6 +1067,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     setSidebarOpen(false);
     setListingModalOpen(false);
+    setSessionModalOpen(false);
   }
 });
 
@@ -850,6 +1081,102 @@ profileListingModal?.addEventListener('click', (event) => {
   if (event.target === profileListingModal) {
     setListingModalOpen(false);
   }
+});
+
+profileSessionCloseButton?.addEventListener('click', () => setSessionModalOpen(false));
+profileSessionCancelButton?.addEventListener('click', () => setSessionModalOpen(false));
+profileAddSessionButton?.addEventListener('click', () => openSessionEditor());
+
+profileSessionModal?.addEventListener('click', (event) => {
+  if (event.target === profileSessionModal) {
+    setSessionModalOpen(false);
+  }
+});
+
+profileSessionCoachInput?.addEventListener('change', () => {
+  syncSessionControlsForCoach();
+});
+
+profileSessions?.addEventListener('click', (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  const editButton = target?.closest('[data-edit-session-id]');
+  const deleteButton = target?.closest('[data-delete-session-id]');
+
+  if (editButton instanceof HTMLElement) {
+    openSessionEditor(editButton.dataset.editSessionId || '');
+    return;
+  }
+
+  if (!(deleteButton instanceof HTMLElement)) {
+    return;
+  }
+
+  const sessionId = deleteButton.dataset.deleteSessionId || '';
+  const session = getCoachingSessions(getCurrentAccount().user?.username).find((item) => item.id === sessionId);
+
+  if (!session) {
+    setStatus('error', 'Session was not found.');
+    return;
+  }
+
+  const shouldDelete = window.confirm(`Delete "${session.sessionLabel || session.title || 'this session'}"?`);
+  if (!shouldDelete) {
+    return;
+  }
+
+  saveCartItems(getCartItems().filter((item) => item.id !== sessionId));
+  setStatus('success', 'Coaching session deleted.');
+  renderPage();
+});
+
+profileSessionForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+
+  const { user } = getCurrentAccount();
+  const coachName = profileSessionCoachInput?.value.trim() || '';
+  const sessionId = profileSessionIdInput?.value || '';
+  const sessionGame = profileSessionGameInput?.value.trim() || '';
+  const sessionDate = profileSessionDateInput?.value || '';
+  const sessionTime = profileSessionTimeInput?.value || '';
+  const sessionPrice = Number(profileSessionPriceInput?.value || 0);
+  const existingSession = sessionId ? getCoachingSessions(user?.username).find((item) => item.id === sessionId) : null;
+
+  if (!user?.username) {
+    setSessionStatus('error', 'Please log in before managing coaching sessions.');
+    return;
+  }
+
+  if (!coachName || !sessionGame || !sessionDate || !sessionTime || !sessionPrice) {
+    setSessionStatus('error', 'Fill coach name, game, price, day and hour.');
+    return;
+  }
+
+  const nextSession = buildCoachSessionItem(coachName, sessionGame, sessionDate, sessionTime, sessionPrice, existingSession || {});
+  const currentItems = getCartItems();
+  const duplicate = currentItems.some((item) => (
+    item.id !== existingSession?.id
+    && item.productType === 'Coaching'
+    && item.buyerUsername === user.username
+    && item.seller === nextSession.seller
+    && item.listingId === nextSession.listingId
+    && item.game === nextSession.game
+    && item.sessionDate === nextSession.sessionDate
+    && item.sessionTime === nextSession.sessionTime
+  ));
+
+  if (duplicate) {
+    setSessionStatus('error', 'This coaching session is already added.');
+    return;
+  }
+
+  const nextItems = existingSession
+    ? currentItems.map((item) => (item.id === existingSession.id ? nextSession : item))
+    : [...currentItems, nextSession];
+
+  saveCartItems(nextItems);
+  setSessionModalOpen(false);
+  setStatus('success', existingSession ? 'Coaching session updated.' : 'Coaching session added.');
+  renderPage();
 });
 
 profileListings?.addEventListener('click', (event) => {
@@ -1021,7 +1348,7 @@ profileLogoutButton?.addEventListener('click', () => {
 profileSearch?.addEventListener('input', renderPage);
 
 window.addEventListener('storage', (event) => {
-  if ([localUsersKey, sessionKey, sellerListingsKey, purchasesKey, sellerReviewsKey, priceOffersKey].includes(event.key)) {
+  if ([localUsersKey, sessionKey, sellerListingsKey, purchasesKey, sellerReviewsKey, priceOffersKey, cartKey].includes(event.key)) {
     renderPage();
   }
 });

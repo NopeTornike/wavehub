@@ -11,10 +11,10 @@ const coachGameTabs = document.getElementById('coachGameTabs');
 const coachResultCount = document.getElementById('coachResultCount');
 const coachGrid = document.getElementById('coachGrid');
 const coachEmpty = document.getElementById('coachEmpty');
+const coachPagination = document.querySelector('.coach-pagination');
 const viewToggleButtons = document.querySelectorAll('.coach-view-toggle button');
 const paginationButtons = document.querySelectorAll('.coach-pagination button');
 
-const mockCoachTotal = 127;
 let activeGame = 'all';
 let activePage = '1';
 let activeView = 'grid';
@@ -162,7 +162,7 @@ function createCoachCard(coach) {
     </div>
 
     <div class="coach-price-row">
-      <p><strong>$${coach.price}</strong> <span>/hour</span></p>
+      <p><strong>${coach.price} GEL</strong> <span>/hour</span></p>
       <a href="${getCoachBookingUrl(coach)}" aria-label="Book a session with ${coach.name || 'this coach'}">Book Session</a>
     </div>
 
@@ -193,8 +193,12 @@ function renderCoaches() {
   }
 
   if (coachResultCount) {
-    const count = isFiltered() ? visibleCoaches.length : mockCoachTotal;
-    coachResultCount.textContent = `${count} Coaches found`;
+    const count = visibleCoaches.length;
+    coachResultCount.textContent = `${count} ${count === 1 ? 'Coach' : 'Coaches'} found`;
+  }
+
+  if (coachPagination) {
+    coachPagination.hidden = visibleCoaches.length === 0;
   }
 }
 
@@ -203,7 +207,7 @@ function updatePriceLabel() {
     return;
   }
 
-  priceRangeLabel.textContent = Number(priceRange.value) >= 100 ? '$100+' : `$${priceRange.value}`;
+  priceRangeLabel.textContent = Number(priceRange.value) >= 100 ? '100 GEL+' : `${priceRange.value} GEL`;
 }
 
 function syncTabButton(game) {

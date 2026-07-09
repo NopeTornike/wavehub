@@ -8,6 +8,7 @@
   const requestedCoach = params.get('coach') || params.get('id') || '';
   const bookingState = {
     monthOffset: 0,
+    selectedGame: '',
     selectedDate: '',
     selectedTime: '',
   };
@@ -429,6 +430,11 @@
   }
 
   function ensureBookingSelection(coach) {
+    const games = getCoachGames(coach);
+    if (!bookingState.selectedGame || !games.includes(bookingState.selectedGame)) {
+      bookingState.selectedGame = games[0] || coach.game || '';
+    }
+
     const visibleDates = getCalendarDates(coach);
     const allDates = visibleDates.length ? visibleDates : getCalendarDates(coach, bookingState.monthOffset + 1);
 
@@ -457,12 +463,26 @@
     const selectedDate = bookingState.selectedDate ? new Date(`${bookingState.selectedDate}T00:00:00`) : null;
     const selectedTimes = selectedDate ? getTimesForDate(coach, selectedDate) : [];
     const monthLabel = monthDate.toLocaleDateString([], { month: 'long', year: 'numeric' });
+    const games = getCoachGames(coach);
     const summary = bookingState.selectedDate && bookingState.selectedTime
-      ? `${formatCalendarDate(selectedDate)} at ${bookingState.selectedTime}`
-      : 'Select a date and time';
+      ? `${bookingState.selectedGame || coach.game} / ${formatCalendarDate(selectedDate)} at ${bookingState.selectedTime}`
+      : 'Select a game, date and time';
 
     return `
       <div class="coach-calendar-card">
+        <div class="coach-game-picker">
+          <div>
+            <strong>Choose Game</strong>
+            <small>${escapeHtml(bookingState.selectedGame || coach.game || 'Select game')}</small>
+          </div>
+          <div aria-label="Available games">
+            ${games.map((game) => {
+              const isSelected = game === bookingState.selectedGame;
+              return `<button class="${isSelected ? 'active' : ''}" type="button" data-session-game="${escapeHtml(game)}" aria-pressed="${String(isSelected)}">${escapeHtml(game)}</button>`;
+            }).join('')}
+          </div>
+        </div>
+
         <div class="coach-calendar-head">
           <div>
             <strong>Session Calendar</strong>
@@ -540,7 +560,7 @@
             <small>${escapeHtml(item.rank)}</small>
             ${hasNumber(item.rating) ? `<em>&#9733; ${formatRating(item.rating)}${hasNumber(item.reviews) ? ` (${formatNumber(item.reviews)})` : ''}</em>` : ''}
           </span>
-          <b>$${Number(item.price) || 0}<small>/hour</small></b>
+          <b>${Number(item.price) || 0} GEL<small>/hour</small></b>
         </a>
       `).join('');
   }
@@ -548,19 +568,20 @@
   function getCoachCartItem(coach) {
     const sessionDate = bookingState.selectedDate || '';
     const sessionTime = bookingState.selectedTime || '';
+    const sessionGame = bookingState.selectedGame || coach.game || 'Coaching';
     const sessionLabel = sessionDate && sessionTime
-      ? `${formatCalendarDate(new Date(`${sessionDate}T00:00:00`))} at ${sessionTime}`
+      ? `${sessionGame} / ${formatCalendarDate(new Date(`${sessionDate}T00:00:00`))} at ${sessionTime}`
       : 'Unscheduled session';
 
     return {
-      id: `coach:${coach.id}:session:${sessionDate}:${sessionTime}`,
+      id: `coach:${coach.id}:session:${sessionGame}:${sessionDate}:${sessionTime}`,
       listingId: coach.id,
       title: `${coach.name} Coaching Session`,
       productType: 'Coaching',
-      game: coach.game,
+      game: sessionGame,
       seller: coach.name,
       price: Number(coach.price) || 0,
-      priceText: `$${Number(coach.price) || 0} /hour`,
+      priceText: `${Number(coach.price) || 0} GEL/hour`,
       imageData: coach.image,
       detailUrl: getCoachUrl(coach),
       sessionDate,
@@ -571,7 +592,7 @@
   }
 
   function addCoachToCart(coach) {
-    if (!bookingState.selectedDate || !bookingState.selectedTime) {
+    if (!bookingState.selectedGame || !bookingState.selectedDate || !bookingState.selectedTime) {
       return null;
     }
 
@@ -662,7 +683,7 @@
         <div class="coach-booking-main">
           <div class="coach-starting-price">
             <span>Starting from</span>
-            <strong>$${Number(coach.price) || 0}<small>/hour</small></strong>
+            <strong>${Number(coach.price) || 0} GEL<small>/hour</small></strong>
           </div>
           <button class="coach-book-primary" type="button" data-action="book">Book Selected Session</button>
           <a class="coach-book-secondary" href="messages.html">Message Coach</a>
@@ -721,6 +742,7 @@
     const action = target?.closest('[data-action]');
     const dateButton = target?.closest('[data-session-date]');
     const timeButton = target?.closest('[data-session-time]');
+    const gameButton = target?.closest('[data-session-game]');
     const calendarNav = target?.closest('[data-calendar-nav]');
 
     if (tab) {
@@ -733,6 +755,12 @@
       bookingState.monthOffset = Math.max(0, bookingState.monthOffset + (direction === 'next' ? 1 : -1));
       bookingState.selectedDate = '';
       bookingState.selectedTime = '';
+      renderCoachPage(activeCoach);
+      return;
+    }
+
+    if (gameButton) {
+      bookingState.selectedGame = gameButton.dataset.sessionGame || '';
       renderCoachPage(activeCoach);
       return;
     }
@@ -759,7 +787,7 @@
     if (actionName === 'book') {
       const added = addCoachToCart(activeCoach);
       if (added === null) {
-        setStatus('error', 'Choose a date and time first.');
+        setStatus('error', 'Choose a game, date and time first.');
         return;
       }
 

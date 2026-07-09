@@ -40,7 +40,7 @@
           <span class="nav-pill" id="messageCount">0</span>
         </a>
         <a class="side-link" href="wallet.html" data-section="Wallet">
-          <span class="nav-icon" aria-hidden="true">$</span>
+          <span class="nav-icon" aria-hidden="true">₾</span>
           <span>Wallet</span>
         </a>
         <a class="side-link" href="marketplace.html#favorites" data-section="Favorites">
@@ -148,6 +148,62 @@
       </div>
     </div>
 
+    <div class="seller-modal" id="profileSessionModal" role="dialog" aria-modal="true" aria-labelledby="profileSessionModalTitle" hidden>
+      <div class="seller-modal-panel">
+        <div class="seller-modal-head">
+          <div>
+            <p class="section-kicker">Coaching</p>
+            <h2 id="profileSessionModalTitle">Manage Session</h2>
+          </div>
+          <button class="seller-close-button" id="profileSessionCloseButton" type="button" aria-label="Close session editor">x</button>
+        </div>
+
+        <form class="seller-form" id="profileSessionForm">
+          <input id="profileSessionId" type="hidden" />
+
+          <label>
+            <span>Coach name</span>
+            <input id="profileSessionCoach" type="text" maxlength="44" autocomplete="off" placeholder="Your coach name" required />
+          </label>
+
+          <label>
+            <span>Game</span>
+            <input id="profileSessionGame" type="text" maxlength="40" list="profileSessionGameOptions" autocomplete="off" placeholder="PUBG Mobile" required />
+            <datalist id="profileSessionGameOptions">
+              <option value="PUBG Mobile"></option>
+              <option value="Call of Duty"></option>
+              <option value="CS2"></option>
+              <option value="Mobile Legends"></option>
+              <option value="Free Fire"></option>
+              <option value="Roblox"></option>
+            </datalist>
+          </label>
+
+          <label>
+            <span>Price (GEL/hour)</span>
+            <input id="profileSessionPrice" type="number" min="1" step="1" placeholder="25" required />
+          </label>
+
+          <label>
+            <span>Day</span>
+            <input id="profileSessionDate" type="date" required />
+          </label>
+
+          <label>
+            <span>Hour</span>
+            <select id="profileSessionTime" required></select>
+          </label>
+
+          <p class="seller-status" id="profileSessionStatus" aria-live="polite"></p>
+
+          <div class="seller-modal-actions">
+            <button class="secondary-seller-action" id="profileSessionCancelButton" type="button">Cancel</button>
+            <button class="seller-submit-button" type="submit">Save Session</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <main class="main-panel">
       <header class="topbar">
         <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
@@ -158,7 +214,7 @@
 
         <label class="search-box" aria-label="Search profile">
           <span class="search-icon" aria-hidden="true">/</span>
-          <input id="profileSearch" type="search" placeholder="Search your listings or purchases..." autocomplete="off" />
+          <input id="profileSearch" type="search" placeholder="Search your listings, sessions or purchases..." autocomplete="off" />
         </label>
 
         <div class="top-actions">
@@ -315,6 +371,18 @@
           <div class="marketplace-empty" id="profileListingsEmpty" hidden>No listings yet.</div>
         </section>
 
+        <section class="profile-record-section" aria-labelledby="profileSessionsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Coaching</p>
+              <h2 id="profileSessionsTitle">Coaching Sessions</h2>
+            </div>
+            <button class="secondary-seller-action" id="profileAddSessionButton" type="button">Add session</button>
+          </div>
+          <div class="profile-record-grid" id="profileSessions"></div>
+          <div class="marketplace-empty" id="profileSessionsEmpty" hidden>No coaching sessions yet.</div>
+        </section>
+
         <section class="profile-record-section" aria-labelledby="profilePurchasesTitle">
           <div class="section-heading">
             <div>
@@ -330,6 +398,7 @@
     </main>
   </div>
 
+  <script src="coaches-data.js"></script>
   <script src="profile.js"></script>
   <script src="cart-nav.js"></script>
   <script src="profile-nav.js"></script>
