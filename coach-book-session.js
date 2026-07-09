@@ -3,7 +3,6 @@
   const profileSearch = document.getElementById('coachProfileSearch');
   const cartKey = 'wavehub.cart';
   const wishlistKey = 'wavehub.coachWishlist';
-  const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
   const params = new URLSearchParams(window.location.search);
   const requestedCoach = params.get('coach') || params.get('id') || '';
   const bookingState = {
@@ -46,6 +45,54 @@
   function writeJson(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
   }
+
+  function isProfileCoachListing(item) {
+    return item?.productType === 'Coaching'
+      && (item.isCoachListing || (item.buyerUsername && item.detailUrl === 'coaching.html'));
+  }
+
+  function getCoachListingsFromSessions() {
+    const items = readJson(cartKey, []);
+    const sessions = Array.isArray(items) ? items.filter(isProfileCoachListing) : [];
+
+    return sessions.map((session) => ({
+      id: session.id || session.listingId,
+      sourceListingId: session.listingId || '',
+      sourceSessionId: session.id || '',
+      isFixedSession: true,
+      title: session.title || '',
+      name: session.seller || 'Wave Coach',
+      game: session.game || 'Coaching',
+      games: [session.game || 'Coaching'],
+      service: 'Coaching',
+      rank: 'Coach',
+      tier: 'diamond',
+      rating: 5,
+      reviews: 0,
+      price: Number(session.price) || 0,
+      priceText: session.priceText || `${Number(session.price) || 0} GEL/hour`,
+      availability: 'today',
+      language: 'GE',
+      tags: [session.sessionLabel || 'Custom Session'],
+      image: session.imageData || '',
+      bio: session.sessionLabel || 'Custom coaching session',
+      about: session.sessionLabel || 'Custom coaching session',
+      specialty: `${session.game || 'Game'} coaching`,
+      sessionDate: session.sessionDate || '',
+      sessionTime: session.sessionTime || '',
+      sessionLabel: session.sessionLabel || '',
+      addedAt: session.addedAt || '',
+      updatedAt: session.updatedAt || '',
+      availableTimes: session.sessionDate && session.sessionTime
+        ? [{ date: session.sessionDate, label: session.sessionLabel, times: [session.sessionTime] }]
+        : [],
+    }));
+  }
+
+  const coaches = [
+    ...(Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : []),
+    ...getCoachListingsFromSessions(),
+  ];
 
   function hasText(value) {
     return typeof value === 'string' && value.trim().length > 0;
@@ -398,6 +445,10 @@
   }
 
   function getTimesForDate(coach, date) {
+    if (coach.isFixedSession) {
+      return coach.sessionDate === getDateKey(date) && coach.sessionTime ? [coach.sessionTime] : [];
+    }
+
     const dateKey = getDateKey(date);
     const groups = toList(coach.availableTimes || coach.availabilitySlots);
     const matchedGroup = groups.find((group) => {
@@ -413,6 +464,11 @@
   }
 
   function getCalendarDates(coach, monthOffset = bookingState.monthOffset) {
+    if (coach.isFixedSession && coach.sessionDate) {
+      const fixedDate = new Date(`${coach.sessionDate}T00:00:00`);
+      return Number.isNaN(fixedDate.getTime()) ? [] : [fixedDate];
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const monthStart = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
@@ -431,6 +487,14 @@
 
   function ensureBookingSelection(coach) {
     const games = getCoachGames(coach);
+
+    if (coach.isFixedSession) {
+      bookingState.selectedGame = coach.game || games[0] || '';
+      bookingState.selectedDate = coach.sessionDate || '';
+      bookingState.selectedTime = coach.sessionTime || '';
+      return;
+    }
+
     if (!bookingState.selectedGame || !games.includes(bookingState.selectedGame)) {
       bookingState.selectedGame = games[0] || coach.game || '';
     }
@@ -456,6 +520,35 @@
 
   function renderBookingCalendar(coach) {
     ensureBookingSelection(coach);
+
+    if (coach.isFixedSession) {
+      const selectedDate = coach.sessionDate ? new Date(`${coach.sessionDate}T00:00:00`) : null;
+      const dateText = selectedDate && !Number.isNaN(selectedDate.getTime())
+        ? formatCalendarDate(selectedDate)
+        : coach.sessionDate || 'Fixed day';
+      const summary = coach.sessionLabel || `${coach.game || 'Coaching'} / ${dateText} at ${coach.sessionTime || ''}`;
+
+      return `
+        <div class="coach-calendar-card coach-fixed-session-card">
+          <div class="coach-fixed-session-row">
+            <span>Game</span>
+            <strong>${escapeHtml(coach.game || 'Coaching')}</strong>
+          </div>
+          <div class="coach-fixed-session-row">
+            <span>Day</span>
+            <strong>${escapeHtml(dateText)}</strong>
+          </div>
+          <div class="coach-fixed-session-row">
+            <span>Hour</span>
+            <strong>${escapeHtml(coach.sessionTime || '-')}</strong>
+          </div>
+          <div class="coach-fixed-session-summary">
+            <strong>${escapeHtml(summary)}</strong>
+            <small>This session time was set by the coach.</small>
+          </div>
+        </div>
+      `;
+    }
 
     const monthDate = new Date();
     monthDate.setMonth(monthDate.getMonth() + bookingState.monthOffset, 1);
@@ -569,7 +662,9 @@
     const sessionDate = bookingState.selectedDate || '';
     const sessionTime = bookingState.selectedTime || '';
     const sessionGame = bookingState.selectedGame || coach.game || 'Coaching';
-    const sessionLabel = sessionDate && sessionTime
+    const sessionLabel = coach.isFixedSession && coach.sessionLabel
+      ? coach.sessionLabel
+      : sessionDate && sessionTime
       ? `${sessionGame} / ${formatCalendarDate(new Date(`${sessionDate}T00:00:00`))} at ${sessionTime}`
       : 'Unscheduled session';
 
@@ -581,7 +676,7 @@
       game: sessionGame,
       seller: coach.name,
       price: Number(coach.price) || 0,
-      priceText: `${Number(coach.price) || 0} GEL/hour`,
+      priceText: coach.priceText || `${Number(coach.price) || 0} GEL/hour`,
       imageData: coach.image,
       detailUrl: getCoachUrl(coach),
       sessionDate,
@@ -637,6 +732,7 @@
     const reviewItems = getReviewItems(coach);
     const availabilityText = availabilityLabels[coach.availability] || coach.availability || '';
     const overviewBlocks = [renderOverviewTop(coach), renderInfoGrid(coach), renderAchievements(coach)].filter(Boolean);
+    const bookButtonText = coach.isFixedSession ? 'Add Session to Cart' : 'Book Selected Session';
 
     document.title = `WaveHub - ${coach.name} Book Session`;
 
@@ -683,9 +779,9 @@
         <div class="coach-booking-main">
           <div class="coach-starting-price">
             <span>Starting from</span>
-            <strong>${Number(coach.price) || 0} GEL<small>/hour</small></strong>
+            <strong>${escapeHtml(coach.priceText || `${Number(coach.price) || 0} GEL/hour`)}</strong>
           </div>
-          <button class="coach-book-primary" type="button" data-action="book">Book Selected Session</button>
+          <button class="coach-book-primary" type="button" data-action="book">${bookButtonText}</button>
           <a class="coach-book-secondary" href="messages.html">Message Coach</a>
           <button class="coach-book-secondary" type="button" data-action="wishlist">Add to Wishlist</button>
         </div>

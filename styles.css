@@ -5078,6 +5078,14 @@ a.product-showcase-seller:focus-visible strong,
   font-size: 13px;
 }
 
+.coach-session-meta {
+  margin: 6px 0 0;
+  color: var(--coach-pink-2);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .coach-rank-dot {
   width: 16px;
   height: 16px;
@@ -6345,6 +6353,41 @@ a.product-showcase-seller:focus-visible strong,
   padding: 14px;
 }
 
+.coach-fixed-session-card {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.coach-fixed-session-row,
+.coach-fixed-session-summary {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(129, 151, 199, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+}
+
+.coach-fixed-session-row span,
+.coach-fixed-session-summary small {
+  color: var(--coach-muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.coach-fixed-session-row strong,
+.coach-fixed-session-summary strong {
+  overflow-wrap: anywhere;
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.coach-fixed-session-summary {
+  grid-column: 1 / -1;
+  border-color: rgba(255, 47, 143, 0.36);
+  background: rgba(255, 47, 143, 0.08);
+}
+
 .coach-game-picker {
   display: grid;
   gap: 10px;
@@ -6847,6 +6890,7 @@ a.product-showcase-seller:focus-visible strong,
   .coach-profile-tabs,
   .coach-achievements > div,
   .coach-booking-main,
+  .coach-fixed-session-card,
   .coach-protection-row,
   .coach-similar-grid {
     grid-template-columns: 1fr;

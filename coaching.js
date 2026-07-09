@@ -14,12 +14,66 @@ const coachEmpty = document.getElementById('coachEmpty');
 const coachPagination = document.querySelector('.coach-pagination');
 const viewToggleButtons = document.querySelectorAll('.coach-view-toggle button');
 const paginationButtons = document.querySelectorAll('.coach-pagination button');
+const cartKey = 'wavehub.cart';
 
 let activeGame = 'all';
 let activePage = '1';
 let activeView = 'grid';
 
-const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
+function readJson(key, fallback) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function isProfileCoachListing(item) {
+  return item?.productType === 'Coaching'
+    && (item.isCoachListing || (item.buyerUsername && item.detailUrl === 'coaching.html'));
+}
+
+function getCoachListingsFromSessions() {
+  const items = readJson(cartKey, []);
+  const sessions = Array.isArray(items) ? items.filter(isProfileCoachListing) : [];
+
+  return sessions.map((session) => ({
+    id: session.id || session.listingId,
+    sourceListingId: session.listingId || '',
+    sourceSessionId: session.id || '',
+    title: session.title || '',
+    name: session.seller || 'Wave Coach',
+    game: session.game || 'Coaching',
+    games: [session.game || 'Coaching'],
+    service: 'Coaching',
+    rank: 'Coach',
+    tier: 'diamond',
+    rating: 5,
+    reviews: 0,
+    price: Number(session.price) || 0,
+    priceText: session.priceText || `${Number(session.price) || 0} GEL/hour`,
+    availability: 'today',
+    language: 'GE',
+    tags: [session.sessionLabel || 'Custom Session'],
+    image: session.imageData || '',
+    bio: session.sessionLabel || 'Custom coaching session',
+    specialty: `${session.game || 'Game'} coaching`,
+    sessionDate: session.sessionDate || '',
+    sessionTime: session.sessionTime || '',
+    sessionLabel: session.sessionLabel || '',
+    addedAt: session.addedAt || '',
+    updatedAt: session.updatedAt || '',
+    availableTimes: session.sessionDate && session.sessionTime
+      ? [{ date: session.sessionDate, label: session.sessionLabel, times: [session.sessionTime] }]
+      : [],
+  }));
+}
+
+const coaches = [
+  ...(Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : []),
+  ...getCoachListingsFromSessions(),
+];
 
 function getSelectedValues(name) {
   if (!coachFilters) {
@@ -56,6 +110,20 @@ function getCoachBookingUrl(coach) {
   return `coach-book-session.html?coach=${encodeURIComponent(coach.id || coach.name || coach.game)}`;
 }
 
+function getCoachSearchText(coach) {
+  return [
+    coach.title,
+    coach.name,
+    coach.game,
+    coach.service,
+    coach.rank,
+    coach.sessionLabel,
+    coach.sessionDate,
+    coach.sessionTime,
+    ...(Array.isArray(coach.tags) ? coach.tags : []),
+  ].join(' ').toLowerCase();
+}
+
 function isFiltered() {
   return Boolean(
     coachSearch?.value.trim()
@@ -88,12 +156,12 @@ function getFilteredCoaches() {
   const language = languageFilter?.value || 'all';
 
   const filtered = coaches.filter((coach) => {
-    const haystack = [coach.game, coach.service, coach.rank, coach.tags.join(' ')].join(' ').toLowerCase();
+    const haystack = getCoachSearchText(coach);
     const matchesSearch = !query || haystack.includes(query);
     const matchesTab = activeGame === 'all' || activeGame === 'more' || coach.game === activeGame;
     const matchesGame = selectedGames.length === 0 || selectedGames.includes(coach.game);
     const matchesService = selectedServices.length === 0 || selectedServices.includes(coach.service);
-    const matchesPrice = coach.price <= maxPrice;
+    const matchesPrice = maxPrice >= 100 || coach.price <= maxPrice;
     const matchesAvailability = availability === 'all' || coach.availability === availability;
     const matchesLanguage = language === 'all' || coach.language === language;
 
@@ -134,6 +202,14 @@ function createTag(tag) {
   return `<span class="${className}">${tag}</span>`;
 }
 
+function createSessionMeta(coach) {
+  if (!coach.sessionLabel) {
+    return '';
+  }
+
+  return `<p class="coach-session-meta">${coach.sessionLabel}</p>`;
+}
+
 function createCoachCard(coach) {
   const card = document.createElement('article');
   card.className = 'coach-card';
@@ -152,6 +228,7 @@ function createCoachCard(coach) {
           <span>${coach.rank}</span>
         </p>
         <p class="coach-rating-line"><span aria-hidden="true">&#9733;</span> ${coach.rating.toFixed(1)} (${coach.reviews})</p>
+        ${createSessionMeta(coach)}
       </div>
     </div>
 
@@ -162,7 +239,7 @@ function createCoachCard(coach) {
     </div>
 
     <div class="coach-price-row">
-      <p><strong>${coach.price} GEL</strong> <span>/hour</span></p>
+      <p><strong>${coach.priceText || `${coach.price} GEL/hour`}</strong></p>
       <a href="${getCoachBookingUrl(coach)}" aria-label="Book a session with ${coach.name || 'this coach'}">Book Session</a>
     </div>
 
