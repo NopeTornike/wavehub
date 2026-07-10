@@ -550,70 +550,44 @@
       `;
     }
 
-    const monthDate = new Date();
-    monthDate.setMonth(monthDate.getMonth() + bookingState.monthOffset, 1);
-    const dates = getCalendarDates(coach);
-    const selectedDate = bookingState.selectedDate ? new Date(`${bookingState.selectedDate}T00:00:00`) : null;
-    const selectedTimes = selectedDate ? getTimesForDate(coach, selectedDate) : [];
-    const monthLabel = monthDate.toLocaleDateString([], { month: 'long', year: 'numeric' });
-    const games = getCoachGames(coach);
-    const summary = bookingState.selectedDate && bookingState.selectedTime
-      ? `${bookingState.selectedGame || coach.game} / ${formatCalendarDate(selectedDate)} at ${bookingState.selectedTime}`
-      : 'Select a game, date and time';
+    const groups = toList(coach.availableTimes || coach.availabilitySlots).length
+      ? toList(coach.availableTimes || coach.availabilitySlots)
+      : getCalendarDates(coach).slice(0, 3).map((date, index) => ({
+        date: getDateKey(date),
+        label: index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : formatCalendarDate(date),
+        tone: index === 0 ? 'green' : index === 1 ? 'gold' : 'cyan',
+        times: getTimesForDate(coach, date),
+      }));
 
     return `
-      <div class="coach-calendar-card">
-        <div class="coach-game-picker">
-          <div>
-            <strong>Choose Game</strong>
-            <small>${escapeHtml(bookingState.selectedGame || coach.game || 'Select game')}</small>
-          </div>
-          <div aria-label="Available games">
-            ${games.map((game) => {
-              const isSelected = game === bookingState.selectedGame;
-              return `<button class="${isSelected ? 'active' : ''}" type="button" data-session-game="${escapeHtml(game)}" aria-pressed="${String(isSelected)}">${escapeHtml(game)}</button>`;
-            }).join('')}
-          </div>
+      <div class="coach-time-row">
+        <div>
+          <strong>Available Times</strong>
+          ${hasText(coach.timezone) ? `<small>${escapeHtml(coach.timezone)}</small>` : '<small>Local coach time</small>'}
         </div>
+        <a href="#" aria-label="View full coach schedule">View full schedule <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="coach-time-groups">
+        ${groups.map((group) => {
+          const times = toList(group.times);
 
-        <div class="coach-calendar-head">
-          <div>
-            <strong>Session Calendar</strong>
-            ${hasText(coach.timezone) ? `<small>${escapeHtml(coach.timezone)}</small>` : '<small>Local coach time</small>'}
-          </div>
-          <div class="coach-calendar-nav" aria-label="Calendar month controls">
-            <button type="button" data-calendar-nav="prev" ${bookingState.monthOffset <= 0 ? 'disabled' : ''} aria-label="Previous month">&lt;</button>
-            <span>${escapeHtml(monthLabel)}</span>
-            <button type="button" data-calendar-nav="next" aria-label="Next month">&gt;</button>
-          </div>
-        </div>
+          if (!hasText(group.label) || !times.length) {
+            return '';
+          }
 
-        <div class="coach-calendar-grid" aria-label="Available session dates">
-          ${dates.map((date) => {
-            const dateKey = getDateKey(date);
-            const isSelected = dateKey === bookingState.selectedDate;
-            return `
-              <button class="${isSelected ? 'active' : ''}" type="button" data-session-date="${escapeHtml(dateKey)}" aria-pressed="${String(isSelected)}">
-                <span>${escapeHtml(date.toLocaleDateString([], { weekday: 'short' }))}</span>
-                <strong>${date.getDate()}</strong>
-                <small>${escapeHtml(date.toLocaleDateString([], { month: 'short' }))}</small>
-              </button>
-            `;
-          }).join('') || '<p class="coach-calendar-empty">No available days this month.</p>'}
-        </div>
-
-        <div class="coach-slot-panel">
-          <div>
-            <strong>Choose Time</strong>
-            <small>${escapeHtml(summary)}</small>
-          </div>
-          <div class="coach-session-slots" aria-label="Available session times">
-            ${selectedTimes.map((time) => {
-              const isSelected = time === bookingState.selectedTime;
-              return `<button class="${isSelected ? 'active' : ''}" type="button" data-session-time="${escapeHtml(time)}" aria-pressed="${String(isSelected)}">${escapeHtml(time)}</button>`;
-            }).join('') || '<span>No slots for selected day.</span>'}
-          </div>
-        </div>
+          return `
+            <div class="coach-times-group">
+              <span class="coach-time-day ${escapeHtml(group.tone || '')}">${escapeHtml(group.label)}</span>
+              <div>
+                ${times.map((time) => {
+                  const dateKey = group.date || '';
+                  const isSelected = dateKey === bookingState.selectedDate && time === bookingState.selectedTime;
+                  return `<button class="${isSelected ? 'active' : ''}" type="button" data-session-date="${escapeHtml(dateKey)}" data-session-time="${escapeHtml(time)}" aria-pressed="${String(isSelected)}">${escapeHtml(time)}</button>`;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        }).join('') || '<p class="coach-calendar-empty">No available times yet.</p>'}
       </div>
     `;
   }
@@ -732,7 +706,7 @@
     const reviewItems = getReviewItems(coach);
     const availabilityText = availabilityLabels[coach.availability] || coach.availability || '';
     const overviewBlocks = [renderOverviewTop(coach), renderInfoGrid(coach), renderAchievements(coach)].filter(Boolean);
-    const bookButtonText = coach.isFixedSession ? 'Add Session to Cart' : 'Book Selected Session';
+    const bookButtonText = coach.isFixedSession ? 'Add Session to Cart' : 'Book Session';
 
     document.title = `WaveHub - ${coach.name} Book Session`;
 
@@ -793,6 +767,7 @@
         <div class="coach-protection-row">
           <div><strong>100% Secure Checkout</strong><span>Your payment is protected</span></div>
           <div><strong>Escrow Protection</strong><span>Payment released after completion</span></div>
+          <div><strong>Verified Coach</strong><span>Verified by WaveHub team</span></div>
           <div><strong>24/7 Support</strong><span>We are here to help anytime</span></div>
         </div>
       </section>
@@ -857,6 +832,13 @@
 
     if (gameButton) {
       bookingState.selectedGame = gameButton.dataset.sessionGame || '';
+      renderCoachPage(activeCoach);
+      return;
+    }
+
+    if (dateButton && dateButton.dataset.sessionTime) {
+      bookingState.selectedDate = dateButton.dataset.sessionDate || '';
+      bookingState.selectedTime = dateButton.dataset.sessionTime || '';
       renderCoachPage(activeCoach);
       return;
     }
