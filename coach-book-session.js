@@ -2,6 +2,7 @@
   const root = document.getElementById('coachBookingRoot');
   const profileSearch = document.getElementById('coachProfileSearch');
   const cartKey = 'wavehub.cart';
+  const purchasesKey = 'wavehub.purchases';
   const wishlistKey = 'wavehub.coachWishlist';
   const params = new URLSearchParams(window.location.search);
   const requestedCoach = params.get('coach') || params.get('id') || '';
@@ -154,6 +155,37 @@
     return toList(coach.reviewItems || coach.reviewList || coach.reviewsList);
   }
 
+  function getCoachStudentCount(coach) {
+    const purchases = readJson(purchasesKey, []);
+
+    if (!Array.isArray(purchases)) {
+      return 0;
+    }
+
+    const coachIds = new Set([coach.id, coach.sourceListingId].filter(Boolean).map(String));
+    const coachName = String(coach.name || '').trim().toLowerCase();
+    const buyers = new Set();
+
+    purchases.forEach((purchase) => {
+      const items = Array.isArray(purchase?.items) ? purchase.items : [];
+      const hasCoachPurchase = items.some((item) => {
+        if (item?.productType !== 'Coaching') {
+          return false;
+        }
+
+        const listingId = String(item.listingId || '');
+        const sellerName = String(item.seller || '').trim().toLowerCase();
+        return (listingId && coachIds.has(listingId)) || (coachName && sellerName === coachName);
+      });
+
+      if (hasCoachPurchase && purchase?.buyerUsername) {
+        buyers.add(String(purchase.buyerUsername).trim().toLowerCase());
+      }
+    });
+
+    return buyers.size;
+  }
+
   function renderStars() {
     return '<span aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
   }
@@ -179,9 +211,24 @@
       return '';
     }
 
+    const iconMarkup = icon === 'ST'
+      ? '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff5bb3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+      : icon === 'SR'
+        ? '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#bd5cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h4l2-7 4 14 2-7h2"/><path d="M14 12c1.4-3.7 4.1-5.8 8-6-.1 4.9-2.1 8-6 9.2"/></svg>'
+        : icon === 'RT'
+          ? '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff5bb3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M9 2h6"/><path d="M12 5V2"/><path d="m18 7 1.5-1.5"/><path d="M12 9v4l3-2"/><path d="M12 7v1M18 13h-1M12 19v-1M6 13h1"/></svg>'
+          : icon === 'HR'
+            ? '<img class="coach-highest-rank-icon" src="assets/highest-rank-icon-v2.png" alt="" aria-hidden="true">'
+            : escapeHtml(icon);
+    const iconClass = icon === 'ST' || icon === 'SR' || icon === 'RT'
+      ? ' class="coach-profile-metric-icon-plain"'
+      : icon === 'HR'
+        ? ' class="coach-profile-metric-icon-rank"'
+        : '';
+
     return `
       <div class="coach-profile-metric">
-        <span aria-hidden="true">${escapeHtml(icon)}</span>
+        <span${iconClass} aria-hidden="true">${iconMarkup}</span>
         <strong>${escapeHtml(value)}</strong>
         <small>${escapeHtml(label)}</small>
       </div>
@@ -230,8 +277,9 @@
   }
 
   function renderMetrics(coach) {
+    const studentCount = getCoachStudentCount(coach);
     const metrics = [
-      renderMetric('ST', hasNumber(coach.students) ? formatNumber(coach.students) : '', 'Students'),
+      renderMetric('ST', formatNumber(studentCount), 'Students'),
       renderMetric('SE', hasNumber(coach.sessions) ? formatNumber(coach.sessions) : '', 'Sessions'),
       renderMetric('SR', hasNumber(coach.successRate) ? `${Number(coach.successRate)}%` : '', 'Success Rate'),
       renderMetric('RT', coach.responseTime, 'Avg. Response Time'),
@@ -305,7 +353,17 @@
         <article class="coach-info-card coach-games-card">
           <h2>Games</h2>
           <div>
-            ${games.map((game, index) => `<span><b>${escapeHtml(game.split(' ').map((part) => part[0]).join('').slice(0, 4))}</b>${escapeHtml(game)}${index === 0 ? '<small>Main Game</small>' : ''}</span>`).join('')}
+            ${games.map((game, index) => {
+              const gameIconSources = {
+                'pubg mobile': 'assets/pubg-mobile-icon.png',
+                'cod mobile': 'assets/cod-mobile-icon.png',
+              };
+              const gameIconSource = gameIconSources[game.trim().toLowerCase()];
+              const icon = gameIconSource
+                ? `<img src="${gameIconSource}" alt="" aria-hidden="true">`
+                : escapeHtml(game.split(' ').map((part) => part[0]).join('').slice(0, 4));
+              return `<span${gameIconSource ? ' class="coach-game-item-with-image"' : ''}><b${gameIconSource ? ' class="coach-game-image-shell"' : ''}>${icon}</b>${escapeHtml(game)}${index === 0 ? '<small>Main Game</small>' : ''}</span>`;
+            }).join('')}
           </div>
         </article>
       `);
@@ -316,7 +374,10 @@
         <article class="coach-info-card coach-languages-card">
           <h2>Languages</h2>
           <div>
-            ${languages.map((language) => `<span>${escapeHtml(language)}</span>`).join('')}
+            ${languages.map((language) => {
+              const isGeorgian = language.trim().toLowerCase() === 'ქართული';
+              return `<span${isGeorgian ? ' class="coach-language-with-icon"' : ''}>${isGeorgian ? '<img class="coach-language-icon" src="assets/georgian-flag-icon.png" alt="" aria-hidden="true">' : ''}${escapeHtml(language)}</span>`;
+            }).join('')}
           </div>
         </article>
       `);
@@ -885,6 +946,12 @@
     const query = profileSearch.value.trim();
     if (query) {
       window.location.href = `coaching.html?search=${encodeURIComponent(query)}`;
+    }
+  });
+
+  window.addEventListener('storage', (event) => {
+    if (event.key === purchasesKey) {
+      renderCoachPage(activeCoach);
     }
   });
 }());
