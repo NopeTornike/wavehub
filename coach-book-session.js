@@ -223,19 +223,23 @@
               ? '<img class="coach-highest-rank-icon" src="assets/tournament-wins-transparent.png" alt="" aria-hidden="true">'
               : icon === 'YE'
                 ? '<img class="coach-highest-rank-icon" src="assets/years-of-experience-icon.png" alt="" aria-hidden="true">'
-                : escapeHtml(icon);
+                : icon === 'CS'
+                  ? '<img class="coach-highest-rank-icon" src="assets/coaching-since-icon.png" alt="" aria-hidden="true">'
+                  : escapeHtml(icon);
     const iconClass = icon === 'ST' || icon === 'SR' || icon === 'RT'
       ? ' class="coach-profile-metric-icon-plain"'
       : icon === 'HR'
         ? ' class="coach-profile-metric-icon-rank"'
         : icon === 'TW'
-          ? ' class="coach-profile-metric-icon-trophy"'
+          ? ' class="coach-profile-metric-icon-rank"'
           : icon === 'YE'
             ? ' class="coach-profile-metric-icon-rank"'
+            : icon === 'CS'
+              ? ' class="coach-profile-metric-icon-plain"'
             : '';
 
     return `
-      <div class="coach-profile-metric${icon === 'TW' ? ' coach-profile-metric-trophy-card' : ''}">
+      <div class="coach-profile-metric">
         <span${iconClass} aria-hidden="true">${iconMarkup}</span>
         <strong>${escapeHtml(value)}</strong>
         <small>${escapeHtml(label)}</small>
@@ -383,8 +387,13 @@
           <h2>Languages</h2>
           <div>
             ${languages.map((language) => {
-              const isGeorgian = language.trim().toLowerCase() === 'ქართული';
-              return `<span${isGeorgian ? ' class="coach-language-with-icon"' : ''}>${isGeorgian ? '<img class="coach-language-icon" src="assets/georgian-flag-icon.png" alt="" aria-hidden="true">' : ''}${escapeHtml(language)}</span>`;
+              const languageKey = language.trim().toLowerCase();
+              const flagSources = {
+                'ქართული': 'assets/georgian-flag-icon.png',
+                english: 'assets/united-kingdom-flag.png',
+              };
+              const flagSource = flagSources[languageKey];
+              return `<span${flagSource ? ' class="coach-language-with-icon"' : ''}>${flagSource ? `<img class="coach-language-icon" src="${flagSource}" alt="" aria-hidden="true">` : ''}${escapeHtml(language)}</span>`;
             }).join('')}
           </div>
         </article>

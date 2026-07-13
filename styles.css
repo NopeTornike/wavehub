@@ -5802,22 +5802,6 @@ a.product-showcase-seller:focus-visible strong,
   overflow: hidden;
 }
 
-.coach-profile-metric > .coach-profile-metric-icon-trophy {
-  overflow: visible;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.coach-profile-metric-icon-trophy .coach-highest-rank-icon {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.coach-achievements .coach-profile-metric-trophy-card {
-  background: transparent !important;
-}
-
 .coach-highest-rank-icon {
   width: 100%;
   height: 100%;
@@ -6177,7 +6161,8 @@ a.product-showcase-seller:focus-visible strong,
   width: 44px;
   height: 30px;
   display: block;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center;
   border: 0;
 }
 
@@ -6199,6 +6184,17 @@ a.product-showcase-seller:focus-visible strong,
   border: 1px solid rgba(129, 151, 199, 0.14);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.025);
+}
+
+.coach-achievements .coach-profile-metric {
+  grid-template-columns: 48px minmax(0, 1fr);
+}
+
+.coach-achievements .coach-profile-metric > span {
+  width: 46px;
+  height: 46px;
+  border: 0;
+  background: transparent;
 }
 
 .coach-badge-row {
