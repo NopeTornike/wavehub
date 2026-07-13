@@ -5802,13 +5802,28 @@ a.product-showcase-seller:focus-visible strong,
   overflow: hidden;
 }
 
+.coach-profile-metric > .coach-profile-metric-icon-trophy {
+  overflow: visible;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.coach-profile-metric-icon-trophy .coach-highest-rank-icon {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.coach-achievements .coach-profile-metric-trophy-card {
+  background: transparent !important;
+}
+
 .coach-highest-rank-icon {
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
-  transform: scale(2.15);
 }
 
 .coach-profile-metric strong {
