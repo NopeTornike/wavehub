@@ -8,6 +8,7 @@ import * as cookieParser from 'cookie-parser';
 // import; this codebase deliberately doesn't enable that (see tsconfig.json), so import the named
 // `default` binding explicitly instead.
 import { default as helmet } from 'helmet';
+import { join } from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -27,6 +28,10 @@ async function bootstrap() {
 
   app.use(helmet());
   app.use(cookieParser());
+  // Serves whatever StorageService.save() wrote to disk (backend/src/storage/) — a stand-in for
+  // real object storage. See backend/src/storage/CLAUDE.md for why this doesn't survive redeploys
+  // or work with more than one instance.
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
     .split(',')
     .map((origin) => origin.trim())

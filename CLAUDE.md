@@ -25,13 +25,15 @@ isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable r
 | `backend/src/payments/` | BOG WaveCoin top-up integration | `backend/src/payments/CLAUDE.md` |
 | `backend/src/email/` | Email-sending stub (console.log until a provider is chosen) | `backend/src/email/CLAUDE.md` |
 | `backend/src/wallet/` | WaveCoin ledger — the only writer of `users.wavecoinBalance` | `backend/src/wallet/CLAUDE.md` |
+| `backend/src/listings/` | Marketplace listings (service + item), moderation lifecycle | `backend/src/listings/CLAUDE.md` |
+| `backend/src/storage/` | File storage abstraction (local disk today, not production-ready) | `backend/src/storage/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 
-New top-level modules (`backend/src/orders/`, `backend/src/listings/`, `backend/src/disputes/`,
-`backend/src/chat/`, `backend/src/reviews/`, `backend/src/notifications/`, `backend/src/admin/`,
-`backend/src/content/`) will each get a row here and their own `CLAUDE.md` as they're built — see
-the phased build plan. Add the row in the same change that adds the module.
+New top-level modules (`backend/src/orders/`, `backend/src/disputes/`, `backend/src/chat/`,
+`backend/src/reviews/`, `backend/src/notifications/`, `backend/src/admin/`, `backend/src/content/`)
+will each get a row here and their own `CLAUDE.md` as they're built — see the phased build plan. Add
+the row in the same change that adds the module.
 
 ## Non-negotiable rules (apply everywhere, not phase-gated)
 

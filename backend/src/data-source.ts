@@ -5,6 +5,13 @@ import { EmailVerificationToken } from './auth/email-verification-token.entity';
 import { PasswordResetToken } from './auth/password-reset-token.entity';
 import { WalletLedgerEntry } from './wallet/wallet-ledger-entry.entity';
 import { BogTopupIntent } from './payments/bog-topup-intent.entity';
+import { Listing } from './listings/listing.entity';
+import { ListingImage } from './listings/listing-image.entity';
+import { ServiceDetails } from './listings/service-details.entity';
+import { ItemDetails } from './listings/item-details.entity';
+import { Package } from './listings/package.entity';
+import { Category } from './listings/category.entity';
+import { Game } from './listings/game.entity';
 
 // Used by the TypeORM CLI (migration:generate / migration:run / migration:revert — see
 // package.json scripts) and, in future phases, by tests that need a real DB connection outside
@@ -20,7 +27,20 @@ const AppDataSource = new DataSource({
   username: process.env.DATABASE_USER || 'wavehub',
   password: process.env.DATABASE_PASSWORD || 'wavehubpass',
   database: process.env.DATABASE_NAME || 'wavehubdb',
-  entities: [User, EmailVerificationToken, PasswordResetToken, WalletLedgerEntry, BogTopupIntent],
+  entities: [
+    User,
+    EmailVerificationToken,
+    PasswordResetToken,
+    WalletLedgerEntry,
+    BogTopupIntent,
+    Listing,
+    ListingImage,
+    ServiceDetails,
+    ItemDetails,
+    Package,
+    Category,
+    Game,
+  ],
   migrations: [__dirname + '/migrations/*.{ts,js}'],
   synchronize: false,
 });

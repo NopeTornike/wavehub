@@ -11,6 +11,14 @@ import { EmailVerificationToken } from './auth/email-verification-token.entity';
 import { PasswordResetToken } from './auth/password-reset-token.entity';
 import { WalletLedgerEntry } from './wallet/wallet-ledger-entry.entity';
 import { BogTopupIntent } from './payments/bog-topup-intent.entity';
+import { ListingsModule } from './listings/listings.module';
+import { Listing } from './listings/listing.entity';
+import { ListingImage } from './listings/listing-image.entity';
+import { ServiceDetails } from './listings/service-details.entity';
+import { ItemDetails } from './listings/item-details.entity';
+import { Package } from './listings/package.entity';
+import { Category } from './listings/category.entity';
+import { Game } from './listings/game.entity';
 
 // Postgres is mandatory from Phase 1 onward — the JSON-file fallback that used to make this
 // conditional (USE_FILE_STORE) was removed along with AuthService's dual-mode logic. See
@@ -29,13 +37,27 @@ import { BogTopupIntent } from './payments/bog-topup-intent.entity';
       username: process.env.DATABASE_USER || 'wavehub',
       password: process.env.DATABASE_PASSWORD || 'wavehubpass',
       database: process.env.DATABASE_NAME || 'wavehubdb',
-      entities: [User, EmailVerificationToken, PasswordResetToken, WalletLedgerEntry, BogTopupIntent],
+      entities: [
+        User,
+        EmailVerificationToken,
+        PasswordResetToken,
+        WalletLedgerEntry,
+        BogTopupIntent,
+        Listing,
+        ListingImage,
+        ServiceDetails,
+        ItemDetails,
+        Package,
+        Category,
+        Game,
+      ],
       synchronize: process.env.TYPEORM_SYNC === 'true',
     }),
     UsersModule,
     AuthModule,
     WalletModule,
     PaymentsModule,
+    ListingsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
