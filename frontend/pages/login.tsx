@@ -75,6 +75,9 @@ export default function Login() {
           <Link className="note" href="/register">
             რეგისტრაცია
           </Link>
+          <Link className="note" href="/forgot-password">
+            დაგავიწყდათ პაროლი?
+          </Link>
         </form>
       </div>
     </div>

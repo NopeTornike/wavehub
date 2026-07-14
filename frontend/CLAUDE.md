@@ -7,7 +7,12 @@ it into real components here, don't extend it further.
 
 ## Key files
 - `pages/_app.tsx` — trivial App wrapper, imports `styles/global.css`
-- `pages/login.tsx`, `pages/register.tsx` — the only two real pages that exist so far
+- `pages/login.tsx`, `pages/register.tsx` — auth forms
+- `pages/forgot-password.tsx` — request a reset link by email
+- `pages/reset-password.tsx` — landing page for the reset link (`?token=`), sets a new password
+- `pages/verify-email.tsx` — landing page for the verification link (`?token=`), auto-verifies on
+  load; offers a "resend" button on failure (only works if the visitor still has a valid session —
+  see `api.resendVerification` in `lib/api.ts`)
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`)
@@ -47,11 +52,12 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
   for request/response shapes and behavior before changing either side.
 
 ## Status
-Login and register are real and fully wired to the backend (no fallback/mock path — see
-`backend/src/auth/CLAUDE.md` for what's live: register, login, logout, `/me`, email verification,
-password reset). No home page, no dashboard, no shared layout/Header/Footer/Nav components, no
-verify-email or reset-password *pages* yet (the backend endpoints exist and work via direct API
-calls; the token-link landing pages users would click from an email still need to be built). The
-repo-root static site is where the rest of the intended UI (marketplace, listing detail, cart/
-checkout, coaching, profile, messages, wallet) currently lives as a mockup — porting it here, as real
-components backed by the real API, is the bulk of build-plan Phases 4 onward.
+The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
+register, login, logout, `/me`, email verification (with a working landing page + resend), password
+reset (request + confirm, both with working pages). No home page, no dashboard, no shared
+layout/Header/Footer/Nav components, and no persistent client-side "am I logged in" state yet (every
+page that needs to know currently has to call `api.me()` itself — a shared auth context/provider is
+worth building once a second page needs that state, not before). The repo-root static site is where
+the rest of the intended UI (marketplace, listing detail, cart/checkout, coaching, profile, messages,
+wallet) currently lives as a mockup — porting it here, as real components backed by the real API, is
+the bulk of build-plan Phases 4 onward.

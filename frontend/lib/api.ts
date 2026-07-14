@@ -79,4 +79,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ token }),
     }),
+
+  // Requires an active session (the backend guards this route) — only call it while logged in.
+  resendVerification: () => request<{ ok: true }>('/auth/resend-verification', { method: 'POST' }),
 }
