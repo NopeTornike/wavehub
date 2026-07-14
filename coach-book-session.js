@@ -211,8 +211,10 @@
       return '';
     }
 
-    const iconMarkup = icon === 'ST'
-      ? '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff5bb3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+    const iconMarkup = icon === 'SE'
+      ? '<img class="coach-highest-rank-icon" src="assets/sessions-icon.png" alt="" aria-hidden="true">'
+      : icon === 'ST'
+        ? '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff5bb3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
       : icon === 'SR'
         ? '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#bd5cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h4l2-7 4 14 2-7h2"/><path d="M14 12c1.4-3.7 4.1-5.8 8-6-.1 4.9-2.1 8-6 9.2"/></svg>'
         : icon === 'RT'
@@ -226,8 +228,10 @@
                 : icon === 'CS'
                   ? '<img class="coach-highest-rank-icon" src="assets/coaching-since-icon.png" alt="" aria-hidden="true">'
                   : escapeHtml(icon);
-    const iconClass = icon === 'ST' || icon === 'SR' || icon === 'RT'
-      ? ' class="coach-profile-metric-icon-plain"'
+    const iconClass = icon === 'SE'
+      ? ' class="coach-profile-metric-icon-plain coach-profile-metric-icon-sessions"'
+      : icon === 'ST' || icon === 'SR' || icon === 'RT'
+        ? ' class="coach-profile-metric-icon-plain"'
       : icon === 'HR'
         ? ' class="coach-profile-metric-icon-rank"'
         : icon === 'TW'
@@ -369,6 +373,7 @@
               const gameIconSources = {
                 'pubg mobile': 'assets/pubg-mobile-icon.png',
                 'cod mobile': 'assets/cod-mobile-icon.png',
+                valorant: 'assets/valorant-icon.png',
               };
               const gameIconSource = gameIconSources[game.trim().toLowerCase()];
               const icon = gameIconSource
@@ -393,7 +398,8 @@
                 english: 'assets/united-kingdom-flag.png',
               };
               const flagSource = flagSources[languageKey];
-              return `<span${flagSource ? ' class="coach-language-with-icon"' : ''}>${flagSource ? `<img class="coach-language-icon" src="${flagSource}" alt="" aria-hidden="true">` : ''}${escapeHtml(language)}</span>`;
+              const isGeorgian = languageKey === 'ქართული';
+              return `<span${flagSource ? ` class="coach-language-with-icon${isGeorgian ? ' coach-language-georgian' : ''}"` : ''}>${flagSource ? `<img class="coach-language-icon" src="${flagSource}" alt="" aria-hidden="true">` : ''}${escapeHtml(language)}</span>`;
             }).join('')}
           </div>
         </article>

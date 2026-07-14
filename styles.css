@@ -5798,6 +5798,11 @@ a.product-showcase-seller:focus-visible strong,
   background: transparent;
 }
 
+.coach-profile-metric > .coach-profile-metric-icon-sessions {
+  width: 44px;
+  height: 44px;
+}
+
 .coach-profile-metric > .coach-profile-metric-icon-rank {
   overflow: hidden;
 }
@@ -6164,6 +6169,15 @@ a.product-showcase-seller:focus-visible strong,
   object-fit: cover;
   object-position: center;
   border: 0;
+}
+
+.coach-languages-card span.coach-language-georgian {
+  grid-template-columns: 60px auto;
+}
+
+.coach-language-georgian .coach-language-icon {
+  width: 60px;
+  height: 42px;
 }
 
 .coach-achievements {
@@ -6702,9 +6716,26 @@ a.product-showcase-seller:focus-visible strong,
 }
 
 .coach-similar-section {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  gap: 10px;
-  padding: 14px 22px 18px;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(255, 47, 143, 0.16), transparent 32%),
+    radial-gradient(circle at 92% 100%, rgba(143, 69, 255, 0.13), transparent 30%),
+    linear-gradient(145deg, rgba(13, 24, 51, 0.96), rgba(5, 11, 27, 0.94));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.coach-similar-section::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--coach-pink), var(--coach-violet), transparent);
+  opacity: 0.85;
 }
 
 .coach-similar-section > div:first-child {
@@ -6712,12 +6743,46 @@ a.product-showcase-seller:focus-visible strong,
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(129, 151, 199, 0.14);
+}
+
+.coach-similar-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+}
+
+.coach-similar-section h2::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--coach-pink);
+  box-shadow: 0 0 0 5px rgba(255, 47, 143, 0.12), 0 0 18px rgba(255, 47, 143, 0.72);
 }
 
 .coach-similar-section > div:first-child a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 47, 143, 0.24);
+  border-radius: 999px;
   color: var(--coach-pink);
+  background: rgba(255, 47, 143, 0.08);
   font-size: 13px;
   font-weight: 950;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.coach-similar-section > div:first-child a:hover {
+  border-color: rgba(255, 47, 143, 0.55);
+  color: white;
+  background: rgba(255, 47, 143, 0.16);
+  transform: translateY(-1px);
 }
 
 .coach-similar-grid {
@@ -6728,16 +6793,45 @@ a.product-showcase-seller:focus-visible strong,
 }
 
 .coach-similar-card {
+  position: relative;
   min-width: 0;
-  min-height: 78px;
+  min-height: 92px;
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  border: 1px solid rgba(129, 151, 199, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.025);
-  padding: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(129, 151, 199, 0.16);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 48%),
+    rgba(4, 11, 28, 0.72);
+  padding: 14px;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.coach-similar-card::after {
+  content: "";
+  position: absolute;
+  inset: auto 12% 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 47, 143, 0.72), transparent);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.coach-similar-card:hover {
+  border-color: rgba(255, 47, 143, 0.4);
+  background:
+    linear-gradient(135deg, rgba(255, 47, 143, 0.1), transparent 52%),
+    rgba(7, 15, 35, 0.92);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24), 0 0 24px rgba(255, 47, 143, 0.06);
+  transform: translateY(-3px);
+}
+
+.coach-similar-card:hover::after {
+  opacity: 1;
 }
 
 .coach-similar-avatar {
@@ -6754,6 +6848,7 @@ a.product-showcase-seller:focus-visible strong,
     var(--coach-image) center / cover;
   font-size: 13px;
   font-weight: 950;
+  box-shadow: 0 0 0 4px rgba(255, 47, 143, 0.07), 0 8px 20px rgba(0, 0, 0, 0.28);
 }
 
 .coach-similar-card span:not(.coach-similar-avatar) {
@@ -6773,7 +6868,8 @@ a.product-showcase-seller:focus-visible strong,
 
 .coach-similar-card strong {
   color: white;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 950;
 }
 
 .coach-similar-card small {
@@ -6783,31 +6879,45 @@ a.product-showcase-seller:focus-visible strong,
 }
 
 .coach-similar-card em {
-  color: #d6ddec;
+  color: var(--coach-gold);
   font-size: 12px;
   font-style: normal;
+  font-weight: 850;
 }
 
 .coach-similar-card b {
-  color: white;
-  font-size: 18px;
+  display: grid;
+  justify-items: end;
+  color: var(--coach-pink-2);
+  font-size: 17px;
   font-weight: 950;
+  text-shadow: 0 0 16px rgba(255, 47, 143, 0.28);
 }
 
 .coach-similar-card b small {
-  margin-left: 3px;
+  margin: 2px 0 0;
+  color: var(--coach-muted);
   font-size: 10px;
 }
 
 .coach-similar-next {
   display: grid;
   place-items: center;
-  border: 1px solid rgba(129, 151, 199, 0.2);
-  border-radius: 50%;
+  border: 1px solid rgba(255, 47, 143, 0.3);
+  border-radius: 14px;
   color: white;
-  background: rgba(255, 255, 255, 0.04);
+  background: linear-gradient(145deg, rgba(255, 47, 143, 0.18), rgba(143, 69, 255, 0.12));
   font-size: 24px;
   font-weight: 750;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.coach-similar-next:hover {
+  border-color: rgba(255, 47, 143, 0.65);
+  background: linear-gradient(145deg, rgba(255, 47, 143, 0.32), rgba(143, 69, 255, 0.22));
+  box-shadow: 0 12px 28px rgba(255, 47, 143, 0.14);
+  transform: translateX(3px);
 }
 
 .coach-profile-empty {
@@ -7017,6 +7127,525 @@ a.product-showcase-seller:focus-visible strong,
   }
 }
 
+/* Wallet dashboard */
+.wallet-page .main-panel {
+  gap: 16px;
+  background:
+    radial-gradient(circle at 62% 18%, rgba(255, 47, 143, 0.055), transparent 25%),
+    linear-gradient(135deg, #070b15, #050812 62%, #070b16);
+}
+
+.wallet-page .topbar {
+  margin-bottom: 2px;
+}
+
+.wallet-page-head {
+  display: grid;
+  gap: 4px;
+}
+
+.wallet-page-head h1 {
+  margin: 0;
+  color: white;
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: 1.1;
+}
+
+.wallet-page-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.wallet-dashboard-hero {
+  min-height: 230px;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.85fr) minmax(260px, 1.1fr) minmax(290px, 0.9fr);
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 20, 132, 0.82);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 48% 55%, rgba(255, 0, 119, 0.18), transparent 28%),
+    linear-gradient(115deg, rgba(30, 8, 38, 0.92), rgba(7, 11, 24, 0.96) 68%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.wallet-hero-balance {
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  padding: 32px 0 32px 34px;
+}
+
+.wallet-hero-balance > span,
+.wallet-hero-balance small {
+  color: #b8bfd0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.wallet-hero-balance h2 {
+  margin: 0;
+}
+
+.wallet-hero-balance strong {
+  color: white;
+  font-size: clamp(42px, 5vw, 68px);
+  line-height: 0.95;
+  letter-spacing: -2px;
+  text-shadow: 0 0 32px rgba(255, 255, 255, 0.08);
+}
+
+.wallet-hero-art {
+  position: relative;
+  min-height: 220px;
+  filter: drop-shadow(0 18px 26px rgba(255, 0, 119, 0.22));
+}
+
+.wallet-hero-shape {
+  position: absolute;
+  left: 50%;
+  top: 53%;
+  width: 190px;
+  height: 120px;
+  border: 3px solid #ff2189;
+  border-radius: 22px 30px 30px 22px;
+  background:
+    linear-gradient(145deg, rgba(255, 39, 143, 0.42), rgba(48, 4, 37, 0.88)),
+    repeating-linear-gradient(90deg, transparent 0 12px, rgba(255, 255, 255, 0.03) 13px 14px);
+  box-shadow: inset 0 0 28px rgba(255, 43, 148, 0.28), 0 0 32px rgba(255, 0, 119, 0.34);
+  transform: translate(-50%, -50%) rotate(-5deg);
+}
+
+.wallet-hero-shape::before {
+  content: "";
+  position: absolute;
+  right: -20px;
+  top: 35px;
+  width: 58px;
+  height: 48px;
+  border: 3px solid #ff2189;
+  border-radius: 12px;
+  background: #3a082d;
+  box-shadow: inset 0 0 14px rgba(255, 33, 137, 0.36);
+}
+
+.wallet-hero-shape::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: 51px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #ff5cac;
+  border-radius: 50%;
+}
+
+.wallet-hero-coin {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 22px;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #ff55aa;
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(145deg, #ff2f8f, #7d0a65);
+  box-shadow: 0 0 25px rgba(255, 47, 143, 0.58), inset 0 0 12px rgba(255, 255, 255, 0.2);
+  font-size: 27px;
+  font-weight: 950;
+  transform: translateX(-50%);
+}
+
+.wallet-hero-breakdown {
+  z-index: 1;
+  display: grid;
+  align-self: stretch;
+  margin: 0;
+  padding: 20px 28px 20px 0;
+}
+
+.wallet-hero-breakdown > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(151, 169, 207, 0.14);
+}
+
+.wallet-hero-breakdown > div:last-child {
+  border-bottom: 0;
+}
+
+.wallet-hero-breakdown dt,
+.wallet-hero-breakdown dd {
+  margin: 0;
+  color: #c6ccda;
+  font-size: 13px;
+}
+
+.wallet-hero-breakdown dt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wallet-hero-breakdown dd {
+  color: white;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.wallet-hero-breakdown i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #36d56f;
+  box-shadow: 0 0 12px currentColor;
+}
+
+.wallet-hero-breakdown i.escrow { background: #ff9d00; }
+.wallet-hero-breakdown i.pending { background: #a947ef; }
+.wallet-hero-breakdown i.withdrawn { background: #ff2083; }
+
+.wallet-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.wallet-summary-card {
+  min-width: 0;
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(140, 157, 193, 0.17);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.035), rgba(5, 10, 22, 0.82));
+  padding: 15px 18px;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.wallet-summary-card > i,
+.wallet-add-icon {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: #30e66d;
+  background: rgba(48, 230, 109, 0.09);
+  box-shadow: 0 0 24px rgba(48, 230, 109, 0.08);
+  font-size: 23px;
+  font-style: normal;
+}
+
+.wallet-summary-card.escrow > i { color: #ff9d00; background: rgba(255, 157, 0, 0.09); }
+.wallet-summary-card.pending > i { color: #b64cff; background: rgba(182, 76, 255, 0.09); }
+.wallet-summary-card.purchased > i { color: #ff2f8f; background: rgba(255, 47, 143, 0.09); }
+
+.wallet-summary-card div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.wallet-summary-card span,
+.wallet-summary-card small {
+  color: #b8bfd0;
+  font-size: 12px;
+}
+
+.wallet-summary-card strong {
+  overflow: hidden;
+  color: white;
+  font-size: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wallet-summary-card small { color: #7f899e; }
+
+.wallet-page .wallet-layout {
+  display: block;
+}
+
+.wallet-page .wallet-buy-panel {
+  grid-template-columns: minmax(190px, 0.8fr) minmax(210px, 1fr) minmax(290px, 1.2fr) minmax(130px, 0.65fr) minmax(210px, 0.9fr);
+  align-items: end;
+  gap: 14px;
+  border: 1px dashed rgba(255, 47, 143, 0.72);
+  border-radius: 10px;
+  background: linear-gradient(110deg, rgba(255, 47, 143, 0.065), rgba(6, 11, 24, 0.88));
+  padding: 16px 18px;
+  box-shadow: none;
+}
+
+.wallet-buy-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wallet-buy-heading h2 {
+  font-size: 16px;
+}
+
+.wallet-buy-heading .section-kicker {
+  margin-bottom: 3px;
+  color: white;
+  font-size: 14px;
+  text-transform: none;
+}
+
+.wallet-add-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  color: var(--pink);
+  background: rgba(255, 47, 143, 0.1);
+}
+
+.wallet-page .wallet-buy-panel label {
+  align-self: stretch;
+  align-content: end;
+}
+
+.wallet-page .wallet-buy-panel .seller-status {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.wallet-page .wallet-history-section {
+  gap: 0;
+  border-color: rgba(136, 153, 190, 0.18);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(12, 19, 36, 0.9), rgba(5, 10, 21, 0.94));
+  padding: 0 18px 14px;
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.24);
+}
+
+.wallet-history-head {
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.wallet-history-head > div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.wallet-history-head h2 { font-size: 18px; }
+.wallet-history-head span { color: var(--muted); font-size: 12px; }
+
+.wallet-history-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wallet-history-tools > span,
+.wallet-history-tools button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(136, 153, 190, 0.17);
+  border-radius: 7px;
+  color: #b9c1d2;
+  background: rgba(3, 7, 16, 0.4);
+  padding: 0 13px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.wallet-history-tabs {
+  min-height: 44px;
+  display: flex;
+  align-items: end;
+  gap: 28px;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(136, 153, 190, 0.13);
+}
+
+.wallet-history-tabs span,
+.wallet-history-tabs strong {
+  flex: 0 0 auto;
+  padding: 0 4px 11px;
+  color: #8f98ac;
+  font-size: 12px;
+}
+
+.wallet-history-tabs strong {
+  border-bottom: 2px solid var(--pink);
+  color: var(--pink);
+}
+
+.wallet-table-head,
+.wallet-transaction-card {
+  grid-template-columns: minmax(220px, 1.35fr) minmax(150px, 0.9fr) minmax(140px, 0.8fr) minmax(100px, 0.55fr) 92px;
+}
+
+.wallet-table-head {
+  min-height: 38px;
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(136, 153, 190, 0.12);
+  color: #7f899e;
+  font-size: 11px;
+}
+
+.wallet-page .wallet-transaction-list { gap: 0; }
+
+.wallet-page .wallet-transaction-card {
+  position: relative;
+  display: grid;
+  min-height: 52px;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(136, 153, 190, 0.1);
+  border-radius: 0;
+  background: transparent;
+  padding: 7px 0 7px 42px;
+}
+
+.wallet-page .wallet-transaction-card:hover {
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.wallet-page .wallet-transaction-icon {
+  position: absolute;
+  left: 0;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 47, 143, 0.3);
+  border-radius: 50%;
+  font-size: 16px;
+}
+
+.wallet-page .wallet-transaction-copy { gap: 2px; }
+.wallet-page .wallet-transaction-copy strong { font-size: 12px; }
+.wallet-page .wallet-transaction-copy span,
+.wallet-transaction-reference,
+.wallet-transaction-date { color: #8e98ab; font-size: 11px; }
+
+.wallet-transaction-reference {
+  overflow: hidden;
+  color: var(--pink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wallet-transaction-date { white-space: nowrap; }
+
+.wallet-page .wallet-transaction-amount {
+  color: #ff2f8f;
+  font-size: 13px;
+  text-align: right;
+}
+
+.wallet-page .wallet-transaction-card[data-type="credit"] .wallet-transaction-amount {
+  color: #3ee478;
+}
+
+.wallet-transaction-status {
+  justify-self: start;
+  border: 1px solid rgba(255, 166, 0, 0.24);
+  border-radius: 5px;
+  color: #ffb126;
+  background: rgba(255, 166, 0, 0.08);
+  padding: 4px 9px;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+.wallet-transaction-status.completed {
+  border-color: rgba(54, 213, 111, 0.2);
+  color: #45df7b;
+  background: rgba(54, 213, 111, 0.08);
+}
+
+.wallet-transaction-status.failed {
+  border-color: rgba(255, 77, 109, 0.24);
+  color: #ff617d;
+  background: rgba(255, 77, 109, 0.08);
+}
+
+@media (max-width: 1240px) {
+  .wallet-dashboard-hero {
+    grid-template-columns: minmax(220px, 0.8fr) minmax(210px, 0.9fr) minmax(250px, 1fr);
+  }
+
+  .wallet-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .wallet-page .wallet-buy-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wallet-page .wallet-buy-panel .seller-status { grid-column: 1 / -1; }
+}
+
+@media (max-width: 900px) {
+  .wallet-dashboard-hero {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .wallet-hero-art { order: 3; min-height: 180px; }
+  .wallet-hero-breakdown { padding-right: 24px; }
+  .wallet-hero-balance { padding-left: 24px; }
+
+  .wallet-table-head { display: none; }
+
+  .wallet-page .wallet-transaction-card {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding: 12px 0 12px 44px;
+  }
+
+  .wallet-transaction-reference,
+  .wallet-transaction-date { display: none; }
+}
+
+@media (max-width: 620px) {
+  .wallet-dashboard-hero,
+  .wallet-summary-grid,
+  .wallet-page .wallet-buy-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-hero-balance { padding: 24px 20px 8px; }
+  .wallet-hero-art { order: 2; }
+  .wallet-hero-breakdown { order: 3; padding: 0 20px 20px; }
+  .wallet-hero-breakdown > div { min-height: 44px; }
+
+  .wallet-history-head {
+    align-items: flex-start;
+    flex-direction: column;
+    padding-block: 16px;
+  }
+
+  .wallet-history-tools { width: 100%; }
+  .wallet-history-tools > span { flex: 1; }
+  .wallet-history-tabs { gap: 18px; }
+
+  .wallet-page .wallet-transaction-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .wallet-transaction-status { display: none; }
+}
+
 /* Coaching detail page reference layout */
 .coach-profile-shell {
   max-width: 1180px;
@@ -7113,12 +7742,13 @@ a.product-showcase-seller:focus-visible strong,
   content: "[]";
 }
 
-.coach-book-secondary[href]::before {
-  content: "[]";
-}
-
-.coach-book-secondary[data-action="wishlist"]::before {
-  content: "<3";
+.coach-book-secondary::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  background: url("assets/cart-icon.png") center / contain no-repeat;
+  filter: invert(1);
 }
 
 .coach-times-group button.active,

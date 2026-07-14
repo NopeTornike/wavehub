@@ -6,7 +6,7 @@
   <title>WaveHub - Wallet</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="wallet-page">
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
       <a class="brand" href="index.html" aria-label="WaveHub home">
@@ -105,65 +105,69 @@
         </div>
       </header>
 
-      <section class="marketplace-head" aria-labelledby="walletTitle">
-        <div>
-          <p class="section-kicker">WaveCoin balance</p>
-          <h1 id="walletTitle">Wallet</h1>
+      <section class="wallet-page-head" aria-labelledby="walletTitle">
+        <h1 id="walletTitle">My Wallet</h1>
+        <p>Manage your balance, transactions and WaveCoin top ups.</p>
+      </section>
+
+      <section class="wallet-dashboard-hero" aria-labelledby="walletBalanceTitle">
+        <div class="wallet-hero-balance">
+          <span>Total Balance</span>
+          <h2 id="walletBalanceTitle"><strong id="walletBalanceLarge">0 WC</strong></h2>
+          <small>1 WaveCoin = 1 GEL</small>
         </div>
-        <div class="marketplace-total" aria-label="WaveCoin balance">
-          <strong id="walletBalance">0</strong>
-          <span>WaveCoin</span>
+        <div class="wallet-hero-art" aria-hidden="true">
+          <span class="wallet-hero-coin">W</span>
+          <span class="wallet-hero-shape"></span>
         </div>
+        <dl class="wallet-hero-breakdown">
+          <div><dt><i class="available"></i>Available Balance</dt><dd><span data-wallet-balance>0</span> WC</dd></div>
+          <div><dt><i class="escrow"></i>In Escrow</dt><dd>0 WC</dd></div>
+          <div><dt><i class="pending"></i>Pending Payouts</dt><dd>0 WC</dd></div>
+          <div><dt><i class="withdrawn"></i>Total Purchased</dt><dd><span data-wallet-balance>0</span> WC</dd></div>
+        </dl>
+      </section>
+
+      <section class="wallet-summary-grid" aria-label="Wallet summary">
+        <article class="wallet-summary-card available"><i>▣</i><div><span>Available Balance</span><strong><span id="walletBalance">0</span> WC</strong><small>Ready to spend</small></div></article>
+        <article class="wallet-summary-card escrow"><i>◇</i><div><span>In Escrow</span><strong>0 WC</strong><small>Protected payments</small></div></article>
+        <article class="wallet-summary-card pending"><i>◷</i><div><span>Pending Payouts</span><strong>0 WC</strong><small>Awaiting completion</small></div></article>
+        <article class="wallet-summary-card purchased"><i>↥</i><div><span>Total Purchased</span><strong><span data-wallet-balance>0</span> WC</strong><small>Current wallet value</small></div></article>
       </section>
 
       <section class="wallet-layout" aria-label="Wallet controls">
-        <section class="wallet-balance-panel" aria-labelledby="walletBalanceTitle">
-          <p class="section-kicker">Available funds</p>
-          <h2 id="walletBalanceTitle">WaveCoin</h2>
-          <strong id="walletBalanceLarge">0 WC</strong>
-          <span>1 WaveCoin = 1 GEL</span>
-        </section>
-
         <form class="wallet-buy-panel" id="walletBuyForm">
-          <div>
-            <p class="section-kicker">Buy coins</p>
-            <h2>Top up with BOG</h2>
+          <div class="wallet-buy-heading">
+            <span class="wallet-add-icon" aria-hidden="true">+</span>
+            <div><p class="section-kicker">Add Funds</p><h2>Top up with BOG</h2></div>
           </div>
-
           <label>
             <span>WaveCoin amount</span>
             <span class="wallet-amount-stepper">
-              <button type="button" data-wavecoin-step="-1" aria-label="Decrease WaveCoin amount">-</button>
+              <button type="button" data-wavecoin-step="-1" aria-label="Decrease WaveCoin amount">−</button>
               <input id="wavecoinAmount" type="number" min="1" step="1" value="10" required />
               <button type="button" data-wavecoin-step="1" aria-label="Increase WaveCoin amount">+</button>
             </span>
           </label>
-
           <div class="wallet-quick-actions" aria-label="Quick WaveCoin amounts">
             <button type="button" data-wavecoin-amount="10">10 WC</button>
             <button type="button" data-wavecoin-amount="25">25 WC</button>
             <button type="button" data-wavecoin-amount="50">50 WC</button>
             <button type="button" data-wavecoin-amount="100">100 WC</button>
           </div>
-
-          <div class="wallet-price-row">
-            <span>Total</span>
-            <strong id="walletBuyTotal">10 GEL</strong>
-          </div>
-
+          <div class="wallet-price-row"><span>Total</span><strong id="walletBuyTotal">10 GEL</strong></div>
           <button class="cart-checkout-button" id="buyWavecoinButton" type="submit">Pay with Bank of Georgia</button>
           <p class="seller-status" id="walletStatus" aria-live="polite"></p>
         </form>
       </section>
 
       <section class="wallet-history-section" aria-labelledby="walletHistoryTitle">
-        <div class="section-heading">
-          <div>
-            <p class="section-kicker">Wallet ledger</p>
-            <h2 id="walletHistoryTitle">Transaction History</h2>
-          </div>
-          <span id="walletTransactionCount">0 records</span>
+        <div class="wallet-history-head">
+          <div><h2 id="walletHistoryTitle">Transaction History</h2><span id="walletTransactionCount">0 records</span></div>
+          <div class="wallet-history-tools"><span>Recent activity</span><button type="button" aria-label="Transaction filters">⌁ Filters</button></div>
         </div>
+        <div class="wallet-history-tabs" aria-label="Transaction categories"><strong>All</strong><span>Income</span><span>Expense</span><span>Escrow</span><span>Withdrawals</span><span>Refunds</span></div>
+        <div class="wallet-table-head" aria-hidden="true"><span>Type / Description</span><span>Order / ID</span><span>Date &amp; Time</span><span>Amount</span><span>Status</span></div>
         <div class="wallet-transaction-list" id="walletTransactionList"></div>
         <div class="marketplace-empty" id="walletEmpty" hidden>No transactions yet.</div>
       </section>
