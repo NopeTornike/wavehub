@@ -8,7 +8,8 @@ up a user without each reimplementing repository queries.
 - `user.entity.ts` — TypeORM entity: `id` (uuid), `username` (unique), `email` (unique),
   `firstName`, `lastName`, `passwordHash` (`select: false`), `role` (`'buyer' | 'seller'`, default
   `'buyer'`), `status` (`UserStatus` from `@wavehub/shared-types`, default `pending_verification`),
-  `emailVerifiedAt` (nullable)
+  `emailVerifiedAt` (nullable), `wavecoinBalance` (integer, default 0 — **never write to this
+  directly, always go through `WalletService`**, see `backend/src/wallet/CLAUDE.md`)
 - `users.service.ts` — `findById`/`findByUsername`/`findByEmail`, `markEmailVerified`,
   `setPasswordHash`, `toPublicUser` (maps the entity to the `PublicUser` shape from
   `@wavehub/shared-types` — the one place that mapping happens, use it instead of hand-building a
@@ -16,9 +17,10 @@ up a user without each reimplementing repository queries.
 - `users.module.ts` — exports `UsersService` for other modules to import
 
 ## Data model
-`users` table. Schema built up across three migrations: `InitUsersTable` (Phase 0 baseline),
-`AddUserEmailStatusVerification` (adds `email`/`status`/`emailVerifiedAt`, Phase 1), and
-`CreateAuthTokenTables` (the two token tables that FK into `users`, Phase 1).
+`users` table. Schema built up across four migrations: `InitUsersTable` (Phase 0 baseline),
+`AddUserEmailStatusVerification` (adds `email`/`status`/`emailVerifiedAt`, Phase 1),
+`CreateAuthTokenTables` (the two token tables that FK into `users`, Phase 1), and
+`CreateWalletLedger` (adds `wavecoinBalance`, Phase 2).
 
 ## Conventions & gotchas
 - `role` is still a blunt `'buyer' | 'seller'` flag, unrelated to `status`. Per the build plan, a
@@ -38,10 +40,11 @@ up a user without each reimplementing repository queries.
 ## Related modules
 - `backend/src/auth/` — the primary consumer; also owns direct write access to this entity for
   registration/status changes (this module intentionally doesn't expose a generic `update()`).
+- `backend/src/wallet/` — the only module allowed to write `wavecoinBalance`.
 - `packages/shared-types/` — `UserStatus` and `PublicUser` come from here; keep them in sync if this
   entity's shape changes.
 
 ## Status
-Covers what registration/login/session/verification need today. Fields the build plan's fuller
-schema adds later: `avatar_url`, `bio`, `theme_pref`, `wavecoin_balance` (Phase 3, wallet ledger),
+Covers what registration/login/session/verification/wallet-balance need today. Fields the build
+plan's fuller schema adds later: `avatar_url`, `bio`, `theme_pref` (no phase assigned yet),
 `admin_role` (Phase 11, admin panel).

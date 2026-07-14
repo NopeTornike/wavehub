@@ -1,11 +1,15 @@
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true makes `request.rawBody` available on every request — required by
+  // POST /payments/bog/callback to verify BOG's signature over the exact bytes it sent, before
+  // the body gets parsed into a JS object. See backend/src/payments/bog-signature.util.ts.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   app.use(cookieParser());
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
     .split(',')

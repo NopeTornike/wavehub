@@ -3,6 +3,8 @@ import { DataSource } from 'typeorm';
 import { User } from './users/user.entity';
 import { EmailVerificationToken } from './auth/email-verification-token.entity';
 import { PasswordResetToken } from './auth/password-reset-token.entity';
+import { WalletLedgerEntry } from './wallet/wallet-ledger-entry.entity';
+import { BogTopupIntent } from './payments/bog-topup-intent.entity';
 
 // Used by the TypeORM CLI (migration:generate / migration:run / migration:revert — see
 // package.json scripts) and, in future phases, by tests that need a real DB connection outside
@@ -18,7 +20,7 @@ const AppDataSource = new DataSource({
   username: process.env.DATABASE_USER || 'wavehub',
   password: process.env.DATABASE_PASSWORD || 'wavehubpass',
   database: process.env.DATABASE_NAME || 'wavehubdb',
-  entities: [User, EmailVerificationToken, PasswordResetToken],
+  entities: [User, EmailVerificationToken, PasswordResetToken, WalletLedgerEntry, BogTopupIntent],
   migrations: [__dirname + '/migrations/*.{ts,js}'],
   synchronize: false,
 });

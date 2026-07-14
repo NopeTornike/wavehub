@@ -1,0 +1,122 @@
+import { WalletLedgerStatus, WalletLedgerType } from '@wavehub/shared-types';
+import { User } from '../users/user.entity';
+import { WalletLedgerEntry } from './wallet-ledger-entry.entity';
+import { WalletService } from './wallet.service';
+
+// A minimal in-memory fake standing in for TypeORM's EntityManager, scoped to exactly what
+// WalletService calls (findOne/update/create/save). This exercises the real transaction-shaped
+// control flow (insufficient balance throws before any write, idempotent lookups short-circuit,
+// balanceAfter is computed correctly) without needing a live Postgres connection — the "does this
+// actually persist correctly against real Postgres" question is CI's job (see wallet/CLAUDE.md).
+function createFakeDataSource(initialUsers: Array<{ id: string; wavecoinBalance: number }>) {
+  const users = new Map(initialUsers.map((u) => [u.id, { ...u }]));
+  const ledgerEntries: any[] = [];
+
+  const manager = {
+    findOne: jest.fn(async (entityClass: any, options: any) => {
+      if (entityClass === User) {
+        return users.get(options.where.id) ?? null;
+      }
+      if (entityClass === WalletLedgerEntry) {
+        return ledgerEntries.find((e) => e.reference === options.where.reference) ?? null;
+      }
+      return null;
+    }),
+    update: jest.fn(async (entityClass: any, id: string, partial: any) => {
+      if (entityClass === User) {
+        const user = users.get(id);
+        if (user) Object.assign(user, partial);
+      }
+    }),
+    create: jest.fn((_entityClass: any, data: any) => ({ ...data })),
+    save: jest.fn(async (entity: any) => {
+      const saved = { ...entity, id: entity.id ?? `entry-${ledgerEntries.length + 1}` };
+      ledgerEntries.push(saved);
+      return saved;
+    }),
+  };
+
+  const dataSource = { transaction: jest.fn(async (cb: any) => cb(manager)) } as any;
+  return { dataSource, users, ledgerEntries };
+}
+
+describe('WalletService', () => {
+  const userId = 'user-1';
+
+  it('recordTopup credits the balance and writes an available ledger entry', async () => {
+    const { dataSource, users, ledgerEntries } = createFakeDataSource([
+      { id: userId, wavecoinBalance: 50 },
+    ]);
+    const wallet = new WalletService(dataSource);
+
+    const entry = await wallet.recordTopup(userId, 100, 'bog-tx-1');
+
+    expect(users.get(userId)?.wavecoinBalance).toBe(150);
+    expect(entry.balanceAfter).toBe(150);
+    expect(entry.type).toBe(WalletLedgerType.Topup);
+    expect(entry.status).toBe(WalletLedgerStatus.Available);
+    expect(ledgerEntries).toHaveLength(1);
+  });
+
+  it('recordTopup is idempotent on reference — a repeat call does not double-credit', async () => {
+    const { dataSource, users, ledgerEntries } = createFakeDataSource([
+      { id: userId, wavecoinBalance: 0 },
+    ]);
+    const wallet = new WalletService(dataSource);
+
+    const first = await wallet.recordTopup(userId, 100, 'bog-tx-retry');
+    const second = await wallet.recordTopup(userId, 100, 'bog-tx-retry');
+
+    expect(users.get(userId)?.wavecoinBalance).toBe(100);
+    expect(ledgerEntries).toHaveLength(1);
+    expect(second).toEqual(first);
+  });
+
+  it('debitForOrder rejects when the balance is insufficient and writes nothing', async () => {
+    const { dataSource, users, ledgerEntries } = createFakeDataSource([
+      { id: userId, wavecoinBalance: 10 },
+    ]);
+    const wallet = new WalletService(dataSource);
+
+    await expect(wallet.debitForOrder(userId, 'order-1', 20)).rejects.toThrow('INSUFFICIENT_BALANCE');
+    expect(users.get(userId)?.wavecoinBalance).toBe(10);
+    expect(ledgerEntries).toHaveLength(0);
+  });
+
+  it('debitForOrder moves funds out of the buyer balance as a held, negative entry', async () => {
+    const { dataSource, users } = createFakeDataSource([{ id: userId, wavecoinBalance: 100 }]);
+    const wallet = new WalletService(dataSource);
+
+    const entry = await wallet.debitForOrder(userId, 'order-1', 40);
+
+    expect(users.get(userId)?.wavecoinBalance).toBe(60);
+    expect(entry.amountWaveCoin).toBe(-40);
+    expect(entry.status).toBe(WalletLedgerStatus.Held);
+    expect(entry.type).toBe(WalletLedgerType.OrderEscrowHold);
+  });
+
+  it('releaseSellerEarnings credits the seller with a pending, time-gated entry', async () => {
+    const sellerId = 'seller-1';
+    const { dataSource, users } = createFakeDataSource([{ id: sellerId, wavecoinBalance: 0 }]);
+    const wallet = new WalletService(dataSource);
+
+    const before = Date.now();
+    const entry = await wallet.releaseSellerEarnings(sellerId, 'order-1', 18, 7);
+
+    expect(users.get(sellerId)?.wavecoinBalance).toBe(18);
+    expect(entry.status).toBe(WalletLedgerStatus.Pending);
+    expect(entry.availableAt).toBeInstanceOf(Date);
+    expect(entry.availableAt!.getTime()).toBeGreaterThan(before + 6 * 24 * 60 * 60 * 1000);
+  });
+
+  it('refundBuyer credits the buyer back and does not touch any other balance', async () => {
+    const { dataSource, users } = createFakeDataSource([{ id: userId, wavecoinBalance: 10 }]);
+    const wallet = new WalletService(dataSource);
+
+    const entry = await wallet.refundBuyer(userId, 'order-1', 40);
+
+    expect(users.get(userId)?.wavecoinBalance).toBe(50);
+    expect(entry.type).toBe(WalletLedgerType.OrderRefund);
+    expect(entry.status).toBe(WalletLedgerStatus.Available);
+  });
+});

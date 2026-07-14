@@ -24,13 +24,14 @@ isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable r
 | `backend/src/users/` | User entity + shared lookup service | `backend/src/users/CLAUDE.md` |
 | `backend/src/payments/` | BOG WaveCoin top-up integration | `backend/src/payments/CLAUDE.md` |
 | `backend/src/email/` | Email-sending stub (console.log until a provider is chosen) | `backend/src/email/CLAUDE.md` |
+| `backend/src/wallet/` | WaveCoin ledger — the only writer of `users.wavecoinBalance` | `backend/src/wallet/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 
-New top-level modules (`backend/src/orders/`, `backend/src/wallet/`, `backend/src/listings/`,
-`backend/src/disputes/`, `backend/src/chat/`, `backend/src/reviews/`, `backend/src/notifications/`,
-`backend/src/admin/`, `backend/src/content/`) will each get a row here and their own `CLAUDE.md` as
-they're built — see the phased build plan. Add the row in the same change that adds the module.
+New top-level modules (`backend/src/orders/`, `backend/src/listings/`, `backend/src/disputes/`,
+`backend/src/chat/`, `backend/src/reviews/`, `backend/src/notifications/`, `backend/src/admin/`,
+`backend/src/content/`) will each get a row here and their own `CLAUDE.md` as they're built — see
+the phased build plan. Add the row in the same change that adds the module.
 
 ## Non-negotiable rules (apply everywhere, not phase-gated)
 
@@ -52,9 +53,11 @@ Full reasoning for each of these (including which contradictions in the source s
   scripts are exposed at the root (`npm run backend:dev`, `npm run frontend:build`, etc. — see root
   `package.json`).
 - **Payment model**: WaveCoin top-up (via Bank of Georgia), not per-order fiat escrow. The order/dispute
-  lifecycle still uses an internal ledger with held/available balance states — it's just denominated in
-  WaveCoin instead of real currency per order. See `SPECIFICATION.md` §3 and the build plan's schema
-  section before touching anything payment/wallet-related.
+  lifecycle still uses an internal ledger (`backend/src/wallet/`) with held/available balance states —
+  it's just denominated in WaveCoin instead of real currency per order. Real money only ever enters via
+  the BOG top-up flow (`backend/src/payments/`), whose callback is signature-verified and re-checks
+  order status against BOG's API before crediting anything — see that module's doc before touching
+  payment/wallet code.
 - **Frontend**: the Next.js app in `frontend/` is the one real frontend going forward. The static
   HTML/JS prototype at the repo root (`index.html`, `marketplace.html`, etc.) is UI/UX reference only —
   don't extend it, and don't wire new features to its `localStorage`-based state.

@@ -29,4 +29,10 @@ export class User {
 
   @Column({ type: 'timestamptz', nullable: true })
   emailVerifiedAt: Date | null;
+
+  // Buyer-spendable balance. Never write to this column directly — every change must go through
+  // WalletService so a matching wallet_ledger_entries row is written in the same transaction. See
+  // backend/src/wallet/CLAUDE.md.
+  @Column({ type: 'integer', default: 0 })
+  wavecoinBalance: number;
 }

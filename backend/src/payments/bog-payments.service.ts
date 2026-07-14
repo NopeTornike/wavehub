@@ -7,7 +7,10 @@ type CreateWavecoinOrderInput = {
   transactionId: string;
   successUrl: string;
   failUrl: string;
-  callbackUrl?: string;
+  // Required, not optional: this must always be our own /payments/bog/callback endpoint (the one
+  // place that verifies BOG's signature and credits WaveCoin), never a frontend redirect page.
+  // The one caller (BogPaymentsController) always constructs and passes it explicitly.
+  callbackUrl: string;
 };
 
 @Injectable()
@@ -23,7 +26,6 @@ export class BogPaymentsService {
     }
 
     const accessToken = await this.getAccessToken();
-    const callbackUrl = input.callbackUrl || process.env.BOG_CALLBACK_URL || input.successUrl;
     const response = await fetch(this.ordersUrl, {
       method: 'POST',
       headers: {
@@ -31,7 +33,7 @@ export class BogPaymentsService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        callback_url: callbackUrl,
+        callback_url: input.callbackUrl,
         external_order_id: input.transactionId,
         redirect_urls: {
           success: input.successUrl,
@@ -63,6 +65,34 @@ export class BogPaymentsService {
     return {
       orderId: data?.id || data?.order_id || '',
       redirectUrl: data?._links?.redirect?.href || data?.redirect_url || data?.links?.redirect || '',
+    };
+  }
+
+  // Authoritative order status lookup, used by the /callback handler instead of trusting fields
+  // embedded in the callback body — the callback's signature proves BOG sent *something* for this
+  // order_id, but we still re-fetch the current state from BOG's API before crediting anything.
+  // Endpoint per https://api.bog.ge/docs/en/payments/standard-process/get-payment-details
+  // (fetched 2026-07-15): GET /payments/v1/receipt/:order_id.
+  async getOrderDetails(bogOrderId: string): Promise<{
+    orderStatus: string;
+    externalOrderId: string | undefined;
+  }> {
+    const accessToken = await this.getAccessToken();
+    const response = await fetch(`https://api.bog.ge/payments/v1/receipt/${encodeURIComponent(bogOrderId)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new HttpException(
+        data?.message || data?.error || 'BOG order lookup failed.',
+        response.status || HttpStatus.BAD_GATEWAY,
+      );
+    }
+
+    return {
+      orderStatus: data?.order_status?.key || '',
+      externalOrderId: data?.external_order_id,
     };
   }
 

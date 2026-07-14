@@ -6,34 +6,70 @@ with real money. This is the *only* real-money entry point into WaveHub (see roo
 architecture notes — WaveCoin top-up, not per-order fiat escrow, is the chosen payment model).
 
 ## Key files
-- `bog-payments.controller.ts` — `POST /payments/bog/create-order`
-- `bog-payments.service.ts` — OAuth2 client-credentials token fetch against BOG, then creates a BOG
-  order for a WaveCoin purchase, returns `{ orderId, redirectUrl }`
-- `payments.module.ts` — wires the above into Nest DI
+- `bog-payments.controller.ts` — `POST /payments/bog/create-order` (guarded, requires a session) and
+  `POST /payments/bog/callback` (public — BOG calls this, verified by signature instead of auth)
+- `bog-payments.service.ts` — talks to BOG's API: OAuth2 client-credentials token, order creation,
+  and `getOrderDetails` (authoritative status lookup, used by the callback handler)
+- `bog-signature.util.ts` — `verifyBogCallbackSignature`, RSA-SHA256 verification of the
+  `Callback-Signature` header against BOG's published public key (embedded as
+  `BOG_DEFAULT_CALLBACK_PUBLIC_KEY`, overridable via `BOG_CALLBACK_PUBLIC_KEY` env var)
+- `bog-topup-intent.entity.ts` — `BogTopupIntent`: created when checkout starts, keyed by the
+  transactionId we generate (= BOG's `external_order_id`), so the callback can map back to a
+  user + WaveCoin amount
+- `payments.module.ts` — wires the above; imports `UsersModule`, `WalletModule`, `AuthModule`
 
 ## Data model
-Owns nothing yet. Once `backend/src/wallet/` exists (build plan Phase 3), this module's *success*
-callback should call into `WalletService.recordTopup()` rather than mutating any balance directly —
-this module's job is talking to BOG, not owning the ledger.
+Owns `bog_topup_intents` (migration: `CreateWalletLedger`, same migration as the wallet ledger
+tables since they landed together). Calls into `backend/src/wallet/` (`WalletService.recordTopup`)
+to actually credit a balance — this module never touches `users.wavecoinBalance` itself.
 
 ## Conventions & gotchas
-- Requires `BOG_CLIENT_ID`/`BOG_CLIENT_SECRET` env vars; throws `503` cleanly if absent — this is
-  correct behavior, don't "fix" it by hardcoding fallback credentials.
-- `BOG_OAUTH_URL`/`BOG_ORDERS_URL` have working defaults pointing at BOG's real endpoints — only
-  override for testing against a sandbox.
-- **There is currently no callback/webhook handler** verifying a payment actually succeeded before
-  crediting anything — `create-order` only kicks off the BOG checkout redirect. Before wiring this to
-  `WalletService.recordTopup()`, make sure the success path is driven by a verified callback from BOG
-  (`callback_url`/`BOG_CALLBACK_URL`), not by trusting the frontend's `successUrl` redirect, which a
-  user could hit without actually paying.
-- No idempotency handling yet — if BOG retries a callback, don't double-credit. Add an idempotency
-  check (e.g. on `transactionId`) when the real webhook handler is built.
+- **`create-order` derives the WaveCoin amount server-side at a fixed 1:1 rate from `amountGel`** —
+  the client only sends `amountGel`, `successUrl`, `failUrl`. Earlier code accepted a client-supplied
+  `wavecoins` field independent of `amountGel`, which meant a client could request being credited an
+  arbitrary WaveCoin amount for whatever it actually paid. Do not reintroduce a client-supplied
+  WaveCoin count.
+- **`create-order` uses the authenticated user (`@CurrentUserId()`), not a client-supplied
+  `username`.** Same class of bug as above — trusting the body for "which account gets credited" on
+  a financial endpoint is a direct account-takeover-adjacent vector. Always derive identity from the
+  session.
+- **The callback handler does not trust the callback body's own status field.** It verifies the
+  signature (proving BOG sent *something* for this `order_id`), then calls
+  `BogPaymentsService.getOrderDetails(bogOrderId)` to re-fetch the authoritative current status from
+  BOG's API before crediting anything. This is deliberate — treat the callback as a notification to
+  go check the source of truth, not as itself trustworthy for money decisions, even though it's
+  signed. If you're tempted to read `order_status` directly off the callback body to save a round
+  trip, don't.
+- **Signature verification needs the raw request bytes**, not a re-serialized copy of the parsed
+  body (JSON re-serialization can differ in key order/whitespace and silently break RSA
+  verification). This is why `main.ts` passes `{ rawBody: true }` to `NestFactory.create` — the
+  controller reads `req.rawBody`, not `JSON.stringify(req.body)`.
+- **`recordTopup` is idempotent**, so the callback handler doesn't need its own dedup logic beyond
+  checking `intent.status !== 'completed'` before calling it — a duplicate BOG callback retry is
+  safe either way.
+- **The callback endpoint always returns `{ ok: true }` / HTTP 200**, even for invalid signatures,
+  unknown orders, or lookup failures — this is deliberate so BOG doesn't retry indefinitely against
+  something we've already permanently rejected. Errors are logged server-side (`Logger.warn`/`.error`),
+  not surfaced to the caller. Don't change this to return 4xx/5xx for "expected" rejection cases;
+  reserve non-200 for genuine infrastructure failures if you add retryable ones later.
+- The BOG public key and API endpoints referenced here were fetched from
+  `https://api.bog.ge/docs/en/payments/` on 2026-07-15. If BOG's docs have changed since, re-verify
+  before trusting this module against production traffic — don't assume it's still current forever.
 
 ## Related modules
-- `backend/src/wallet/` (not built yet) — this module's success path should feed into it.
-- `backend/src/users/` — top-ups ultimately credit a user's `wavecoin_balance`.
+- `backend/src/wallet/` — the callback's only effect on state goes through
+  `WalletService.recordTopup`.
+- `backend/src/auth/` — `AuthGuard`/`@CurrentUserId()` gate `create-order`.
+- `backend/src/users/` — looks up the user for their username (used in the BOG order description)
+  and id.
 
 ## Status
-Order creation (the "start a BOG checkout" half) exists. Missing: the callback/webhook handler that
-actually confirms payment and credits WaveCoin, idempotency, and the wire-up to a real wallet ledger
-(none of `wallet_ledger`/`WalletService` exist yet — this is build plan Phase 3).
+Both endpoints are implemented and unit-tested at the signature-verification layer
+(`bog-signature.util.spec.ts`). Not verified against BOG's real sandbox/production API — no live BOG
+credentials or a reachable public callback URL were available in the environment this was built in
+(BOG can only call back to a publicly reachable HTTPS URL; `BACKEND_PUBLIC_URL=localhost` won't
+receive anything without a tunnel). Before relying on this in production: get real BOG sandbox
+credentials, confirm the callback body's actual full shape against a real test payment (the fields
+used here — `body.order_id`, and `order_status.key`/`external_order_id` from the receipt endpoint —
+are drawn from BOG's public docs, not observed from a real payload), and confirm the public key is
+still current.
