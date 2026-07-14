@@ -1,0 +1,18 @@
+{
+  "name": "wavehub",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/*"
+  ],
+  "scripts": {
+    "backend:dev": "npm run start:dev -w backend",
+    "backend:build": "npm run build -w backend",
+    "backend:lint": "npm run lint -w backend",
+    "backend:test": "npm run test -w backend",
+    "frontend:dev": "npm run dev -w frontend",
+    "frontend:build": "npm run build -w frontend",
+    "frontend:lint": "npm run lint -w frontend"
+  }
+}

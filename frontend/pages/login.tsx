@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useState, type FormEvent } from 'react'
 
 const apiUrls = [
@@ -180,9 +181,9 @@ export default function Login() {
           <button className="glow-on-hover button" type="submit">
             შესვლა
           </button>
-          <a className="note" href="/register">
+          <Link className="note" href="/register">
             რეგისტრაცია
-          </a>
+          </Link>
         </form>
       </div>
     </div>
