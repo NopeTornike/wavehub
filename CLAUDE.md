@@ -60,6 +60,14 @@ Full reasoning for each of these (including which contradictions in the source s
 - **Database**: Postgres via TypeORM, schema changes go through migrations (`backend/src/migrations/`,
   run via `npm run migration:run -w backend`) — not `synchronize` outside of quick local experiments.
 
+## Tool portability
+
+`CLAUDE.md` is a Claude Code-specific auto-load filename. `AGENTS.md` is the emerging cross-tool
+convention (Codex CLI and others look for it instead). Every `CLAUDE.md` in this repo has a sibling
+`AGENTS.md` that's a plain symlink to it (`ln -s CLAUDE.md AGENTS.md`) — one file's content, two
+discoverable names, no duplication to keep in sync. **When you add a new module's `CLAUDE.md`, add the
+matching `AGENTS.md` symlink in the same change.**
+
 ## Agent workflow rule
 
 For a scoped task: read this file's module table, open the relevant module's `CLAUDE.md`, and start
