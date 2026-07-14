@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { UserStatus } from '@wavehub/shared-types';
 
 @Entity('users')
 export class User {
@@ -7,6 +8,9 @@ export class User {
 
   @Column({ unique: true })
   username: string;
+
+  @Column({ unique: true })
+  email: string;
 
   @Column()
   firstName: string;
@@ -19,4 +23,10 @@ export class User {
 
   @Column({ default: 'buyer' })
   role: 'buyer' | 'seller';
+
+  @Column({ type: 'varchar', default: UserStatus.PendingVerification })
+  status: UserStatus;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  emailVerifiedAt: Date | null;
 }

@@ -29,6 +29,7 @@ jobs:
       DATABASE_PASSWORD: wavehubpass
       DATABASE_NAME: wavehub_test
       NODE_ENV: test
+      JWT_SECRET: ci-only-test-secret-not-for-production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

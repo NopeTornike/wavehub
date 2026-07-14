@@ -21,8 +21,9 @@ isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable r
 | Module | Purpose | Doc |
 |---|---|---|
 | `backend/src/auth/` | Registration, login, sessions, guards | `backend/src/auth/CLAUDE.md` |
-| `backend/src/users/` | User entity | `backend/src/users/CLAUDE.md` |
+| `backend/src/users/` | User entity + shared lookup service | `backend/src/users/CLAUDE.md` |
 | `backend/src/payments/` | BOG WaveCoin top-up integration | `backend/src/payments/CLAUDE.md` |
+| `backend/src/email/` | Email-sending stub (console.log until a provider is chosen) | `backend/src/email/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 
@@ -59,6 +60,10 @@ Full reasoning for each of these (including which contradictions in the source s
   don't extend it, and don't wire new features to its `localStorage`-based state.
 - **Database**: Postgres via TypeORM, schema changes go through migrations (`backend/src/migrations/`,
   run via `npm run migration:run -w backend`) — not `synchronize` outside of quick local experiments.
+- **Auth session**: stateless JWT in an httpOnly cookie (`backend/src/auth/session.service.ts`), not a
+  DB-backed session table. Any endpoint that needs to know the caller's identity uses `AuthGuard` +
+  `@CurrentUserId()` from `backend/src/auth/` — see that module's doc before building a new guarded
+  route.
 
 ## Tool portability
 

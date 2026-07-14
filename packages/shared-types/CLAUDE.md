@@ -28,6 +28,10 @@ entities and migrations are the actual source of truth for (see each domain modu
 - `frontend/` imports these same enums for status displays, form options, and API response typing.
 
 ## Status
-Scaffolded in Phase 0 with the full enum set anticipated by the build plan. Most of these enums don't
-have a backing table/entity yet — they're defined ahead of the modules that will use them so later
-phases have a single place to import from instead of re-deriving the same status strings per module.
+Scaffolded in Phase 0 with the full enum set anticipated by the build plan. As of Phase 1,
+`UserStatus` and `PublicUser`/`AuthMeResponse` are live and actually consumed (`backend/src/users/
+user.entity.ts` and `users.service.ts#toPublicUser`, `frontend/lib/api.ts`) — keep those three in
+sync across both apps if they change. The rest of the enums (`OrderStatus`, `WalletLedgerType`,
+`DisputeStatus`, etc.) still don't have a backing table/entity yet; they're defined ahead of the
+modules that will use them so later phases have a single place to import from instead of
+re-deriving the same status strings per module.

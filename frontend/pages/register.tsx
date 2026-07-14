@@ -1,120 +1,15 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { api, ApiError } from '../lib/api'
 
-const apiUrls = [
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
-  'http://127.0.0.1:4000',
-]
-const localUsersKey = 'wavehub.users'
-
-type RegistrationPayload = {
-  username: string
-  firstName: string
-  lastName: string
-  password: string
-}
-
-type LocalUser = {
-  id: string
-  username: string
-  firstName: string
-  lastName: string
-  passwordHash: string
-  createdAt: string
-}
-
-async function hashPassword(password: string) {
-  if (globalThis.crypto?.subtle) {
-    const bytes = new TextEncoder().encode(password)
-    const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('')
-  }
-
-  return `plain:${password}`
-}
-
-function getLocalUsers() {
-  if (typeof window === 'undefined') {
-    return []
-  }
-
-  try {
-    return JSON.parse(window.localStorage.getItem(localUsersKey) || '[]') as LocalUser[]
-  } catch {
-    return []
-  }
-}
-
-async function registerLocally(payload: RegistrationPayload) {
-  const users = getLocalUsers()
-  const existingIndex = users.findIndex((user) => user.username === payload.username)
-
-  if (existingIndex >= 0 && users[existingIndex].passwordHash) {
-    return { ok: false, error: 'Username უკვე გამოყენებულია' }
-  }
-
-  if (existingIndex >= 0) {
-    users[existingIndex] = {
-      ...users[existingIndex],
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      passwordHash: await hashPassword(payload.password),
-    }
-    window.localStorage.setItem(localUsersKey, JSON.stringify(users))
-    return { ok: true }
-  }
-
-  users.push({
-    id: globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : String(Date.now()),
-    username: payload.username,
-    firstName: payload.firstName,
-    lastName: payload.lastName,
-    passwordHash: await hashPassword(payload.password),
-    createdAt: new Date().toISOString(),
-  })
-  window.localStorage.setItem(localUsersKey, JSON.stringify(users))
-  return { ok: true }
-}
-
-async function fetchWithTimeout(url: string, options: RequestInit) {
-  const controller = new AbortController()
-  const timeoutId = window.setTimeout(() => controller.abort(), 2500)
-
-  try {
-    return await fetch(url, { ...options, signal: controller.signal })
-  } finally {
-    window.clearTimeout(timeoutId)
-  }
-}
-
-async function registerOnServer(payload: RegistrationPayload) {
-  for (const apiUrl of Array.from(new Set(apiUrls))) {
-    try {
-      const res = await fetchWithTimeout(`${apiUrl}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      const data = await res.json().catch(() => ({}))
-
-      if (!res.ok) {
-        const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
-        return { ok: false, error: data?.error || message || 'შეცდომა სერვერზე' }
-      }
-
-      return { ok: true, local: false }
-    } catch (err) {
-      console.warn('Registration API is unavailable:', err)
-    }
-  }
-
-  return { ok: true, local: true }
-}
+const USERNAME_PATTERN = /^[a-z0-9_-]+$/
+// Mirrors backend/src/auth/password-policy.ts — keep these in sync if that changes.
+const PASSWORD_MIN_LENGTH = 8
+const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).+$/
 
 export default function Register() {
   const [form, setForm] = useState({
     username: '',
+    email: '',
     firstName: '',
     lastName: '',
     password: '',
@@ -122,13 +17,14 @@ export default function Register() {
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [checkingUsername, setCheckingUsername] = useState(false)
   const [usernameError, setUsernameError] = useState('')
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latestUsername = useRef('')
 
-  const isValidUsername = (username: string) => /^[a-z0-9_-]+$/.test(username)
+  const isValidUsername = (username: string) => USERNAME_PATTERN.test(username)
 
   const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name } = event.target
@@ -167,29 +63,16 @@ export default function Register() {
 
     setCheckingUsername(true)
     try {
-      const res = await fetchWithTimeout(
-        `${apiUrls[0]}/auth/check-username?username=${encodeURIComponent(username)}`,
-        {},
-      )
-      const data = await res.json()
-
+      const data = await api.checkUsername(username)
       if (latestUsername.current !== username) {
         return
       }
-
-      if (data?.available !== undefined) {
-        setUsernameAvailable(data.available)
-        setUsernameError(data.available ? '' : 'Username უკვე გამოყენებულია')
-      } else {
+      setUsernameAvailable(data.available)
+      setUsernameError(data.available ? '' : 'Username უკვე გამოყენებულია')
+    } catch {
+      if (latestUsername.current === username) {
         setUsernameAvailable(null)
         setUsernameError('')
-      }
-    } catch (err) {
-      console.warn('Username API is unavailable, checking local storage:', err)
-      if (latestUsername.current === username) {
-        const takenLocally = getLocalUsers().some((user) => user.username === username)
-        setUsernameAvailable(!takenLocally)
-        setUsernameError(takenLocally ? 'Username უკვე გამოყენებულია' : '')
       }
     } finally {
       if (latestUsername.current === username) {
@@ -226,15 +109,7 @@ export default function Register() {
       return
     }
 
-    if (usernameAvailable === null) {
-      const takenLocally = getLocalUsers().some((user) => user.username === form.username)
-      if (takenLocally) {
-        setError('ეს Username უკვე გამოყენებულია')
-        return
-      }
-    }
-
-    if (!form.firstName || !form.lastName || !form.password || !form.confirmPassword) {
+    if (!form.email || !form.firstName || !form.lastName || !form.password || !form.confirmPassword) {
       setError('გთხოვთ შეავსოთ ყველა ველი.')
       return
     }
@@ -244,30 +119,30 @@ export default function Register() {
       return
     }
 
-    if (form.password.length < 6) {
-      setError('პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო.')
+    if (form.password.length < PASSWORD_MIN_LENGTH || !PASSWORD_PATTERN.test(form.password)) {
+      setError(`პაროლი უნდა იყოს მინიმუმ ${PASSWORD_MIN_LENGTH} სიმბოლო და შეიცავდეს ასოსა და ციფრს.`)
       return
     }
 
-    const payload = {
-      username: form.username,
-      firstName: form.firstName,
-      lastName: form.lastName,
-      password: form.password,
+    setSubmitting(true)
+    try {
+      await api.register({
+        username: form.username,
+        email: form.email,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        password: form.password,
+      })
+      setSuccess('რეგისტრაცია წარმატებით დასრულდა')
+      setForm({ username: '', email: '', firstName: '', lastName: '', password: '', confirmPassword: '' })
+      setUsernameAvailable(null)
+      setUsernameError('')
+      latestUsername.current = ''
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'სერვერთან დაკავშირება ვერ მოხერხდა.')
+    } finally {
+      setSubmitting(false)
     }
-    const serverResult = await registerOnServer(payload)
-    const result = serverResult.local ? await registerLocally(payload) : serverResult
-
-    if (!result.ok) {
-      setError(result.error || 'შეცდომა რეგისტრაციისას')
-      return
-    }
-
-    setSuccess('რეგისტრაცია წარმატებით დასრულდა')
-    setForm({ username: '', firstName: '', lastName: '', password: '', confirmPassword: '' })
-    setUsernameAvailable(null)
-    setUsernameError('')
-    latestUsername.current = ''
   }
 
   return (
@@ -295,6 +170,20 @@ export default function Register() {
             {form.username && isValidUsername(form.username) && usernameAvailable === true && (
               <div className="status-text status-success">Username თავისუფალია</div>
             )}
+          </div>
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              autoComplete="email"
+              className="input"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              value={form.email}
+              onChange={onChange}
+            />
           </div>
           <div className="row-two">
             <div className="form-group">
@@ -332,7 +221,7 @@ export default function Register() {
               className="input"
               name="password"
               type="password"
-              minLength={6}
+              minLength={PASSWORD_MIN_LENGTH}
               placeholder="პაროლი"
               required
               value={form.password}
@@ -347,7 +236,7 @@ export default function Register() {
               className="input"
               name="confirmPassword"
               type="password"
-              minLength={6}
+              minLength={PASSWORD_MIN_LENGTH}
               placeholder="პაროლის გამეორება"
               required
               value={form.confirmPassword}
@@ -361,7 +250,7 @@ export default function Register() {
           <button
             className="glow-on-hover button"
             type="submit"
-            disabled={Boolean(usernameError) || checkingUsername || !form.username}
+            disabled={Boolean(usernameError) || checkingUsername || !form.username || submitting}
           >
             Sign up
           </button>

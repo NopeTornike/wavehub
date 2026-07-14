@@ -1,41 +1,73 @@
 # auth
 
 ## Purpose
-Registration and login. Will own real session issuance, auth guards, email verification, and
-password reset once Phase 1 of the build plan lands — none of that exists yet (see Status below).
+Registration, login, real session management (httpOnly JWT cookie), email verification, and
+password reset. Every other module that needs to know "who's making this request" depends on
+`AuthGuard`/`CurrentUserId` from here.
 
 ## Key files
-- `auth.controller.ts` — `POST /auth/register`, `POST /auth/login`, `GET /auth/check-username`
-- `auth.service.ts` — credential validation, bcrypt hashing, dual-mode (Postgres repo or JSON-file
-  fallback at `backend/data/users.json`)
-- `auth.module.ts` — wires the above into Nest DI
+- `auth.controller.ts` — `POST /auth/register`, `/login`, `/logout`, `GET /me`,
+  `GET /check-username`, `POST /verify-email`, `POST /resend-verification` (guarded),
+  `POST /request-password-reset`, `POST /reset-password`
+- `auth.service.ts` — registration/login logic, email-verification and password-reset token
+  issuance/consumption, bcrypt hashing
+- `session.service.ts` — signs/verifies the session JWT, sets/clears the httpOnly cookie
+  (`SESSION_COOKIE_NAME = 'wavehub_session'`)
+- `auth.guard.ts` — `AuthGuard`, verifies the session cookie and attaches `request.userId`
+- `current-user.decorator.ts` — `@CurrentUserId()` param decorator, only valid on guarded routes
+- `password-policy.ts` — the password strength rule (min length + letter/digit), exported so both
+  the DTO validators and `password-policy.spec.ts` use the same source of truth
+- `email-verification-token.entity.ts`, `password-reset-token.entity.ts` — single-use, hashed,
+  expiring tokens (24h / 1h respectively)
+- `auth.module.ts` — wires the above; also where `JWT_SECRET` is required/validated at boot
 
 ## Data model
-Owns the `users` table via `backend/src/users/user.entity.ts` (see `backend/src/users/CLAUDE.md`).
-No session/token table exists yet.
+Owns `email_verification_tokens` and `password_reset_tokens` (see
+`backend/src/migrations/*-CreateAuthTokenTables.ts`). Reads/writes the `users` table via direct
+repository injection here (registration/status updates) — for read-only lookups from *other*
+modules, use `UsersService` (`backend/src/users/CLAUDE.md`) instead of injecting `Repository<User>`
+directly, to keep one place owning "how do I fetch a user."
 
 ## Conventions & gotchas
-- Passwords are bcrypt-hashed (cost 10) — keep doing this, never regress to a weaker/optional scheme
-  (see root `CLAUDE.md` non-negotiable rules).
-- `AuthService`'s JSON-file fallback (`usersFile`, active when no TypeORM repo is injected) is a
-  **known-temporary shim**, not a pattern to extend — Phase 1 of the build plan removes it entirely;
-  Postgres becomes mandatory past that point. Don't build new features against the file-store path.
-- **No real session exists today.** `login()` returns a plain user object; nothing server-side proves
-  identity on subsequent requests. Do not build anything that assumes "the logged-in user" until
-  Phase 1's httpOnly-cookie session + `AuthGuard`/`@CurrentUser()` land — there's nothing to hook into
-  yet.
-- The frontend (`frontend/pages/login.tsx`, `register.tsx`) has a client-side SHA-256 local-account
-  fallback for when this API is unreachable. It's a different hash scheme from this module's bcrypt
-  and creates accounts that can never log in against the real backend — treat it as dead code to be
-  deleted in Phase 1, not a pattern to preserve or extend.
+- **Session is a stateless JWT in an httpOnly cookie — there is no `sessions` table.** There's no
+  way to revoke a single session early (e.g. "log out this device") without waiting for the 7-day
+  expiry. If that becomes a real requirement, that's the point to add a session table or a
+  denylist — don't build around the gap by inventing something ad hoc in another module.
+- `AuthGuard` only verifies the JWT's signature/expiry — it does **not** re-check the user's
+  `status` (active/suspended/banned) against the database on every request, to keep guarded
+  requests cheap. `GET /me` loads the fresh user row anyway (it needs to return current data), so
+  it's the one place status is actually current. If you're building something where a
+  suspended/banned user must be blocked immediately (not just eventually via short token expiry),
+  don't assume `AuthGuard` alone covers that — add an explicit status check in that endpoint.
+- Both verification and reset tokens are stored as **SHA-256 hashes**, never the raw token — same
+  reasoning as password hashing. Compare by hashing the incoming token and looking up the hash.
+- `requestPasswordReset` always returns `{ ok: true }` regardless of whether the email matched an
+  account — this is deliberate (prevents email enumeration), don't "fix" it to return a clearer
+  error for unknown emails.
+- Passwords are bcrypt-hashed (cost 10). Password strength floor lives in `password-policy.ts` —
+  update both it and `frontend/pages/register.tsx`'s mirrored constants together if it changes.
+- `JWT_SECRET` throws at boot if unset **and** `NODE_ENV=production`; otherwise falls back to a
+  logged, insecure dev default. Never remove the production check.
+- Registration auto-attaches a session cookie immediately (status starts at
+  `pending_verification`) — being logged in and being email-verified are two different gates.
+  Don't conflate them; features that require verification should check `status`, not "is there a
+  session."
+- No real email provider exists yet — `EmailService` (`backend/src/email/`) just logs. Verification
+  and reset links are fully functional (tokens really work), you just won't get an email; check the
+  server console for the link during local testing.
 
 ## Related modules
-- `backend/src/users/` — the entity this module reads/writes.
-- Almost every future module (`orders`, `wallet`, `admin`, etc.) will depend on the real session/guard
-  work this module is scheduled to gain in Phase 1 — check back here once that lands before assuming
-  how to identify "the current user" in a new controller.
+- `backend/src/users/` — the entity and `UsersService` this module builds on.
+- `backend/src/email/` — the (stubbed) email sender used for verification/reset messages.
+- `frontend/lib/api.ts` — the frontend's client for every endpoint here; keep them in sync if you
+  change a request/response shape.
+- Every future guarded module should import `AuthGuard`/`CurrentUserId` from here rather than
+  reimplementing session verification.
 
 ## Status
-Register/login/check-username work today (bcrypt hashing is correct). Missing, planned for Phase 1:
-real session (httpOnly JWT cookie), `GET /auth/me`, guards, email verification, password reset,
-password-strength validation beyond a 6-char minimum, removal of the JSON-file fallback.
+Real session, guard, `/me`, email verification, and password reset are all implemented and
+functional end-to-end (register → verify → login → me → reset), pending real Postgres/CI
+verification (no live DB was available in the sandbox this was authored in — see the migration
+files' own notes). Not yet built: rate limiting on auth endpoints, CAPTCHA/bot protection, OAuth
+("Gmail-ით რეგისტრაცია" noted in the frontend copy as a future addition), and any
+suspension/ban enforcement beyond what `GET /me` naturally surfaces.
