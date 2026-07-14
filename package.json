@@ -6,6 +6,10 @@
     "frontend",
     "packages/*"
   ],
+  "overrides": {
+    "postcss": "^8.5.15",
+    "multer": "^2.2.0"
+  },
   "scripts": {
     "backend:dev": "npm run start:dev -w backend",
     "backend:build": "npm run build -w backend",

@@ -47,6 +47,66 @@ the phased build plan. Add the row in the same change that adds the module.
 Full reasoning for each of these (including which contradictions in the source spec they resolve) is in
 `SPECIFICATION.md` §4.
 
+## Security
+
+Baseline hardening that exists today (added Phase 2 after a dedicated pass — see
+`/Users/sarvat/.claude/plans/mighty-mapping-robin.md` progress log for what prompted it):
+
+- **`helmet`** is applied globally in `main.ts` for standard security headers.
+- **Rate limiting** (`@nestjs/throttler`) is applied globally (100 req/60s/IP default) via
+  `APP_GUARD` in `app.module.ts`, with stricter per-route limits (5/60s) on brute-force-prone
+  endpoints — registration, login, password reset, email verification. **Any new public endpoint
+  that authenticates a credential, issues a token, or otherwise has a brute-force/enumeration
+  surface must get an explicit `@Throttle()` override, not just rely on the generous global
+  default.** Server-to-server webhook endpoints protected by signature verification instead
+  (only one exists so far: `POST /payments/bog/callback`) should use `@SkipThrottle()` instead —
+  dropping a legitimate signed callback under IP-based rate limiting is a worse failure mode than
+  the flood risk that limiting would prevent.
+  - Known limitation: throttler state is in-memory per process. A multi-instance deployment behind
+    a load balancer effectively multiplies the real limit by instance count. Fine for now; revisit
+    (Redis-backed throttler storage) if/when this actually runs on more than one instance.
+  - Rate limiting only reflects the real client IP if `TRUST_PROXY` is correctly configured in
+    front of a real reverse proxy/load balancer — see `main.ts` and `.env.example`. Never set it
+    without an actual trusted proxy in front; doing so lets any client spoof its own IP via
+    `X-Forwarded-For` and silently defeats the rate limit.
+- **Every mutating endpoint validates input via a `class-validator` DTO** under a global
+  `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` — unexpected
+  body fields are rejected outright, not silently ignored (defends against mass-assignment-style
+  bugs). Keep using DTOs for any new endpoint; don't read `req.body` untyped.
+- **Never trust a client-supplied identity or amount on a money-moving endpoint.** Two real bugs of
+  exactly this shape were found and fixed in `backend/src/payments/` while building Phase 2: a
+  client-supplied `username` deciding whose account gets credited, and a client-supplied WaveCoin
+  amount independent of what was actually paid. Always derive "who" from `@CurrentUserId()` (the
+  verified session) and derive "how much" from a server-side calculation, never from a request body
+  field with the same name as something security-sensitive.
+- **Don't forward upstream/internal error messages to API clients.** Log the real error server-side
+  (`Logger.error`), return a generic message. `backend/src/payments/bog-payments.controller.ts` is
+  the reference example (BOG's raw error text is logged, never returned).
+- **Validate any URL a client asks the server to redirect to or store**, against an allowlist (e.g.
+  same-origin as `FRONTEND_URL`) — see `backend/src/payments/same-origin.util.ts` for the pattern.
+  An unvalidated redirect target is an open-redirect and, on a post-payment flow specifically, a
+  phishing setup.
+- **CSRF posture**: session cookies are `httpOnly`, `sameSite: 'lax'`, `secure` in production (see
+  `backend/src/auth/session.service.ts`). Combined with every mutating endpoint being POST (never
+  GET), `SameSite=Lax` already blocks the standard cross-site-form/fetch CSRF vector — a cross-site
+  POST doesn't carry the cookie under Lax. This is a deliberate choice not to add explicit CSRF
+  tokens on top; revisit only if a mutating endpoint is ever added that must be reachable via GET
+  (it shouldn't be) or if the frontend and backend end up on genuinely cross-site (not just
+  cross-port-same-site) domains in a way that changes this analysis.
+- **`npm` `overrides` (used to pin a transitive dependency past a known CVE — e.g. the `postcss`
+  entry in root `package.json`) only take effect when declared in the workspace ROOT
+  `package.json`.** An override in `backend/package.json` or `frontend/package.json` is silently
+  ignored by npm workspaces. This bit us once already (Phase 2) — a real CVE fix stopped applying
+  the moment the root `package.json` was introduced in Phase 0, undetected until an explicit `npm
+  audit` pass. Run `npm audit --omit=dev` after any dependency change and treat a new finding as
+  something to actually fix, not defer.
+- `.github/workflows/ci.yml` has an `audit` job running `npm audit --omit=dev` on every PR — a
+  vulnerable production dependency fails CI, it doesn't rely on someone remembering to check.
+- Not yet done, tracked for later phases: CSRF tokens (see reasoning above — currently judged
+  unnecessary, not forgotten), CAPTCHA/bot-protection on registration, structured audit logging
+  (exists as a *rule* for the future admin panel, §non-negotiable-rule-3, but the `audit_logs` table
+  itself doesn't exist until Phase 11).
+
 ## Architecture notes
 
 - **Monorepo**: npm workspaces (`backend`, `frontend`, `packages/*`). One root `npm install`. Per-app

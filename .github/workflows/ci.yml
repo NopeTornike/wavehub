@@ -53,3 +53,18 @@ jobs:
       - run: npm ci
       - run: npm run frontend:lint
       - run: npm run frontend:build
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      # Fails the build on any known vulnerability in a production dependency. If this ever fires
+      # on a transitive dependency that needs pinning past a CVE, add/update an `overrides` entry
+      # in the ROOT package.json specifically — a workspace member's own `overrides` field is
+      # silently ignored by npm. See CLAUDE.md's Security section for why that matters here.
+      - run: npm audit --omit=dev

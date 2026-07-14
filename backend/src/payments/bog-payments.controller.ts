@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Headers,
@@ -10,6 +11,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transform } from 'class-transformer';
@@ -19,10 +21,13 @@ import type { Request } from 'express';
 import { BogPaymentsService } from './bog-payments.service';
 import { BogTopupIntent } from './bog-topup-intent.entity';
 import { verifyBogCallbackSignature } from './bog-signature.util';
+import { isSameOriginAsFrontend } from './same-origin.util';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
 import { UsersService } from '../users/users.service';
 import { WalletService } from '../wallet/wallet.service';
+
+const CREATE_ORDER_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
 
 class CreateBogOrderDto {
   @Transform(({ value }) => Number(value))
@@ -35,6 +40,13 @@ class CreateBogOrderDto {
 
   @IsUrl({ require_tld: false })
   failUrl: string;
+}
+
+function assertSameOriginAsFrontend(url: string, fieldName: string): void {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  if (!isSameOriginAsFrontend(url, frontendUrl)) {
+    throw new BadRequestException(`${fieldName} must be on the same origin as ${frontendUrl}`);
+  }
 }
 
 @Controller('payments/bog')
@@ -54,11 +66,15 @@ export class BogPaymentsController {
   // number of WaveCoin regardless of amountGel). See bog-topup-intent.entity.ts / CLAUDE.md.
   @Post('create-order')
   @UseGuards(AuthGuard)
+  @Throttle(CREATE_ORDER_THROTTLE)
   async createOrder(@CurrentUserId() userId: string, @Body() body: CreateBogOrderDto) {
     const user = await this.usersService.findById(userId);
     if (!user) {
       throw new HttpException({ ok: false, error: 'User not found' }, HttpStatus.NOT_FOUND);
     }
+
+    assertSameOriginAsFrontend(body.successUrl, 'successUrl');
+    assertSameOriginAsFrontend(body.failUrl, 'failUrl');
 
     const transactionId = randomUUID();
     const wavecoins = body.amountGel; // fixed 1 GEL : 1 WaveCoin
@@ -88,11 +104,12 @@ export class BogPaymentsController {
       return { ok: true, ...order };
     } catch (err: any) {
       await this.intents.update(transactionId, { status: 'failed' });
-      const status = err.status || HttpStatus.BAD_GATEWAY;
-      throw new HttpException(
-        { ok: false, error: err.message || 'BOG checkout could not be created.' },
-        status,
-      );
+      // Log the real upstream error server-side, but don't forward it to the client — BOG's raw
+      // error text could describe internal request shape/credentials-adjacent detail that's only
+      // useful for our own debugging, not something to hand back over the API.
+      this.logger.error(`BOG create-order failed for user ${userId}`, err as Error);
+      const status = err.status && err.status < 500 ? err.status : HttpStatus.BAD_GATEWAY;
+      throw new HttpException({ ok: false, error: 'BOG checkout could not be created.' }, status);
     }
   }
 
@@ -102,8 +119,13 @@ export class BogPaymentsController {
   // field is what we should act on. Always returns 200 (even for unknown/invalid callbacks) so BOG
   // doesn't retry a request we've already permanently rejected; only successful, verified,
   // completed payments actually credit anything, and recordTopup is idempotent regardless.
+  // Exempt from the global IP-based rate limit: this is server-to-server traffic from BOG (likely
+  // a small, shared set of source IPs across every user's transactions), it's already gated by
+  // cryptographic signature verification rather than by throughput, and dropping a legitimate
+  // payment confirmation under load is a worse failure mode than any flood risk here.
   @Post('callback')
   @HttpCode(HttpStatus.OK)
+  @SkipThrottle()
   async callback(@Req() req: Request, @Headers('callback-signature') signature: string | undefined) {
     const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
 

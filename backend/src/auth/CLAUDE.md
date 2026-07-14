@@ -55,6 +55,11 @@ directly, to keep one place owning "how do I fetch a user."
 - No real email provider exists yet — `EmailService` (`backend/src/email/`) just logs. Verification
   and reset links are fully functional (tokens really work), you just won't get an email; check the
   server console for the link during local testing.
+- `register`/`login`/`verify-email`/`resend-verification`/`request-password-reset`/`reset-password`
+  are all rate-limited to 5 requests/60s (`AUTH_THROTTLE` in `auth.controller.ts`) — much stricter
+  than the global default (see root `CLAUDE.md`'s Security section). `check-username` gets a looser
+  20/60s limit since it's called on every keystroke-debounce during registration. Any new
+  credential-adjacent endpoint added here should default to the strict limit, not the global one.
 
 ## Related modules
 - `backend/src/users/` — the entity and `UsersService` this module builds on.
@@ -65,9 +70,9 @@ directly, to keep one place owning "how do I fetch a user."
   reimplementing session verification.
 
 ## Status
-Real session, guard, `/me`, email verification, and password reset are all implemented and
-functional end-to-end (register → verify → login → me → reset), pending real Postgres/CI
-verification (no live DB was available in the sandbox this was authored in — see the migration
-files' own notes). Not yet built: rate limiting on auth endpoints, CAPTCHA/bot protection, OAuth
-("Gmail-ით რეგისტრაცია" noted in the frontend copy as a future addition), and any
-suspension/ban enforcement beyond what `GET /me` naturally surfaces.
+Real session, guard, `/me`, email verification, password reset, and rate limiting are all
+implemented and functional end-to-end (register → verify → login → me → reset), pending real
+Postgres/CI verification (no live DB was available in the sandbox this was authored in — see the
+migration files' own notes). Not yet built: CAPTCHA/bot protection, OAuth ("Gmail-ით
+რეგისტრაცია" noted in the frontend copy as a future addition), and any suspension/ban
+enforcement beyond what `GET /me` naturally surfaces.

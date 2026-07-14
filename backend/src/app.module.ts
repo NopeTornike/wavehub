@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -15,6 +17,11 @@ import { BogTopupIntent } from './payments/bog-topup-intent.entity';
 // backend/src/auth/CLAUDE.md for why.
 @Module({
   imports: [
+    // Global default: 100 requests / 60s per IP. Individual auth-sensitive endpoints override this
+    // with a much stricter limit via @Throttle() — see auth.controller.ts and
+    // bog-payments.controller.ts. Keying is by IP (ThrottlerGuard's default), which only reflects
+    // the real client IP if TRUST_PROXY is configured correctly in a real deployment — see main.ts.
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DATABASE_HOST,
@@ -30,5 +37,6 @@ import { BogTopupIntent } from './payments/bog-topup-intent.entity';
     WalletModule,
     PaymentsModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

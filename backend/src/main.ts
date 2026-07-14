@@ -3,6 +3,11 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
+// Named import of `default`, not a default/namespace import — helmet's CJS type declarations use
+// `export { helmet as default }` (ESM-style), which needs esModuleInterop for a true default
+// import; this codebase deliberately doesn't enable that (see tsconfig.json), so import the named
+// `default` binding explicitly instead.
+import { default as helmet } from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -10,6 +15,17 @@ async function bootstrap() {
   // POST /payments/bog/callback to verify BOG's signature over the exact bytes it sent, before
   // the body gets parsed into a JS object. See backend/src/payments/bog-signature.util.ts.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
+
+  // Only trust X-Forwarded-* headers when explicitly told there's a real proxy in front (e.g. a
+  // load balancer/CDN in production) — trusting them by default would let any client spoof its own
+  // IP address via the header, which would silently defeat rate limiting (see ThrottlerModule in
+  // app.module.ts) and corrupt secure-cookie detection. Set TRUST_PROXY=1 only when this is
+  // actually deployed behind such a proxy.
+  if (process.env.TRUST_PROXY) {
+    app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : process.env.TRUST_PROXY);
+  }
+
+  app.use(helmet());
   app.use(cookieParser());
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
     .split(',')

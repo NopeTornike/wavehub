@@ -13,6 +13,9 @@ architecture notes — WaveCoin top-up, not per-order fiat escrow, is the chosen
 - `bog-signature.util.ts` — `verifyBogCallbackSignature`, RSA-SHA256 verification of the
   `Callback-Signature` header against BOG's published public key (embedded as
   `BOG_DEFAULT_CALLBACK_PUBLIC_KEY`, overridable via `BOG_CALLBACK_PUBLIC_KEY` env var)
+- `same-origin.util.ts` — `isSameOriginAsFrontend`, validates `successUrl`/`failUrl` are on our own
+  frontend before accepting them (open-redirect defense — see `createOrder`'s
+  `assertSameOriginAsFrontend` wrapper)
 - `bog-topup-intent.entity.ts` — `BogTopupIntent`: created when checkout starts, keyed by the
   transactionId we generate (= BOG's `external_order_id`), so the callback can map back to a
   user + WaveCoin amount
@@ -55,6 +58,18 @@ to actually credit a balance — this module never touches `users.wavecoinBalanc
 - The BOG public key and API endpoints referenced here were fetched from
   `https://api.bog.ge/docs/en/payments/` on 2026-07-15. If BOG's docs have changed since, re-verify
   before trusting this module against production traffic — don't assume it's still current forever.
+- **`successUrl`/`failUrl` are validated same-origin against `FRONTEND_URL`** before being sent to
+  BOG (`assertSameOriginAsFrontend`). BOG redirects the buyer's browser to one of these after
+  payment — an unvalidated redirect target here is a real open-redirect, and one that follows an
+  actual payment is a specifically plausible phishing setup. Don't relax this to allow arbitrary
+  URLs.
+- **`create-order` is rate-limited** (10 req/60s, `CREATE_ORDER_THROTTLE`) — it's guarded, but still
+  worth limiting since it triggers an outbound call to BOG per request. **`callback` is explicitly
+  exempted** (`@SkipThrottle()`) since it's server-to-server traffic from BOG protected by signature
+  verification rather than throughput limits, and IP-based throttling could plausibly drop a
+  legitimate payment confirmation under load — see root `CLAUDE.md`'s Security section.
+- **Never return an upstream error's raw message to the client** (`err.message` from BOG's API) —
+  log it server-side, return a generic error. `createOrder`'s catch block is the reference example.
 
 ## Related modules
 - `backend/src/wallet/` — the callback's only effect on state goes through

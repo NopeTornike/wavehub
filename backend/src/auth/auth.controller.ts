@@ -10,6 +10,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 import type { Response } from 'express';
@@ -72,6 +73,13 @@ class RequestPasswordResetDto {
   email: string;
 }
 
+// Stricter than the global 100/60s default (see app.module.ts) — these endpoints are brute-force
+// targets (credential guessing, account enumeration via check-username/email, token guessing) and
+// legitimate use never needs this much throughput. Keep in sync with any similar decision made in
+// backend/src/payments/bog-payments.controller.ts.
+const AUTH_THROTTLE = { default: { limit: 5, ttl: 60_000 } };
+const USERNAME_CHECK_THROTTLE = { default: { limit: 20, ttl: 60_000 } }; // live-typing feedback, needs more headroom
+
 class ResetPasswordDto {
   @IsString()
   @IsNotEmpty()
@@ -92,6 +100,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @Throttle(AUTH_THROTTLE)
   async register(@Body() body: RegisterDto, @Res({ passthrough: true }) res: Response) {
     try {
       const user = await this.auth.register(body);
@@ -110,6 +119,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
   async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
     try {
       const user = await this.auth.login(body);
@@ -141,6 +151,7 @@ export class AuthController {
   }
 
   @Get('check-username')
+  @Throttle(USERNAME_CHECK_THROTTLE)
   async checkUsername(@Query('username') username: string) {
     if (!username?.trim()) {
       throw new HttpException({ ok: false, error: 'Username is required' }, HttpStatus.BAD_REQUEST);
@@ -158,6 +169,7 @@ export class AuthController {
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
   async verifyEmail(@Body() body: VerifyEmailDto) {
     try {
       await this.auth.verifyEmail(body.token);
@@ -170,6 +182,7 @@ export class AuthController {
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
+  @Throttle(AUTH_THROTTLE)
   async resendVerification(@CurrentUserId() userId: string) {
     const user = await this.usersService.findById(userId);
     if (!user) {
@@ -181,6 +194,7 @@ export class AuthController {
 
   @Post('request-password-reset')
   @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
   async requestPasswordReset(@Body() body: RequestPasswordResetDto) {
     await this.auth.requestPasswordReset(body.email);
     // Always ok:true regardless of whether the email matched an account — see AuthService for why.
@@ -189,6 +203,7 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
   async resetPassword(@Body() body: ResetPasswordDto) {
     try {
       await this.auth.resetPassword(body.token, body.newPassword);
