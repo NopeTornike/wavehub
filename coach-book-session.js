@@ -840,7 +840,7 @@
             <strong>${escapeHtml(coach.priceText || `${Number(coach.price) || 0} GEL/hour`)}</strong>
           </div>
           <button class="coach-book-primary" type="button" data-action="book">${bookButtonText}</button>
-          <a class="coach-book-secondary" href="messages.html">Message Coach</a>
+          <a class="coach-book-secondary coach-message-secondary" href="messages.html">Message Coach</a>
           <button class="coach-book-secondary" type="button" data-action="wishlist">Add to Wishlist</button>
         </div>
 

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <mask id="calendar-cutouts">
+      <rect width="128" height="128" fill="white"/>
+      <rect x="12" y="48" width="104" height="8" fill="black" fill-opacity=".32"/>
+      <rect x="32" y="69" width="13" height="12" rx="3" fill="black"/>
+      <rect x="57.5" y="69" width="13" height="12" rx="3" fill="black"/>
+      <rect x="83" y="69" width="13" height="12" rx="3" fill="black"/>
+      <rect x="32" y="91" width="13" height="12" rx="3" fill="black"/>
+      <rect x="57.5" y="91" width="13" height="12" rx="3" fill="black"/>
+      <rect x="83" y="91" width="13" height="12" rx="3" fill="black"/>
+    </mask>
+  </defs>
+  <g fill="white" mask="url(#calendar-cutouts)">
+    <path d="M27 22h74c8.3 0 15 6.7 15 15v69c0 8.3-6.7 15-15 15H27c-8.3 0-15-6.7-15-15V37c0-8.3 6.7-15 15-15Z"/>
+    <rect x="31" y="9" width="10" height="30" rx="5"/>
+    <rect x="87" y="9" width="10" height="30" rx="5"/>
+  </g>
+</svg>

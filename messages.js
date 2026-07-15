@@ -6,6 +6,8 @@ const receivedMessages = document.getElementById('receivedMessages');
 const sentMessages = document.getElementById('sentMessages');
 const visibleMessageCount = document.getElementById('visibleMessageCount');
 const messageCount = document.getElementById('messageCount');
+const receivedMessageCount = document.getElementById('receivedMessageCount');
+const sentMessageCount = document.getElementById('sentMessageCount');
 const profileButton = document.getElementById('profileButton');
 const profileDropdown = document.getElementById('profileDropdown');
 const profileAvatar = document.getElementById('profileAvatar');
@@ -25,8 +27,8 @@ const onlineCount = document.getElementById('onlineCount');
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const priceOffersKey = 'wavehub.priceOffers';
-const minOnlineCount = 94;
-const maxOnlineCount = 225;
+const minOnlineCount = 2;
+const maxOnlineCount = 23;
 
 function readJson(key, fallback) {
   try {
@@ -166,7 +168,7 @@ function renderOnlineCount() {
 
 function createMessageCard(offer, mode) {
   const card = document.createElement('article');
-  card.className = 'message-card';
+  card.className = `message-card ${mode}`;
 
   const top = document.createElement('div');
   top.className = 'message-card-top';
@@ -175,10 +177,17 @@ function createMessageCard(offer, mode) {
   tag.className = 'service-tag account';
   tag.textContent = mode === 'received' ? 'Received' : 'Sent';
 
+  const game = document.createElement('span');
+  game.className = 'message-game';
+  game.textContent = offer.game || 'Marketplace';
+
   const price = document.createElement('strong');
   price.textContent = normalizePriceText(offer.offeredPrice);
 
-  top.append(tag, price);
+  const labels = document.createElement('div');
+  labels.className = 'message-card-labels';
+  labels.append(tag, game);
+  top.append(labels, price);
 
   const title = document.createElement('h3');
   title.textContent = offer.itemTitle;
@@ -188,6 +197,14 @@ function createMessageCard(offer, mode) {
 
   const meta = document.createElement('div');
   meta.className = 'message-meta';
+
+  const avatar = document.createElement('span');
+  avatar.className = 'message-avatar';
+  const participantName = mode === 'received' ? offer.buyerName : offer.sellerName;
+  avatar.textContent = String(participantName || '?').trim().charAt(0).toUpperCase() || '?';
+
+  const metaCopy = document.createElement('div');
+  metaCopy.className = 'message-meta-copy';
   const participant = document.createElement('span');
   participant.textContent = mode === 'received' ? `From ${offer.buyerName}` : `To ${offer.sellerName}`;
 
@@ -197,12 +214,13 @@ function createMessageCard(offer, mode) {
   const time = document.createElement('span');
   time.textContent = formatOfferTime(offer.createdAt);
 
-  meta.append(participant, ask, time);
+  metaCopy.append(participant, ask, time);
+  meta.append(avatar, metaCopy);
 
   const action = document.createElement('a');
   action.className = 'auth-open-button primary';
   action.href = offer.detailUrl;
-  action.textContent = 'Open offer';
+  action.innerHTML = '<span>View offer</span><span aria-hidden="true">→</span>';
 
   card.append(top, title, message, meta, action);
   return card;
@@ -237,6 +255,8 @@ function renderMessages() {
     renderList(sentMessages, [], 'Log in to see sent offers.', 'sent');
     if (visibleMessageCount) visibleMessageCount.textContent = '0';
     if (messageCount) messageCount.textContent = '0';
+    if (receivedMessageCount) receivedMessageCount.textContent = '0';
+    if (sentMessageCount) sentMessageCount.textContent = '0';
     return;
   }
 
@@ -255,6 +275,8 @@ function renderMessages() {
   renderList(sentMessages, sent, 'No sent price offers yet.', 'sent');
   if (visibleMessageCount) visibleMessageCount.textContent = String(total);
   if (messageCount) messageCount.textContent = String(received.length);
+  if (receivedMessageCount) receivedMessageCount.textContent = String(received.length);
+  if (sentMessageCount) sentMessageCount.textContent = String(sent.length);
 }
 
 menuToggle?.addEventListener('click', () => {

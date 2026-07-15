@@ -43,8 +43,8 @@ const sessionKey = 'wavehub.session';
 const sellerListingsKey = 'wavehub.sellerListings';
 const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
-const minOnlineCount = 18;
-const maxOnlineCount = 61;
+const minOnlineCount = 2;
+const maxOnlineCount = 23;
 const listingTypeConfig = {
   account: {
     type: 'account',

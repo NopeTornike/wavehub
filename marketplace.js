@@ -561,7 +561,7 @@ function renderOnlineCount() {
     return;
   }
 
-  const count = Math.floor(Math.random() * (225 - 94 + 1)) + 94;
+  const count = Math.floor(Math.random() * (23 - 2 + 1)) + 2;
   onlineCount.textContent = `${count} online`;
 }
 
@@ -731,7 +731,7 @@ function createProductShowcaseCard(listing) {
   const rankMeta = document.createElement('small');
   rankMeta.textContent = config.type === 'skin' ? listing.game || 'WaveHub' : `Lv. ${level ? formatCount(level) : '-'}`;
   rankCopy.append(rankTitle, rankMeta);
-  rankRow.append(rankSymbol, rankCopy);
+  rankRow.append(rankSymbol, rankCopy, saveButton);
 
   const stats = document.createElement('div');
   stats.className = 'product-showcase-stats';
@@ -750,7 +750,7 @@ function createProductShowcaseCard(listing) {
   });
 
   coverInfo.append(rankRow, stats);
-  cover.append(badges, saveButton, coverInfo);
+  cover.append(badges, coverInfo);
 
   const body = document.createElement('div');
   body.className = 'product-showcase-body';

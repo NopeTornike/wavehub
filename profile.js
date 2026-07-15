@@ -235,7 +235,7 @@ function renderOnlineCount() {
     return;
   }
 
-  const count = Math.floor(Math.random() * (225 - 94 + 1)) + 94;
+  const count = Math.floor(Math.random() * (23 - 2 + 1)) + 2;
   onlineCount.textContent = `${count} online`;
 }
 

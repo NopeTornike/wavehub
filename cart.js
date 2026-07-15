@@ -216,7 +216,7 @@ function renderOnlineCount() {
     return;
   }
 
-  onlineCount.textContent = `${Math.floor(Math.random() * (225 - 94 + 1)) + 94} online`;
+  onlineCount.textContent = `${Math.floor(Math.random() * (23 - 2 + 1)) + 2} online`;
 }
 
 function getFilteredCartItems() {

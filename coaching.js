@@ -13,11 +13,11 @@ const coachGrid = document.getElementById('coachGrid');
 const coachEmpty = document.getElementById('coachEmpty');
 const coachPagination = document.querySelector('.coach-pagination');
 const viewToggleButtons = document.querySelectorAll('.coach-view-toggle button');
-const paginationButtons = document.querySelectorAll('.coach-pagination button');
 const cartKey = 'wavehub.cart';
+const coachesPerPage = 8;
 
 let activeGame = 'all';
-let activePage = '1';
+let activePage = 1;
 let activeView = 'grid';
 
 function readJson(key, fallback) {
@@ -161,7 +161,8 @@ function getFilteredCoaches() {
     const matchesTab = activeGame === 'all' || activeGame === 'more' || coach.game === activeGame;
     const matchesGame = selectedGames.length === 0 || selectedGames.includes(coach.game);
     const matchesService = selectedServices.length === 0 || selectedServices.includes(coach.service);
-    const matchesPrice = maxPrice >= 100 || coach.price <= maxPrice;
+    const coachPrice = Number(coach.price) || 0;
+    const matchesPrice = maxPrice >= Number(priceRange?.max || 100) || coachPrice <= maxPrice;
     const matchesAvailability = availability === 'all' || coach.availability === availability;
     const matchesLanguage = language === 'all' || coach.language === language;
 
@@ -252,12 +253,74 @@ function createCoachCard(coach) {
   return card;
 }
 
+function createPaginationButton(page, label, ariaLabel = '') {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.page = String(page);
+  button.textContent = label;
+
+  if (ariaLabel) {
+    button.setAttribute('aria-label', ariaLabel);
+  }
+
+  if (page === activePage) {
+    button.classList.add('active');
+    button.setAttribute('aria-current', 'page');
+  }
+
+  return button;
+}
+
+function renderPagination(totalItems) {
+  if (!coachPagination) {
+    return;
+  }
+
+  const totalPages = Math.ceil(totalItems / coachesPerPage);
+  activePage = Math.max(1, Math.min(activePage, Math.max(1, totalPages)));
+  coachPagination.innerHTML = '';
+  coachPagination.hidden = totalPages <= 1;
+
+  if (totalPages <= 1) {
+    return;
+  }
+
+  const previous = createPaginationButton('prev', '<', 'Previous page');
+  previous.disabled = activePage === 1;
+  coachPagination.appendChild(previous);
+
+  const visiblePages = totalPages <= 5
+    ? Array.from({ length: totalPages }, (_, index) => index + 1)
+    : Array.from(new Set([1, activePage - 1, activePage, activePage + 1, totalPages]))
+      .filter((page) => page >= 1 && page <= totalPages)
+      .sort((a, b) => a - b);
+
+  visiblePages.forEach((page, index) => {
+    if (index > 0 && page - visiblePages[index - 1] > 1) {
+      const ellipsis = document.createElement('span');
+      ellipsis.textContent = '...';
+      ellipsis.setAttribute('aria-hidden', 'true');
+      coachPagination.appendChild(ellipsis);
+    }
+
+    coachPagination.appendChild(createPaginationButton(page, String(page)));
+  });
+
+  const next = createPaginationButton('next', '>', 'Next page');
+  next.disabled = activePage === totalPages;
+  coachPagination.appendChild(next);
+}
+
 function renderCoaches() {
   if (!coachGrid) {
     return;
   }
 
-  const visibleCoaches = getFilteredCoaches();
+  const filteredCoaches = getFilteredCoaches();
+  const totalPages = Math.max(1, Math.ceil(filteredCoaches.length / coachesPerPage));
+  activePage = Math.min(activePage, totalPages);
+  const pageStart = (activePage - 1) * coachesPerPage;
+  const visibleCoaches = filteredCoaches.slice(pageStart, pageStart + coachesPerPage);
   coachGrid.innerHTML = '';
   coachGrid.classList.toggle('is-list', activeView === 'list');
 
@@ -266,17 +329,15 @@ function renderCoaches() {
   });
 
   if (coachEmpty) {
-    coachEmpty.hidden = visibleCoaches.length > 0;
+    coachEmpty.hidden = filteredCoaches.length > 0;
   }
 
   if (coachResultCount) {
-    const count = visibleCoaches.length;
+    const count = filteredCoaches.length;
     coachResultCount.textContent = `${count} ${count === 1 ? 'Coach' : 'Coaches'} found`;
   }
 
-  if (coachPagination) {
-    coachPagination.hidden = visibleCoaches.length === 0;
-  }
+  renderPagination(filteredCoaches.length);
 }
 
 function updatePriceLabel() {
@@ -284,7 +345,15 @@ function updatePriceLabel() {
     return;
   }
 
-  priceRangeLabel.textContent = Number(priceRange.value) >= 100 ? '100 GEL+' : `${priceRange.value} GEL`;
+  const min = Number(priceRange.min) || 0;
+  const max = Number(priceRange.max) || 100;
+  const value = Math.max(min, Math.min(Number(priceRange.value) || max, max));
+  const progress = max === min ? 100 : ((value - min) / (max - min)) * 100;
+  const label = value >= max ? `${max} GEL+` : `Up to ${value} GEL`;
+
+  priceRangeLabel.textContent = label;
+  priceRange.style.setProperty('--price-progress', `${progress}%`);
+  priceRange.setAttribute('aria-valuetext', label);
 }
 
 function syncTabButton(game) {
@@ -322,13 +391,21 @@ function applySearchParam() {
   }
 }
 
-coachSearch?.addEventListener('input', renderCoaches);
+coachSearch?.addEventListener('input', () => {
+  activePage = 1;
+  renderCoaches();
+});
 coachFilters?.addEventListener('change', () => {
+  activePage = 1;
   updatePriceLabel();
   renderCoaches();
 });
-coachSort?.addEventListener('change', renderCoaches);
+coachSort?.addEventListener('change', () => {
+  activePage = 1;
+  renderCoaches();
+});
 priceRange?.addEventListener('input', () => {
+  activePage = 1;
   updatePriceLabel();
   renderCoaches();
 });
@@ -337,6 +414,7 @@ resetFilters?.addEventListener('click', () => {
   coachFilters?.reset();
   if (coachSearch) coachSearch.value = '';
   activeGame = 'all';
+  activePage = 1;
   syncTabButton(activeGame);
   updatePriceLabel();
   renderCoaches();
@@ -350,6 +428,7 @@ coachGameTabs?.addEventListener('click', (event) => {
   }
 
   activeGame = button.dataset.game || 'all';
+  activePage = 1;
   syncTabButton(activeGame);
   renderCoaches();
 });
@@ -362,17 +441,25 @@ viewToggleButtons.forEach((button) => {
   });
 });
 
-paginationButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    const page = button.dataset.page || '1';
+coachPagination?.addEventListener('click', (event) => {
+  const button = event.target instanceof Element ? event.target.closest('button') : null;
 
-    if (page === 'prev' || page === 'next') {
-      return;
-    }
+  if (!button || button.disabled) {
+    return;
+  }
 
-    activePage = page;
-    paginationButtons.forEach((item) => item.classList.toggle('active', item.dataset.page === activePage));
-  });
+  const page = button.dataset.page || '1';
+  const totalPages = Math.max(1, Math.ceil(getFilteredCoaches().length / coachesPerPage));
+
+  if (page === 'prev') {
+    activePage = Math.max(1, activePage - 1);
+  } else if (page === 'next') {
+    activePage = Math.min(totalPages, activePage + 1);
+  } else {
+    activePage = Math.max(1, Math.min(Number(page) || 1, totalPages));
+  }
+
+  renderCoaches();
 });
 
 document.querySelectorAll('.coach-collapse').forEach((button) => {
