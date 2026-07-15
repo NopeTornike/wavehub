@@ -6,7 +6,7 @@
   <title>WaveHub - Cart</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="cart-page">
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
       <a class="brand" href="index.html" aria-label="WaveHub home">
@@ -141,10 +141,11 @@
         </div>
       </header>
 
-      <section class="marketplace-head" aria-labelledby="cartTitle">
+      <section class="marketplace-head cart-page-head" aria-labelledby="cartTitle">
         <div>
           <p class="section-kicker">Checkout</p>
-          <h1 id="cartTitle">Cart</h1>
+          <h1 id="cartTitle">Your cart</h1>
+          <p class="cart-page-subtitle">Review your picks and complete your order securely.</p>
         </div>
         <div class="marketplace-total" aria-label="Cart products">
           <strong id="cartCount">0</strong>
@@ -152,22 +153,59 @@
         </div>
       </section>
 
+      <ol class="cart-progress" aria-label="Checkout progress">
+        <li class="active"><span>1</span><strong>Cart</strong></li>
+        <li><span>2</span><strong>Payment</strong></li>
+        <li><span>3</span><strong>Complete</strong></li>
+      </ol>
+
       <section class="cart-page-layout" aria-label="Cart products">
         <div class="cart-page-main">
+          <div class="cart-list-heading">
+            <div>
+              <span class="cart-list-icon" aria-hidden="true">
+                <img src="assets/cart-icon.png" alt="" />
+              </span>
+              <div>
+                <strong>Order items</strong>
+                <small>Digital products in your cart</small>
+              </div>
+            </div>
+            <a href="marketplace.html">Continue shopping</a>
+          </div>
           <div class="cart-list cart-page-list" id="cartList"></div>
           <div class="marketplace-empty" id="cartEmpty" hidden>Cart is empty.</div>
         </div>
 
         <aside class="cart-checkout-panel" aria-label="Checkout summary">
-          <div>
+          <header>
+            <span>Order overview</span>
+            <h2>Summary</h2>
+          </header>
+          <div class="cart-summary-row">
             <span>Subtotal</span>
             <strong id="cartSubtotal">0 GEL</strong>
           </div>
-          <div>
+          <div class="cart-summary-row">
             <span>Items</span>
             <strong id="cartSummaryCount">0</strong>
           </div>
-          <button class="cart-checkout-button" id="checkoutButton" type="button">Checkout</button>
+          <div class="cart-summary-row cart-fee-row">
+            <span>Service fee</span>
+            <strong>Free</strong>
+          </div>
+          <div class="cart-summary-total">
+            <span>Total</span>
+            <strong id="cartTotal">0 GEL</strong>
+          </div>
+          <button class="cart-checkout-button" id="checkoutButton" type="button">
+            <span>Proceed to checkout</span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <div class="cart-secure-note">
+            <span aria-hidden="true">✓</span>
+            <p><strong>Secure checkout</strong><small>Your payment details are protected.</small></p>
+          </div>
           <p class="seller-status" id="checkoutStatus" aria-live="polite"></p>
         </aside>
       </section>

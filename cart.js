@@ -6,6 +6,7 @@ const cartEmpty = document.getElementById('cartEmpty');
 const cartCount = document.getElementById('cartCount');
 const cartNavCount = document.getElementById('cartNavCount');
 const cartSubtotal = document.getElementById('cartSubtotal');
+const cartTotal = document.getElementById('cartTotal');
 const cartSummaryCount = document.getElementById('cartSummaryCount');
 const checkoutButton = document.getElementById('checkoutButton');
 const checkoutStatus = document.getElementById('checkoutStatus');
@@ -243,6 +244,7 @@ function renderCart() {
   if (cartNavCount) cartNavCount.textContent = String(allItems.length);
   if (cartSummaryCount) cartSummaryCount.textContent = String(allItems.length);
   if (cartSubtotal) cartSubtotal.textContent = formatListingPrice(total);
+  if (cartTotal) cartTotal.textContent = formatListingPrice(total);
   if (checkoutButton) checkoutButton.disabled = allItems.length === 0;
 
   if (!cartList) {
