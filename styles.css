@@ -400,6 +400,14 @@ button {
   box-shadow: 0 0 10px rgba(255, 47, 143, 0.9);
 }
 
+.icon-button.has-alert {
+  background-image: url("assets/notification-icon.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 22px 22px;
+  font-size: 0;
+}
+
 .seller-button {
   min-height: 42px;
   display: inline-flex;
@@ -4090,6 +4098,246 @@ a.product-showcase-seller:focus-visible strong,
     rgba(255, 255, 255, 0.018);
 }
 
+.message-notification-badge {
+  position: absolute;
+  z-index: 4;
+  top: -6px;
+  right: -7px;
+  min-width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #080d1b;
+  border-radius: 999px;
+  color: white;
+  background: var(--pink);
+  padding: 0 4px;
+  font-size: 9px;
+  font-weight: 950;
+  line-height: 1;
+  box-shadow: 0 0 14px rgba(255, 47, 143, 0.72);
+}
+
+.message-notification-badge[hidden] {
+  display: none;
+}
+
+.direct-messages-shell {
+  min-height: 540px;
+  display: grid;
+  grid-template-columns: minmax(220px, 310px) minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(139, 155, 190, 0.17);
+  border-radius: 16px;
+  background: rgba(6, 11, 24, 0.82);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+}
+
+.direct-message-contacts {
+  border-right: 1px solid rgba(139, 155, 190, 0.14);
+  background: rgba(9, 16, 32, 0.78);
+}
+
+.direct-message-contacts > header,
+.direct-message-thread > header {
+  min-height: 78px;
+  padding: 17px 18px;
+  border-bottom: 1px solid rgba(139, 155, 190, 0.13);
+}
+
+.direct-message-contacts h2,
+.direct-message-thread h2 {
+  margin: 3px 0 0;
+  font-size: 17px;
+}
+
+.direct-message-contacts > div {
+  display: grid;
+  padding: 8px;
+}
+
+.direct-contact {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: white;
+  background: transparent;
+  padding: 10px;
+  text-align: left;
+}
+
+.direct-contact:hover,
+.direct-contact.active {
+  border-color: rgba(255, 47, 143, 0.25);
+  background: rgba(255, 47, 143, 0.08);
+}
+
+.direct-contact > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.direct-contact strong,
+.direct-contact small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.direct-contact strong { font-size: 12px; }
+.direct-contact small { color: var(--muted); font-size: 10px; }
+
+.direct-contact > b {
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: white;
+  background: var(--pink);
+  font-size: 9px;
+}
+
+.direct-message-thread {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(280px, 1fr) auto auto;
+}
+
+.direct-message-thread > header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.direct-message-thread > header small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.direct-message-history {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  overflow-y: auto;
+  max-height: 480px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(143, 69, 255, 0.06), transparent 28%),
+    rgba(3, 7, 17, 0.35);
+}
+
+.direct-message-bubble {
+  max-width: min(72%, 560px);
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(139, 155, 190, 0.17);
+  border-radius: 14px 14px 14px 4px;
+  background: rgba(18, 28, 51, 0.94);
+  padding: 11px 13px;
+}
+
+.direct-message-bubble.mine {
+  align-self: flex-end;
+  border-color: rgba(255, 47, 143, 0.3);
+  border-radius: 14px 14px 4px 14px;
+  background: linear-gradient(135deg, rgba(255, 47, 143, 0.2), rgba(143, 69, 255, 0.15));
+}
+
+.direct-message-bubble p {
+  margin: 0;
+  color: #eef2ff;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.direct-message-bubble small {
+  color: var(--muted-2);
+  font-size: 9px;
+}
+
+.direct-message-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid rgba(139, 155, 190, 0.13);
+}
+
+.direct-message-form textarea {
+  min-height: 46px;
+  max-height: 130px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  outline: 0;
+  color: white;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px 13px;
+}
+
+.direct-message-form textarea:focus {
+  border-color: rgba(255, 47, 143, 0.55);
+  box-shadow: 0 0 0 3px rgba(255, 47, 143, 0.1);
+}
+
+.direct-message-form button {
+  min-width: 92px;
+  border: 0;
+  border-radius: 11px;
+  color: white;
+  background: linear-gradient(90deg, var(--pink), var(--violet));
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.direct-message-form button:disabled,
+.direct-message-form textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.direct-message-thread > .seller-status {
+  min-height: 0;
+  margin: 0;
+  padding: 0 14px 10px;
+}
+
+.direct-message-empty {
+  margin: auto;
+  color: var(--muted);
+  padding: 22px;
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .direct-messages-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .direct-message-contacts {
+    border-right: 0;
+    border-bottom: 1px solid rgba(139, 155, 190, 0.14);
+  }
+
+  .direct-message-contacts > div {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(210px, 78vw);
+    overflow-x: auto;
+  }
+
+  .direct-message-bubble {
+    max-width: 88%;
+  }
+}
+
 .section-heading {
   display: flex;
   align-items: flex-end;
@@ -4256,7 +4504,7 @@ a.product-showcase-seller:focus-visible strong,
 .cover-cod {
   background:
     linear-gradient(180deg, rgba(6, 10, 17, 0.08), rgba(6, 10, 17, 0.28)),
-    url("assets/cod-photo.jpeg") center / cover no-repeat,
+    url("assets/call-of-duty-marketplace-photo.png") center / cover no-repeat,
     #10151f;
 }
 
@@ -4268,7 +4516,7 @@ a.product-showcase-seller:focus-visible strong,
 .cover-cs2 {
   background:
     linear-gradient(180deg, rgba(16, 18, 20, 0.04), rgba(16, 18, 20, 0.24)),
-    url("assets/cs2-photo.jpeg") center / cover no-repeat,
+    url("assets/cs2-popular-games-photo.png") center / cover no-repeat,
     #17110c;
 }
 
@@ -4280,7 +4528,7 @@ a.product-showcase-seller:focus-visible strong,
 .cover-ml {
   background:
     linear-gradient(180deg, rgba(12, 10, 28, 0.04), rgba(12, 10, 28, 0.24)),
-    url("assets/mobile-legends-photo.jpeg") center / cover no-repeat,
+    url("assets/mobile-legends-popular-games-photo.png") center / cover no-repeat,
     #121423;
 }
 
@@ -4383,6 +4631,425 @@ a.product-showcase-seller:focus-visible strong,
 .game-card-actions a:focus-visible {
   border-color: rgba(255, 47, 143, 0.58);
   background: rgba(255, 47, 143, 0.16);
+}
+
+/* Popular games reference layout */
+.popular-games-section {
+  position: relative;
+  padding: 24px;
+  border: 1px solid rgba(70, 92, 154, 0.13);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 90% 15%, rgba(143, 69, 255, 0.1), transparent 28%),
+    linear-gradient(145deg, rgba(7, 13, 31, 0.96), rgba(3, 7, 18, 0.9));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.popular-games-heading {
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.popular-games-heading-copy {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.popular-games-heading-icon {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(47, 125, 255, 0.34);
+  border-radius: 12px;
+  color: white;
+  background: linear-gradient(145deg, rgba(47, 125, 255, 0.38), rgba(143, 69, 255, 0.2));
+  box-shadow: 0 0 24px rgba(47, 125, 255, 0.26);
+}
+
+.popular-games-heading h2 {
+  margin: 0;
+  font-size: clamp(22px, 2.4vw, 31px);
+  font-weight: 950;
+  letter-spacing: -0.7px;
+  text-transform: uppercase;
+}
+
+.popular-games-heading h2 span {
+  color: var(--pink-2);
+  text-shadow: 0 0 20px rgba(255, 47, 143, 0.42);
+}
+
+.popular-games-heading-copy p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.popular-games-heading > a {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(143, 69, 255, 0.38);
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(100deg, rgba(47, 125, 255, 0.08), rgba(255, 47, 143, 0.09));
+  padding: 0 15px;
+  box-shadow: 0 0 20px rgba(255, 47, 143, 0.1);
+}
+
+.popular-games-heading > a span {
+  color: var(--pink-2);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.popular-games-section .game-carousel {
+  margin-inline: -2px;
+  padding: 2px 2px 8px;
+}
+
+.popular-games-section .game-carousel::before,
+.popular-games-section .game-carousel::after {
+  width: 18px;
+  opacity: 0.42;
+}
+
+.popular-games-section .game-grid {
+  gap: 12px;
+}
+
+.popular-games-section .game-grid .game-card {
+  --game-accent: 47, 125, 255;
+  flex-basis: clamp(292px, 30vw, 380px);
+  border-color: rgba(var(--game-accent), 0.52);
+  border-radius: 14px;
+  background: rgba(4, 8, 20, 0.96);
+  box-shadow:
+    inset 0 0 22px rgba(var(--game-accent), 0.06),
+    0 16px 42px rgba(0, 0, 0, 0.34);
+  cursor: pointer;
+}
+
+.popular-games-section .game-card:focus-visible {
+  outline: 2px solid rgba(var(--game-accent), 0.9);
+  outline-offset: 3px;
+}
+
+.popular-games-section .game-card:nth-child(3n + 2) {
+  --game-accent: 245, 184, 72;
+}
+
+.popular-games-section .game-card:nth-child(3n) {
+  --game-accent: 143, 69, 255;
+}
+
+.popular-games-section .game-card:hover {
+  border-color: rgba(var(--game-accent), 0.82);
+  box-shadow: 0 18px 50px rgba(var(--game-accent), 0.14);
+}
+
+.popular-games-section .game-cover {
+  min-height: 198px;
+  aspect-ratio: 16 / 9;
+  border-bottom-color: rgba(var(--game-accent), 0.3);
+}
+
+.popular-games-section .game-cover::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 54%;
+  background: linear-gradient(180deg, transparent, rgba(2, 5, 14, 0.84));
+  transform: none;
+  border: 0;
+}
+
+.popular-games-section .cover-label {
+  left: 17px;
+  bottom: 14px;
+  z-index: 3;
+  font-size: clamp(25px, 3vw, 36px);
+  font-style: italic;
+  letter-spacing: -1.5px;
+  text-transform: uppercase;
+}
+
+.game-trend-badge {
+  position: absolute;
+  z-index: 4;
+  top: 13px;
+  left: 13px;
+  min-height: 27px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: white;
+  background: rgba(255, 47, 143, 0.82);
+  padding: 0 10px;
+  font-size: 9px;
+  font-weight: 950;
+  text-transform: uppercase;
+  box-shadow: 0 0 18px rgba(255, 47, 143, 0.34);
+}
+
+.game-trend-badge::before {
+  content: "◆";
+  margin-right: 5px;
+  font-size: 8px;
+}
+
+.game-trend-badge.trending {
+  background: rgba(194, 126, 19, 0.86);
+  box-shadow: 0 0 18px rgba(245, 184, 72, 0.3);
+}
+
+.game-trend-badge.new {
+  background: rgba(111, 45, 202, 0.88);
+  box-shadow: 0 0 18px rgba(143, 69, 255, 0.34);
+}
+
+.game-trend-badge.popular {
+  background: rgba(20, 148, 113, 0.86);
+}
+
+.popular-games-section .card-body {
+  position: relative;
+  gap: 13px;
+  padding: 13px 16px 16px;
+}
+
+.popular-games-section .card-body h3 {
+  display: flex;
+  align-items: center;
+  padding-right: 44px;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.popular-games-section .card-body h3::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #4ff97e;
+  box-shadow: 0 0 11px rgba(79, 249, 126, 0.8);
+}
+
+.popular-games-section .rating {
+  display: none;
+}
+
+.popular-games-section .game-listing-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.popular-games-section .game-listing-counts .game-stat {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.popular-games-section .game-stat i {
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: rgb(var(--game-accent));
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  opacity: 0.9;
+}
+
+.popular-games-section .game-stat i::before {
+  content: "•";
+  font-size: 14px;
+  line-height: 1;
+}
+
+.popular-games-section .game-stat-players i {
+  width: 21px;
+  height: 21px;
+  border: 0;
+  border-radius: 0;
+  background: url("assets/active-players-icon.svg") center / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(16, 174, 240, 0.42));
+  opacity: 1;
+}
+
+.popular-games-section .game-stat-players i::before {
+  content: none;
+}
+
+.popular-games-section .game-stat-coaches i {
+  width: 21px;
+  height: 21px;
+  border: 0;
+  border-radius: 0;
+  background: url("assets/coaching-icon.svg") center / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(255, 47, 159, 0.44));
+  opacity: 1;
+}
+
+.popular-games-section .game-stat-coaches i::before {
+  content: none;
+}
+
+.popular-games-section .game-stat-listings i {
+  width: 21px;
+  height: 21px;
+  border: 0;
+  border-radius: 0;
+  background: url("assets/listings-icon.svg") center / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(255, 189, 24, 0.42));
+  opacity: 1;
+}
+
+.popular-games-section .game-stat-listings i::before {
+  content: none;
+}
+
+.popular-games-section .game-stat-services i {
+  width: 21px;
+  height: 21px;
+  border: 0;
+  border-radius: 0;
+  background: url("assets/active-services-icon.svg") center / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(73, 237, 28, 0.42));
+  opacity: 1;
+}
+
+.popular-games-section .game-stat-services i::before {
+  content: none;
+}
+
+.popular-games-section .game-stat > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.popular-games-section .game-stat strong,
+.popular-games-section .game-stat small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popular-games-section .game-stat strong {
+  color: white;
+  font-size: 10px;
+}
+
+.popular-games-section .game-stat small {
+  color: var(--muted-2);
+  font-size: 7px;
+}
+
+.popular-games-section .game-card-actions {
+  display: none;
+}
+
+.popular-games-section .game-card-actions a:first-child {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-color: rgba(var(--game-accent), 0.62);
+  border-radius: 50%;
+  color: transparent;
+  background: rgba(8, 12, 27, 0.9);
+  padding: 0;
+  box-shadow: 0 0 22px rgba(var(--game-accent), 0.28);
+}
+
+.popular-games-section .game-card-actions a:first-child::after {
+  content: "›";
+  color: rgb(var(--game-accent));
+  font-size: 31px;
+  line-height: 1;
+}
+
+.popular-games-section .game-card-actions a:not(:first-child) {
+  display: none;
+}
+
+.popular-games-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 5px;
+}
+
+.popular-games-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #596179;
+}
+
+.popular-games-dots .active {
+  width: 20px;
+  border-radius: 999px;
+  background: var(--pink);
+  box-shadow: 0 0 10px rgba(255, 47, 143, 0.7);
+}
+
+@media (max-width: 720px) {
+  .popular-games-section {
+    padding: 18px 14px;
+  }
+
+  .popular-games-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .popular-games-heading > a {
+    align-self: flex-end;
+  }
+
+  .popular-games-section .game-grid .game-card {
+    flex-basis: min(84vw, 340px);
+  }
+
+  .popular-games-section .game-cover {
+    min-height: 178px;
+  }
+}
+
+@media (max-width: 420px) {
+  .popular-games-heading-copy {
+    align-items: flex-start;
+  }
+
+  .popular-games-heading-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .popular-games-heading-copy p {
+    max-width: 240px;
+    line-height: 1.5;
+  }
+
+  .popular-games-section .game-listing-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .service-card {

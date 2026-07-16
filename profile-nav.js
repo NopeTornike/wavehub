@@ -1,6 +1,7 @@
 (function () {
   const localUsersKey = 'wavehub.users';
   const sessionKey = 'wavehub.session';
+  const directMessagesKey = 'wavehub.directMessages';
 
   function readJson(key, fallback) {
     try {
@@ -111,6 +112,29 @@
     });
   }
 
+  function renderMessageNotifications() {
+    const { user } = getCurrentAccount();
+    const messages = readJson(directMessagesKey, []);
+    const unread = user?.username && Array.isArray(messages)
+      ? messages.filter((message) => message.toUsername === user.username && !message.readAt).length
+      : 0;
+
+    document.querySelectorAll('.icon-button[href="messages.html"], .coach-message-button').forEach((button) => {
+      let badge = button.querySelector('.message-notification-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'message-notification-badge';
+        button.appendChild(badge);
+      }
+      badge.textContent = unread > 99 ? '99+' : String(unread);
+      badge.hidden = unread === 0;
+      button.setAttribute('aria-label', unread ? `Messages, ${unread} unread` : 'Messages');
+    });
+
+    const sidebarCount = document.getElementById('messageCount');
+    if (sidebarCount) sidebarCount.textContent = String(unread);
+  }
+
   function routeToProfile(event) {
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -125,13 +149,20 @@
   }
 
   renderProfileSurfaces();
+  renderMessageNotifications();
   bindProfileRoutes();
 
   window.addEventListener('storage', (event) => {
     if (event.key === sessionKey || event.key === localUsersKey) {
       renderProfileSurfaces();
+      renderMessageNotifications();
+    }
+
+    if (event.key === directMessagesKey) {
+      renderMessageNotifications();
     }
   });
 
   window.wavehubRenderProfileSurfaces = renderProfileSurfaces;
+  window.wavehubRenderMessageNotifications = renderMessageNotifications;
 }());

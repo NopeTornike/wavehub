@@ -868,7 +868,11 @@ function renderPublicProfile(user) {
   if (publicProfileName) publicProfileName.textContent = getDisplayName(user);
   if (publicProfileHandle) publicProfileHandle.textContent = `@${user.username}`;
   if (publicProfileJoined) publicProfileJoined.textContent = `Joined ${joinedDate}`;
-  if (publicProfileMessage) publicProfileMessage.href = 'messages.html';
+  if (publicProfileMessage) {
+    const currentUsername = getCurrentAccount().user?.username || '';
+    publicProfileMessage.href = `messages.html?to=${encodeURIComponent(user.username)}`;
+    publicProfileMessage.hidden = currentUsername === user.username;
+  }
   if (publicProfileRegistered) publicProfileRegistered.textContent = joinedDate;
   if (publicProfileListed) publicProfileListed.textContent = formatCount(listings.length);
   if (publicProfileSold) publicProfileSold.textContent = formatCount(soldItems.length);

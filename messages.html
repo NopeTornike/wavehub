@@ -149,13 +149,39 @@
           <div>
             <p class="section-kicker">Your conversations</p>
             <h1 id="messagesTitle">Messages</h1>
-            <p class="messages-hero-description">Keep track of every offer you receive and send.</p>
+            <p class="messages-hero-description">Chat with users, reply to messages and keep track of marketplace offers.</p>
           </div>
         </div>
         <div class="marketplace-total" aria-label="Visible messages">
           <strong id="visibleMessageCount">0</strong>
-          <span>visible offers</span>
+          <span>messages</span>
         </div>
+      </section>
+
+      <section class="direct-messages-shell" aria-label="Direct messages">
+        <aside class="direct-message-contacts">
+          <header>
+            <p class="section-kicker">Inbox</p>
+            <h2>Conversations</h2>
+          </header>
+          <div id="directMessageContacts"></div>
+        </aside>
+
+        <section class="direct-message-thread" aria-labelledby="directMessageTitle">
+          <header id="directMessageHeader">
+            <span class="message-avatar" id="directMessageAvatar">?</span>
+            <div>
+              <h2 id="directMessageTitle">Select a conversation</h2>
+              <small id="directMessageHandle">Choose a user to start messaging</small>
+            </div>
+          </header>
+          <div class="direct-message-history" id="directMessageHistory" aria-live="polite"></div>
+          <form class="direct-message-form" id="directMessageForm">
+            <textarea id="directMessageInput" maxlength="1000" placeholder="Write a message..." aria-label="Message" required></textarea>
+            <button type="submit">Send <span aria-hidden="true">→</span></button>
+          </form>
+          <p class="seller-status" id="directMessageStatus" aria-live="polite"></p>
+        </section>
       </section>
 
       <section class="messages-layout" aria-label="Price offer messages">
