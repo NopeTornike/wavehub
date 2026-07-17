@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
@@ -19,6 +20,9 @@ import { ItemDetails } from './listings/item-details.entity';
 import { Package } from './listings/package.entity';
 import { Category } from './listings/category.entity';
 import { Game } from './listings/game.entity';
+import { OrdersModule } from './orders/orders.module';
+import { Order } from './orders/order.entity';
+import { OrderDeliveryFile } from './orders/order-delivery-file.entity';
 
 // Postgres is mandatory from Phase 1 onward — the JSON-file fallback that used to make this
 // conditional (USE_FILE_STORE) was removed along with AuthService's dual-mode logic. See
@@ -30,6 +34,10 @@ import { Game } from './listings/game.entity';
     // bog-payments.controller.ts. Keying is by IP (ThrottlerGuard's default), which only reflects
     // the real client IP if TRUST_PROXY is configured correctly in a real deployment — see main.ts.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
+    // Powers OrdersService's 72h auto-complete cron (@Cron in orders.service.ts). A single
+    // in-process scheduler is fine at this scale — see orders/CLAUDE.md if this ever needs to run
+    // across multiple instances (would need a distributed lock to avoid double-firing).
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DATABASE_HOST,
@@ -50,6 +58,8 @@ import { Game } from './listings/game.entity';
         Package,
         Category,
         Game,
+        Order,
+        OrderDeliveryFile,
       ],
       synchronize: process.env.TYPEORM_SYNC === 'true',
     }),
@@ -58,6 +68,7 @@ import { Game } from './listings/game.entity';
     WalletModule,
     PaymentsModule,
     ListingsModule,
+    OrdersModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

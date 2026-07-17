@@ -32,6 +32,10 @@ that migration's `CATEGORIES`/`GAMES` constants, not a separate seed script), `l
 - **Every status change goes through `assertValidTransition`** (`listing-lifecycle.ts`). The
   allowed graph: `draft/rejected → pending_review → active/rejected`, `active ⇄ paused`. Don't
   mutate `listing.status` directly anywhere, including in future modules — import and use this.
+  `backend/src/orders/orders.service.ts` is the first outside caller (auto-pausing a unique/
+  last-unit item listing when it sells out, and un-pausing it if that order is later cancelled) —
+  it imports this function under an alias (`assertValidListingTransition`) rather than mutating
+  status directly; follow that pattern for any other cross-module listing-status change.
 - **`approve`/`reject` exist on `ListingsService` but have no HTTP route yet.** They're built ahead
   of the admin panel (build-plan Phase 11), same pattern as `WalletService`'s primitives being built
   ahead of Orders. Until Phase 11 adds a guarded admin controller calling these, the only way to
@@ -58,17 +62,18 @@ that migration's `CATEGORIES`/`GAMES` constants, not a separate seed script), `l
 - `backend/src/auth/` — every seller-facing route is `AuthGuard`-protected via `@CurrentUserId()`.
 - `backend/src/storage/` — image persistence.
 - `packages/shared-types/` — `ListingType`, `ListingStatus` enums.
-- Future `backend/src/orders/` (Phase 5) will reference `listings`/`packages` by id when a buyer
-  purchases — read this doc before wiring that up, especially the ownership-check pattern.
+- `backend/src/orders/` — references `listings`/`packages` by id at purchase time (snapshotting
+  price/delivery-time onto the `Order`), and drives listing pause/unpause for item sell-outs — read
+  that module's doc before changing anything about how a listing's price or stock is read.
 - Future `backend/src/admin/` (Phase 11) wraps `approve`/`reject`/`pause` in guarded routes.
 
 ## Status
-Seller-facing CRUD (create draft, add packages, add images, submit for review, pause/unpause) and
-public browse/detail are implemented and unit-tested where the logic doesn't require a live DB (the
-lifecycle state machine and the item/service branching in `createDraft`). Not yet built: listing
-edit after draft (a submitted/active listing can't currently be revised — only paused, or rejected
-and resubmitted from scratch), the admin-facing HTTP routes for approve/reject/pause (service-layer
-methods exist, no controller yet — see the gotcha above), search/filtering beyond the basic
-category/game/type query params (`backend/src/search/` per the build plan is its own future module),
-and the frontend — no marketplace/listing-detail/create-listing pages exist in `frontend/` yet, only
-this backend API.
+Seller-facing CRUD (create draft, add packages, add images, submit for review, pause/unpause),
+public browse/detail, and being purchasable (via `backend/src/orders/`) are all implemented and
+unit-tested where the logic doesn't require a live DB (the lifecycle state machine and the
+item/service branching in `createDraft`). Not yet built: listing edit after draft (a submitted/
+active listing can't currently be revised — only paused, or rejected and resubmitted from scratch),
+the admin-facing HTTP routes for approve/reject/pause (service-layer methods exist, no controller
+yet — see the gotcha above), search/filtering beyond the basic category/game/type query params
+(`backend/src/search/` per the build plan is its own future module), and the frontend — no
+marketplace/listing-detail/create-listing/checkout pages exist in `frontend/` yet, only backend API.

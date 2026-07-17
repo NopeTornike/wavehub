@@ -119,4 +119,42 @@ describe('WalletService', () => {
     expect(entry.type).toBe(WalletLedgerType.OrderRefund);
     expect(entry.status).toBe(WalletLedgerStatus.Available);
   });
+
+  describe('composed transactions (manager param)', () => {
+    it('debitForOrder uses the passed manager instead of opening its own transaction', async () => {
+      const { dataSource } = createFakeDataSource([{ id: userId, wavecoinBalance: 100 }]);
+      const wallet = new WalletService(dataSource);
+
+      const users = new Map([[userId, { id: userId, wavecoinBalance: 100 }]]);
+      const manager = {
+        findOne: jest.fn(async () => users.get(userId)),
+        update: jest.fn(async (_e: any, id: string, partial: any) => Object.assign(users.get(id)!, partial)),
+        create: jest.fn((_e: any, data: any) => ({ ...data })),
+        save: jest.fn(async (entity: any) => entity),
+      } as any;
+
+      const entry = await wallet.debitForOrder(userId, 'order-1', 10, manager);
+
+      expect(dataSource.transaction).not.toHaveBeenCalled();
+      expect(manager.findOne).toHaveBeenCalled();
+      expect(users.get(userId)?.wavecoinBalance).toBe(90);
+      expect(entry.amountWaveCoin).toBe(-10);
+    });
+
+    it('a failure inside a caller-supplied manager still rejects (no silent swallow)', async () => {
+      const { dataSource } = createFakeDataSource([{ id: userId, wavecoinBalance: 5 }]);
+      const wallet = new WalletService(dataSource);
+      const manager = {
+        findOne: jest.fn(async () => ({ id: userId, wavecoinBalance: 5 })),
+        update: jest.fn(),
+        create: jest.fn((_e: any, d: any) => d),
+        save: jest.fn(),
+      } as any;
+
+      await expect(wallet.debitForOrder(userId, 'order-1', 999, manager)).rejects.toThrow(
+        'INSUFFICIENT_BALANCE',
+      );
+      expect(manager.update).not.toHaveBeenCalled();
+    });
+  });
 });
