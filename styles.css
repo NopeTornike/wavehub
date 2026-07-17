@@ -445,6 +445,8 @@ button {
   position: fixed;
   z-index: 90;
   width: min(390px, calc(100vw - 24px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   max-height: min(520px, calc(100vh - 24px));
   overflow: hidden;
   border: 1px solid rgba(255, 47, 143, 0.28);
@@ -495,6 +497,7 @@ button {
 }
 
 .notification-center-list {
+  min-height: 0;
   max-height: 360px;
   overflow-y: auto;
   padding: 8px;
@@ -577,6 +580,40 @@ button {
   background: rgba(255, 47, 143, 0.04);
   font-size: 11px;
   font-weight: 900;
+}
+
+@media (max-width: 600px) {
+  .notification-center {
+    width: auto;
+    height: auto;
+    max-height: calc(100dvh - 16px);
+    border-radius: 13px;
+  }
+
+  .notification-center > header {
+    min-height: 60px;
+    padding: 10px 12px;
+  }
+
+  .notification-center-list {
+    max-height: none;
+    overscroll-behavior: contain;
+  }
+
+  .notification-center-item {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .notification-center-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .notification-center-footer {
+    min-height: 42px;
+  }
 }
 
 .seller-button {
@@ -3342,16 +3379,18 @@ a.product-showcase-seller:focus-visible strong,
 .marketplace-cart-footer {
   position: fixed;
   z-index: 40;
-  left: max(284px, calc((100vw - 1120px) / 2 + 284px));
+  left: auto;
   right: 20px;
   bottom: 18px;
+  width: min(260px, calc(100vw - 40px));
   display: flex;
   justify-content: flex-end;
   pointer-events: none;
 }
 
 .marketplace-cart-button {
-  min-width: min(100%, 260px);
+  width: 100%;
+  min-width: 0;
   min-height: 54px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -5500,11 +5539,13 @@ a.product-showcase-seller:focus-visible strong,
   .marketplace-cart-footer {
     left: 14px;
     right: 14px;
-    bottom: 14px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: auto;
   }
 
   .marketplace-cart-button {
-    min-width: 100%;
+    width: 100%;
+    max-width: none;
   }
 
   .cart-page-layout {
