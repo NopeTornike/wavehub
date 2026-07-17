@@ -49,15 +49,19 @@ function getCoachListingsFromSessions() {
     service: 'Coaching',
     rank: 'Coach',
     tier: 'diamond',
-    rating: 5,
+    rating: null,
     reviews: 0,
     price: Number(session.price) || 0,
     priceText: session.priceText || `${Number(session.price) || 0} GEL/hour`,
     availability: 'today',
-    language: 'GE',
+    language: session.language || 'GE',
+    languages: Array.isArray(session.languages) ? session.languages : [session.language || 'GE'],
     tags: [session.sessionLabel || 'Custom Session'],
     image: session.imageData || '',
-    bio: session.sessionLabel || 'Custom coaching session',
+    bio: session.bio || session.about || session.sessionLabel || 'Custom coaching session',
+    about: session.about || session.bio || '',
+    quote: session.quote || (session.about ? `Hi, I'm ${session.seller || 'your coach'}. ${session.about}` : ''),
+    sessionDescription: session.sessionDescription || '',
     specialty: `${session.game || 'Game'} coaching`,
     sessionDate: session.sessionDate || '',
     sessionTime: session.sessionTime || '',
@@ -228,7 +232,9 @@ function createCoachCard(coach) {
           <span class="coach-rank-dot ${coach.tier}" aria-hidden="true"></span>
           <span>${coach.rank}</span>
         </p>
-        <p class="coach-rating-line"><span aria-hidden="true">&#9733;</span> ${coach.rating.toFixed(1)} (${coach.reviews})</p>
+        <p class="coach-rating-line">${coach.rating !== null && coach.rating !== '' && Number.isFinite(Number(coach.rating))
+          ? `<span aria-hidden="true">&#9733;</span> ${Number(coach.rating).toFixed(1)} (${Number(coach.reviews) || 0})`
+          : 'No reviews yet'}</p>
         ${createSessionMeta(coach)}
       </div>
     </div>

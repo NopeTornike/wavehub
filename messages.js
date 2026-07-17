@@ -38,6 +38,7 @@ const priceOffersKey = 'wavehub.priceOffers';
 const directMessagesKey = 'wavehub.directMessages';
 const minOnlineCount = 2;
 const maxOnlineCount = 23;
+let activeDirectParticipant = '';
 
 function readJson(key, fallback) {
   try {
@@ -195,6 +196,7 @@ function renderDirectMessages() {
   const participants = username ? getDirectParticipants(username, messages) : [];
   const requested = new URLSearchParams(window.location.search).get('to');
   const activeParticipant = participants.includes(requested) ? requested : participants[0] || '';
+  activeDirectParticipant = activeParticipant;
 
   if (activeParticipant && username) {
     messages = markConversationRead(messages, username, activeParticipant);
@@ -437,7 +439,7 @@ directMessageContacts?.addEventListener('click', (event) => {
 directMessageForm?.addEventListener('submit', (event) => {
   event.preventDefault();
   const { user } = getCurrentAccount();
-  const toUsername = new URLSearchParams(window.location.search).get('to') || '';
+  const toUsername = activeDirectParticipant;
   const body = directMessageInput?.value.trim() || '';
 
   if (!user?.username || !toUsername || !body || toUsername === user.username) return;

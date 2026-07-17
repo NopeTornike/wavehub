@@ -56,8 +56,11 @@ const profileSessionIdInput = document.getElementById('profileSessionId');
 const profileSessionCoachInput = document.getElementById('profileSessionCoach');
 const profileSessionGameInput = document.getElementById('profileSessionGame');
 const profileSessionPriceInput = document.getElementById('profileSessionPrice');
+const profileSessionLanguageInput = document.getElementById('profileSessionLanguage');
 const profileSessionDateInput = document.getElementById('profileSessionDate');
 const profileSessionTimeInput = document.getElementById('profileSessionTime');
+const profileSessionAboutInput = document.getElementById('profileSessionAbout');
+const profileSessionDescriptionInput = document.getElementById('profileSessionDescription');
 const profileSessionStatus = document.getElementById('profileSessionStatus');
 const profileSessionCloseButton = document.getElementById('profileSessionCloseButton');
 const profileSessionCancelButton = document.getElementById('profileSessionCancelButton');
@@ -420,13 +423,15 @@ function setSessionModalOpen(isOpen) {
   }
 }
 
-function buildCoachSessionItem(coachName, sessionGame, sessionDate, sessionTime, sessionPrice, existingItem = {}) {
+function buildCoachSessionItem(coachName, sessionGame, sessionDate, sessionTime, sessionPrice, language, about, sessionDescription, existingItem = {}) {
   const { user } = getCurrentAccount();
   const coachId = existingItem.listingId || `custom-${getSlug(coachName)}`;
   const buyerUsername = existingItem.buyerUsername || user?.username || '';
   const buyerName = existingItem.buyerName || (user ? getDisplayName(user) : '');
   const price = Number(sessionPrice ?? existingItem.price) || 0;
   const sessionLabel = getSessionLabel(sessionGame, sessionDate, sessionTime);
+  const cleanAbout = String(about || '').trim();
+  const meetYourCoach = cleanAbout ? `Hi, I'm ${coachName}. ${cleanAbout}` : '';
 
   return {
     ...existingItem,
@@ -441,6 +446,12 @@ function buildCoachSessionItem(coachName, sessionGame, sessionDate, sessionTime,
     buyerName,
     price,
     priceText: `${price} GEL/hour`,
+    language,
+    languages: language ? [language] : [],
+    about: cleanAbout,
+    bio: cleanAbout,
+    quote: meetYourCoach,
+    sessionDescription: String(sessionDescription || '').trim(),
     imageData: existingItem.imageData || '',
     detailUrl: existingItem.detailUrl || 'coaching.html',
     sessionDate,
@@ -473,6 +484,9 @@ function openSessionEditor(sessionId = '') {
     profileSessionDateInput.value = selectedDate;
   }
   if (profileSessionPriceInput) profileSessionPriceInput.value = session?.price || '';
+  if (profileSessionLanguageInput) profileSessionLanguageInput.value = session?.language || '';
+  if (profileSessionAboutInput) profileSessionAboutInput.value = session?.about || session?.bio || '';
+  if (profileSessionDescriptionInput) profileSessionDescriptionInput.value = session?.sessionDescription || '';
 
   setSessionStatus('', '');
   setSessionModalOpen(true);
@@ -1144,6 +1158,9 @@ profileSessionForm?.addEventListener('submit', (event) => {
   const sessionDate = profileSessionDateInput?.value || '';
   const sessionTime = profileSessionTimeInput?.value || '';
   const sessionPrice = Number(profileSessionPriceInput?.value || 0);
+  const sessionLanguage = profileSessionLanguageInput?.value || '';
+  const sessionAbout = profileSessionAboutInput?.value.trim() || '';
+  const sessionDescription = profileSessionDescriptionInput?.value.trim() || '';
   const existingSession = sessionId ? getCoachingSessions(user?.username).find((item) => item.id === sessionId) : null;
 
   if (!user?.username) {
@@ -1151,12 +1168,22 @@ profileSessionForm?.addEventListener('submit', (event) => {
     return;
   }
 
-  if (!coachName || !sessionGame || !sessionDate || !sessionTime || !sessionPrice) {
-    setSessionStatus('error', 'Fill coach name, game, price, day and hour.');
+  if (!coachName || !sessionGame || !sessionDate || !sessionTime || !sessionPrice || !sessionLanguage || !sessionAbout || !sessionDescription) {
+    setSessionStatus('error', 'Fill coach name, game, language, date, hour, price, About you and About session.');
     return;
   }
 
-  const nextSession = buildCoachSessionItem(coachName, sessionGame, sessionDate, sessionTime, sessionPrice, existingSession || {});
+  const nextSession = buildCoachSessionItem(
+    coachName,
+    sessionGame,
+    sessionDate,
+    sessionTime,
+    sessionPrice,
+    sessionLanguage,
+    sessionAbout,
+    sessionDescription,
+    existingSession || {},
+  );
   const currentItems = getCartItems();
   const duplicate = currentItems.some((item) => (
     item.id !== existingSession?.id

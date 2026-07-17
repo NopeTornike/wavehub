@@ -185,13 +185,33 @@
           </label>
 
           <label>
-            <span>Day</span>
+            <span>Language</span>
+            <select id="profileSessionLanguage" required>
+              <option value="">Choose language</option>
+              <option value="GE">ქართული</option>
+              <option value="EN">English</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Specific date</span>
             <input id="profileSessionDate" type="date" required />
           </label>
 
           <label>
             <span>Hour</span>
             <select id="profileSessionTime" required></select>
+          </label>
+
+          <label class="profile-session-about-field">
+            <span>About you</span>
+            <textarea id="profileSessionAbout" maxlength="700" rows="5" placeholder="Tell players about your experience, coaching approach and goals..." required></textarea>
+            <small>This text will also automatically fill the “Meet Your Coach” section.</small>
+          </label>
+
+          <label class="profile-session-about-field">
+            <span>About session</span>
+            <textarea id="profileSessionDescription" maxlength="700" rows="5" placeholder="Describe what players will learn and what the session will include..." required></textarea>
           </label>
 
           <p class="seller-status" id="profileSessionStatus" aria-live="polite"></p>

@@ -3,6 +3,8 @@
   const profileSearch = document.getElementById('coachProfileSearch');
   const cartKey = 'wavehub.cart';
   const purchasesKey = 'wavehub.purchases';
+  const sellerReviewsKey = 'wavehub.sellerReviews';
+  const localUsersKey = 'wavehub.users';
   const wishlistKey = 'wavehub.coachWishlist';
   const params = new URLSearchParams(window.location.search);
   const requestedCoach = params.get('coach') || params.get('id') || '';
@@ -16,7 +18,6 @@
   const languageLabels = {
     EN: 'English',
     GE: 'Georgian',
-    RU: 'Russian',
   };
 
   const availabilityLabels = {
@@ -56,10 +57,14 @@
     const items = readJson(cartKey, []);
     const sessions = Array.isArray(items) ? items.filter(isProfileCoachListing) : [];
 
-    return sessions.map((session) => ({
+    return sessions.map((session) => {
+      const owner = getLocalUser(session.buyerUsername);
+
+      return ({
       id: session.id || session.listingId,
       sourceListingId: session.listingId || '',
       sourceSessionId: session.id || '',
+      sellerUsername: session.buyerUsername || '',
       isFixedSession: true,
       title: session.title || '',
       name: session.seller || 'Wave Coach',
@@ -68,16 +73,19 @@
       service: 'Coaching',
       rank: 'Coach',
       tier: 'diamond',
-      rating: 5,
-      reviews: 0,
+      rating: null,
+      reviews: null,
       price: Number(session.price) || 0,
       priceText: session.priceText || `${Number(session.price) || 0} GEL/hour`,
-      availability: 'today',
-      language: 'GE',
+      availability: '',
+      language: session.language || 'GE',
+      languages: Array.isArray(session.languages) ? session.languages : [session.language || 'GE'],
       tags: [session.sessionLabel || 'Custom Session'],
-      image: session.imageData || '',
-      bio: session.sessionLabel || 'Custom coaching session',
-      about: session.sessionLabel || 'Custom coaching session',
+      image: session.imageData || owner?.photoData || '',
+      bio: session.bio || session.about || session.sessionLabel || 'Custom coaching session',
+      about: session.about || session.bio || '',
+      quote: session.quote || (session.about ? `Hi, I'm ${session.seller || 'your coach'}. ${session.about}` : ''),
+      sessionDescription: session.sessionDescription || '',
       specialty: `${session.game || 'Game'} coaching`,
       sessionDate: session.sessionDate || '',
       sessionTime: session.sessionTime || '',
@@ -87,13 +95,23 @@
       availableTimes: session.sessionDate && session.sessionTime
         ? [{ date: session.sessionDate, label: session.sessionLabel, times: [session.sessionTime] }]
         : [],
-    }));
+      });
+    });
+  }
+
+  function getLocalUser(username) {
+    const users = readJson(localUsersKey, []);
+    const normalizedUsername = String(username || '').trim().toLowerCase();
+
+    return (Array.isArray(users) ? users : []).find((user) => (
+      String(user?.username || '').trim().toLowerCase() === normalizedUsername
+    ));
   }
 
   const coaches = [
     ...(Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : []),
     ...getCoachListingsFromSessions(),
-  ];
+  ].map((coach) => (coach.isFixedSession ? applyRealCoachActivity(coach) : coach));
 
   function hasText(value) {
     return typeof value === 'string' && value.trim().length > 0;
@@ -148,42 +166,80 @@
   }
 
   function getCoachLanguages(coach) {
-    return toList(coach.languages).length ? toList(coach.languages) : toList([getLanguage(coach)]);
+    const languages = toList(coach.languages).length ? toList(coach.languages) : toList([getLanguage(coach)]);
+
+    return languages.map((language) => languageLabels[language] || language);
   }
 
   function getReviewItems(coach) {
     return toList(coach.reviewItems || coach.reviewList || coach.reviewsList);
   }
 
-  function getCoachStudentCount(coach) {
-    const purchases = readJson(purchasesKey, []);
-
-    if (!Array.isArray(purchases)) {
-      return 0;
+  function getRealCoachReviews(coach) {
+    if (!coach.sellerUsername) {
+      return [];
     }
 
-    const coachIds = new Set([coach.id, coach.sourceListingId].filter(Boolean).map(String));
-    const coachName = String(coach.name || '').trim().toLowerCase();
-    const buyers = new Set();
+    const reviews = readJson(sellerReviewsKey, []);
+    const coachIds = new Set([coach.id, coach.sourceListingId, coach.sourceSessionId].filter(Boolean).map(String));
 
-    purchases.forEach((purchase) => {
-      const items = Array.isArray(purchase?.items) ? purchase.items : [];
-      const hasCoachPurchase = items.some((item) => {
-        if (item?.productType !== 'Coaching') {
+    return (Array.isArray(reviews) ? reviews : [])
+      .filter((review) => {
+        if (String(review.sellerUsername || '').toLowerCase() !== String(coach.sellerUsername).toLowerCase()) {
           return false;
         }
 
+        const listingId = String(review.listingId || '');
+        return (listingId && coachIds.has(listingId)) || /coaching session/i.test(review.itemTitle || '');
+      })
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+      .map((review) => ({
+        author: review.buyerName || review.buyerUsername || 'Verified buyer',
+        rating: Number(review.rating) || 0,
+        text: review.comment || '',
+      }));
+  }
+
+  function applyRealCoachActivity(coach) {
+    const reviewItems = getRealCoachReviews(coach);
+    const rating = reviewItems.length
+      ? reviewItems.reduce((total, review) => total + review.rating, 0) / reviewItems.length
+      : null;
+
+    return {
+      ...coach,
+      rating,
+      reviews: reviewItems.length,
+      reviewItems,
+    };
+  }
+
+  function getCoachPurchaseStats(coach) {
+    const purchases = readJson(purchasesKey, []);
+    const coachIds = new Set([coach.id, coach.sourceListingId, coach.sourceSessionId].filter(Boolean).map(String));
+    const coachName = String(coach.name || '').trim().toLowerCase();
+    const buyers = new Set();
+    let sessions = 0;
+
+    (Array.isArray(purchases) ? purchases : []).forEach((purchase) => {
+      const matchedItems = (Array.isArray(purchase?.items) ? purchase.items : []).filter((item) => {
+        if (item?.productType !== 'Coaching') return false;
         const listingId = String(item.listingId || '');
         const sellerName = String(item.seller || '').trim().toLowerCase();
         return (listingId && coachIds.has(listingId)) || (coachName && sellerName === coachName);
       });
 
-      if (hasCoachPurchase && purchase?.buyerUsername) {
+      sessions += matchedItems.length;
+      if (matchedItems.length && purchase?.buyerUsername) {
         buyers.add(String(purchase.buyerUsername).trim().toLowerCase());
       }
     });
 
-    return buyers.size;
+    return { students: buyers.size, sessions };
+  }
+
+  function getCoachStudentCount(coach) {
+    return getCoachPurchaseStats(coach).students;
   }
 
   function renderStars() {
@@ -293,10 +349,10 @@
   }
 
   function renderMetrics(coach) {
-    const studentCount = getCoachStudentCount(coach);
+    const activity = getCoachPurchaseStats(coach);
     const metrics = [
-      renderMetric('ST', formatNumber(studentCount), 'Students'),
-      renderMetric('SE', hasNumber(coach.sessions) ? formatNumber(coach.sessions) : '', 'Sessions'),
+      renderMetric('ST', formatNumber(activity.students), 'Students'),
+      renderMetric('SE', formatNumber(activity.sessions), 'Completed Sessions'),
       renderMetric('SR', hasNumber(coach.successRate) ? `${Number(coach.successRate)}%` : '', 'Success Rate'),
       renderMetric('RT', coach.responseTime, 'Avg. Response Time'),
     ].filter(Boolean);
@@ -340,6 +396,15 @@
         <article class="coach-info-card">
           <h2>About ${escapeHtml(coach.name)}</h2>
           <p>${escapeHtml(coach.about)}</p>
+        </article>
+      `);
+    }
+
+    if (hasText(coach.sessionDescription)) {
+      cards.push(`
+        <article class="coach-info-card">
+          <h2>About Session</h2>
+          <p>${escapeHtml(coach.sessionDescription)}</p>
         </article>
       `);
     }
@@ -700,7 +765,7 @@
 
   function renderSimilar(coach) {
     return coaches
-      .filter((item) => item.id !== coach.id)
+      .filter((item) => item.id !== coach.id && (!coach.isFixedSession || item.isFixedSession))
       .sort((a, b) => (a.game === coach.game ? -1 : 1) - (b.game === coach.game ? -1 : 1))
       .slice(0, 4)
       .map((item) => `
@@ -733,6 +798,7 @@
       productType: 'Coaching',
       game: sessionGame,
       seller: coach.name,
+      sellerUsername: coach.sellerUsername || '',
       price: Number(coach.price) || 0,
       priceText: coach.priceText || `${Number(coach.price) || 0} GEL/hour`,
       imageData: coach.image,
@@ -740,6 +806,9 @@
       sessionDate,
       sessionTime,
       sessionLabel,
+      language: coach.language || '',
+      about: coach.about || '',
+      sessionDescription: coach.sessionDescription || '',
       addedAt: new Date().toISOString(),
     };
   }
@@ -791,6 +860,15 @@
     const availabilityText = availabilityLabels[coach.availability] || coach.availability || '';
     const overviewBlocks = [renderOverviewTop(coach), renderInfoGrid(coach), renderAchievements(coach)].filter(Boolean);
     const bookButtonText = coach.isFixedSession ? 'Add Session to Cart' : 'Book Session';
+    const messageUrl = coach.sellerUsername
+      ? `messages.html?to=${encodeURIComponent(coach.sellerUsername)}`
+      : 'messages.html';
+    const bookingFacts = [
+      ['Game', coach.game || 'Coaching'],
+      ['Language', getLanguage(coach)],
+      ['Date', coach.sessionDate ? formatCalendarDate(new Date(`${coach.sessionDate}T00:00:00`)) : 'Choose from calendar'],
+      ['Price', coach.priceText || `${Number(coach.price) || 0} GEL/hour`],
+    ];
 
     document.title = `WaveHub - ${coach.name} Book Session`;
 
@@ -830,17 +908,17 @@
       </section>
 
       <section class="coach-profile-panel coach-reviews-panel ${reviewItems.length ? '' : 'is-empty'}" data-profile-panel="reviews" hidden>
-        ${renderReviews(coach)}
+        ${renderReviews(coach) || '<p class="coach-profile-empty">No reviews yet.</p>'}
       </section>
 
       <section class="coach-booking-panel" aria-label="Book coaching session">
         <div class="coach-booking-main">
           <div class="coach-starting-price">
-            <span>Starting from</span>
+            <span>${coach.isFixedSession ? 'Session price' : 'Starting from'}</span>
             <strong>${escapeHtml(coach.priceText || `${Number(coach.price) || 0} GEL/hour`)}</strong>
           </div>
           <button class="coach-book-primary" type="button" data-action="book">${bookButtonText}</button>
-          <a class="coach-book-secondary coach-message-secondary" href="messages.html">Message Coach</a>
+          <a class="coach-book-secondary coach-message-secondary" href="${messageUrl}">Message Coach</a>
           <button class="coach-book-secondary" type="button" data-action="wishlist">Add to Wishlist</button>
         </div>
 
@@ -849,14 +927,11 @@
         <p class="coach-booking-status" id="coachBookingStatus" aria-live="polite"></p>
 
         <div class="coach-protection-row">
-          <div><strong>100% Secure Checkout</strong><span>Your payment is protected</span></div>
-          <div><strong>Escrow Protection</strong><span>Payment released after completion</span></div>
-          <div><strong>Verified Coach</strong><span>Verified by WaveHub team</span></div>
-          <div><strong>24/7 Support</strong><span>We are here to help anytime</span></div>
+          ${bookingFacts.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join('')}
         </div>
       </section>
 
-      <section class="coach-similar-section" aria-labelledby="coachSimilarTitle">
+      ${similarCards ? `<section class="coach-similar-section" aria-labelledby="coachSimilarTitle">
         <div>
           <h2 id="coachSimilarTitle">Similar Coaches</h2>
           <a href="coaching.html">View all coaches</a>
@@ -865,7 +940,7 @@
           ${similarCards}
           <a class="coach-similar-next" href="coaching.html" aria-label="Browse more coaches">&gt;</a>
         </div>
-      </section>
+      </section>` : ''}
     `;
   }
 

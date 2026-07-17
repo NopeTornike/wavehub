@@ -2,6 +2,10 @@
   const localUsersKey = 'wavehub.users';
   const sessionKey = 'wavehub.session';
   const directMessagesKey = 'wavehub.directMessages';
+  const priceOffersKey = 'wavehub.priceOffers';
+  const purchasesKey = 'wavehub.purchases';
+  const notificationSeenKey = 'wavehub.notificationSeen';
+  let notificationPanel = null;
 
   function readJson(key, fallback) {
     try {
@@ -135,6 +139,173 @@
     if (sidebarCount) sidebarCount.textContent = String(unread);
   }
 
+  function formatNotificationTime(value) {
+    const date = new Date(value || 0);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function getNotifications(user) {
+    if (!user?.username) return [];
+    const username = user.username;
+    const messages = readJson(directMessagesKey, []);
+    const offers = readJson(priceOffersKey, []);
+    const purchases = readJson(purchasesKey, []);
+    const items = [];
+
+    if (Array.isArray(messages)) {
+      messages.filter((message) => message.toUsername === username).forEach((message) => {
+        items.push({
+          id: `message:${message.id}`,
+          type: 'message',
+          title: `New message from @${message.fromUsername}`,
+          text: message.body || 'Open the conversation to reply.',
+          date: message.createdAt,
+          unread: !message.readAt,
+          href: `messages.html?to=${encodeURIComponent(message.fromUsername)}`,
+        });
+      });
+    }
+
+    if (Array.isArray(offers)) {
+      offers.filter((offer) => offer.sellerUsername === username).forEach((offer) => {
+        items.push({
+          id: `offer:${offer.id}`,
+          type: 'offer',
+          title: `Price offer from ${offer.buyerName || offer.buyerUsername || 'buyer'}`,
+          text: offer.itemTitle || offer.message || 'A new marketplace offer arrived.',
+          date: offer.createdAt,
+          href: offer.detailUrl || 'messages.html',
+        });
+      });
+    }
+
+    if (Array.isArray(purchases)) {
+      purchases.forEach((purchase) => {
+        if (purchase.buyerUsername === username) {
+          items.push({
+            id: `purchase:${purchase.id}:buyer`,
+            type: 'order',
+            title: 'Order update',
+            text: `${purchase.status || 'Checkout request'} · ${purchase.items?.length || 0} item(s)`,
+            date: purchase.purchasedAt || purchase.createdAt,
+            href: 'profile.html',
+          });
+        }
+
+        const sellerItems = Array.isArray(purchase.items)
+          ? purchase.items.filter((item) => item.sellerUsername === username)
+          : [];
+        if (sellerItems.length) {
+          items.push({
+            id: `purchase:${purchase.id}:seller`,
+            type: 'sale',
+            title: 'New order received',
+            text: sellerItems.map((item) => item.title).filter(Boolean).join(', ') || 'A buyer placed an order.',
+            date: purchase.purchasedAt || purchase.createdAt,
+            href: 'profile.html',
+          });
+        }
+      });
+    }
+
+    return items.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  }
+
+  function renderNotificationCenter() {
+    const { user } = getCurrentAccount();
+    const notifications = getNotifications(user);
+    const seenByUser = readJson(notificationSeenKey, {});
+    const seenAt = new Date(seenByUser?.[user?.username] || 0).getTime();
+    const unreadCount = notifications.filter((item) => item.unread || new Date(item.date || 0).getTime() > seenAt).length;
+
+    document.querySelectorAll('.icon-button.has-alert').forEach((button) => {
+      button.classList.toggle('has-notifications', unreadCount > 0);
+      let badge = button.querySelector('.notification-count-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'notification-count-badge';
+        button.appendChild(badge);
+      }
+      badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+      badge.hidden = unreadCount === 0;
+      button.setAttribute('aria-expanded', String(notificationPanel && !notificationPanel.hidden));
+    });
+
+    if (!notificationPanel) return;
+    const list = notificationPanel.querySelector('.notification-center-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!user?.username || notifications.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'notification-center-empty';
+      empty.textContent = user?.username ? 'No notifications yet.' : 'Log in to see notifications.';
+      list.appendChild(empty);
+      return;
+    }
+
+    notifications.slice(0, 12).forEach((item) => {
+      const link = document.createElement('a');
+      link.className = `notification-center-item ${item.type}${item.unread ? ' unread' : ''}`;
+      link.href = item.href;
+      const icon = document.createElement('span');
+      icon.className = 'notification-center-icon';
+      icon.textContent = item.type === 'message' ? 'M' : item.type === 'offer' ? '₾' : item.type === 'sale' ? 'S' : 'O';
+      const copy = document.createElement('span');
+      const title = document.createElement('strong');
+      const text = document.createElement('small');
+      const time = document.createElement('time');
+      title.textContent = item.title;
+      text.textContent = item.text;
+      time.textContent = formatNotificationTime(item.date);
+      copy.append(title, text, time);
+      link.append(icon, copy);
+      list.appendChild(link);
+    });
+  }
+
+  function setNotificationCenterOpen(isOpen, anchor = null) {
+    if (!notificationPanel) return;
+    notificationPanel.hidden = !isOpen;
+    if (isOpen && anchor) {
+      const rect = anchor.getBoundingClientRect();
+      notificationPanel.style.top = `${Math.max(12, Math.min(window.innerHeight - 430, rect.bottom + 10))}px`;
+      notificationPanel.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+      const { user } = getCurrentAccount();
+      if (user?.username) {
+        const seenByUser = readJson(notificationSeenKey, {});
+        localStorage.setItem(notificationSeenKey, JSON.stringify({ ...seenByUser, [user.username]: new Date().toISOString() }));
+      }
+      renderNotificationCenter();
+    }
+    document.querySelectorAll('.icon-button.has-alert').forEach((button) => {
+      button.setAttribute('aria-expanded', String(isOpen));
+    });
+  }
+
+  function bindNotificationCenter() {
+    notificationPanel = document.createElement('aside');
+    notificationPanel.className = 'notification-center';
+    notificationPanel.hidden = true;
+    notificationPanel.innerHTML = '<header><div><span>Updates</span><h2>Notifications</h2></div><button type="button" aria-label="Close notifications">×</button></header><div class="notification-center-list"></div><a class="notification-center-footer" href="messages.html">Open messages</a>';
+    document.body.appendChild(notificationPanel);
+
+    document.querySelectorAll('.icon-button.has-alert').forEach((button) => {
+      button.setAttribute('aria-haspopup', 'dialog');
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        setNotificationCenterOpen(notificationPanel.hidden, button);
+      });
+    });
+    notificationPanel.querySelector('header button')?.addEventListener('click', () => setNotificationCenterOpen(false));
+    notificationPanel.addEventListener('click', (event) => event.stopPropagation());
+    document.addEventListener('click', () => setNotificationCenterOpen(false));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') setNotificationCenterOpen(false);
+    });
+  }
+
   function routeToProfile(event) {
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -151,6 +322,8 @@
   renderProfileSurfaces();
   renderMessageNotifications();
   bindProfileRoutes();
+  bindNotificationCenter();
+  renderNotificationCenter();
 
   window.addEventListener('storage', (event) => {
     if (event.key === sessionKey || event.key === localUsersKey) {
@@ -158,11 +331,13 @@
       renderMessageNotifications();
     }
 
-    if (event.key === directMessagesKey) {
+    if ([directMessagesKey, priceOffersKey, purchasesKey, notificationSeenKey].includes(event.key)) {
       renderMessageNotifications();
+      renderNotificationCenter();
     }
   });
 
   window.wavehubRenderProfileSurfaces = renderProfileSurfaces;
   window.wavehubRenderMessageNotifications = renderMessageNotifications;
+  window.wavehubRenderNotificationCenter = renderNotificationCenter;
 }());
