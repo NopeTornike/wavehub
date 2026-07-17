@@ -21,6 +21,8 @@ const sellerAccountStatus = document.getElementById('sellerAccountStatus');
 const sellerAccountLevel = document.getElementById('sellerAccountLevel');
 const sellerPrice = document.getElementById('sellerPrice');
 const sellerImage = document.getElementById('sellerImage');
+const sellerImageCount = document.getElementById('sellerImageCount');
+const sellerImagePreviews = document.getElementById('sellerImagePreviews');
 const sellerDescription = document.getElementById('sellerDescription');
 const sellerStatus = document.getElementById('sellerStatus');
 const profileButton = document.getElementById('profileButton');
@@ -42,6 +44,8 @@ const messageCount = document.getElementById('messageCount');
 const cartButton = document.getElementById('cartButton');
 const cartCount = document.getElementById('cartCount');
 const cartTotal = document.getElementById('cartTotal');
+let sellerSelectedFiles = [];
+let sellerPreviewUrls = [];
 
 const sellerListingsKey = 'wavehub.sellerListings';
 const localUsersKey = 'wavehub.users';
@@ -135,13 +139,45 @@ function readImageFileData(file) {
 }
 
 function readSellerImageData() {
-  const files = Array.from(sellerImage?.files || []).filter((file) => file.type.startsWith('image/')).slice(0, 6);
+  const files = sellerSelectedFiles.slice(0, 6);
 
   if (!files.length) {
     return Promise.resolve([]);
   }
 
   return Promise.all(files.map(readImageFileData)).then((items) => items.filter(Boolean));
+}
+
+function getFileKey(file) {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
+
+function clearSellerPreviewUrls() {
+  sellerPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+  sellerPreviewUrls = [];
+}
+
+function renderSellerImagePreviews() {
+  clearSellerPreviewUrls();
+  if (sellerImageCount) sellerImageCount.textContent = `${sellerSelectedFiles.length} / 6 photos`;
+  if (!sellerImagePreviews) return;
+  sellerImagePreviews.innerHTML = '';
+
+  sellerSelectedFiles.forEach((file, index) => {
+    const url = URL.createObjectURL(file);
+    sellerPreviewUrls.push(url);
+    const preview = document.createElement('span');
+    preview.className = 'seller-image-preview';
+    preview.style.backgroundImage = `url("${url}")`;
+    preview.innerHTML = `${index === 0 ? '<em>Cover</em>' : ''}<button type="button" data-remove-seller-image="${index}" aria-label="Remove ${file.name}">×</button>`;
+    sellerImagePreviews.appendChild(preview);
+  });
+}
+
+function resetSellerImages() {
+  sellerSelectedFiles = [];
+  if (sellerImage) sellerImage.value = '';
+  renderSellerImagePreviews();
 }
 
 function getCurrentAccount() {
@@ -1001,6 +1037,7 @@ function closeSellerModal({ resetForm = false } = {}) {
 
   if (resetForm) {
     sellerForm?.reset();
+    resetSellerImages();
     updateSellerTypeFields();
     setSellerStatus('', '');
   }
@@ -1072,6 +1109,33 @@ sellerButton?.addEventListener('click', openSellerModal);
 sellerCloseButton?.addEventListener('click', () => closeSellerModal({ resetForm: true }));
 sellerCancelButton?.addEventListener('click', () => closeSellerModal({ resetForm: true }));
 sellerProductType?.addEventListener('change', updateSellerTypeFields);
+
+sellerImage?.addEventListener('change', () => {
+  const incoming = Array.from(sellerImage.files || []).filter((file) => file.type.startsWith('image/'));
+  const selectedKeys = new Set(sellerSelectedFiles.map(getFileKey));
+
+  incoming.forEach((file) => {
+    const key = getFileKey(file);
+    if (sellerSelectedFiles.length < 6 && !selectedKeys.has(key)) {
+      sellerSelectedFiles.push(file);
+      selectedKeys.add(key);
+    }
+  });
+
+  sellerImage.value = '';
+  renderSellerImagePreviews();
+  setSellerStatus('', sellerSelectedFiles.length === 6 ? 'Maximum 6 photos selected.' : '');
+});
+
+sellerImagePreviews?.addEventListener('click', (event) => {
+  const button = event.target instanceof Element ? event.target.closest('[data-remove-seller-image]') : null;
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  sellerSelectedFiles.splice(Number(button.dataset.removeSellerImage), 1);
+  renderSellerImagePreviews();
+  setSellerStatus('', '');
+});
 
 sellerModal?.addEventListener('click', (event) => {
   if (event.target === sellerModal) {
@@ -1151,7 +1215,7 @@ sellerForm?.addEventListener('submit', async (event) => {
     description,
     imageData: galleryImages[0] || '',
     galleryImages,
-    imageName: sellerImage?.files?.[0]?.name || '',
+    imageName: sellerSelectedFiles[0]?.name || '',
     accountStatus: listingType === 'account' ? accountStatus : '',
     accountLevel: listingType === 'account' ? accountLevel : '',
     accountViews: 0,

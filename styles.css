@@ -94,11 +94,15 @@ button {
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 56px;
-  padding: 6px 8px;
+  min-height: 104px;
+  display: block;
+  padding: 4px;
+  background: url("assets/logo-wavehubx.png") center / 280px auto no-repeat;
+}
+
+.brand .brand-mark,
+.brand .brand-text {
+  display: none;
 }
 
 .brand-mark {
@@ -1964,6 +1968,92 @@ button {
   cursor: pointer;
 }
 
+.seller-image-selection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.seller-image-selection strong {
+  color: var(--pink-2);
+  font-size: 11px;
+}
+
+.seller-image-previews {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.seller-image-previews:empty {
+  display: none;
+}
+
+.seller-image-preview {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 4 / 3;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.035) center / cover no-repeat;
+}
+
+.seller-image-preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 42%, rgba(0, 0, 0, 0.22));
+}
+
+.seller-image-preview em {
+  position: absolute;
+  left: 7px;
+  top: 7px;
+  z-index: 2;
+  border-radius: 999px;
+  color: white;
+  background: rgba(255, 47, 143, 0.88);
+  padding: 4px 7px;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.seller-image-preview button {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 3;
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  color: white;
+  background: rgba(4, 8, 18, 0.82);
+  font-size: 16px;
+  line-height: 1;
+}
+
+@media (max-width: 560px) {
+  .seller-image-selection {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .seller-image-previews {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .seller-form input,
 .seller-form select {
   min-height: 42px;
@@ -2306,10 +2396,15 @@ button {
 }
 
 .auth-brand {
-  width: fit-content;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  width: 190px;
+  height: 76px;
+  display: block;
+  background: url("assets/logo-wavehubx.png") center / 250px auto no-repeat;
+}
+
+.auth-brand .brand-mark,
+.auth-brand .brand-text {
+  display: none;
 }
 
 .auth-cart-link {
@@ -5801,10 +5896,16 @@ a.product-showcase-seller:focus-visible strong,
 }
 
 .coach-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
+  width: 168px;
   min-width: 168px;
+  height: 48px;
+  display: block;
+  background: url("assets/logo-wavehubx.png") center / 200px auto no-repeat;
+}
+
+.coach-brand .coach-brand-mark,
+.coach-brand > strong {
+  display: none;
 }
 
 .coach-brand-mark {
@@ -9576,7 +9677,9 @@ a.product-showcase-seller:focus-visible strong,
   }
 
   .coaching-body .coach-brand {
-    width: fit-content;
+    width: 150px;
+    min-width: 150px;
+    height: 44px;
   }
 
   .coaching-body .coach-brand-mark {
