@@ -288,16 +288,288 @@ approved, dispute updates).
 **Status:** Not built.
 
 ### 5.13 Admin panel
-**Target:** Dashboard with platform stats (users, sellers, active services, orders, active disputes,
-revenue, pending withdrawals). User management (search, view/edit/suspend/ban/reactivate). Seller
-management (verify/suspend/ban/remove-verification, view their services/earnings/reviews/orders).
-Service management (approve/reject/edit/pause/delete/feature). Order management (view/cancel/refund/
-open-dispute/resolve-dispute). Dispute center (the highest-stakes screen — full evidence + chat history
-+ decision actions). Withdraw management (approve/reject/mark-paid). Review moderation. Reports center
-(reported users/services/reviews, with warning/suspension/removal actions). Revenue dashboard. Audit
-log of every admin action (see §4.3). Three role tiers: Super Admin (everything), Support Admin
-(disputes/reports/orders), Finance Admin (withdrawals/revenue).
-**Status:** Not built — no admin surface exists anywhere in either codebase.
+
+**This section supersedes the lighter 3-role sketch in the original 80-page spec.** The client
+provided six dedicated "Staff Management System" documents (2026-07 update) that define the real,
+much larger admin panel scope: **Super Admin** plus five subordinate roles, each with an explicit
+CAN and CANNOT list. Super Admin has unrestricted access to every capability below; every other
+role's section lists its own subset verbatim from the source doc — don't infer a role's access from
+its job title, use the explicit lists.
+
+**Roles**: Super Admin, Operation Lead & Manager, Main Administrator, Marketplace & Coaching
+Operations Manager, Trust & Safety Officer, Support Specialist.
+
+#### 5.13.1 Super Admin — full catalog (every other role is a subset of this)
+
+No restrictions — full access to every WaveHub function and system. This is the authoritative list
+of every admin capability that exists anywhere in the product:
+
+- **Dashboard**: full platform statistics, today's revenue, total revenue, active/completed/
+  cancelled orders, active users/sellers/coaches, new registrations, verification requests, open
+  disputes, support tickets, withdrawal requests, recent activity (Activity Log)
+- **User Management**: view, search, filter, open profile, edit profile, **create a user account**,
+  temporarily suspend, restore, permanently ban, remove ban, delete account, verify email, grant/
+  remove verification, send warning, **change role**, view wallet, **add funds to wallet**,
+  **deduct funds from wallet**, **adjust balance**, view order history, view payment history, add
+  notes, increase rank/XP, view full action history
+- **Seller Management**: view/edit profile, approve/reject seller verification, remove verification
+  badge, suspend/restore marketplace access, view/edit/hide/delete listings, grant/remove featured
+  status, view reviews, send warning, suspend/restore/ban account
+- **Coach Management**: view/edit profile, approve/reject coach verification, remove verification
+  badge, suspend/restore coaching access, view session history, view upcoming sessions, view
+  reviews, send warning, suspend/restore/ban account
+- **Coaching Management**: add/remove/edit a coach, change a coach's price, view all sessions,
+  cancel a session, change session time, **reassign session to a different coach**, change session
+  status
+- **Marketplace Management**: add/edit/hide/delete listings, grant featured status, manage
+  categories, manage tags
+- **Digital Services Management**: view/approve/reject/edit/hide/delete services, manage featured
+  status
+- **Orders**: view all, search, filter, view details, change status, **Force Cancel**, refund, view
+  delivery proof, view chat, open/close/resolve dispute, order notes, order timeline
+- **Payments**: view all transactions + details, **Payment Logs**, refund, approve/reject payout,
+  approve/reject withdrawal, **manage escrow**, **change commission**
+- **Wallet**: view wallet, add funds, deduct funds, adjust balance
+- **Reviews Management**: view all, hide, delete, monitor suspicious reviews
+- **Reports**: view all + evidence, approve/reject report, warn/suspend/ban user
+- **Support**: view all tickets, reply, add internal comment, change priority/status, close ticket
+- **Disputes**: view all, review evidence, request more info, refund buyer, release funds to seller,
+  make decision, close dispute
+- **Content Management**: manage banners, games, categories, badges, tags, promo banners
+- **Marketing**: create/edit/cancel promo codes
+- **Analytics**: revenue analytics, order analytics, user analytics
+- **Staff Management**: add/edit/delete staff, assign role, change permissions, view staff activity,
+  temporarily disable a staff account
+- **Security**: Activity Log, Audit Log
+- **Platform Settings**: core platform settings, payment methods, commissions, escrow parameters,
+  Maintenance Mode
+- **Approval Center**: verification requests, seller applications, coach applications
+
+#### 5.13.2 Operation Lead & Manager
+
+Runs day-to-day operations; oversees admins/moderators/support. **No access to critical platform
+settings, security systems, or top-level admin functions.**
+
+Dashboard: today's operational stats, active/delayed/new orders, active disputes, verification
+requests, support tickets, marketplace stats, coaching stats, online staff count, staff
+productivity, recent activity, quick actions.
+
+- **User Management** — CAN: view/search/open/edit profile, temp suspend, restore, send warning,
+  approve/reject verification, view order history, view report history, add notes. **CANNOT**:
+  delete account, change Super Admin/Staff roles, manually add/deduct wallet funds, reset 2FA.
+- **Marketplace Management** — CAN: view/edit listings, hide rule-violating listings, delete
+  listings, review featured requests, approve/reject seller verification, warn seller, temp suspend
+  marketplace.
+- **Coaching Management** — CAN: approve/reject coach verification, view/cancel sessions, warn
+  coach, temp suspend coaching profile, coaching quality control.
+- **Order Management** — CAN: view/search all orders, change status, cancel, open/review/close
+  dispute, view delivery proof + chat, add order notes. **CANNOT**: Force Refund without critical
+  financial approval.
+- **Dispute Management** — CAN: view all, review evidence, request more info, prepare decision,
+  escalate to Super Admin, close dispute.
+- **Support Team Management** — CAN: view all tickets, redistribute tickets, change priority, SLA
+  control, close ticket, evaluate support team performance.
+- **Moderator Management** — CAN: control moderator work, review reports, verify complaints,
+  control rule violations, confirm warnings.
+- **Staff Management** — CAN: view staff list, redistribute work, evaluate staff, monitor activity,
+  add internal comments. **CANNOT**: add staff, delete staff, change role, change permissions.
+- **Analytics** — CAN: operational, order, marketplace, coaching, support, and staff-efficiency
+  analysis.
+- **Notifications** — CAN: send staff announcements, send system notifications to users, create
+  announcements.
+- **Approval Center** — CAN: review verification requests, seller applications, coach applications,
+  featured requests, reports.
+- **Reviews Management** — CAN: view all, hide, review suspicious reviews, review review-reports.
+- **Digital Services Management** — CAN: view/approve/reject/edit services, hide rule-violating
+  services, review featured requests.
+- **Restrictions (explicit)**: cannot approve refunds independently (needs Super Admin or Finance
+  Manager confirmation); cannot change Email/Notification templates; cannot change platform
+  settings, commissions, or payment systems; cannot change API settings; cannot restore backups;
+  cannot change critical System Health settings; cannot change staff roles/permissions; cannot
+  manage the Super Admin account; cannot manually add/deduct wallet funds; cannot enable
+  Maintenance Mode.
+
+#### 5.13.3 Main Administrator
+
+Handles routine day-to-day admin tasks — users, orders, marketplace, coaching, verifications,
+reports, support. Makes operational decisions within their authority; escalates to Operation Lead
+when needed.
+
+Dashboard: active/new/delayed orders, new users, verification requests, active reports, open
+disputes, support tickets, marketplace stats, coaching stats, recent activity, quick actions.
+
+- **User Management** — CAN: view/search/open/edit profile, temp suspend, restore, send warning,
+  verify email, approve/reject verification, view order/report history, add notes. **CANNOT**:
+  delete account, change wallet balance, change role, reset 2FA.
+- **Marketplace Management** — CAN: view/edit listings, hide, delete rule-violating listings, review
+  featured requests, approve/reject seller verification, warn seller, temp suspend marketplace.
+- **Coaching Management** — CAN: approve/reject coach verification, view/cancel sessions, warn
+  coach, temp suspend coaching profile, review ratings.
+- **Order Management** — CAN: view/search all orders, change status, cancel, view delivery proof +
+  chat, add order notes, escalate order issue. **CANNOT**: Force Complete, Force Refund, Force
+  Payout.
+- **Dispute Management** — CAN: open dispute, review evidence, communicate with both parties,
+  prepare recommendation, hand off to Operation Lead, close dispute (if authorized).
+- **Reports Management** — CAN: view reports + evidence, issue warning, hide content, temp suspend
+  account, record decision.
+- **Support Management** — CAN: view all tickets, reply, redirect ticket, change priority/status,
+  close ticket, add internal comment.
+- **Content Management** — CAN: edit banners, edit FAQ, add news, edit categories, edit game info.
+- **Analytics** — CAN: order, marketplace, coaching, user, and support stats.
+- **Notifications** — CAN: send system announcements, individual user notifications, staff
+  notifications.
+- **Restrictions (explicit)**: cannot change platform settings or commissions; cannot change wallet
+  balance or manually add/deduct funds; cannot approve payout or withdrawal; cannot change API
+  settings; cannot manage backups; cannot add/remove staff or change staff roles/permissions; cannot
+  enable Maintenance Mode; cannot change System Health settings; cannot override Super Admin/
+  Operation Lead actions.
+
+#### 5.13.4 Marketplace & Coaching Operations Manager
+
+Owns day-to-day Marketplace and Coaching operations, quality control, and monitoring seller/coach
+performance.
+
+Dashboard: active seller/coach counts, new seller/coach applications, pending verification requests,
+listings pending approval, low-rated sellers/coaches, active coaching sessions, today's marketplace/
+coaching orders, average rating, rule-violation incidents, quick actions.
+
+**Performance Alerts**: the system auto-flags a seller/coach as "needs attention" when: rating drops
+below a threshold (example given: 4.2), cancelled-order rate exceeds the allowed limit, average
+response time rises significantly, or several consecutive negative reviews land.
+
+- **Seller Management** — CAN: view/edit profile, approve/reject verification, grant/remove
+  verification badge, send warning, temp suspend, restore, view sales history, view ratings/
+  reviews, view performance stats, add notes. **CANNOT**: permanently delete account, change
+  financial balance, change role.
+- **Coach Management** — CAN: view/edit profile, approve/reject verification, grant/remove
+  verification badge, send warning, temp suspend, restore coaching, view session history, view
+  ratings/reviews, view performance stats, add notes. **CANNOT**: permanently delete account, change
+  financial balance.
+- **Marketplace Listings** — CAN: view all, approve/reject, edit, hide, delete, review featured
+  requests, suspend for rule violation, add internal comment.
+- **Coaching Services** — CAN: view, approve, reject, edit, suspend, restore, add comment.
+- **Marketplace & Coaching Orders** — CAN: view orders + details, control order status, view
+  delivery proof + chat, flag problematic orders, add order notes, escalate to Main Administrator or
+  Operation Lead. **CANNOT**: refund, Force Complete, Force Cancel.
+- **Reviews** — CAN: view all, flag suspicious, hide offensive, forward deletion requests, analyze
+  ratings.
+- **Quality Control** — CAN: monitor Seller/Coach Quality Score, control cancellation rate,
+  late-delivery rate, response time, customer satisfaction; weekly performance review.
+- **Analytics** — CAN: marketplace/coaching analytics, seller/coach performance, best-selling
+  services, most-demanded games, top-rated sellers/coaches.
+- **Notifications** — CAN: notify sellers, notify coaches, marketplace listing announcements,
+  coaching section announcements.
+- **Restrictions (explicit)**: cannot change wallet balance; cannot refund; cannot approve payout or
+  withdrawal; cannot change platform settings or commissions; cannot add/remove staff or change
+  staff roles/permissions; cannot change API/security settings; cannot enable Maintenance Mode;
+  cannot manage backups.
+
+#### 5.13.5 Trust & Safety Officer
+
+Owns platform safety, fairness, and rule enforcement — fraud prevention, suspicious-activity
+detection, behavior monitoring, report review. **No access to financial operations, critical
+platform settings, or staff permission changes.**
+
+Dashboard: new/pending reports, suspicious users/sellers/coaches/listings/reviews, Chat Abuse
+Alerts, Spam Alerts, Fraud Alerts, Fake Account Alerts, Ban Appeal Requests, security statistics,
+recent activity, quick actions.
+
+- **Report Management** — CAN: view all reports + details + evidence, request more info, approve/
+  reject report, add internal comment, forward to Main Administrator or Operation Lead.
+- **User Safety Control** — CAN: view profile, activity history, login history, IP history, device
+  history, send warning, view Risk Score, request temporary suspension, recommend ban, add internal
+  note. **CANNOT**: delete account, change wallet balance, change user role.
+- **Marketplace Safety** — CAN: view/inspect listing, hide listing, recommend deletion, flag fake/
+  scam listing, record rule violation, flag suspicious seller.
+- **Coaching Safety** — CAN: inspect coach profile/services, detect rule violation, flag coach,
+  recommend warning.
+- **Chat Monitoring** — CAN: view reported chat, detect spam, flag offensive/threatening messages,
+  detect fraudulent communication, rate chat.
+- **Review Monitoring** — CAN: view all reviews, flag fake review, hide offensive review, flag
+  rule-violating review, recommend deletion.
+- **Risk Management** — CAN: monitor Risk Score, monitor suspicious activity, detect multi-account,
+  IP anomalies, device anomalies, fraud patterns.
+- **Ban Appeal Management** — CAN: receive appeal, review evidence, request more info, prepare
+  recommendation, forward to Main Administrator or Operation Lead.
+- **Evidence Center** — CAN: view photos/videos/files, chat history, order timeline, login timeline
+  — all evidence for a case in one place.
+- **Security Analytics** — CAN: fraud/spam/fake-account/ban/warning stats, most-frequent-violation
+  analysis, Risk Score stats.
+- **Notifications** — CAN: send warning, security notifications, request more info, official warning
+  to user.
+- **Restrictions (explicit)**: cannot change wallet balance; cannot refund; cannot approve payout or
+  withdrawal; cannot change platform settings or commissions; cannot add/remove staff or change
+  staff roles/permissions; cannot change API settings; cannot enable Maintenance Mode; cannot
+  permanently delete a user; **cannot permanently ban a user independently** (recommends only).
+
+#### 5.13.6 Support Specialist
+
+Handles user help, ticket management, and first-line order issues. **Makes no administrative or
+financial decisions** — resolves quickly or escalates to the right department.
+
+Dashboard: new/active/"my"/high-priority/escalated/closed tickets, average response time, today's
+stats, quick actions.
+
+- **Support Tickets** — CAN: view every ticket available to them, open new ticket, reply, view/
+  attach files, add internal comment, change status/priority, redirect to another department, close
+  ticket, reopen ticket (if policy allows).
+- **User Information** — CAN: view profile, order history, ticket history, internal notes, add new
+  internal note. **CANNOT**: edit profile, suspend account, delete account, change role, manage
+  wallet.
+- **Order-related Help** — CAN: view order status, delivery proof, order chat; inform user; log
+  problem; escalate to Main Administrator or Marketplace & Coaching Operations Manager. **CANNOT**:
+  change order status, cancel order, Force Complete, refund.
+- **Chat** — CAN: chat with user, use **Saved Replies**, send files, view conversation history.
+- **Notifications** — CAN: send official notification to user, request more info, ticket-related
+  notifications.
+- **Internal Notes** — CAN: view/add internal note. **CANNOT**: delete or edit another staff
+  member's note.
+- **Internal Tasks** — CAN: view tasks assigned to them, change completion status, comment on task.
+- **Escalation System** — CAN: escalate to Main Administrator, Trust & Safety Officer, or
+  Marketplace & Coaching Operations Manager, with a stated reason and attached evidence.
+- **Saved Replies are required** (canned response templates) — example categories given: payment
+  problem, order status, refund process, verification, marketplace, coaching, technical problem.
+- **Restrictions (explicit)**: cannot suspend or ban a user; cannot approve/reject verification;
+  cannot change wallet balance; cannot refund; cannot approve payout or withdrawal; cannot change
+  order status; cannot edit a marketplace listing; cannot suspend a coach or seller; cannot manage
+  staff; cannot change platform settings; cannot send system-wide notifications; cannot make final
+  decisions on reports.
+
+#### 5.13.7 New entities/concepts this reveals (not previously anywhere in the spec or codebase)
+
+- **Coach** as a user type distinct from Seller — own verification flow, own profile, own
+  session-based (not order-based) delivery, own quality-score tracking. The original spec only had
+  "Coaching" as one service *category* under Listings; this is a structurally different, parallel
+  concept and needs its own data model, not a field on `Listing`.
+- **Staff/permission system itself** — 6 named roles with explicit per-capability grants, not the
+  3 loosely-defined roles the original spec sketched. `AdminRole` in `packages/shared-types` needs
+  to grow from 3 values to 6 (done — see `backend/src/users/CLAUDE.md` for where it lands on the
+  `User` entity once Phase 11 builds it).
+- **Support ticketing system** — the contract's "Support Request, Contact Form" line item and the
+  original spec together implied a bare contact form; this is a full ticket system: priority, SLA
+  tracking, internal notes, saved replies, task assignment, multi-role escalation.
+- **Promo Codes / Marketing** — create/edit/cancel promo codes. Not in the original spec at all.
+- **Content Management beyond legal pages** — Banners, News, Games, Categories, Badges, Tags, Promo
+  Banners, as distinct admin-managed content types (original spec's CMS only covered legal/static
+  pages).
+- **Platform Settings screen** — commission/fee editing, payment method management, escrow
+  parameters, Maintenance Mode toggle, as a dedicated settings surface (the original spec had a
+  single "Fee Percentage Setting" field; this is broader).
+- **Fraud & Risk / Trust & Safety tooling** — Risk Score, multi-account detection, IP/device anomaly
+  detection, Ban Appeals, Evidence Center, chat-abuse-specific monitoring. None of this existed in
+  the original spec.
+- **Approval Center** — a single aggregated queue for verification requests, seller/coach
+  applications, and featured requests, rather than separate per-type approval screens.
+- **Staff productivity/activity monitoring** — online staff count, staff efficiency analytics,
+  internal task assignment/tracking. Internal-ops tooling with no prior spec mention.
+- **Audit Log / Activity Log as two distinct things** — the original spec had one "audit log"
+  concept; these docs separate "Activity Log" (broader activity feed) from "Audit Log" (admin
+  action trail specifically). Worth confirming with the client whether this is a real distinction or
+  just two names for the dashboard tiles.
+
+**Status:** Not built — no admin surface exists anywhere in either codebase. This is now understood
+to be one of the largest remaining pieces of the product, on par with or exceeding everything built
+so far combined. See the build plan's Phase 11 entry for how this gets sequenced.
 
 ### 5.14 Static/legal pages
 **Target:** About Us, Contact Us (form: name/email/subject/message), Terms of Service, Privacy Policy,

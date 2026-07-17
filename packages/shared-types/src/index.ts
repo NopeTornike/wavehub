@@ -14,10 +14,18 @@ export enum UserStatus {
   Banned = 'banned',
 }
 
+// The 6 real staff roles per the client's "Staff Management System" docs (2026-07 update) —
+// supersedes an earlier 3-role placeholder (super_admin/support_admin/finance_admin). Super Admin
+// has unrestricted access to everything; every other role is an explicit subset — see
+// SPECIFICATION.md §5.13 for the full per-role CAN/CANNOT catalog, preserved verbatim from source.
+// Don't add a 7th role or rename these without updating that section in the same change.
 export enum AdminRole {
   SuperAdmin = 'super_admin',
-  SupportAdmin = 'support_admin',
-  FinanceAdmin = 'finance_admin',
+  OperationLead = 'operation_lead',
+  MainAdministrator = 'main_administrator',
+  MarketplaceCoachingOpsManager = 'marketplace_coaching_ops_manager',
+  TrustSafetyOfficer = 'trust_safety_officer',
+  SupportSpecialist = 'support_specialist',
 }
 
 export enum SellerTier {

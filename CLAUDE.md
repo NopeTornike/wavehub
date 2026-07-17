@@ -129,6 +129,12 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   DB-backed session table. Any endpoint that needs to know the caller's identity uses `AuthGuard` +
   `@CurrentUserId()` from `backend/src/auth/` — see that module's doc before building a new guarded
   route.
+- **Admin panel scope**: much larger than the original 80-page spec suggested — 6 staff roles (Super
+  Admin plus 5 subordinate roles, each an explicit permission subset), a distinct **Coach** entity
+  separate from Seller, full support ticketing, promo codes, content/banner management, platform
+  settings, and Trust & Safety/fraud tooling. Full per-role CAN/CANNOT catalog is in
+  `SPECIFICATION.md` §5.13 — read it before starting Phase 11 or before assuming what a role can/
+  can't do; don't infer from a role's name.
 
 ## Tool portability
 
