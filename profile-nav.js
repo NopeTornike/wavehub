@@ -189,7 +189,7 @@
             title: 'Order update',
             text: `${purchase.status || 'Checkout request'} · ${purchase.items?.length || 0} item(s)`,
             date: purchase.purchasedAt || purchase.createdAt,
-            href: 'profile.html',
+            href: 'orders.html',
           });
         }
 
@@ -203,7 +203,7 @@
             title: 'New order received',
             text: sellerItems.map((item) => item.title).filter(Boolean).join(', ') || 'A buyer placed an order.',
             date: purchase.purchasedAt || purchase.createdAt,
-            href: 'profile.html',
+            href: 'orders.html',
           });
         }
       });
