@@ -3376,6 +3376,147 @@ a.product-showcase-seller:focus-visible strong,
   font-weight: 850;
 }
 
+body.favorites-view .marketplace-head {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 47, 143, 0.22);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(143, 69, 255, 0.2), transparent 30%),
+    linear-gradient(125deg, rgba(255, 47, 143, 0.12), rgba(9, 15, 33, 0.88) 48%, rgba(34, 211, 238, 0.06));
+  margin: 18px 20px 14px;
+  padding: 28px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.26), inset 0 1px rgba(255, 255, 255, 0.05);
+}
+
+body.favorites-view .marketplace-head::after {
+  content: "♡";
+  position: absolute;
+  right: clamp(120px, 18vw, 230px);
+  top: 50%;
+  color: rgba(255, 47, 143, 0.12);
+  font-size: 120px;
+  line-height: 1;
+  transform: translateY(-50%) rotate(-8deg);
+}
+
+body.favorites-view .marketplace-head h1 {
+  background: linear-gradient(90deg, #fff, #ff72bc 58%, #a97aff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+body.favorites-view .marketplace-total {
+  position: relative;
+  z-index: 1;
+  border-color: rgba(255, 47, 143, 0.34);
+  background: rgba(5, 10, 24, 0.64);
+  box-shadow: 0 0 32px rgba(255, 47, 143, 0.09);
+}
+
+body.favorites-view .marketplace-toolbar {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  background: rgba(10, 16, 34, 0.72);
+  margin-inline: 20px;
+  backdrop-filter: blur(16px);
+}
+
+body.favorites-view .marketplace-list-section {
+  margin-inline: 20px;
+}
+
+body.favorites-view .marketplace-card {
+  border-color: rgba(255, 47, 143, 0.18);
+  background:
+    linear-gradient(145deg, rgba(255, 47, 143, 0.06), transparent 38%),
+    rgba(11, 18, 38, 0.88);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
+}
+
+body.favorites-view .marketplace-card:hover {
+  border-color: rgba(255, 47, 143, 0.48);
+  box-shadow: 0 24px 58px rgba(0, 0, 0, 0.34), 0 0 30px rgba(255, 47, 143, 0.08);
+  transform: translateY(-5px);
+}
+
+body.favorites-view .save-button.saved {
+  background-color: rgba(255, 47, 143, 0.2);
+  box-shadow: 0 0 18px rgba(255, 47, 143, 0.28);
+}
+
+body.favorites-view .marketplace-empty {
+  min-height: 330px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  border: 1px dashed rgba(255, 47, 143, 0.32);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(255, 47, 143, 0.11), transparent 30%),
+    rgba(10, 16, 34, 0.64);
+  padding: 34px;
+  text-align: center;
+}
+
+body.favorites-view .marketplace-empty[hidden] { display: none; }
+
+.favorites-empty-icon {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgba(255, 47, 143, 0.3);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(255, 47, 143, 0.18), rgba(143, 69, 255, 0.12));
+  box-shadow: 0 16px 40px rgba(255, 47, 143, 0.12);
+}
+
+.favorites-empty-icon::before {
+  content: "♡";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--pink-2);
+  font-size: 40px;
+}
+
+body.favorites-view .marketplace-empty strong { color: white; font-size: 21px; }
+body.favorites-view .marketplace-empty p { max-width: 420px; margin: 0; color: var(--muted); line-height: 1.55; }
+body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; color: white; background: linear-gradient(90deg, var(--pink), #9d43f6); padding: 11px 17px; font-size: 12px; font-weight: 950; }
+
+@media (max-width: 920px) {
+  body.favorites-view .marketplace-head,
+  body.favorites-view .marketplace-toolbar,
+  body.favorites-view .marketplace-list-section {
+    margin-inline: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  body.favorites-view .marketplace-head {
+    align-items: flex-start;
+    padding: 20px 18px;
+  }
+
+  body.favorites-view .marketplace-head::after {
+    right: 8px;
+    font-size: 82px;
+  }
+
+  body.favorites-view .marketplace-total {
+    position: relative;
+    z-index: 2;
+  }
+
+  body.favorites-view .marketplace-empty {
+    min-height: 280px;
+    padding: 24px 16px;
+  }
+}
+
 .marketplace-cart-footer {
   position: fixed;
   z-index: 40;
