@@ -61,6 +61,14 @@ const profileSessionDateInput = document.getElementById('profileSessionDate');
 const profileSessionTimeInput = document.getElementById('profileSessionTime');
 const profileSessionAboutInput = document.getElementById('profileSessionAbout');
 const profileSessionDescriptionInput = document.getElementById('profileSessionDescription');
+const profileSessionRankInput = document.getElementById('profileSessionRank');
+const profileSessionSpecialtyInput = document.getElementById('profileSessionSpecialty');
+const profileSessionExperienceInput = document.getElementById('profileSessionExperience');
+const profileSessionSuccessRateInput = document.getElementById('profileSessionSuccessRate');
+const profileSessionResponseTimeInput = document.getElementById('profileSessionResponseTime');
+const profileSessionStyleInput = document.getElementById('profileSessionStyle');
+const profileSessionExpertiseInput = document.getElementById('profileSessionExpertise');
+const profileSessionAchievementsInput = document.getElementById('profileSessionAchievements');
 const profileSessionStatus = document.getElementById('profileSessionStatus');
 const profileSessionCloseButton = document.getElementById('profileSessionCloseButton');
 const profileSessionCancelButton = document.getElementById('profileSessionCancelButton');
@@ -423,7 +431,7 @@ function setSessionModalOpen(isOpen) {
   }
 }
 
-function buildCoachSessionItem(coachName, sessionGame, sessionDate, sessionTime, sessionPrice, language, about, sessionDescription, existingItem = {}) {
+function buildCoachSessionItem(coachName, sessionGame, sessionDate, sessionTime, sessionPrice, language, about, sessionDescription, coachDetails = {}, existingItem = {}) {
   const { user } = getCurrentAccount();
   const coachId = existingItem.listingId || `custom-${getSlug(coachName)}`;
   const buyerUsername = existingItem.buyerUsername || user?.username || '';
@@ -452,8 +460,18 @@ function buildCoachSessionItem(coachName, sessionGame, sessionDate, sessionTime,
     bio: cleanAbout,
     quote: meetYourCoach,
     sessionDescription: String(sessionDescription || '').trim(),
+    rank: coachDetails.rank || '',
+    specialty: coachDetails.specialty || '',
+    yearsExperience: Number(coachDetails.yearsExperience) || 0,
+    successRate: Number(coachDetails.successRate) || 0,
+    responseTime: coachDetails.responseTime || '',
+    responseTimeMinutes: Number(coachDetails.responseTimeMinutes) || 0,
+    style: coachDetails.style || [],
+    expertise: coachDetails.expertise || [],
+    expertiseAreas: [],
+    achievements: coachDetails.achievements || [],
     imageData: existingItem.imageData || '',
-    detailUrl: existingItem.detailUrl || 'coaching.html',
+    detailUrl: `coach-book-session.html?coach=${encodeURIComponent(existingItem.id || `coach:${buyerUsername || 'guest'}:${coachId}:${getSlug(sessionGame)}:${sessionDate}:${sessionTime}`)}`,
     sessionDate,
     sessionTime,
     sessionLabel,
@@ -487,6 +505,24 @@ function openSessionEditor(sessionId = '') {
   if (profileSessionLanguageInput) profileSessionLanguageInput.value = session?.language || '';
   if (profileSessionAboutInput) profileSessionAboutInput.value = session?.about || session?.bio || '';
   if (profileSessionDescriptionInput) profileSessionDescriptionInput.value = session?.sessionDescription || '';
+  if (profileSessionRankInput) profileSessionRankInput.value = session?.rank || '';
+  if (profileSessionSpecialtyInput) profileSessionSpecialtyInput.value = session?.specialty || '';
+  if (profileSessionExperienceInput) profileSessionExperienceInput.value = session?.yearsExperience ?? '';
+  if (profileSessionSuccessRateInput) profileSessionSuccessRateInput.value = session?.successRate ?? '';
+  if (profileSessionResponseTimeInput) profileSessionResponseTimeInput.value = session?.responseTimeMinutes ?? '';
+  if (profileSessionStyleInput) profileSessionStyleInput.value = (session?.style || []).join('\n');
+  if (profileSessionExpertiseInput) {
+    const expertise = session?.expertise || [];
+    profileSessionExpertiseInput.value = expertise.length
+      ? expertise.map((item) => `${item.label || ''}: ${item.value ?? ''}`).join('\n')
+      : (session?.expertiseAreas || []).map((item) => `${item}: `).join('\n');
+  }
+  if (profileSessionAchievementsInput) {
+    profileSessionAchievementsInput.value = (session?.achievements || [])
+      .map((item) => (typeof item === 'string' ? item : item?.label || item?.value || ''))
+      .filter(Boolean)
+      .join('\n');
+  }
 
   setSessionStatus('', '');
   setSessionModalOpen(true);
@@ -727,7 +763,7 @@ function createRecordCard(item, type) {
 
   const footer = document.createElement('small');
   footer.textContent = type === 'session'
-    ? `${item.sessionLabel || 'Unscheduled session'} / ${item.priceText || formatListingPrice(item.price)}`
+    ? `${item.sessionLabel || 'Unscheduled session'} / ${item.priceText || formatListingPrice(item.price)} / Avg. Response Time: ${item.responseTime || 'Not specified'}`
     : type === 'purchase'
     ? `${item.status || 'Checkout request'} / ${formatDate(item.purchasedAt || item.createdAt)}`
     : `${formatListingPrice(item.price)} / ${formatDate(item.createdAt)}`;
@@ -949,7 +985,10 @@ function renderSessions(user) {
 
   profileSessions.innerHTML = '';
   sessions.forEach((session) => {
-    profileSessions.appendChild(createRecordCard(session, 'session'));
+    profileSessions.appendChild(createRecordCard({
+      ...session,
+      detailUrl: `coach-book-session.html?coach=${encodeURIComponent(session.id || session.listingId || '')}`,
+    }, 'session'));
   });
   profileSessionsEmpty.hidden = sessions.length > 0;
 
@@ -1161,6 +1200,22 @@ profileSessionForm?.addEventListener('submit', (event) => {
   const sessionLanguage = profileSessionLanguageInput?.value || '';
   const sessionAbout = profileSessionAboutInput?.value.trim() || '';
   const sessionDescription = profileSessionDescriptionInput?.value.trim() || '';
+  const sessionRank = profileSessionRankInput?.value.trim() || '';
+  const sessionSpecialty = profileSessionSpecialtyInput?.value.trim() || '';
+  const sessionExperienceValue = profileSessionExperienceInput?.value ?? '';
+  const sessionSuccessRateValue = profileSessionSuccessRateInput?.value ?? '';
+  const sessionResponseTimeValue = profileSessionResponseTimeInput?.value ?? '';
+  const toDetailLines = (value) => String(value || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  const sessionStyle = toDetailLines(profileSessionStyleInput?.value);
+  const expertiseLines = toDetailLines(profileSessionExpertiseInput?.value);
+  const sessionExpertise = expertiseLines.map((line) => {
+    const separatorIndex = line.lastIndexOf(':');
+    const label = separatorIndex >= 0 ? line.slice(0, separatorIndex).trim() : '';
+    const value = separatorIndex >= 0 ? Number(line.slice(separatorIndex + 1).trim()) : NaN;
+    return { label, value };
+  });
+  const hasInvalidExpertise = sessionExpertise.some((item) => !item.label || !Number.isFinite(item.value) || item.value < 0 || item.value > 100);
+  const sessionAchievements = toDetailLines(profileSessionAchievementsInput?.value);
   const existingSession = sessionId ? getCoachingSessions(user?.username).find((item) => item.id === sessionId) : null;
 
   if (!user?.username) {
@@ -1168,8 +1223,13 @@ profileSessionForm?.addEventListener('submit', (event) => {
     return;
   }
 
-  if (!coachName || !sessionGame || !sessionDate || !sessionTime || !sessionPrice || !sessionLanguage || !sessionAbout || !sessionDescription) {
-    setSessionStatus('error', 'Fill coach name, game, language, date, hour, price, About you and About session.');
+  if (hasInvalidExpertise) {
+    setSessionStatus('error', 'Use the Expertise format “Skill: 90” and enter a percentage from 0 to 100.');
+    return;
+  }
+
+  if (!coachName || !sessionGame || !sessionDate || !sessionTime || !sessionPrice || !sessionLanguage || !sessionAbout || !sessionDescription || !sessionRank || !sessionSpecialty || sessionExperienceValue === '' || sessionSuccessRateValue === '' || sessionResponseTimeValue === '' || !sessionStyle.length || !sessionExpertise.length) {
+    setSessionStatus('error', 'Fill every required coach and session detail.');
     return;
   }
 
@@ -1182,6 +1242,17 @@ profileSessionForm?.addEventListener('submit', (event) => {
     sessionLanguage,
     sessionAbout,
     sessionDescription,
+    {
+      rank: sessionRank,
+      specialty: sessionSpecialty,
+      yearsExperience: Number(sessionExperienceValue),
+      successRate: Number(sessionSuccessRateValue),
+      responseTime: `${Number(sessionResponseTimeValue)} min`,
+      responseTimeMinutes: Number(sessionResponseTimeValue),
+      style: sessionStyle,
+      expertise: sessionExpertise,
+      achievements: sessionAchievements,
+    },
     existingSession || {},
   );
   const currentItems = getCartItems();

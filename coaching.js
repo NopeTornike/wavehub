@@ -47,7 +47,7 @@ function getCoachListingsFromSessions() {
     game: session.game || 'Coaching',
     games: [session.game || 'Coaching'],
     service: 'Coaching',
-    rank: 'Coach',
+    rank: session.rank || 'Coach',
     tier: 'diamond',
     rating: null,
     reviews: 0,
@@ -62,7 +62,15 @@ function getCoachListingsFromSessions() {
     about: session.about || session.bio || '',
     quote: session.quote || (session.about ? `Hi, I'm ${session.seller || 'your coach'}. ${session.about}` : ''),
     sessionDescription: session.sessionDescription || '',
-    specialty: `${session.game || 'Game'} coaching`,
+    specialty: session.specialty || `${session.game || 'Game'} coaching`,
+    yearsExperience: Number(session.yearsExperience) || 0,
+    successRate: Number(session.successRate) || 0,
+    responseTime: session.responseTime || '',
+    responseTimeMinutes: Number(session.responseTimeMinutes) || 0,
+    style: Array.isArray(session.style) ? session.style : [],
+    expertise: Array.isArray(session.expertise) ? session.expertise : [],
+    expertiseAreas: Array.isArray(session.expertiseAreas) ? session.expertiseAreas : [],
+    achievements: Array.isArray(session.achievements) ? session.achievements : [],
     sessionDate: session.sessionDate || '',
     sessionTime: session.sessionTime || '',
     sessionLabel: session.sessionLabel || '',
@@ -208,11 +216,16 @@ function createTag(tag) {
 }
 
 function createSessionMeta(coach) {
-  if (!coach.sessionLabel) {
+  const details = [
+    coach.sessionLabel || '',
+    coach.responseTime ? `Avg. Response Time: ${coach.responseTime}` : '',
+  ].filter(Boolean);
+
+  if (!details.length) {
     return '';
   }
 
-  return `<p class="coach-session-meta">${coach.sessionLabel}</p>`;
+  return `<p class="coach-session-meta">${details.join(' · ')}</p>`;
 }
 
 function createCoachCard(coach) {

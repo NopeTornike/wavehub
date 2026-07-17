@@ -71,7 +71,7 @@
       game: session.game || 'Coaching',
       games: [session.game || 'Coaching'],
       service: 'Coaching',
-      rank: 'Coach',
+      rank: session.rank || 'Coach',
       tier: 'diamond',
       rating: null,
       reviews: null,
@@ -86,7 +86,15 @@
       about: session.about || session.bio || '',
       quote: session.quote || (session.about ? `Hi, I'm ${session.seller || 'your coach'}. ${session.about}` : ''),
       sessionDescription: session.sessionDescription || '',
-      specialty: `${session.game || 'Game'} coaching`,
+      specialty: session.specialty || `${session.game || 'Game'} coaching`,
+      yearsExperience: Number(session.yearsExperience) || 0,
+      successRate: Number(session.successRate) || 0,
+      responseTime: session.responseTime || '',
+      responseTimeMinutes: Number(session.responseTimeMinutes) || 0,
+      style: Array.isArray(session.style) ? session.style : [],
+      expertise: Array.isArray(session.expertise) ? session.expertise : [],
+      expertiseAreas: Array.isArray(session.expertiseAreas) ? session.expertiseAreas : [],
+      achievements: Array.isArray(session.achievements) ? session.achievements : [],
       sessionDate: session.sessionDate || '',
       sessionTime: session.sessionTime || '',
       sessionLabel: session.sessionLabel || '',
@@ -332,6 +340,15 @@
           <i><b style="width: ${score}%"></b></i>
         </article>
       `);
+    } else {
+      panels.push(`
+        <article class="coach-score-card coach-score-card-empty">
+          <span>Wave Score</span>
+          <strong>—</strong>
+          <em>Calculated after activity</em>
+          <i><b style="width: 0%"></b></i>
+        </article>
+      `);
     }
 
     if (hasNumber(coach.rating)) {
@@ -343,9 +360,17 @@
           ${hasNumber(coach.reviews) ? `<small>(${formatNumber(coach.reviews)} reviews)</small>` : ''}
         </article>
       `);
+    } else {
+      panels.push(`
+        <article class="coach-score-card coach-score-card-empty">
+          <span>Rating</span>
+          <strong>—</strong>
+          <small>No reviews yet</small>
+        </article>
+      `);
     }
 
-    return panels.length ? `<div class="coach-score-panels ${panels.length === 1 ? 'single' : ''}">${panels.join('')}</div>` : '';
+    return `<div class="coach-score-panels">${panels.join('')}</div>`;
   }
 
   function renderMetrics(coach) {
@@ -390,21 +415,13 @@
     const games = getCoachGames(coach);
     const languages = getCoachLanguages(coach);
     const expertise = renderExpertise(coach.expertise);
+    const expertiseAreas = toList(coach.expertiseAreas);
 
     if (hasText(coach.about)) {
       cards.push(`
         <article class="coach-info-card">
           <h2>About ${escapeHtml(coach.name)}</h2>
           <p>${escapeHtml(coach.about)}</p>
-        </article>
-      `);
-    }
-
-    if (hasText(coach.sessionDescription)) {
-      cards.push(`
-        <article class="coach-info-card">
-          <h2>About Session</h2>
-          <p>${escapeHtml(coach.sessionDescription)}</p>
         </article>
       `);
     }
@@ -425,6 +442,26 @@
         <article class="coach-info-card">
           <h2>Expertise</h2>
           ${expertise}
+        </article>
+      `);
+    }
+
+    if (expertiseAreas.length) {
+      cards.push(`
+        <article class="coach-info-card">
+          <h2>Expertise</h2>
+          <ul class="coach-check-list">
+            ${expertiseAreas.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+          </ul>
+        </article>
+      `);
+    }
+
+    if (hasText(coach.sessionDescription)) {
+      cards.push(`
+        <article class="coach-info-card">
+          <h2>About Session</h2>
+          <p>${escapeHtml(coach.sessionDescription)}</p>
         </article>
       `);
     }
@@ -475,9 +512,7 @@
   }
 
   function renderVideoCard(coach) {
-    if (!hasText(coach.introVideoUrl) && !hasText(coach.videoDuration) && !hasNumber(coach.watched) && !hasNumber(coach.helpful)) {
-      return '';
-    }
+    const hasVideo = hasText(coach.introVideoUrl) || hasText(coach.videoDuration);
 
     const stats = [
       hasNumber(coach.watched) ? `<div><strong>${formatNumber(coach.watched)}</strong><small>People watched</small></div>` : '',
@@ -486,8 +521,8 @@
 
     return `
       <article class="coach-video-card">
-        <div class="coach-video-preview" style="--coach-image: url('${escapeHtml(coach.image)}')">
-          <button type="button" aria-label="Play intro video"></button>
+        <div class="coach-video-preview ${hasVideo ? '' : 'coach-video-preview-empty'}" style="--coach-image: url('${escapeHtml(coach.image)}')">
+          ${hasVideo ? '<button type="button" aria-label="Play intro video"></button>' : '<strong>Intro video not added</strong>'}
           ${hasText(coach.videoDuration) ? `<span>${escapeHtml(coach.videoDuration)}</span>` : ''}
         </div>
         ${stats.length ? `<div class="coach-video-stats">${stats.join('')}</div>` : ''}
@@ -515,9 +550,13 @@
   }
 
   function renderAchievements(coach) {
+    const customAchievements = toList(coach.achievements).filter((item) => typeof item === 'string');
     const achievementItems = [
       renderMetric('HR', coach.rank, 'Highest Rank'),
-      ...toList(coach.achievements).map((item) => renderMetric(item.icon || 'AC', item.value, item.label)),
+      hasNumber(coach.yearsExperience) ? renderMetric('YE', formatNumber(coach.yearsExperience), 'Years of Experience') : '',
+      ...toList(coach.achievements)
+        .filter((item) => item && typeof item === 'object')
+        .map((item) => renderMetric(item.icon || 'AC', item.value, item.label)),
     ].filter(Boolean);
     const badges = toList(coach.badges);
 
@@ -534,6 +573,12 @@
             <article class="coach-badge-row">
               <span>WaveHub Badges</span>
               ${badges.map((badge) => `<strong>${escapeHtml(badge)}</strong>`).join('')}
+            </article>
+          ` : ''}
+          ${customAchievements.length ? `
+            <article class="coach-badge-row">
+              <span>Coach Achievements</span>
+              ${customAchievements.map((achievement) => `<strong>${escapeHtml(achievement)}</strong>`).join('')}
             </article>
           ` : ''}
         </div>
@@ -809,6 +854,8 @@
       language: coach.language || '',
       about: coach.about || '',
       sessionDescription: coach.sessionDescription || '',
+      responseTime: coach.responseTime || '',
+      responseTimeMinutes: Number(coach.responseTimeMinutes) || 0,
       addedAt: new Date().toISOString(),
     };
   }
@@ -931,16 +978,16 @@
         </div>
       </section>
 
-      ${similarCards ? `<section class="coach-similar-section" aria-labelledby="coachSimilarTitle">
+      <section class="coach-similar-section" aria-labelledby="coachSimilarTitle">
         <div>
           <h2 id="coachSimilarTitle">Similar Coaches</h2>
           <a href="coaching.html">View all coaches</a>
         </div>
         <div class="coach-similar-grid">
-          ${similarCards}
-          <a class="coach-similar-next" href="coaching.html" aria-label="Browse more coaches">&gt;</a>
+          ${similarCards || '<p class="coach-profile-empty">No similar coaches available yet.</p>'}
+          ${similarCards ? '<a class="coach-similar-next" href="coaching.html" aria-label="Browse more coaches">&gt;</a>' : ''}
         </div>
-      </section>` : ''}
+      </section>
     `;
   }
 
