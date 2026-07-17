@@ -82,8 +82,8 @@ const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
 const purchasesKey = 'wavehub.purchases';
 const sellerReviewsKey = 'wavehub.sellerReviews';
-const minOnlineCount = 94;
-const maxOnlineCount = 225;
+const minOnlineCount = 2;
+const maxOnlineCount = 23;
 const accountTypeImages = {
   basic: 'assets/basic-account.png',
   'full-collection': 'assets/full-collection-account.png',

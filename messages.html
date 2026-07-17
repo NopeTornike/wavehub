@@ -6,7 +6,7 @@
   <title>WaveHub - Messages</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="messages-page">
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
       <a class="brand" href="index.html" aria-label="WaveHub home">
@@ -30,12 +30,12 @@
           <span class="nav-icon" aria-hidden="true">C</span>
           <span>Coaching</span>
         </a>
-        <a class="side-link" href="#" data-section="Orders">
+        <a class="side-link" href="orders.html" data-section="Orders">
           <span class="nav-icon" aria-hidden="true">O</span>
           <span>Orders</span>
         </a>
         <a class="side-link active" href="messages.html" data-section="Messages">
-          <span class="nav-icon" aria-hidden="true">@</span>
+          <span class="nav-icon" aria-hidden="true"><img class="message-icon-image" src="assets/message-icon.svg" alt="" /></span>
           <span>Messages</span>
           <span class="nav-pill" id="messageCount">0</span>
         </a>
@@ -62,7 +62,7 @@
 
       <div class="sidebar-status" aria-label="Platform activity">
         <span class="status-dot" aria-hidden="true"></span>
-        <span id="onlineCount">94 online</span>
+        <span id="onlineCount">2 online</span>
       </div>
     </aside>
 
@@ -83,7 +83,7 @@
 
         <div class="top-actions">
           <a class="icon-button" href="messages.html" aria-label="Messages" title="Messages">
-            <span aria-hidden="true">@</span>
+            <img class="message-icon-image" src="assets/message-icon.svg" alt="" aria-hidden="true" />
           </a>
           <a class="icon-button cart-top-button" href="cart.html" aria-label="Cart" title="Cart">
             <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />
@@ -141,34 +141,74 @@
         </div>
       </header>
 
-      <section class="marketplace-head" aria-labelledby="messagesTitle">
-        <div>
-          <p class="section-kicker">Price offers</p>
-          <h1 id="messagesTitle">Messages</h1>
+      <section class="marketplace-head messages-hero" aria-labelledby="messagesTitle">
+        <div class="messages-hero-copy">
+          <span class="messages-hero-icon" aria-hidden="true">
+            <img class="message-icon-image" src="assets/message-icon.svg" alt="" />
+          </span>
+          <div>
+            <p class="section-kicker">Your conversations</p>
+            <h1 id="messagesTitle">Messages</h1>
+            <p class="messages-hero-description">Chat with users, reply to messages and keep track of marketplace offers.</p>
+          </div>
         </div>
         <div class="marketplace-total" aria-label="Visible messages">
           <strong id="visibleMessageCount">0</strong>
-          <span>offers</span>
+          <span>messages</span>
         </div>
       </section>
 
-      <section class="messages-layout" aria-label="Price offer messages">
-        <div class="message-column">
-          <div class="section-heading">
+      <section class="direct-messages-shell" aria-label="Direct messages">
+        <aside class="direct-message-contacts">
+          <header>
+            <p class="section-kicker">Inbox</p>
+            <h2>Conversations</h2>
+          </header>
+          <div id="directMessageContacts"></div>
+        </aside>
+
+        <section class="direct-message-thread" aria-labelledby="directMessageTitle">
+          <header id="directMessageHeader">
+            <span class="message-avatar" id="directMessageAvatar">?</span>
             <div>
-              <p class="section-kicker">Seller inbox</p>
-              <h2>Received Offers</h2>
+              <h2 id="directMessageTitle">Select a conversation</h2>
+              <small id="directMessageHandle">Choose a user to start messaging</small>
             </div>
+          </header>
+          <div class="direct-message-history" id="directMessageHistory" aria-live="polite"></div>
+          <form class="direct-message-form" id="directMessageForm">
+            <textarea id="directMessageInput" maxlength="1000" placeholder="Write a message..." aria-label="Message" required></textarea>
+            <button type="submit">Send <span aria-hidden="true">→</span></button>
+          </form>
+          <p class="seller-status" id="directMessageStatus" aria-live="polite"></p>
+        </section>
+      </section>
+
+      <section class="messages-layout" aria-label="Price offer messages">
+        <div class="message-column received-column">
+          <div class="section-heading">
+            <div class="message-column-title">
+              <span class="message-column-icon" aria-hidden="true">↓</span>
+              <div>
+                <p class="section-kicker">Seller inbox</p>
+                <h2>Received Offers</h2>
+              </div>
+            </div>
+            <span class="message-column-count" id="receivedMessageCount">0</span>
           </div>
           <div class="message-list" id="receivedMessages"></div>
         </div>
 
-        <div class="message-column">
+        <div class="message-column sent-column">
           <div class="section-heading">
-            <div>
-              <p class="section-kicker">Buyer outbox</p>
-              <h2>Sent Offers</h2>
+            <div class="message-column-title">
+              <span class="message-column-icon" aria-hidden="true">↑</span>
+              <div>
+                <p class="section-kicker">Buyer outbox</p>
+                <h2>Sent Offers</h2>
+              </div>
             </div>
+            <span class="message-column-count" id="sentMessageCount">0</span>
           </div>
           <div class="message-list" id="sentMessages"></div>
         </div>

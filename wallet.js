@@ -124,7 +124,7 @@ function renderOnlineCount() {
     return;
   }
 
-  onlineCount.textContent = `${Math.floor(Math.random() * (225 - 94 + 1)) + 94} online`;
+  onlineCount.textContent = `${Math.floor(Math.random() * (23 - 2 + 1)) + 2} online`;
 }
 
 function getEnteredWavecoins() {
@@ -172,6 +172,9 @@ function renderWallet() {
 
   if (walletBalance) walletBalance.textContent = String(wallet.balance);
   if (walletBalanceLarge) walletBalanceLarge.textContent = `${wallet.balance} WC`;
+  document.querySelectorAll('[data-wallet-balance]').forEach((element) => {
+    element.textContent = String(wallet.balance);
+  });
   if (messageCount) messageCount.textContent = String(getReceivedOfferCount(user?.username));
   if (walletTransactionCount) walletTransactionCount.textContent = `${wallet.transactions.length} records`;
 
@@ -189,6 +192,8 @@ function renderWallet() {
   transactions.forEach((transaction) => {
     const row = document.createElement('article');
     row.className = 'wallet-transaction-card';
+    row.dataset.type = transaction.type || '';
+    row.dataset.status = transaction.status || 'pending';
 
     const icon = document.createElement('span');
     icon.className = `wallet-transaction-icon ${transaction.status || 'pending'}`;
@@ -201,18 +206,28 @@ function renderWallet() {
     title.textContent = transaction.type === 'credit' ? 'WaveCoin top up' : 'Wallet transaction';
 
     const meta = document.createElement('span');
-    meta.textContent = `${transaction.method || 'BOG'} / ${transaction.status || 'pending'} / ${formatDate(transaction.createdAt)}`;
+    meta.textContent = transaction.method || 'BOG';
 
-    const id = document.createElement('small');
-    id.textContent = transaction.bogOrderId ? `BOG order: ${transaction.bogOrderId}` : transaction.id;
+    copy.append(title, meta);
 
-    copy.append(title, meta, id);
+    const reference = document.createElement('span');
+    reference.className = 'wallet-transaction-reference';
+    reference.textContent = transaction.bogOrderId || transaction.id || '-';
+
+    const date = document.createElement('time');
+    date.className = 'wallet-transaction-date';
+    date.dateTime = transaction.createdAt || '';
+    date.textContent = formatDate(transaction.createdAt);
 
     const amount = document.createElement('strong');
     amount.className = 'wallet-transaction-amount';
-    amount.textContent = `${transaction.wavecoins || 0} WC`;
+    amount.textContent = `${transaction.type === 'credit' ? '+' : '-'}${transaction.wavecoins || 0} WC`;
 
-    row.append(icon, copy, amount);
+    const status = document.createElement('span');
+    status.className = `wallet-transaction-status ${transaction.status || 'pending'}`;
+    status.textContent = transaction.status || 'pending';
+
+    row.append(icon, copy, reference, date, amount, status);
     walletTransactionList.appendChild(row);
   });
 }

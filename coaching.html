@@ -29,8 +29,8 @@
           <input id="coachSearch" type="search" placeholder="Search coaches..." autocomplete="off" />
           <span aria-hidden="true"></span>
         </label>
-        <a class="coach-icon-button" href="messages.html" aria-label="Messages" title="Messages">
-          <span aria-hidden="true">M</span>
+        <a class="coach-icon-button coach-message-button" href="messages.html" aria-label="Messages" title="Messages">
+          <img class="message-icon-image" src="assets/message-icon.svg" alt="" aria-hidden="true" />
         </a>
         <a class="coach-icon-button coach-cart-button" href="cart.html" aria-label="Cart" title="Cart">
           <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />
@@ -83,7 +83,7 @@
 
           <fieldset>
             <legend>Price Range</legend>
-            <input id="priceRange" type="range" min="5" max="100" value="100" />
+            <input id="priceRange" type="range" min="5" max="100" step="5" value="100" aria-label="Maximum coaching price" aria-describedby="priceRangeLabel" />
             <div class="coach-range-labels">
               <span>5 GEL</span>
               <span id="priceRangeLabel">100 GEL+</span>
@@ -166,15 +166,7 @@
         <div class="coach-grid" id="coachGrid"></div>
         <div class="coach-empty" id="coachEmpty" hidden>No coaches found.</div>
 
-        <nav class="coach-pagination" aria-label="Coach pages">
-          <button type="button" data-page="prev" aria-label="Previous page">&lt;</button>
-          <button class="active" type="button" data-page="1">1</button>
-          <button type="button" data-page="2">2</button>
-          <button type="button" data-page="3">3</button>
-          <span>...</span>
-          <button type="button" data-page="7">7</button>
-          <button type="button" data-page="next" aria-label="Next page">&gt;</button>
-        </nav>
+        <nav class="coach-pagination" aria-label="Coach pages" hidden></nav>
       </section>
     </main>
   </div>

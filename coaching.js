@@ -13,11 +13,11 @@ const coachGrid = document.getElementById('coachGrid');
 const coachEmpty = document.getElementById('coachEmpty');
 const coachPagination = document.querySelector('.coach-pagination');
 const viewToggleButtons = document.querySelectorAll('.coach-view-toggle button');
-const paginationButtons = document.querySelectorAll('.coach-pagination button');
 const cartKey = 'wavehub.cart';
+const coachesPerPage = 8;
 
 let activeGame = 'all';
-let activePage = '1';
+let activePage = 1;
 let activeView = 'grid';
 
 function readJson(key, fallback) {
@@ -47,18 +47,30 @@ function getCoachListingsFromSessions() {
     game: session.game || 'Coaching',
     games: [session.game || 'Coaching'],
     service: 'Coaching',
-    rank: 'Coach',
+    rank: session.rank || 'Coach',
     tier: 'diamond',
-    rating: 5,
+    rating: null,
     reviews: 0,
     price: Number(session.price) || 0,
     priceText: session.priceText || `${Number(session.price) || 0} GEL/hour`,
     availability: 'today',
-    language: 'GE',
+    language: session.language || 'GE',
+    languages: Array.isArray(session.languages) ? session.languages : [session.language || 'GE'],
     tags: [session.sessionLabel || 'Custom Session'],
     image: session.imageData || '',
-    bio: session.sessionLabel || 'Custom coaching session',
-    specialty: `${session.game || 'Game'} coaching`,
+    bio: session.bio || session.about || session.sessionLabel || 'Custom coaching session',
+    about: session.about || session.bio || '',
+    quote: session.quote || (session.about ? `Hi, I'm ${session.seller || 'your coach'}. ${session.about}` : ''),
+    sessionDescription: session.sessionDescription || '',
+    specialty: session.specialty || `${session.game || 'Game'} coaching`,
+    yearsExperience: Number(session.yearsExperience) || 0,
+    successRate: Number(session.successRate) || 0,
+    responseTime: session.responseTime || '',
+    responseTimeMinutes: Number(session.responseTimeMinutes) || 0,
+    style: Array.isArray(session.style) ? session.style : [],
+    expertise: Array.isArray(session.expertise) ? session.expertise : [],
+    expertiseAreas: Array.isArray(session.expertiseAreas) ? session.expertiseAreas : [],
+    achievements: Array.isArray(session.achievements) ? session.achievements : [],
     sessionDate: session.sessionDate || '',
     sessionTime: session.sessionTime || '',
     sessionLabel: session.sessionLabel || '',
@@ -161,7 +173,8 @@ function getFilteredCoaches() {
     const matchesTab = activeGame === 'all' || activeGame === 'more' || coach.game === activeGame;
     const matchesGame = selectedGames.length === 0 || selectedGames.includes(coach.game);
     const matchesService = selectedServices.length === 0 || selectedServices.includes(coach.service);
-    const matchesPrice = maxPrice >= 100 || coach.price <= maxPrice;
+    const coachPrice = Number(coach.price) || 0;
+    const matchesPrice = maxPrice >= Number(priceRange?.max || 100) || coachPrice <= maxPrice;
     const matchesAvailability = availability === 'all' || coach.availability === availability;
     const matchesLanguage = language === 'all' || coach.language === language;
 
@@ -203,11 +216,16 @@ function createTag(tag) {
 }
 
 function createSessionMeta(coach) {
-  if (!coach.sessionLabel) {
+  const details = [
+    coach.sessionLabel || '',
+    coach.responseTime ? `Avg. Response Time: ${coach.responseTime}` : '',
+  ].filter(Boolean);
+
+  if (!details.length) {
     return '';
   }
 
-  return `<p class="coach-session-meta">${coach.sessionLabel}</p>`;
+  return `<p class="coach-session-meta">${details.join(' · ')}</p>`;
 }
 
 function createCoachCard(coach) {
@@ -227,7 +245,9 @@ function createCoachCard(coach) {
           <span class="coach-rank-dot ${coach.tier}" aria-hidden="true"></span>
           <span>${coach.rank}</span>
         </p>
-        <p class="coach-rating-line"><span aria-hidden="true">&#9733;</span> ${coach.rating.toFixed(1)} (${coach.reviews})</p>
+        <p class="coach-rating-line">${coach.rating !== null && coach.rating !== '' && Number.isFinite(Number(coach.rating))
+          ? `<span aria-hidden="true">&#9733;</span> ${Number(coach.rating).toFixed(1)} (${Number(coach.reviews) || 0})`
+          : 'No reviews yet'}</p>
         ${createSessionMeta(coach)}
       </div>
     </div>
@@ -252,12 +272,74 @@ function createCoachCard(coach) {
   return card;
 }
 
+function createPaginationButton(page, label, ariaLabel = '') {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.page = String(page);
+  button.textContent = label;
+
+  if (ariaLabel) {
+    button.setAttribute('aria-label', ariaLabel);
+  }
+
+  if (page === activePage) {
+    button.classList.add('active');
+    button.setAttribute('aria-current', 'page');
+  }
+
+  return button;
+}
+
+function renderPagination(totalItems) {
+  if (!coachPagination) {
+    return;
+  }
+
+  const totalPages = Math.ceil(totalItems / coachesPerPage);
+  activePage = Math.max(1, Math.min(activePage, Math.max(1, totalPages)));
+  coachPagination.innerHTML = '';
+  coachPagination.hidden = totalPages <= 1;
+
+  if (totalPages <= 1) {
+    return;
+  }
+
+  const previous = createPaginationButton('prev', '<', 'Previous page');
+  previous.disabled = activePage === 1;
+  coachPagination.appendChild(previous);
+
+  const visiblePages = totalPages <= 5
+    ? Array.from({ length: totalPages }, (_, index) => index + 1)
+    : Array.from(new Set([1, activePage - 1, activePage, activePage + 1, totalPages]))
+      .filter((page) => page >= 1 && page <= totalPages)
+      .sort((a, b) => a - b);
+
+  visiblePages.forEach((page, index) => {
+    if (index > 0 && page - visiblePages[index - 1] > 1) {
+      const ellipsis = document.createElement('span');
+      ellipsis.textContent = '...';
+      ellipsis.setAttribute('aria-hidden', 'true');
+      coachPagination.appendChild(ellipsis);
+    }
+
+    coachPagination.appendChild(createPaginationButton(page, String(page)));
+  });
+
+  const next = createPaginationButton('next', '>', 'Next page');
+  next.disabled = activePage === totalPages;
+  coachPagination.appendChild(next);
+}
+
 function renderCoaches() {
   if (!coachGrid) {
     return;
   }
 
-  const visibleCoaches = getFilteredCoaches();
+  const filteredCoaches = getFilteredCoaches();
+  const totalPages = Math.max(1, Math.ceil(filteredCoaches.length / coachesPerPage));
+  activePage = Math.min(activePage, totalPages);
+  const pageStart = (activePage - 1) * coachesPerPage;
+  const visibleCoaches = filteredCoaches.slice(pageStart, pageStart + coachesPerPage);
   coachGrid.innerHTML = '';
   coachGrid.classList.toggle('is-list', activeView === 'list');
 
@@ -266,17 +348,15 @@ function renderCoaches() {
   });
 
   if (coachEmpty) {
-    coachEmpty.hidden = visibleCoaches.length > 0;
+    coachEmpty.hidden = filteredCoaches.length > 0;
   }
 
   if (coachResultCount) {
-    const count = visibleCoaches.length;
+    const count = filteredCoaches.length;
     coachResultCount.textContent = `${count} ${count === 1 ? 'Coach' : 'Coaches'} found`;
   }
 
-  if (coachPagination) {
-    coachPagination.hidden = visibleCoaches.length === 0;
-  }
+  renderPagination(filteredCoaches.length);
 }
 
 function updatePriceLabel() {
@@ -284,7 +364,15 @@ function updatePriceLabel() {
     return;
   }
 
-  priceRangeLabel.textContent = Number(priceRange.value) >= 100 ? '100 GEL+' : `${priceRange.value} GEL`;
+  const min = Number(priceRange.min) || 0;
+  const max = Number(priceRange.max) || 100;
+  const value = Math.max(min, Math.min(Number(priceRange.value) || max, max));
+  const progress = max === min ? 100 : ((value - min) / (max - min)) * 100;
+  const label = value >= max ? `${max} GEL+` : `Up to ${value} GEL`;
+
+  priceRangeLabel.textContent = label;
+  priceRange.style.setProperty('--price-progress', `${progress}%`);
+  priceRange.setAttribute('aria-valuetext', label);
 }
 
 function syncTabButton(game) {
@@ -322,13 +410,21 @@ function applySearchParam() {
   }
 }
 
-coachSearch?.addEventListener('input', renderCoaches);
+coachSearch?.addEventListener('input', () => {
+  activePage = 1;
+  renderCoaches();
+});
 coachFilters?.addEventListener('change', () => {
+  activePage = 1;
   updatePriceLabel();
   renderCoaches();
 });
-coachSort?.addEventListener('change', renderCoaches);
+coachSort?.addEventListener('change', () => {
+  activePage = 1;
+  renderCoaches();
+});
 priceRange?.addEventListener('input', () => {
+  activePage = 1;
   updatePriceLabel();
   renderCoaches();
 });
@@ -337,6 +433,7 @@ resetFilters?.addEventListener('click', () => {
   coachFilters?.reset();
   if (coachSearch) coachSearch.value = '';
   activeGame = 'all';
+  activePage = 1;
   syncTabButton(activeGame);
   updatePriceLabel();
   renderCoaches();
@@ -350,6 +447,7 @@ coachGameTabs?.addEventListener('click', (event) => {
   }
 
   activeGame = button.dataset.game || 'all';
+  activePage = 1;
   syncTabButton(activeGame);
   renderCoaches();
 });
@@ -362,17 +460,25 @@ viewToggleButtons.forEach((button) => {
   });
 });
 
-paginationButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    const page = button.dataset.page || '1';
+coachPagination?.addEventListener('click', (event) => {
+  const button = event.target instanceof Element ? event.target.closest('button') : null;
 
-    if (page === 'prev' || page === 'next') {
-      return;
-    }
+  if (!button || button.disabled) {
+    return;
+  }
 
-    activePage = page;
-    paginationButtons.forEach((item) => item.classList.toggle('active', item.dataset.page === activePage));
-  });
+  const page = button.dataset.page || '1';
+  const totalPages = Math.max(1, Math.ceil(getFilteredCoaches().length / coachesPerPage));
+
+  if (page === 'prev') {
+    activePage = Math.max(1, activePage - 1);
+  } else if (page === 'next') {
+    activePage = Math.min(totalPages, activePage + 1);
+  } else {
+    activePage = Math.max(1, Math.min(Number(page) || 1, totalPages));
+  }
+
+  renderCoaches();
 });
 
 document.querySelectorAll('.coach-collapse').forEach((button) => {

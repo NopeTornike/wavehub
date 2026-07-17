@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaveHub - Orders</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
+      <a class="brand" href="index.html" aria-label="WaveHub home">
+        <span class="brand-mark">W</span>
+        <span class="brand-text"><strong>WAVEHUB</strong><small>boost trade win</small></span>
+      </a>
+      <nav class="side-nav" aria-label="Main pages">
+        <a class="side-link" href="index.html"><span class="nav-icon">H</span><span>Home</span></a>
+        <a class="side-link" href="marketplace.html"><span class="nav-icon">M</span><span>Marketplace</span></a>
+        <a class="side-link" href="coaching.html"><span class="nav-icon">C</span><span>Coaching</span></a>
+        <a class="side-link active" href="orders.html"><span class="nav-icon">O</span><span>Orders</span></a>
+        <a class="side-link" href="messages.html"><span class="nav-icon"><img class="message-icon-image" src="assets/message-icon.svg" alt="" /></span><span>Messages</span><span class="nav-pill" id="messageCount">0</span></a>
+        <a class="side-link" href="wallet.html"><span class="nav-icon">₾</span><span>Wallet</span></a>
+        <a class="side-link" href="marketplace.html#favorites"><span class="nav-icon nav-icon-heart"></span><span>Favorites</span></a>
+        <a class="side-link" href="cart.html"><span class="nav-icon"><img class="cart-icon-image" src="assets/cart-icon.png" alt="" /></span><span>Cart</span><span class="nav-pill" data-cart-count>0</span></a>
+        <a class="side-link" href="profile.html"><span class="nav-icon">S</span><span>Settings</span></a>
+      </nav>
+      <div class="sidebar-status"><span class="status-dot"></span><span>Orders synced</span></div>
+    </aside>
+
+    <div class="scrim" id="scrim" hidden></div>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false"><span></span><span></span><span></span></button>
+        <label class="search-box" aria-label="Search orders"><span class="search-icon">/</span><input id="ordersSearch" type="search" placeholder="Search orders, games or users..." autocomplete="off" /></label>
+        <div class="top-actions">
+          <a class="icon-button" href="messages.html" aria-label="Messages"><img class="message-icon-image" src="assets/message-icon.svg" alt="" /></a>
+          <a class="icon-button cart-top-button" href="cart.html" aria-label="Cart"><img class="cart-icon-image" src="assets/cart-icon.png" alt="" /><strong class="cart-badge" data-cart-count>0</strong></a>
+          <button class="icon-button has-alert" type="button" aria-label="Notifications"><span>!</span></button>
+          <a class="seller-button" href="profile.html">My Profile</a>
+        </div>
+      </header>
+
+      <section class="orders-page-head">
+        <div><p class="section-kicker">Order history</p><h1>My Orders</h1><p>Track everything you purchased and sold on WaveHub.</p></div>
+        <div class="marketplace-total"><strong id="ordersTotalCount">0</strong><span>orders</span></div>
+      </section>
+
+      <section class="orders-login" id="ordersLogin" hidden>
+        <h2>Sign in to view orders</h2><p>Your purchase and sales history is available after login.</p><a href="auth.html?mode=login">Log in</a>
+      </section>
+
+      <section class="orders-dashboard" id="ordersDashboard" hidden>
+        <div class="orders-summary" aria-label="Order summary">
+          <article><span>Purchased</span><strong id="purchasedCount">0</strong><small id="purchasedTotal">0 GEL</small></article>
+          <article><span>Sold</span><strong id="soldCount">0</strong><small id="soldTotal">0 GEL</small></article>
+        </div>
+        <div class="orders-tabs" role="tablist">
+          <button class="active" type="button" data-orders-tab="purchased" aria-selected="true">Purchased</button>
+          <button type="button" data-orders-tab="sold" aria-selected="false">Sold</button>
+        </div>
+        <div class="orders-list" id="ordersList"></div>
+        <div class="orders-empty" id="ordersEmpty" hidden><strong>No orders found</strong><p>Your matching orders will appear here.</p></div>
+      </section>
+    </main>
+  </div>
+  <script src="cart-nav.js"></script>
+  <script src="profile-nav.js"></script>
+  <script src="orders.js"></script>
+</body>
+</html>

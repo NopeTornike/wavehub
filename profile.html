@@ -30,12 +30,12 @@
           <span class="nav-icon" aria-hidden="true">C</span>
           <span>Coaching</span>
         </a>
-        <a class="side-link" href="#" data-section="Orders">
+        <a class="side-link" href="orders.html" data-section="Orders">
           <span class="nav-icon" aria-hidden="true">O</span>
           <span>Orders</span>
         </a>
         <a class="side-link" href="messages.html" data-section="Messages">
-          <span class="nav-icon" aria-hidden="true">@</span>
+          <span class="nav-icon" aria-hidden="true"><img class="message-icon-image" src="assets/message-icon.svg" alt="" /></span>
           <span>Messages</span>
           <span class="nav-pill" id="messageCount">0</span>
         </a>
@@ -62,7 +62,7 @@
 
       <div class="sidebar-status" aria-label="Platform activity">
         <span class="status-dot" aria-hidden="true"></span>
-        <span id="onlineCount">94 online</span>
+        <span id="onlineCount">2 online</span>
       </div>
     </aside>
 
@@ -185,13 +185,75 @@
           </label>
 
           <label>
-            <span>Day</span>
+            <span>Language</span>
+            <select id="profileSessionLanguage" required>
+              <option value="">Choose language</option>
+              <option value="GE">ქართული</option>
+              <option value="EN">English</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Highest rank</span>
+            <input id="profileSessionRank" type="text" maxlength="60" placeholder="Conqueror, Global Elite..." required />
+          </label>
+
+          <label>
+            <span>Specialty</span>
+            <input id="profileSessionSpecialty" type="text" maxlength="90" placeholder="Rank Push, Aim Training..." required />
+          </label>
+
+          <label>
+            <span>Years of experience</span>
+            <input id="profileSessionExperience" type="number" min="0" max="50" step="1" placeholder="4" required />
+          </label>
+
+          <label>
+            <span>Success rate (%)</span>
+            <input id="profileSessionSuccessRate" type="number" min="0" max="100" step="1" placeholder="95" required />
+          </label>
+
+          <label>
+            <span>Average response time (minutes)</span>
+            <input id="profileSessionResponseTime" type="number" min="1" max="1440" step="1" placeholder="10" required />
+          </label>
+
+          <label>
+            <span>Specific date</span>
             <input id="profileSessionDate" type="date" required />
           </label>
 
           <label>
             <span>Hour</span>
             <select id="profileSessionTime" required></select>
+          </label>
+
+          <label class="profile-session-about-field">
+            <span>About you</span>
+            <textarea id="profileSessionAbout" maxlength="700" rows="5" placeholder="Tell players about your experience, coaching approach and goals..." required></textarea>
+            <small>This text will also automatically fill the “Meet Your Coach” section.</small>
+          </label>
+
+          <label class="profile-session-about-field">
+            <span>About session</span>
+            <textarea id="profileSessionDescription" maxlength="700" rows="5" placeholder="Describe what players will learn and what the session will include..." required></textarea>
+          </label>
+
+          <label class="profile-session-about-field">
+            <span>Coaching style</span>
+            <textarea id="profileSessionStyle" maxlength="700" rows="5" placeholder="Write each coaching approach on a new line..." required></textarea>
+            <small>Write one coaching style per line.</small>
+          </label>
+
+          <label class="profile-session-about-field">
+            <span>Expertise graph</span>
+            <textarea id="profileSessionExpertise" maxlength="500" rows="5" placeholder="Aim Training: 90&#10;Game Sense: 85&#10;Strategy: 80" required></textarea>
+            <small>Write one skill and its real percentage per line, using the format “Skill: 90”.</small>
+          </label>
+
+          <label class="profile-session-about-field">
+            <span>Achievements <small>(optional)</small></span>
+            <textarea id="profileSessionAchievements" maxlength="500" rows="4" placeholder="Write each real achievement on a new line..."></textarea>
           </label>
 
           <p class="seller-status" id="profileSessionStatus" aria-live="polite"></p>
@@ -219,7 +281,7 @@
 
         <div class="top-actions">
           <a class="icon-button" href="messages.html" aria-label="Messages" title="Messages">
-            <span aria-hidden="true">@</span>
+            <img class="message-icon-image" src="assets/message-icon.svg" alt="" aria-hidden="true" />
           </a>
           <a class="icon-button cart-top-button" href="cart.html" aria-label="Cart" title="Cart">
             <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />

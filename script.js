@@ -43,8 +43,9 @@ const sessionKey = 'wavehub.session';
 const sellerListingsKey = 'wavehub.sellerListings';
 const favoritesKey = 'wavehub.favorites';
 const priceOffersKey = 'wavehub.priceOffers';
-const minOnlineCount = 18;
-const maxOnlineCount = 61;
+const coachingSessionsKey = 'wavehub.cart';
+const minOnlineCount = 2;
+const maxOnlineCount = 23;
 const listingTypeConfig = {
   account: {
     type: 'account',
@@ -459,6 +460,7 @@ function initCarousels() {
       const clone = card.cloneNode(true);
       clone.classList.add('carousel-clone');
       clone.setAttribute('aria-hidden', 'true');
+      clone.setAttribute('tabindex', '-1');
       track.appendChild(clone);
     });
 
@@ -490,6 +492,31 @@ function saveSellerListings(listings) {
 }
 
 function renderGameListingCounts() {
+  const normalizeGameKey = (value) => {
+    const game = String(value || '').trim().toLowerCase();
+    return game === 'cod mobile' || game === 'call of duty mobile' ? 'call of duty' : game;
+  };
+
+  const coachingSessions = readJson(coachingSessionsKey, []);
+  const coachesByGame = (Array.isArray(coachingSessions) ? coachingSessions : []).reduce((groups, session) => {
+    if (session?.productType !== 'Coaching' || session.isActive === false || session.status === 'inactive') {
+      return groups;
+    }
+
+    const gameKey = normalizeGameKey(session.game);
+    const coachIdentity = session.seller || session.listingId || '';
+
+    if (!gameKey || !coachIdentity) {
+      return groups;
+    }
+
+    const group = groups[gameKey] || { coaches: new Set(), sessions: 0 };
+    group.coaches.add(String(coachIdentity).trim().toLowerCase());
+    group.sessions += 1;
+    groups[gameKey] = group;
+    return groups;
+  }, {});
+
   const countsByGame = getSellerListings().reduce((counts, listing) => {
     const game = listing.game || '';
 
@@ -498,17 +525,43 @@ function renderGameListingCounts() {
     }
 
     const type = getListingType(listing);
-    const gameCounts = counts[game] || { account: 0, skin: 0 };
+    const gameCounts = counts[game] || { account: 0, skin: 0, players: new Set() };
     gameCounts[type] += 1;
+
+    const playerIdentity = listing.sellerUsername || listing.sellerName || '';
+    if (playerIdentity) {
+      gameCounts.players.add(String(playerIdentity).trim().toLowerCase());
+    }
+
     counts[game] = gameCounts;
 
     return counts;
   }, {});
 
-  document.querySelectorAll('.game-card:not(.carousel-clone)').forEach((card) => {
+  document.querySelectorAll('.game-card:not(.carousel-clone)').forEach((card, index) => {
     const game = card.dataset.game || card.querySelector('h3')?.textContent?.trim() || '';
-    const counts = countsByGame[game] || { account: 0, skin: 0 };
+    const counts = countsByGame[game] || { account: 0, skin: 0, players: new Set() };
     const stats = card.querySelector('.game-listing-counts');
+    const cover = card.querySelector('.game-cover');
+
+    card.dataset.gameUrl = `marketplace.html?game=${encodeURIComponent(game)}`;
+    card.setAttribute('role', 'link');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `Open ${game} marketplace`);
+
+    if (cover && !cover.querySelector('.game-trend-badge')) {
+      const badges = [
+        ['hot', 'Hot'],
+        ['trending', 'Trending'],
+        ['new', 'New'],
+        ['popular', 'Popular'],
+      ];
+      const [badgeType, badgeLabel] = badges[index % badges.length];
+      const badge = document.createElement('span');
+      badge.className = `game-trend-badge ${badgeType}`;
+      badge.textContent = badgeLabel;
+      cover.appendChild(badge);
+    }
 
     if (!stats) {
       return;
@@ -516,13 +569,34 @@ function renderGameListingCounts() {
 
     stats.innerHTML = '';
 
-    const accounts = document.createElement('span');
-    accounts.textContent = formatCountLabel(counts.account, 'account', 'accounts');
+    const total = counts.account + counts.skin;
+    const coachingStats = coachesByGame[normalizeGameKey(game)];
+    const coachCount = coachingStats?.coaches.size || 0;
+    const coachingSessionCount = coachingStats?.sessions || 0;
+    const activeServiceCount = total + coachingSessionCount;
+    const statItems = [
+      { icon: 'players', value: counts.players.size, label: 'Players Active' },
+      { icon: 'coaches', value: coachCount, label: 'Coaches' },
+      { icon: 'listings', value: total, label: 'Listings' },
+      { icon: 'services', value: activeServiceCount, label: 'Active Services' },
+    ];
 
-    const skins = document.createElement('span');
-    skins.textContent = formatCountLabel(counts.skin, 'skin', 'skins');
+    statItems.forEach((item) => {
+      const stat = document.createElement('span');
+      stat.className = `game-stat game-stat-${item.icon}`;
 
-    stats.append(accounts, skins);
+      const icon = document.createElement('i');
+      icon.setAttribute('aria-hidden', 'true');
+
+      const copy = document.createElement('span');
+      const value = document.createElement('strong');
+      const label = document.createElement('small');
+      value.textContent = String(item.value);
+      label.textContent = item.label;
+      copy.append(value, label);
+      stat.append(icon, copy);
+      stats.appendChild(stat);
+    });
   });
 }
 
@@ -881,6 +955,33 @@ sideLinks.forEach((link) => {
 });
 
 document.addEventListener('click', (event) => {
+  const card = event.target instanceof Element ? event.target.closest('.game-card') : null;
+
+  if (!card || event.target.closest('a, button, input, select, textarea')) {
+    return;
+  }
+
+  const gameUrl = card.dataset.gameUrl;
+  if (gameUrl) {
+    window.location.href = gameUrl;
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  const card = event.target instanceof Element ? event.target.closest('.game-card:not(.carousel-clone)') : null;
+
+  if (!card || (event.key !== 'Enter' && event.key !== ' ')) {
+    return;
+  }
+
+  event.preventDefault();
+  const gameUrl = card.dataset.gameUrl;
+  if (gameUrl) {
+    window.location.href = gameUrl;
+  }
+});
+
+document.addEventListener('click', (event) => {
   const button = event.target instanceof Element ? event.target.closest('.price-row button') : null;
 
   if (!button) {
@@ -944,6 +1045,11 @@ window.addEventListener('storage', (event) => {
   if (event.key === sellerListingsKey) {
     renderGameListingCounts();
     renderSellerListings();
+    refreshCarousels();
+  }
+
+  if (event.key === coachingSessionsKey) {
+    renderGameListingCounts();
     refreshCarousels();
   }
 });
