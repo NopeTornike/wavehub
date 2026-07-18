@@ -17,6 +17,7 @@ import { PurchaseOrderDto } from './dto/purchase-order.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { calculatePlatformFee } from '../wallet/fee.util';
 import { StorageService } from '../storage/storage.service';
+import { ChatService } from '../chat/chat.service';
 
 // 10% matches every example in the source spec. Not admin-configurable yet — that's build-plan
 // Phase 11 (Platform Settings). Snapshotted onto each Order at creation (platformFeePercentSnapshot)
@@ -47,7 +48,19 @@ export class OrdersService {
     private readonly dataSource: DataSource,
     private readonly wallet: WalletService,
     private readonly storage: StorageService,
+    private readonly chat: ChatService,
   ) {}
+
+  // Every lifecycle system-message post goes through this — chat is a side channel, never allowed
+  // to fail or slow down the real state change that triggered it. Failures are logged and
+  // swallowed, matching the pattern already established for `Listing.viewsCount` increments.
+  private async postSystemMessage(orderId: string, body: string): Promise<void> {
+    try {
+      await this.chat.postSystemMessage(orderId, body);
+    } catch (err) {
+      this.logger.error(`Failed to post system message for order ${orderId}`, err as Error);
+    }
+  }
 
   // The entire purchase flow: validate listing/package/requirements, compute price+fee snapshots,
   // then atomically create the Order row and debit the buyer's WaveCoin balance in ONE transaction
@@ -99,7 +112,7 @@ export class OrdersService {
       DEFAULT_PLATFORM_FEE_PERCENT,
     );
 
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       const orderNumber = await this.generateOrderNumber(manager);
       const now = new Date();
 
@@ -145,13 +158,26 @@ export class OrdersService {
 
       return saved;
     });
+
+    // Chat is created and posted to outside the money-moving transaction — a chat failure must
+    // never roll back a successful purchase. See `postSystemMessage` above.
+    try {
+      await this.chat.ensureConversation(saved.id, saved.buyerId, saved.sellerId);
+      await this.chat.postSystemMessage(saved.id, 'შეკვეთა შექმნილია.');
+    } catch (err) {
+      this.logger.error(`Failed to create chat for order ${saved.orderNumber}`, err as Error);
+    }
+
+    return saved;
   }
 
   async startOrder(sellerId: string, orderId: string): Promise<Order> {
     const order = await this.getOrderAsSeller(sellerId, orderId);
     assertValidTransition(order.status, OrderStatus.InProgress);
     order.status = OrderStatus.InProgress;
-    return this.orders.save(order);
+    const saved = await this.orders.save(order);
+    await this.postSystemMessage(orderId, 'გამყიდველმა დაიწყო სამუშაო.');
+    return saved;
   }
 
   async deliverOrder(sellerId: string, orderId: string): Promise<Order> {
@@ -160,7 +186,9 @@ export class OrdersService {
     order.status = OrderStatus.Delivered;
     order.deliveredAt = new Date();
     order.autoCompleteAt = new Date(Date.now() + AUTO_COMPLETE_HOURS * 60 * 60 * 1000);
-    return this.orders.save(order);
+    const saved = await this.orders.save(order);
+    await this.postSystemMessage(orderId, 'შეკვეთა მიწოდებულია.');
+    return saved;
   }
 
   async addDeliveryFile(
@@ -186,7 +214,9 @@ export class OrdersService {
       fileUrl: stored.url,
       fileType: file.mimetype,
     });
-    return this.deliveryFiles.save(record);
+    const saved = await this.deliveryFiles.save(record);
+    await this.postSystemMessage(orderId, 'გამყიდველმა ატვირთა ფაილი.');
+    return saved;
   }
 
   async requestRevision(buyerId: string, orderId: string, reason: string): Promise<Order> {
@@ -196,7 +226,9 @@ export class OrdersService {
     order.revisionReason = reason;
     order.deliveredAt = null;
     order.autoCompleteAt = null;
-    return this.orders.save(order);
+    const saved = await this.orders.save(order);
+    await this.postSystemMessage(orderId, `მყიდველმა მოითხოვა გადამუშავება: ${reason}`);
+    return saved;
   }
 
   async acceptDelivery(buyerId: string, orderId: string): Promise<Order> {
@@ -320,7 +352,7 @@ export class OrdersService {
   }
 
   private async completeOrder(order: Order): Promise<Order> {
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       await this.wallet.releaseSellerEarnings(
         order.sellerId,
         order.id,
@@ -330,19 +362,21 @@ export class OrdersService {
       );
       order.status = OrderStatus.Completed;
       order.completedAt = new Date();
-      const saved = await manager.save(order);
+      const savedOrder = await manager.save(order);
       await manager.increment(Listing, { id: order.listingId }, 'ordersCount', 1);
-      return saved;
+      return savedOrder;
     });
+    await this.postSystemMessage(order.id, 'შეკვეთა დასრულებულია.');
+    return saved;
   }
 
   private async cancelOrder(order: Order, reason: string): Promise<Order> {
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       await this.wallet.refundBuyer(order.buyerId, order.id, order.priceWaveCoin, manager);
       order.status = OrderStatus.Cancelled;
       order.cancelledAt = new Date();
       order.cancellationReason = reason;
-      const saved = await manager.save(order);
+      const savedOrder = await manager.save(order);
 
       if (order.listingType === ListingType.Item) {
         const listing = await manager.findOne(Listing, { where: { id: order.listingId } });
@@ -357,13 +391,34 @@ export class OrdersService {
         }
       }
 
-      return saved;
+      return savedOrder;
     });
+    await this.postSystemMessage(order.id, `შეკვეთა გაუქმებულია: ${reason}`);
+    return saved;
   }
 
   private async generateOrderNumber(manager: import('typeorm').EntityManager): Promise<string> {
     const result: Array<{ n: string }> = await manager.query(`SELECT nextval('order_number_seq') AS n`);
     return `WH-${result[0].n.padStart(6, '0')}`;
+  }
+
+  // Chat routes live on OrdersController (`/orders/:id/messages`) rather than a ChatController,
+  // reusing this same participant check rather than duplicating it in a module that doesn't
+  // otherwise know about orders — see backend/src/chat/CLAUDE.md.
+  async listMessages(userId: string, orderId: string) {
+    const order = await this.getOrderOrThrow(orderId);
+    if (order.buyerId !== userId && order.sellerId !== userId) {
+      throw new ForbiddenException("This order doesn't belong to you");
+    }
+    return this.chat.listMessages(orderId);
+  }
+
+  async sendMessage(userId: string, orderId: string, body: string) {
+    const order = await this.getOrderOrThrow(orderId);
+    if (order.buyerId !== userId && order.sellerId !== userId) {
+      throw new ForbiddenException("This order doesn't belong to you");
+    }
+    return this.chat.postMessage(orderId, userId, body);
   }
 
   private async getOrderOrThrow(orderId: string): Promise<Order> {

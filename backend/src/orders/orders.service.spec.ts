@@ -29,6 +29,10 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
     const dataSource = { transaction: jest.fn() } as any;
     const wallet = { debitForOrder: jest.fn() } as any;
     const storage = { save: jest.fn() } as any;
+    // Chat is a best-effort side channel purchase() calls after its transaction resolves (see
+    // orders.service.ts) — these need to be real jest.fn()s so that path doesn't throw
+    // "not a function" in tests that reach it, but no test here asserts on chat calls directly.
+    const chat = { ensureConversation: jest.fn(), postSystemMessage: jest.fn() } as any;
 
     const service = new OrdersService(
       {} as any, // orders repo — not reached before the guard clauses under test
@@ -40,9 +44,10 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
       dataSource,
       wallet,
       storage,
+      chat,
     );
 
-    return { service, dataSource, wallet };
+    return { service, dataSource, wallet, chat };
   }
 
   it('rejects a listing that does not exist or is not Active', async () => {

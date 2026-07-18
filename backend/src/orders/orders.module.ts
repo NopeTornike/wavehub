@@ -11,6 +11,7 @@ import { OrdersController } from './orders.controller';
 import { WalletModule } from '../wallet/wallet.module';
 import { StorageModule } from '../storage/storage.module';
 import { AuthModule } from '../auth/auth.module';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuthModule } from '../auth/auth.module';
     WalletModule,
     StorageModule,
     AuthModule,
+    ChatModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

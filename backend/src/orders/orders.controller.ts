@@ -16,6 +16,7 @@ import { OrdersService } from './orders.service';
 import { PurchaseOrderDto } from './dto/purchase-order.dto';
 import { RequestRevisionDto } from './dto/request-revision.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
+import { SendMessageDto } from '../chat/dto/send-message.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
 
@@ -96,5 +97,15 @@ export class OrdersController {
     @Body() dto: CancelOrderDto,
   ) {
     return this.orders.cancelBySeller(sellerId, id, dto.reason);
+  }
+
+  @Get(':id/messages')
+  listMessages(@CurrentUserId() userId: string, @Param('id') id: string) {
+    return this.orders.listMessages(userId, id);
+  }
+
+  @Post(':id/messages')
+  sendMessage(@CurrentUserId() userId: string, @Param('id') id: string, @Body() dto: SendMessageDto) {
+    return this.orders.sendMessage(userId, id, dto.body);
   }
 }

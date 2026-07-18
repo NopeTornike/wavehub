@@ -15,10 +15,13 @@ payouts (future phases) all hang off an Order existing.
 - `requirements-validator.ts` — `validateRequirementsAnswers(schema, answers)`, checks a buyer's
   submitted requirements-form answers against a service listing's required fields at purchase time
 - `orders.service.ts` — everything: `purchase`, `startOrder`, `deliverOrder`, `addDeliveryFile`,
-  `requestRevision`, `acceptDelivery`, `cancelByBuyer`, `cancelBySeller`, and the 72h
-  `autoCompleteDueOrders` cron
+  `requestRevision`, `acceptDelivery`, `cancelByBuyer`, `cancelBySeller`, the 72h
+  `autoCompleteDueOrders` cron, and `listMessages`/`sendMessage` (thin ownership-checked wrappers
+  around `backend/src/chat/`'s `ChatService` — see that module's doc for why chat's own routes live
+  here instead of a separate controller)
 - `orders.controller.ts` — all routes guarded, ownership-checked per action (buyer-only vs
-  seller-only) inside the service, not the controller
+  seller-only) inside the service, not the controller; also exposes
+  `GET`/`POST /orders/:id/messages`
 
 ## Data model
 `orders`, `order_delivery_files` (migration: `CreateOrdersSchema`, which also adds the `orderId` FK
@@ -68,8 +71,15 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   already-`Completed` order — `assertValidTransition` would just throw and the cron logs it — but
   still wasteful and worth fixing properly if/when multi-instance happens).
 - **Revision history is a single field, not a log.** `order.revisionReason` holds only the latest
-  request; a full per-revision history belongs to Order Chat (build-plan Phase 6) once it exists —
-  don't build a parallel `order_revisions` table for this now.
+  request. Order Chat (`backend/src/chat/`) now exists and every revision request also posts a
+  system message with the reason into the conversation, so a *readable* history does exist there —
+  but `order.revisionReason` itself is still overwritten on each new request, not appended to.
+  Don't build a parallel `order_revisions` table; if a structured (not just chat-log) revision
+  history is ever needed, that's a new decision, not an oversight to silently fix.
+- **Every lifecycle mutation posts a system message via chat** (`postSystemMessage`, a private
+  helper wrapping `ChatService` in a try/catch — see `backend/src/chat/CLAUDE.md`). It's
+  best-effort by design: a chat failure never blocks or rolls back the real state change. If you
+  add a new lifecycle mutation, decide whether it needs one too — don't assume it's automatic.
 - **Delivery files accept a broader format set than listing images** (JPG/PNG/WEBP/PDF/ZIP, 20MB —
   matching the source spec's file-upload spec for order/chat context) vs listings' JPG/PNG/WEBP-only,
   5MB. Don't unify these two limits without checking both specs again.
@@ -105,15 +115,21 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
 - Future `backend/src/disputes/` (Phase 8) will extend `order-lifecycle.ts`'s transition map to
   reach `Disputed`/`Refunded` — those targets exist in the enum but aren't wired here on purpose;
   don't guess at dispute rules in this module.
+- `backend/src/chat/` — order-scoped chat, auto-created in `purchase()` and posted to at every
+  lifecycle transition. `ChatModule` has no dependency on this module (methods take plain
+  `orderId`/`buyerId`/`sellerId` params) so the import direction is one-way (`orders → chat`) with
+  no risk of a circular dependency.
 
 ## Status
 Full purchase-to-completion flow implemented and unit-tested at the validation/lifecycle layer
 (guard clauses, state machine, requirements validation, and now the INSUFFICIENT_BALANCE
-translation) — 90 backend tests total after this update. Not verified against a live Postgres
+translation) — 96 backend tests total after Order Chat landed. Not verified against a live Postgres
 transaction (no DB available in the sandbox this was built in — see the migration's own notes and
-`backend/src/wallet/CLAUDE.md`'s equivalent caveat). Frontend now exists: checkout is wired from
-`frontend/pages/listings/[id].tsx` (including the requirements-form for service listings), an order
-list at `frontend/pages/orders/index.tsx` (buyer/seller tabs), and an order detail/actions page at
-`frontend/pages/orders/[id].tsx` (start/deliver/accept/revision/cancel + delivery-file upload +
-leave-a-review once completed) — see `frontend/CLAUDE.md`. Still deferred: dispute integration,
-per-revision history, admin-configurable fee rate, multi-instance-safe cron.
+`backend/src/wallet/CLAUDE.md`'s equivalent caveat). Frontend exists for checkout and order
+management: `frontend/pages/listings/[id].tsx` (including the requirements-form for service
+listings), an order list at `frontend/pages/orders/index.tsx` (buyer/seller tabs), and an order
+detail/actions page at `frontend/pages/orders/[id].tsx` (start/deliver/accept/revision/cancel +
+delivery-file upload + leave-a-review once completed) — see `frontend/CLAUDE.md`. Order Chat
+(`backend/src/chat/`) is backend-only so far — `GET`/`POST /orders/:id/messages` work but
+`orders/[id].tsx` doesn't render a chat panel yet. Still deferred: dispute integration,
+admin-configurable fee rate, multi-instance-safe cron.

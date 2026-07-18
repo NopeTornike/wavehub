@@ -309,6 +309,19 @@ export interface PublicOrderDetail extends PublicOrderSummary {
   deliveryFiles: PublicOrderDeliveryFile[];
 }
 
+// What ChatService#listMessages/#postMessage return (backend/src/chat/) — `senderId: null` (with
+// `senderUsername: null`) marks a system message (order-lifecycle event), never a real user with
+// no name.
+export interface PublicMessage {
+  id: string;
+  type: MessageType;
+  body: string;
+  status: MessageStatus;
+  senderId: string | null;
+  senderUsername: string | null;
+  createdAt: string;
+}
+
 export interface PublicReview {
   id: string;
   rating: number;
