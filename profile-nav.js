@@ -269,15 +269,34 @@
     if (!notificationPanel) return;
     notificationPanel.hidden = !isOpen;
     if (isOpen && anchor) {
+      renderNotificationCenter();
       const rect = anchor.getBoundingClientRect();
-      notificationPanel.style.top = `${Math.max(12, Math.min(window.innerHeight - 430, rect.bottom + 10))}px`;
-      notificationPanel.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+      const isMobile = window.innerWidth <= 600;
+
+      if (isMobile) {
+        notificationPanel.style.inset = 'auto 8px auto 8px';
+        notificationPanel.style.width = 'auto';
+        notificationPanel.style.maxHeight = 'calc(100dvh - 16px)';
+        const panelHeight = Math.min(notificationPanel.scrollHeight, window.innerHeight - 16);
+        const preferredTop = rect.bottom + 8;
+        const top = preferredTop + panelHeight <= window.innerHeight - 8
+          ? preferredTop
+          : Math.max(8, window.innerHeight - panelHeight - 8);
+        notificationPanel.style.top = `${top}px`;
+      } else {
+        notificationPanel.style.inset = 'auto';
+        notificationPanel.style.width = '';
+        notificationPanel.style.maxHeight = '';
+        const panelHeight = Math.min(notificationPanel.scrollHeight || 520, window.innerHeight - 24);
+        const top = Math.max(12, Math.min(window.innerHeight - panelHeight - 12, rect.bottom + 10));
+        notificationPanel.style.top = `${top}px`;
+        notificationPanel.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+      }
       const { user } = getCurrentAccount();
       if (user?.username) {
         const seenByUser = readJson(notificationSeenKey, {});
         localStorage.setItem(notificationSeenKey, JSON.stringify({ ...seenByUser, [user.username]: new Date().toISOString() }));
       }
-      renderNotificationCenter();
     }
     document.querySelectorAll('.icon-button.has-alert').forEach((button) => {
       button.setAttribute('aria-expanded', String(isOpen));
@@ -324,6 +343,12 @@
   bindProfileRoutes();
   bindNotificationCenter();
   renderNotificationCenter();
+
+  window.addEventListener('resize', () => {
+    if (!notificationPanel || notificationPanel.hidden) return;
+    const anchor = Array.from(document.querySelectorAll('.icon-button.has-alert')).find((button) => button.getAttribute('aria-expanded') === 'true');
+    if (anchor) setNotificationCenterOpen(true, anchor);
+  });
 
   window.addEventListener('storage', (event) => {
     if (event.key === sessionKey || event.key === localUsersKey) {

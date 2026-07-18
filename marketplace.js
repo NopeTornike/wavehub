@@ -964,8 +964,21 @@ function renderMarketplace() {
   }
 
   const username = getCurrentAccount().user?.username;
+  const isFavoritesView = getActiveSection() === 'Favorites';
   const favoriteIds = new Set(getUserFavorites(username).map((favorite) => favorite.id));
   const listings = getFilteredListings();
+  document.body.classList.toggle('favorites-view', isFavoritesView);
+
+  const pageKicker = document.querySelector('.marketplace-head .section-kicker');
+  const pageTitle = document.getElementById('marketplaceTitle');
+  const totalLabel = document.querySelector('.marketplace-total span');
+  const listKicker = document.querySelector('.marketplace-list-section .section-kicker');
+  const listTitle = document.getElementById('marketplaceListTitle');
+  if (pageKicker) pageKicker.textContent = isFavoritesView ? 'Your personal collection' : 'Account and skin marketplace';
+  if (pageTitle) pageTitle.textContent = isFavoritesView ? 'Favorites' : 'Marketplace';
+  if (totalLabel) totalLabel.textContent = isFavoritesView ? 'saved items' : 'products';
+  if (listKicker) listKicker.textContent = isFavoritesView ? 'Saved for later' : 'Live listings';
+  if (listTitle) listTitle.textContent = isFavoritesView ? 'Your Collection' : 'Accounts & Skins';
   marketplaceGrid.innerHTML = '';
 
   listings.forEach((listing) => {
@@ -985,7 +998,9 @@ function renderMarketplace() {
 
   if (marketplaceEmpty) {
     marketplaceEmpty.hidden = listings.length > 0;
-    marketplaceEmpty.textContent = getActiveSection() === 'Favorites' ? 'No favorite products yet.' : 'No listings yet.';
+    marketplaceEmpty.innerHTML = isFavoritesView
+      ? '<span class="favorites-empty-icon" aria-hidden="true"></span><strong>Your collection is empty</strong><p>Save accounts and skins you like, then find them here anytime.</p><a href="marketplace.html">Explore Marketplace</a>'
+      : 'No listings yet.';
   }
 }
 

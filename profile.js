@@ -9,6 +9,7 @@ const publicProfileAvatar = document.getElementById('publicProfileAvatar');
 const publicProfileName = document.getElementById('publicProfileName');
 const publicProfileHandle = document.getElementById('publicProfileHandle');
 const publicProfileJoined = document.getElementById('publicProfileJoined');
+const publicProfileBio = document.getElementById('publicProfileBio');
 const publicProfileMessage = document.getElementById('publicProfileMessage');
 const publicProfileRegistered = document.getElementById('publicProfileRegistered');
 const publicProfileListed = document.getElementById('publicProfileListed');
@@ -26,6 +27,8 @@ const profilePhotoInput = document.getElementById('profilePhotoInput');
 const profileUsernameInput = document.getElementById('profileUsernameInput');
 const profileFirstNameInput = document.getElementById('profileFirstNameInput');
 const profileLastNameInput = document.getElementById('profileLastNameInput');
+const profileBioInput = document.getElementById('profileBioInput');
+const profileBioCount = document.getElementById('profileBioCount');
 const profilePublicLink = document.getElementById('profilePublicLink');
 const profileLogoutButton = document.getElementById('profileLogoutButton');
 const profileStatus = document.getElementById('profileStatus');
@@ -893,6 +896,10 @@ function renderPublicProfile(user) {
     if (publicProfileName) publicProfileName.textContent = 'Profile not found';
     if (publicProfileHandle) publicProfileHandle.textContent = '@unknown';
     if (publicProfileJoined) publicProfileJoined.textContent = 'This public profile is unavailable.';
+    if (publicProfileBio) {
+      publicProfileBio.textContent = '';
+      publicProfileBio.hidden = true;
+    }
     if (publicProfileRegistered) publicProfileRegistered.textContent = '-';
     if (publicProfileListed) publicProfileListed.textContent = '0';
     if (publicProfileSold) publicProfileSold.textContent = '0';
@@ -918,6 +925,11 @@ function renderPublicProfile(user) {
   if (publicProfileName) publicProfileName.textContent = getDisplayName(user);
   if (publicProfileHandle) publicProfileHandle.textContent = `@${user.username}`;
   if (publicProfileJoined) publicProfileJoined.textContent = `Joined ${joinedDate}`;
+  if (publicProfileBio) {
+    const bio = String(user.bio || '').trim();
+    publicProfileBio.textContent = bio;
+    publicProfileBio.hidden = !bio;
+  }
   if (publicProfileMessage) {
     const currentUsername = getCurrentAccount().user?.username || '';
     publicProfileMessage.href = `messages.html?to=${encodeURIComponent(user.username)}`;
@@ -943,6 +955,8 @@ function renderProfileForm(user) {
   if (profileUsernameInput) profileUsernameInput.value = user.username || '';
   if (profileFirstNameInput) profileFirstNameInput.value = user.firstName || '';
   if (profileLastNameInput) profileLastNameInput.value = user.lastName || '';
+  if (profileBioInput) profileBioInput.value = user.bio || '';
+  if (profileBioCount) profileBioCount.textContent = String((user.bio || '').length);
   if (profilePublicLink) profilePublicLink.href = getPublicProfileUrl(user.username);
   applyAvatar(profilePhotoPreview, user);
 }
@@ -1089,6 +1103,7 @@ function saveUserProfile(nextUser) {
       firstName: nextUser.firstName,
       lastName: nextUser.lastName,
       photoData: nextUser.photoData || '',
+      bio: nextUser.bio || '',
     },
   });
 }
@@ -1405,6 +1420,12 @@ profilePhotoInput?.addEventListener('change', async () => {
   }
 });
 
+profileBioInput?.addEventListener('input', () => {
+  if (profileBioCount) {
+    profileBioCount.textContent = String(profileBioInput.value.length);
+  }
+});
+
 profileForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
 
@@ -1431,6 +1452,7 @@ profileForm?.addEventListener('submit', async (event) => {
     ...user,
     firstName: profileFirstNameInput?.value.trim() || '',
     lastName: profileLastNameInput?.value.trim() || '',
+    bio: profileBioInput?.value.trim() || '',
     photoData,
   };
 
