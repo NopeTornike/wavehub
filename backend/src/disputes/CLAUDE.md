@@ -65,9 +65,12 @@ CASCADE` from `disputes`.
 - **A dispute being opened is what "freezes" the order for free** — once `order.status` flips to
   `Disputed`, `OrdersService.autoCompleteDueOrders`'s query (`WHERE status = 'delivered'`) simply no
   longer matches it, so the 72h auto-complete cron can't fire on a disputed order. No extra flag or
-  lock was needed for this half of the "freeze" the build plan calls for. The other half —
-  "blocks withdrawal of tied funds" — has nothing to block yet, since `backend/src/wallet/` has no
-  withdrawal feature (build-plan Phase 9); revisit when that lands.
+  lock was needed for this half of the "freeze" the build plan calls for. The other half — "blocks
+  withdrawal of tied funds" — now exists too: `backend/src/withdrawals/WithdrawalsService#request`
+  queries `Dispute` directly (any non-terminal status blocks a *new* withdrawal request). This is a
+  request-time check only, not a standing hold — an existing `Pending`/`Processing` withdrawal
+  isn't automatically cancelled if a dispute opens on a *different* order afterward; see
+  `withdrawals/CLAUDE.md`'s Status section for that gap.
 - **Both `open()` and `resolve()` best-effort-post a notice into the order's regular chat**
   (`backend/src/chat/`'s `ChatService.postSystemMessage`, via a private `postChatNotice` helper
   identical in spirit to `OrdersService`'s own) — "დავა გაიხსნა: ..." / "დავა გადაწყდა: ...". A chat

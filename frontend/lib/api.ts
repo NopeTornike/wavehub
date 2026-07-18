@@ -10,7 +10,11 @@ import type {
   PublicOrderDetail,
   PublicMessage,
   PublicDispute,
+  PublicWalletBalance,
+  PublicWalletTransaction,
+  PublicWithdrawRequest,
   ListingType,
+  WithdrawMethod,
 } from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -229,4 +233,22 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  // --- Seller wallet balance/withdrawals --- (backend/src/withdrawals/) — these two GET routes
+  // live under /wallet even though the module is called withdrawals; see withdrawals/CLAUDE.md for
+  // why (the full balance view needs withdraw-request data wallet/ doesn't have).
+  getWalletBalance: () => request<PublicWalletBalance>('/wallet/balance'),
+
+  listWalletTransactions: (limit = 20, offset = 0) =>
+    request<PublicWalletTransaction[]>(`/wallet/transactions?limit=${limit}&offset=${offset}`),
+
+  requestWithdrawal: (payload: { amountWaveCoin: number; method: WithdrawMethod; payoutDetails: Record<string, string> }) =>
+    request<PublicWithdrawRequest>('/withdrawals', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  listMyWithdrawals: () => request<PublicWithdrawRequest[]>('/withdrawals/mine'),
+
+  cancelWithdrawal: (id: string) => request<PublicWithdrawRequest>(`/withdrawals/${id}/cancel`, { method: 'POST' }),
 }

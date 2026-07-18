@@ -176,4 +176,162 @@ export class WalletService {
 
     return manager ? run(manager) : this.dataSource.transaction(run);
   }
+
+  // Reserves funds for a withdrawal request at the moment it's created — debits `wavecoinBalance`
+  // immediately (same "debit now, not on admin approval" principle as `debitForOrder`), so a
+  // seller can't request a withdrawal and then also spend the same coins on a purchase before an
+  // admin gets to it. `reference` is `withdraw:<withdrawRequestId>` — unique, so a duplicate call
+  // (e.g. a network retry) for the same request is a no-op rather than a double debit, same
+  // idempotency pattern as `recordTopup`.
+  async holdForWithdrawal(
+    userId: string,
+    amountWaveCoin: number,
+    withdrawRequestId: string,
+    manager?: EntityManager,
+  ): Promise<WalletLedgerEntry> {
+    if (amountWaveCoin <= 0) {
+      throw new Error('amountWaveCoin must be positive');
+    }
+    const reference = `withdraw:${withdrawRequestId}`;
+
+    const run = async (m: EntityManager) => {
+      const existing = await m.findOne(WalletLedgerEntry, { where: { reference } });
+      if (existing) {
+        return existing;
+      }
+
+      const user = await m.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
+      if (!user) {
+        throw new Error('USER_NOT_FOUND');
+      }
+      if (user.wavecoinBalance < amountWaveCoin) {
+        throw new Error('INSUFFICIENT_BALANCE');
+      }
+
+      const balanceAfter = user.wavecoinBalance - amountWaveCoin;
+      await m.update(User, userId, { wavecoinBalance: balanceAfter });
+
+      const entry = m.create(WalletLedgerEntry, {
+        userId,
+        orderId: null,
+        type: WalletLedgerType.Withdrawal,
+        amountWaveCoin: -amountWaveCoin,
+        balanceAfter,
+        status: WalletLedgerStatus.Held,
+        reference,
+      });
+      return m.save(entry);
+    };
+
+    return manager ? run(manager) : this.dataSource.transaction(run);
+  }
+
+  // Reverses a held withdrawal when an admin rejects or the seller cancels it — credits
+  // `wavecoinBalance` back. Writes a new entry rather than mutating the original hold entry;
+  // ledger rows are append-only, see wallet/CLAUDE.md.
+  async reverseWithdrawal(
+    userId: string,
+    amountWaveCoin: number,
+    withdrawRequestId: string,
+    manager?: EntityManager,
+  ): Promise<WalletLedgerEntry> {
+    if (amountWaveCoin <= 0) {
+      throw new Error('amountWaveCoin must be positive');
+    }
+    const reference = `withdraw-reversed:${withdrawRequestId}`;
+
+    const run = async (m: EntityManager) => {
+      const existing = await m.findOne(WalletLedgerEntry, { where: { reference } });
+      if (existing) {
+        return existing;
+      }
+
+      const user = await m.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
+      if (!user) {
+        throw new Error('USER_NOT_FOUND');
+      }
+
+      const balanceAfter = user.wavecoinBalance + amountWaveCoin;
+      await m.update(User, userId, { wavecoinBalance: balanceAfter });
+
+      const entry = m.create(WalletLedgerEntry, {
+        userId,
+        orderId: null,
+        type: WalletLedgerType.Withdrawal,
+        amountWaveCoin,
+        balanceAfter,
+        status: WalletLedgerStatus.Reversed,
+        reference,
+      });
+      return m.save(entry);
+    };
+
+    return manager ? run(manager) : this.dataSource.transaction(run);
+  }
+
+  // Derived view over the ledger — see packages/shared-types' PublicWalletBalance for what each
+  // field means. Deliberately does NOT include withdrawal-request-specific numbers
+  // (pendingWithdrawal/totalWithdrawn) — this module has no access to `WithdrawRequest` (that's
+  // backend/src/withdrawals/, which depends on this module, not the other way around).
+  // `WithdrawalsService#getBalanceSummary` composes this with its own numbers into the full
+  // `PublicWalletBalance` the frontend actually renders.
+  async getBalanceSummary(userId: string): Promise<{
+    walletBalance: number;
+    totalEarned: number;
+    pendingClearance: number;
+    availableToWithdraw: number;
+  }> {
+    const user = await this.dataSource.getRepository(User).findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error('USER_NOT_FOUND');
+    }
+
+    const repo = this.dataSource.getRepository(WalletLedgerEntry);
+    const now = new Date();
+
+    const totalEarned = await this.sumEntries(repo, userId, WalletLedgerType.OrderRelease);
+    const pendingClearance = await this.sumEntries(repo, userId, WalletLedgerType.OrderRelease, (qb) =>
+      qb.andWhere('e.availableAt > :now', { now }),
+    );
+    const clearedEarnings = totalEarned - pendingClearance;
+
+    return {
+      walletBalance: user.wavecoinBalance,
+      totalEarned,
+      pendingClearance,
+      // Capped by the actual current balance — a seller who already spent earned coins on a
+      // purchase can't request a withdrawal against money they no longer have. See this method's
+      // own comment above for the fuller reasoning.
+      availableToWithdraw: Math.max(0, Math.min(user.wavecoinBalance, clearedEarnings)),
+    };
+  }
+
+  // Paginated raw ledger history — "order earnings, withdrawals, refunds, adjustments" per the
+  // source spec's §5.6. Newest first.
+  async listTransactions(userId: string, limit: number, offset: number): Promise<WalletLedgerEntry[]> {
+    return this.dataSource.getRepository(WalletLedgerEntry).find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      take: limit,
+      skip: offset,
+    });
+  }
+
+  private async sumEntries(
+    repo: import('typeorm').Repository<WalletLedgerEntry>,
+    userId: string,
+    type: WalletLedgerType,
+    extra?: (qb: import('typeorm').SelectQueryBuilder<WalletLedgerEntry>) => void,
+  ): Promise<number> {
+    const qb = repo
+      .createQueryBuilder('e')
+      .select('COALESCE(SUM(e.amountWaveCoin), 0)', 'sum')
+      .where('e.userId = :userId', { userId })
+      .andWhere('e.type = :type', { type });
+    if (extra) {
+      extra(qb);
+    }
+    const { sum } = await qb.getRawOne<{ sum: string }>();
+    return Number(sum);
+  }
 }

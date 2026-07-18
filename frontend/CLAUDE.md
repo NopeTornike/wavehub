@@ -46,12 +46,17 @@ it into real components here, don't extend it further.
   evidence file list + upload widget, both locked once the dispute is `Resolved`/`Closed`) — no
   polling on this one, since `openDispute`/`sendDisputeMessage`/`uploadDisputeEvidence` each
   refresh `dispute` from their own response instead of needing a separate re-fetch
-- `pages/wallet.tsx` — balance (from `api.me().user.wavecoinBalance` — there's no separate wallet
-  balance endpoint, see `backend/src/wallet/CLAUDE.md`) + a WaveCoin top-up form that calls
-  `api.createBogTopupOrder` and redirects the browser to BOG's hosted checkout page
-  (`redirectUrl`); WaveCoin is credited later by the backend's signature-verified callback, not by
-  anything on this page — the `?topup=success|fail` query param after BOG redirects back is just a
-  banner, not a trigger for crediting anything
+- `pages/wallet.tsx` — full wallet view: the derived balance breakdown (`api.getWalletBalance`
+  — available/pending-clearance/earned/withdrawn, see `backend/src/withdrawals/CLAUDE.md` for how
+  each number is computed), a WaveCoin top-up form (`api.createBogTopupOrder`, redirects the
+  browser to BOG's hosted checkout page — WaveCoin is credited later by the backend's
+  signature-verified callback, not by anything on this page; the `?topup=success|fail` query param
+  after BOG redirects back is just a banner, and also triggers a `refresh()` + balance re-fetch so
+  the new balance actually shows), a withdrawal request form (`api.requestWithdrawal` — method
+  select with method-specific payout-detail fields: bank transfer asks for account holder/IBAN/
+  SWIFT, PayPal and Wise both just ask for an email) with a list of the seller's own requests and a
+  cancel button on `Pending` ones (`api.cancelWithdrawal`), and a raw transaction history list
+  (`api.listWalletTransactions`)
 - `pages/login.tsx`, `pages/register.tsx` — auth forms. `login.tsx` supports a `?next=` query param
   (validated with `safeNextPath` — must be a same-origin relative path starting with exactly one
   `/`, never an absolute/protocol-relative URL, to avoid an open redirect) and pushes there on
@@ -79,9 +84,12 @@ it into real components here, don't extend it further.
   `.listing-card`, `.filter-bar`, `.detail-layout`, `.package-list`, `.review-item`, etc.), the
   order/wallet classes (`.order-tabs`, `.order-card`, `.order-status` + its per-status color
   modifiers including `.order-status-disputed`, `.order-actions`, `.wallet-balance`,
-  `.delivery-file-list`), and the chat classes (`.chat-panel`, `.chat-messages`, `.chat-message` +
-  `-mine`/`-system` modifiers, `.chat-form`) — the dispute panel reuses these chat classes and
-  `.delivery-file-list` rather than defining its own, since the shapes are visually identical
+  `.delivery-file-list`, `.balance-grid`/`.balance-stat`, `.withdraw-status-*`,
+  `.transaction-list`/`.transaction-item`), and the chat classes (`.chat-panel`, `.chat-messages`,
+  `.chat-message` + `-mine`/`-system` modifiers, `.chat-form`) — the dispute panel reuses these
+  chat classes and `.delivery-file-list` rather than defining its own, since the shapes are
+  visually identical; the withdrawal-request list on `wallet.tsx` reuses `.order-card`/`.order-list`
+  for the same reason
 
 ## Data model
 N/A on the frontend itself. Talks to the NestJS backend (`backend/`) over HTTP; shared request/response
@@ -122,9 +130,11 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
 - `packages/shared-types/` — always check here first for an enum/type before defining one locally.
 - `backend/src/auth/` — every endpoint `lib/api.ts` calls is defined there; check that module's doc
   for request/response shapes and behavior before changing either side.
-- `backend/src/orders/`, `backend/src/wallet/`, `backend/src/payments/`, `backend/src/chat/`,
-  `backend/src/disputes/` — back the orders/wallet/chat/dispute pages; check those modules' docs
-  for status-transition rules and response shapes before changing either side.
+- `backend/src/orders/`, `backend/src/wallet/`, `backend/src/withdrawals/`,
+  `backend/src/payments/`, `backend/src/chat/`, `backend/src/disputes/` — back the orders/wallet/
+  chat/dispute pages; check those modules' docs for status-transition rules and response shapes
+  before changing either side. Note `wallet.tsx`'s balance/transaction endpoints actually live in
+  `backend/src/withdrawals/`'s controller, not `backend/src/wallet/`'s — see that module's doc.
 
 ## Status
 The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
@@ -133,18 +143,22 @@ reset (request + confirm, both with working pages). Marketplace browsing, checko
 management, and WaveCoin top-up are now real too: home page, filtered/paginated browse grid, a
 listing detail page with packages/reviews and a working buy button (including the requirements
 form for service listings), an order list + detail page with the full status-gated action set
-(start/deliver/accept/revision/cancel/review), and a wallet page with balance + BOG top-up — all
-backed by the real `backend/src/listings/`, `backend/src/orders/`, `backend/src/reviews/`, and
-`backend/src/payments/`+`backend/src/wallet/` endpoints, no mock data. Session state is now shared
-via `lib/auth.tsx`'s `AuthProvider`/`useAuth()` (replacing the per-page `api.me()` duplication that
-used to exist in `Header`, `listings/[id].tsx`, `orders/[id].tsx`, `orders/index.tsx`, and
-`wallet.tsx` — all five now read from the one provider instead). `orders/[id].tsx` now also has a
-polling chat panel (`backend/src/chat/CLAUDE.md`) and a dispute panel (open/discuss/attach evidence
-— `backend/src/disputes/CLAUDE.md`); there's no admin resolution UI anywhere, since
-`DisputesService#resolve` has no HTTP route yet (build-plan Phase 11). No cart page (checkout is a
-direct single-listing buy, not a multi-item cart — matches the WaveCoin/order model, not an
-oversight), no seller dashboard / create-listing frontend, no coaching/profile/messages pages yet.
-The repo-root static site remains the reference mockup for all of that until it's ported here.
+(start/deliver/accept/revision/cancel/review), and a wallet page with the full derived balance
+breakdown, BOG top-up, seller withdrawal requests, and transaction history — all backed by the
+real `backend/src/listings/`, `backend/src/orders/`, `backend/src/reviews/`,
+`backend/src/payments/`+`backend/src/wallet/`, and `backend/src/withdrawals/` endpoints, no mock
+data. Session state is shared via `lib/auth.tsx`'s `AuthProvider`/`useAuth()` (replacing the
+per-page `api.me()` duplication that used to exist in `Header`, `listings/[id].tsx`,
+`orders/[id].tsx`, `orders/index.tsx`, and `wallet.tsx`). `orders/[id].tsx` also has a polling chat
+panel (`backend/src/chat/CLAUDE.md`) and a dispute panel (open/discuss/attach evidence —
+`backend/src/disputes/CLAUDE.md`). There's still no admin UI anywhere in `frontend/` — `.approve`/
+`.reject`/`.hide`/`.remove`/`.restore`/dispute `.resolve`/withdrawal `.process` all have real
+guarded backend routes now (`backend/src/admin/CLAUDE.md`), but nothing in this app calls them; a
+Super Admin (or whichever role) can only reach them via a direct API call today. No cart page
+(checkout is a direct single-listing buy, not a multi-item cart — matches the WaveCoin/order model,
+not an oversight), no seller dashboard / create-listing frontend, no coaching/profile/messages
+pages yet. The repo-root static site remains the reference mockup for all of that until it's
+ported here.
 
 **Verification caveat**: this workspace has no Docker/Postgres available (a constraint noted
 throughout this repo's `CLAUDE.md` files), so everything above was verified via

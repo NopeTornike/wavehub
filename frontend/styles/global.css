@@ -726,6 +726,47 @@ body::before {
   flex: 1;
 }
 
+/* --- Wallet balance breakdown & withdrawals --- */
+
+.balance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.balance-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.balance-stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.withdraw-status-pending, .withdraw-status-processing { color: #6fb1ff; }
+.withdraw-status-completed { color: #4ade80; }
+.withdraw-status-rejected, .withdraw-status-cancelled { color: #f87171; }
+
+.transaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transaction-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 0.88rem;
+}
+
 @media (max-width: 900px) {
   .detail-layout {
     grid-template-columns: 1fr;

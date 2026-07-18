@@ -369,3 +369,48 @@ export interface PublicReview {
   createdAt: string;
   buyer: Pick<PublicUser, 'id' | 'username'>;
 }
+
+// --- Wallet & withdrawal response shapes ---
+// What backend/src/wallet/'s WalletController and backend/src/withdrawals/'s WithdrawalsController
+// return. See WalletService#getBalanceSummary for how these numbers are derived — none of them are
+// stored columns, all computed from wallet_ledger_entries at request time.
+
+export interface PublicWalletBalance {
+  // Current spendable balance (== users.wavecoinBalance) — what a buyer can actually check out
+  // with right now. Already nets out every debit (purchases, withdrawals) and credit (topups,
+  // cleared earnings, refunds).
+  walletBalance: number;
+  // Lifetime gross seller earnings (sum of every OrderRelease ledger entry ever written) —
+  // doesn't subtract withdrawals or spending, this is "how much have you ever earned."
+  totalEarned: number;
+  // Earnings still inside the 7-day hold (availableAt in the future) — not yet withdrawable.
+  pendingClearance: number;
+  // min(walletBalance, cleared earnings) — the actual ceiling on a new withdrawal request right
+  // now. Capped by walletBalance so a seller who already spent earned coins on a purchase can't
+  // request a withdrawal against money they no longer have.
+  availableToWithdraw: number;
+  // Sum of this seller's WithdrawRequests currently in `pending`/`processing` status — already
+  // debited from walletBalance (reserved), shown separately so the number isn't "missing."
+  pendingWithdrawal: number;
+  // Sum of this seller's WithdrawRequests with status `completed`.
+  totalWithdrawn: number;
+}
+
+export interface PublicWalletTransaction {
+  id: string;
+  type: WalletLedgerType;
+  amountWaveCoin: number;
+  status: WalletLedgerStatus;
+  orderId: string | null;
+  createdAt: string;
+}
+
+export interface PublicWithdrawRequest {
+  id: string;
+  amountWaveCoin: number;
+  method: WithdrawMethod;
+  status: WithdrawStatus;
+  adminNote: string | null;
+  createdAt: string;
+  processedAt: string | null;
+}

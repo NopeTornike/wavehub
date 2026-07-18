@@ -120,6 +120,103 @@ describe('WalletService', () => {
     expect(entry.status).toBe(WalletLedgerStatus.Available);
   });
 
+  it('holdForWithdrawal debits the balance as a held, negative withdrawal entry', async () => {
+    const { dataSource, users } = createFakeDataSource([{ id: userId, wavecoinBalance: 100 }]);
+    const wallet = new WalletService(dataSource);
+
+    const entry = await wallet.holdForWithdrawal(userId, 30, 'withdraw-1');
+
+    expect(users.get(userId)?.wavecoinBalance).toBe(70);
+    expect(entry.amountWaveCoin).toBe(-30);
+    expect(entry.status).toBe(WalletLedgerStatus.Held);
+    expect(entry.type).toBe(WalletLedgerType.Withdrawal);
+    expect(entry.reference).toBe('withdraw:withdraw-1');
+  });
+
+  it('holdForWithdrawal rejects when the balance is insufficient', async () => {
+    const { dataSource, users } = createFakeDataSource([{ id: userId, wavecoinBalance: 5 }]);
+    const wallet = new WalletService(dataSource);
+
+    await expect(wallet.holdForWithdrawal(userId, 30, 'withdraw-1')).rejects.toThrow(
+      'INSUFFICIENT_BALANCE',
+    );
+    expect(users.get(userId)?.wavecoinBalance).toBe(5);
+  });
+
+  it('holdForWithdrawal is idempotent on the derived reference — a repeat call does not double-debit', async () => {
+    const { dataSource, users, ledgerEntries } = createFakeDataSource([
+      { id: userId, wavecoinBalance: 100 },
+    ]);
+    const wallet = new WalletService(dataSource);
+
+    const first = await wallet.holdForWithdrawal(userId, 30, 'withdraw-1');
+    const second = await wallet.holdForWithdrawal(userId, 30, 'withdraw-1');
+
+    expect(users.get(userId)?.wavecoinBalance).toBe(70);
+    expect(ledgerEntries).toHaveLength(1);
+    expect(second).toEqual(first);
+  });
+
+  it('reverseWithdrawal credits the balance back with a Reversed entry', async () => {
+    const { dataSource, users } = createFakeDataSource([{ id: userId, wavecoinBalance: 70 }]);
+    const wallet = new WalletService(dataSource);
+
+    const entry = await wallet.reverseWithdrawal(userId, 30, 'withdraw-1');
+
+    expect(users.get(userId)?.wavecoinBalance).toBe(100);
+    expect(entry.amountWaveCoin).toBe(30);
+    expect(entry.status).toBe(WalletLedgerStatus.Reversed);
+    expect(entry.reference).toBe('withdraw-reversed:withdraw-1');
+  });
+
+  describe('getBalanceSummary', () => {
+    // Lighter fake than createFakeDataSource above — this method reads via
+    // dataSource.getRepository(...).createQueryBuilder(...) rather than a transaction manager, so
+    // it needs its own chainable query-builder stub. Exercises the arithmetic (capping
+    // availableToWithdraw at the current balance), not real SQL — see wallet/CLAUDE.md.
+    function fakeSummaryDataSource(wavecoinBalance: number, sums: { totalEarned: number; pendingClearance: number }) {
+      let call = 0;
+      const qb = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn(async () => {
+          call += 1;
+          // First sumEntries() call is totalEarned (no andWhere on availableAt), second is
+          // pendingClearance (has the extra andWhere) — matches call order in getBalanceSummary.
+          return { sum: String(call === 1 ? sums.totalEarned : sums.pendingClearance) };
+        }),
+      };
+      const repo = { createQueryBuilder: jest.fn(() => qb), findOne: jest.fn(async () => ({ id: userId, wavecoinBalance })) };
+      return { getRepository: jest.fn(() => repo) } as any;
+    }
+
+    it('caps availableToWithdraw at the current wallet balance', async () => {
+      const dataSource = fakeSummaryDataSource(40, { totalEarned: 200, pendingClearance: 0 });
+      const wallet = new WalletService(dataSource);
+
+      const summary = await wallet.getBalanceSummary(userId);
+
+      expect(summary.walletBalance).toBe(40);
+      expect(summary.totalEarned).toBe(200);
+      expect(summary.pendingClearance).toBe(0);
+      // Cleared earnings (200) exceed the actual balance (40, since the seller already spent some)
+      // — availableToWithdraw must not exceed what they actually have.
+      expect(summary.availableToWithdraw).toBe(40);
+    });
+
+    it('caps availableToWithdraw at cleared earnings when the balance is higher', async () => {
+      const dataSource = fakeSummaryDataSource(500, { totalEarned: 200, pendingClearance: 50 });
+      const wallet = new WalletService(dataSource);
+
+      const summary = await wallet.getBalanceSummary(userId);
+
+      // Cleared earnings = 200 - 50 = 150, well below the 500 balance (which includes buyer
+      // top-up money that isn't withdrawable) — available should be capped at 150, not 500.
+      expect(summary.availableToWithdraw).toBe(150);
+    });
+  });
+
   describe('composed transactions (manager param)', () => {
     it('debitForOrder uses the passed manager instead of opening its own transaction', async () => {
       const { dataSource } = createFakeDataSource([{ id: userId, wavecoinBalance: 100 }]);

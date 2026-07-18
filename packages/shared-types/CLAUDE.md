@@ -49,16 +49,21 @@ real 6 named roles (client's "Staff Management System" docs — see `SPECIFICATI
 has a real backing column (`users.adminRole`, Phase 8's admin-foundation work) — `toPublicUser()`
 reads it for real, no longer hardcoded `null` (see `backend/src/users/CLAUDE.md` and
 `backend/src/admin/CLAUDE.md`, whose `AdminGuard` is the actual consumer that gates on it).
-`PublicUser` gained `wavecoinBalance` when
-the frontend wallet page needed somewhere to read it from — there is no separate wallet-balance
-endpoint, `/auth/me` is it. `PublicOrderSummary`/`PublicOrderDetail`/`PublicOrderParty`/
+`PublicUser` gained `wavecoinBalance` when the frontend wallet page first needed somewhere to read
+it from — a real `GET wallet/balance` endpoint exists now too (see
+`backend/src/withdrawals/CLAUDE.md`), returning the fuller `PublicWalletBalance`, but `/auth/me`
+still carries the raw spendable number for anywhere that just needs the header display, not the
+full breakdown. `PublicOrderSummary`/`PublicOrderDetail`/`PublicOrderParty`/
 `PublicOrderListingRef`/`PublicOrderPackageRef`/`PublicOrderDeliveryFile` were added alongside
 `backend/src/orders/`'s `OrdersService#toSummary` and the frontend's `orders/` pages — same
 hand-written-not-derived-from-the-entity discipline as the `PublicListing*` shapes. `PublicMessage`
 was added alongside `backend/src/chat/` — `ConversationType`/`MessageType`/`MessageStatus` now have
 a backing table too (`ChatService#toPublicMessage`). `PublicDispute`/`PublicDisputeMessage`/
 `PublicDisputeEvidence` were added alongside `backend/src/disputes/` — `DisputeStatus`/
-`DisputeResolution` now have a backing table too (`DisputesService#toPublic`). The only enum left
-without a backing table/entity is `WalletLedgerType`/`WalletLedgerStatus` (a table exists —
-`wallet_ledger_entries` — but no dedicated `Public*` response shape wraps it yet, since there's no
-ledger-listing endpoint; see `backend/src/wallet/CLAUDE.md`'s Status section).
+`DisputeResolution` now have a backing table too (`DisputesService#toPublic`).
+`PublicWalletBalance`/`PublicWalletTransaction`/`PublicWithdrawRequest` were added alongside
+`backend/src/withdrawals/` — `WithdrawStatus`/`WithdrawMethod` now have a backing table too
+(previously scaffolded-but-unused since Phase 0), and `PublicWalletTransaction` finally gives
+`WalletLedgerType`/`WalletLedgerStatus` (backed by `wallet_ledger_entries` since Phase 2, but with
+no response shape of its own until now) a `Public*` wrapper, since `GET wallet/transactions` needed
+one. Every enum in this file now has both a backing table and at least one `Public*` consumer.
