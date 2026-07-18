@@ -14,16 +14,25 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { AdminRole } from '@wavehub/shared-types';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { BrowseListingsDto } from './dto/browse-listings.dto';
+import { RejectListingDto } from './dto/reject-listing.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
+import { AdminGuard } from '../admin/admin-role.guard';
+import { RequireAdminRole } from '../admin/require-admin-role.decorator';
+import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
+import { AdminAuditService } from '../admin/admin-audit.service';
 
 @Controller()
 export class ListingsController {
-  constructor(private readonly listings: ListingsService) {}
+  constructor(
+    private readonly listings: ListingsService,
+    private readonly audit: AdminAuditService,
+  ) {}
 
   @Get('categories')
   listCategories() {
@@ -108,5 +117,44 @@ export class ListingsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.listings.addImage(sellerId, listingId, file);
+  }
+
+  // Admin-only — see SPECIFICATION.md §5.13.4 (Marketplace & Coaching Ops Manager: "approve/reject"
+  // listings) and §5.13.1 (Super Admin's unrestricted access covers it too, via AdminGuard's
+  // implicit SuperAdmin bypass — not listed explicitly here since it's never worth repeating).
+  @Post('listings/:id/approve')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  async approve(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id') id: string,
+  ) {
+    const listing = await this.listings.approve(id);
+    await this.audit.log({ adminId, adminRole, action: 'listing.approve', entityType: 'listing', entityId: id });
+    return listing;
+  }
+
+  @Post('listings/:id/reject')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  async reject(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id') id: string,
+    @Body() dto: RejectListingDto,
+  ) {
+    const listing = await this.listings.reject(id, dto.reason);
+    await this.audit.log({
+      adminId,
+      adminRole,
+      action: 'listing.reject',
+      entityType: 'listing',
+      entityId: id,
+      metadata: { reason: dto.reason },
+    });
+    return listing;
   }
 }

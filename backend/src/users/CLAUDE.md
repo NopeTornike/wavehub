@@ -12,7 +12,11 @@ up a user without each reimplementing repository queries.
   directly, always go through `WalletService`**, see `backend/src/wallet/CLAUDE.md`),
   `sellerRatingAvg`/`sellerRatingCount` (nullable/0 default — **never write directly, only
   `ReviewsService` recomputes these**, see `backend/src/reviews/CLAUDE.md`; meaningless for a user
-  with no listings, living here only as a stopgap until `seller_profiles` exists)
+  with no listings, living here only as a stopgap until `seller_profiles` exists), `adminRole`
+  (`AdminRole | null` from `@wavehub/shared-types`, nullable — null for every ordinary buyer/seller,
+  same "pragmatic stopgap directly on `User`" precedent as the two fields above; see
+  `backend/src/admin/CLAUDE.md` for the guard that reads it and why a separate `staff` table wasn't
+  picked instead)
 - `users.service.ts` — `findById`/`findByUsername`/`findByEmail`, `markEmailVerified`,
   `setPasswordHash`, `toPublicUser` (maps the entity to the `PublicUser` shape from
   `@wavehub/shared-types` — the one place that mapping happens, use it instead of hand-building a
@@ -22,11 +26,12 @@ up a user without each reimplementing repository queries.
 - `users.module.ts` — exports `UsersService` for other modules to import
 
 ## Data model
-`users` table. Schema built up across five migrations: `InitUsersTable` (Phase 0 baseline),
+`users` table. Schema built up across six migrations: `InitUsersTable` (Phase 0 baseline),
 `AddUserEmailStatusVerification` (adds `email`/`status`/`emailVerifiedAt`, Phase 1),
 `CreateAuthTokenTables` (the two token tables that FK into `users`, Phase 1),
-`CreateWalletLedger` (adds `wavecoinBalance`, Phase 2), and `CreateReviewsSchema` (adds
-`sellerRatingAvg`/`sellerRatingCount`, Phase 5).
+`CreateWalletLedger` (adds `wavecoinBalance`, Phase 2), `CreateReviewsSchema` (adds
+`sellerRatingAvg`/`sellerRatingCount`, Phase 5), and `AddUserAdminRole` (adds `adminRole`, Phase 8's
+admin-foundation work).
 
 ## Conventions & gotchas
 - `role` is still a blunt `'buyer' | 'seller'` flag, unrelated to `status`. Per the build plan, a
@@ -35,10 +40,10 @@ up a user without each reimplementing repository queries.
   that gate once `seller_profiles` exists.
 - `passwordHash` has `select: false` — `auth.service.ts` explicitly selects it when needed
   (password comparison, or updating it via `setPasswordHash`). Don't change the default.
-- `UsersService.toPublicUser()` currently hardcodes `adminRole: null` — the entity has no
-  `admin_role` column yet (that's a Phase 11/admin-panel addition per the build plan). When that
-  column lands, update `toPublicUser` to read it for real, not just here — check `auth/CLAUDE.md`
-  and `frontend/lib/api.ts` too, since `PublicUser`'s shape is shared.
+- `UsersService.toPublicUser()` now reads the real `adminRole` column (no longer hardcoded `null`)
+  — `/auth/me` and therefore `frontend/lib/auth.tsx`'s `useAuth()` reflect it for any logged-in
+  staff account. There's still no admin-account-management flow (no way to *grant* `adminRole` via
+  the API) — only a direct DB update can set one right now.
 - `status` starts at `pending_verification` on every new registration and flips to `active` only
   via `AuthService.verifyEmail()` (see `backend/src/auth/CLAUDE.md`) — don't set it directly from
   outside that flow.
@@ -48,10 +53,14 @@ up a user without each reimplementing repository queries.
   registration/status changes (this module intentionally doesn't expose a generic `update()`).
 - `backend/src/wallet/` — the only module allowed to write `wavecoinBalance`.
 - `backend/src/reviews/` — the only module allowed to write `sellerRatingAvg`/`sellerRatingCount`.
-- `packages/shared-types/` — `UserStatus` and `PublicUser` come from here; keep them in sync if this
-  entity's shape changes.
+- `backend/src/admin/` — `AdminGuard` reads `adminRole` on every admin-guarded request; nothing
+  else should read or write it outside a direct DB update today.
+- `packages/shared-types/` — `UserStatus`, `AdminRole`, and `PublicUser` come from here; keep them
+  in sync if this entity's shape changes.
 
 ## Status
-Covers what registration/login/session/verification/wallet-balance need today. Fields the build
-plan's fuller schema adds later: `avatar_url`, `bio`, `theme_pref` (no phase assigned yet),
-`admin_role` (Phase 11, admin panel).
+Covers what registration/login/session/verification/wallet-balance/admin-role-checking need today.
+Fields the build plan's fuller schema adds later: `avatar_url`, `bio`, `theme_pref` (no phase
+assigned yet). `admin_role` is no longer one of these — it landed in Phase 8's admin-foundation
+work, ahead of the original Phase 11 estimate, because three other modules' admin-only methods
+needed something real to gate on.

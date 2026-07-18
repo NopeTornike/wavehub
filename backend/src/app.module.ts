@@ -33,6 +33,8 @@ import { DisputesModule } from './disputes/disputes.module';
 import { Dispute } from './disputes/dispute.entity';
 import { DisputeMessage } from './disputes/dispute-message.entity';
 import { DisputeEvidence } from './disputes/dispute-evidence.entity';
+import { AdminModule } from './admin/admin.module';
+import { AuditLog } from './admin/audit-log.entity';
 
 // Postgres is mandatory from Phase 1 onward — the JSON-file fallback that used to make this
 // conditional (USE_FILE_STORE) was removed along with AuthService's dual-mode logic. See
@@ -77,6 +79,7 @@ import { DisputeEvidence } from './disputes/dispute-evidence.entity';
         Dispute,
         DisputeMessage,
         DisputeEvidence,
+        AuditLog,
       ],
       synchronize: process.env.TYPEORM_SYNC === 'true',
     }),
@@ -89,6 +92,7 @@ import { DisputeEvidence } from './disputes/dispute-evidence.entity';
     ReviewsModule,
     ChatModule,
     DisputesModule,
+    AdminModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

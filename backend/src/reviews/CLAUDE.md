@@ -12,7 +12,7 @@ marketplace. One review per order, gated on the order actually being `Completed`
 - `review-report.entity.ts` — `ReviewReport`: any user can file one against a review
 - `reviews.service.ts` — `create` (gates on order ownership + `Completed` status + the DB unique
   constraint), `reply` (seller-only, once), `report`, `findForListing` (sort: newest/highest/
-  lowest), and admin-only `hide`/`remove`/`restore` (no HTTP route yet — see Status)
+  lowest), and admin-only `hide`/`remove`/`restore` (now real guarded routes — see the gotcha below)
 - `dto/create-review.dto.ts` — also exports `REVIEW_TAGS`, the fixed tag vocabulary from the source
   spec (Fast Delivery, Good Communication, Friendly, Professional, Highly Skilled, Recommended)
 
@@ -42,15 +42,18 @@ BETWEEN 1 AND 5)` — both enforced by Postgres, not just app-layer validation.
 - **`ratingAvg` columns are `numeric(3,2)`, typed as `string | null` in TypeScript** — this is
   deliberate (TypeORM's standard pattern for `numeric` columns, avoiding float-precision surprises),
   not a bug. Don't "fix" it to `number`.
-- **`hide`/`remove`/`restore` exist on `ReviewsService` but have no HTTP route yet** — same pattern
-  as `ListingsService.approve`/`.reject` and `WalletService`'s early primitives: built ahead of the
-  admin panel (build-plan Phase 11). All three recompute both rating aggregates, since the aggregate
-  query only counts `status = 'published'` reviews.
+- **`hide`/`remove`/`restore` now have real routes**: `POST reviews/:id/hide` and `.../restore` are
+  guarded by `AdminGuard` + `@RequireAdminRole(OperationLead, MarketplaceCoachingOpsManager,
+  TrustSafetyOfficer)` (all three explicitly have "hide" in SPECIFICATION.md §5.13's CAN lists);
+  `.../remove` (permanent delete) is `@RequireAdminRole()` — Super Admin only, since only its CAN
+  list uses the word "delete." Audit-logged from `reviews.controller.ts`, not the service — the
+  service methods themselves take no actor param, unchanged. All three recompute both rating
+  aggregates, since the aggregate query only counts `status = 'published'` reviews.
 - **`report()` immediately flips the review to `Reported` status** on the first report — there's no
   threshold. This matches the source spec's status list but means a single bad-faith report hides a
-  review from aggregate-affecting queries until admin tooling exists to review/dismiss it (which
-  doesn't exist yet — see Status). If this turns out to be abusable before Phase 11 lands, the
-  narrow fix is not flipping status until N reports or an admin action, not rearchitecting this file.
+  review from aggregate-affecting queries until an admin acts on it (`hide`/`restore` — no separate
+  reports-queue view exists yet, see Status). If this turns out to be abusable, the narrow fix is
+  not flipping status until N reports or an admin action, not rearchitecting this file.
 
 ## Related modules
 - `backend/src/orders/` — `create()`'s only real dependency: an order must exist, belong to the
@@ -59,16 +62,19 @@ BETWEEN 1 AND 5)` — both enforced by Postgres, not just app-layer validation.
   marketplace browse/search once that exists).
 - `backend/src/users/` — `User.sellerRatingAvg`/`sellerRatingCount` written here.
 - `packages/shared-types/` — `ReviewStatus` enum.
-- Future `backend/src/admin/` (Phase 11) wraps `hide`/`remove`/`restore` in guarded routes, and adds
-  a reports-queue view over `review_reports`.
+- `backend/src/admin/` — `AdminGuard`/`@RequireAdminRole`/`AdminAuditService`, used by
+  `hide`/`remove`/`restore`. No reports-queue view over `review_reports` exists yet — an admin has
+  no way to browse pending reports, only to act on a review by id once they know it's reported.
 
 ## Status
-Create/reply/report/browse are implemented and unit-tested (guard clauses, duplicate-review
-race-safety via the DB constraint, reply-once enforcement) — 90 backend tests total as of the last
-update. Not verified against a live Postgres transaction (no DB available in the sandbox this was
-built in). Frontend now exists: `frontend/pages/listings/[id].tsx` displays a listing's reviews
-(sortable), and `frontend/pages/orders/[id].tsx` shows a submission form once an order is
-`Completed` and the viewer is the buyer — it doesn't pre-check "have I already reviewed this order,"
+Create/reply/report/browse/admin-moderate are implemented and unit-tested (guard clauses,
+duplicate-review race-safety via the DB constraint, reply-once enforcement) — 127 backend tests
+total as of the last update. Not verified against a live Postgres transaction (no DB available in
+the sandbox this was built in). Frontend now exists: `frontend/pages/listings/[id].tsx` displays a
+listing's reviews (sortable), and `frontend/pages/orders/[id].tsx` shows a submission form once an
+order is `Completed` and the viewer is the buyer — it doesn't pre-check "have I already reviewed
+this order,"
 it just lets the backend's `orderId` unique constraint reject a second attempt with a clear error.
-No seller-reply UI yet (reply is backend-only so far). Not yet built: the admin HTTP routes for
-hide/remove/restore/reports-queue.
+No seller-reply UI yet (reply is backend-only so far), and no admin moderation UI either — the
+`hide`/`remove`/`restore` routes work but nothing in `frontend/` calls them. Still no
+reports-queue view.

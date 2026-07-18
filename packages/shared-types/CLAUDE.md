@@ -45,9 +45,11 @@ Scaffolded in Phase 0 with the full enum set anticipated by the build plan. As o
 `UserStatus` and `PublicUser`/`AuthMeResponse` are live and actually consumed (`backend/src/users/
 user.entity.ts` and `users.service.ts#toPublicUser`, `frontend/lib/api.ts`) — keep those three in
 sync across both apps if they change. `AdminRole` was expanded from a 3-value placeholder to the
-real 6 named roles (client's "Staff Management System" docs — see `SPECIFICATION.md` §5.13) but has
-no backing column on `User` yet (`PublicUser.adminRole` is still hardcoded `null` in
-`toPublicUser()` — see `backend/src/users/CLAUDE.md`). `PublicUser` gained `wavecoinBalance` when
+real 6 named roles (client's "Staff Management System" docs — see `SPECIFICATION.md` §5.13) and now
+has a real backing column (`users.adminRole`, Phase 8's admin-foundation work) — `toPublicUser()`
+reads it for real, no longer hardcoded `null` (see `backend/src/users/CLAUDE.md` and
+`backend/src/admin/CLAUDE.md`, whose `AdminGuard` is the actual consumer that gates on it).
+`PublicUser` gained `wavecoinBalance` when
 the frontend wallet page needed somewhere to read it from — there is no separate wallet-balance
 endpoint, `/auth/me` is it. `PublicOrderSummary`/`PublicOrderDetail`/`PublicOrderParty`/
 `PublicOrderListingRef`/`PublicOrderPackageRef`/`PublicOrderDeliveryFile` were added alongside

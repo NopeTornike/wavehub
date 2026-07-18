@@ -43,11 +43,16 @@ CASCADE` from `disputes`.
   pre-check — a race between two concurrent opens on the same order has its loser translated from a
   raw Postgres `23505` into a clean `ForbiddenException`, same pattern as
   `backend/src/reviews/reviews.service.ts#create`.
-- **`resolve()` has no HTTP route.** Same built-ahead-of-the-admin-panel pattern as
-  `ListingsService.approve`/`.reject` and `ReviewsService.hide`/`.remove`/`.restore` — there's no
-  `admin_role` column on `User` yet (build-plan Phase 11), so nothing can actually gate who's
-  allowed to call this. The method takes a plain `adminId: string` param the future guarded admin
-  controller will supply; it does zero role checking itself. **This is the first module in the
+- **`resolve()` now has a real route**: `POST orders/:orderId/dispute/resolve`, reached via the
+  thin `resolveForOrder(orderId, ...)` lookup wrapper (the controller only has `orderId`, not the
+  dispute's own id — every other route on this controller navigates the same way). Guarded by
+  `AdminGuard` + `@RequireAdminRole()` — **Super Admin only**, per SPECIFICATION.md §5.13.1: only
+  Super Admin's CAN list includes "refund buyer, release funds to seller"; Operation Lead/Main
+  Administrator can participate in the dispute workflow but are explicitly barred from approving
+  refunds independently, and their narrower review/prepare/escalate actions aren't built (no
+  service method exists for them — don't guess at them). `resolve()` itself still does zero role
+  checking — the guard is what enforces this, and `resolve()`'s `adminId` param is just whoever the
+  guard resolved the caller to. Audit-logged from the controller. **This is the first module in the
   repo where `WalletService.releaseSellerEarnings`/`refundBuyer` get a second real caller** (the
   first was `OrdersService`) — see `backend/src/wallet/CLAUDE.md`, which had flagged this as the
   expected next caller.
@@ -86,16 +91,19 @@ CASCADE` from `disputes`.
   images.
 - `packages/shared-types/` — `DisputeStatus`/`DisputeResolution` enums, `PublicDispute` +
   `PublicDisputeMessage`/`PublicDisputeEvidence` response shapes.
-- Future `backend/src/admin/` (Phase 11) wraps `resolve()` in a guarded route — this is the
-  "highest-stakes screen" the build plan calls out (dispute resolution touches wallet + order +
-  dispute state together), so when that controller lands, read this module's tests first.
+- `backend/src/admin/` — `AdminGuard`/`@RequireAdminRole`/`AdminAuditService`, used by
+  `resolve()`'s route. This is the "highest-stakes screen" the build plan calls out (dispute
+  resolution touches wallet + order + dispute state together) — read `disputes.service.spec.ts`'s
+  `resolve` block before changing anything here.
 
 ## Status
 `open`/`getForOrder`/`addMessage`/`addEvidence`/`resolve` are all implemented and unit-tested
-(guard clauses, the 7-day window, the unique-constraint race, all three resolution outcomes) — 119
-backend tests total after this module. Not verified against a live Postgres transaction (no DB
+(guard clauses, the 7-day window, the unique-constraint race, all three resolution outcomes) — 127
+backend tests total as of the last update. Not verified against a live Postgres transaction (no DB
 available in the sandbox this was built in). Frontend exists too:
 `frontend/pages/orders/[id].tsx` shows an "open dispute" form when the order is in a disputable
 status and no dispute exists yet, and a dispute panel (status, reason, chat-style message thread,
-evidence list + upload) once one does — see `frontend/CLAUDE.md`. No admin resolution UI, since
-`resolve()` has no HTTP route yet (see the gotcha above) — that arrives with Phase 11.
+evidence list + upload) once one does — see `frontend/CLAUDE.md`. `resolve()` has a real route now
+(`POST orders/:orderId/dispute/resolve`, Super-Admin-only), but there's still no admin resolution
+UI anywhere in `frontend/` — the full remaining Phase 11 admin panel (11b–11g) is what would give
+Super Admin a screen to actually call it from.

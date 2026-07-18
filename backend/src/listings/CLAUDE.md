@@ -36,12 +36,12 @@ that migration's `CATEGORIES`/`GAMES` constants, not a separate seed script), `l
   last-unit item listing when it sells out, and un-pausing it if that order is later cancelled) —
   it imports this function under an alias (`assertValidListingTransition`) rather than mutating
   status directly; follow that pattern for any other cross-module listing-status change.
-- **`approve`/`reject` exist on `ListingsService` but have no HTTP route yet.** They're built ahead
-  of the admin panel (build-plan Phase 11), same pattern as `WalletService`'s primitives being built
-  ahead of Orders. Until Phase 11 adds a guarded admin controller calling these, the only way to
-  move a listing from `pending_review` to `active` is a direct DB update or calling the service
-  method from a script — this is intentional (nothing goes live without an approval step existing in
-  the code, even before there's a UI for it), not an oversight.
+- **`approve`/`reject` now have real HTTP routes** — `POST listings/:id/approve` and
+  `POST listings/:id/reject`, guarded by `AdminGuard` + `@RequireAdminRole(MarketplaceCoachingOpsManager)`
+  (Super Admin passes any admin-guarded route implicitly — see `backend/src/admin/CLAUDE.md`). The
+  role comes straight from SPECIFICATION.md §5.13.4's CAN list, not a guess. Both routes audit-log
+  via `AdminAuditService` in the controller, not the service — `ListingsService.approve`/`.reject`
+  themselves are unchanged (no actor param), same signatures as before.
 - **`findPublicById`/`browseActive` only ever return `Active` listings.** A draft/pending/paused
   listing is 404 to anyone but its owner (who uses `findMine` instead). Don't add a "preview" path
   that bypasses this without deciding who's allowed to see a non-active listing and why.
@@ -74,17 +74,20 @@ that migration's `CATEGORIES`/`GAMES` constants, not a separate seed script), `l
 - `backend/src/reviews/` — writes `listing.ratingAvg`/`ratingCount` (added by the `CreateReviewsSchema`
   migration) whenever a review is created, hidden, or restored; this module doesn't write those
   columns itself.
-- Future `backend/src/admin/` (Phase 11) wraps `approve`/`reject`/`pause` in guarded routes.
+- `backend/src/admin/` — `AdminGuard`/`@RequireAdminRole`/`AdminAuditService`, used by the
+  `approve`/`reject` routes. `pause` still has no admin route — only the seller-facing
+  `pause`/`unpause` exist; an admin-forced pause (distinct from a seller's own) wasn't part of this
+  pass, don't assume it exists.
 
 ## Status
 Seller-facing CRUD (create draft, add packages, add images, submit for review, pause/unpause),
-public browse/detail, and being purchasable (via `backend/src/orders/`) are all implemented and
-unit-tested where the logic doesn't require a live DB (the lifecycle state machine and the
-item/service branching in `createDraft`). Not yet built: listing edit after draft (a submitted/
-active listing can't currently be revised — only paused, or rejected and resubmitted from scratch),
-the admin-facing HTTP routes for approve/reject/pause (service-layer methods exist, no controller
-yet — see the gotcha above), search/filtering beyond the basic category/game/type query params
-(`backend/src/search/` per the build plan is its own future module). The frontend now has real
+public browse/detail, admin approve/reject, and being purchasable (via `backend/src/orders/`) are
+all implemented and unit-tested where the logic doesn't require a live DB (the lifecycle state
+machine and the item/service branching in `createDraft`). Not yet built: listing edit after draft
+(a submitted/active listing can't currently be revised — only paused, or rejected and resubmitted
+from scratch), an admin-forced pause route (see the gotcha above), search/filtering beyond the
+basic category/game/type query params (`backend/src/search/` per the build plan is its own future
+module). The frontend now has real
 `marketplace`/`listings/[id]` pages (`frontend/pages/marketplace.tsx`,
 `frontend/pages/listings/[id].tsx`) consuming `browseActive`/`findPublicById` — see
 `frontend/CLAUDE.md`. Still no create-listing or checkout pages.

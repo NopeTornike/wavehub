@@ -35,7 +35,7 @@ export class UsersService {
       firstName: user.firstName,
       lastName: user.lastName,
       status: user.status,
-      adminRole: null as null,
+      adminRole: user.adminRole,
       wavecoinBalance: user.wavecoinBalance,
     };
   }

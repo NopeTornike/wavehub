@@ -137,11 +137,10 @@ export class DisputesService {
     return this.loadPublic(dispute);
   }
 
-  // Admin-only per the build plan — deliberately has no HTTP route yet, same
-  // built-ahead-of-the-admin-panel pattern as ListingsService.approve/reject and
-  // ReviewsService.hide/remove/restore. `adminId` is whoever the future guarded admin controller
-  // resolves the caller to; this method itself doesn't check any role, since there's no
-  // `admin_role` column to check yet (see backend/src/users/CLAUDE.md).
+  // Admin-only — reached via `resolveForOrder` below, guarded by AdminGuard/@RequireAdminRole in
+  // DisputesController (Super Admin only, per SPECIFICATION.md §5.13's CAN lists — see the
+  // controller for the citation). This method itself does no role checking; `adminId` is whatever
+  // the guard resolved the caller to.
   async resolve(
     disputeId: string,
     adminId: string,
@@ -208,6 +207,22 @@ export class DisputesService {
     await this.postChatNotice(order.id, `დავა გადაწყდა: ${note}`);
     const resolved = await this.disputes.findOne({ where: { id: dispute.id } });
     return this.loadPublic(resolved!);
+  }
+
+  // Thin lookup wrapper so DisputesController's route (scoped under /orders/:orderId/dispute, like
+  // every other route here) doesn't need to know a dispute's own id — an admin resolving a dispute
+  // navigates to it via the order, same as everything else in this controller.
+  async resolveForOrder(
+    orderId: string,
+    adminId: string,
+    resolution: DisputeResolution,
+    note: string,
+  ): Promise<PublicDispute> {
+    const dispute = await this.disputes.findOne({ where: { orderId } });
+    if (!dispute) {
+      throw new NotFoundException('No dispute exists for this order');
+    }
+    return this.resolve(dispute.id, adminId, resolution, note);
   }
 
   private async getDisputeAsParticipant(userId: string, orderId: string): Promise<Dispute> {

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { UserStatus } from '@wavehub/shared-types';
+import { AdminRole, UserStatus } from '@wavehub/shared-types';
 
 @Entity('users')
 export class User {
@@ -45,4 +45,14 @@ export class User {
 
   @Column({ type: 'integer', default: 0 })
   sellerRatingCount: number;
+
+  // Null for every ordinary buyer/seller — only set for staff accounts. Lives directly on `User`
+  // as a pragmatic stopgap (same precedent as `wavecoinBalance`/`sellerRatingAvg` above), not a
+  // separate `staff` table — SPECIFICATION.md §5.13.7 flagged the separate-table question as
+  // genuinely open (unanswered by the client) rather than silently resolving it; revisit if staff
+  // accounts ever need fields that don't make sense on a buyer/seller row. Never write to this
+  // directly outside an admin-account-management flow (none exists yet — there's no way to grant
+  // this role via the API today, only a direct DB update).
+  @Column({ type: 'varchar', nullable: true })
+  adminRole: AdminRole | null;
 }

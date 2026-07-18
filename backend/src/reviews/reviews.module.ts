@@ -8,9 +8,10 @@ import { User } from '../users/user.entity';
 import { ReviewsService } from './reviews.service';
 import { ReviewsController } from './reviews.controller';
 import { AuthModule } from '../auth/auth.module';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Review, ReviewReport, Order, Listing, User]), AuthModule],
+  imports: [TypeOrmModule.forFeature([Review, ReviewReport, Order, Listing, User]), AuthModule, AdminModule],
   controllers: [ReviewsController],
   providers: [ReviewsService],
   exports: [ReviewsService],

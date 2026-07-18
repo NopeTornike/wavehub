@@ -11,12 +11,14 @@ import { ListingsService } from './listings.service';
 import { ListingsController } from './listings.controller';
 import { StorageModule } from '../storage/storage.module';
 import { AuthModule } from '../auth/auth.module';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Listing, ListingImage, ServiceDetails, ItemDetails, Package, Category, Game]),
     StorageModule,
     AuthModule,
+    AdminModule,
   ],
   controllers: [ListingsController],
   providers: [ListingsService],

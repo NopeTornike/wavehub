@@ -11,6 +11,7 @@ import { WalletModule } from '../wallet/wallet.module';
 import { StorageModule } from '../storage/storage.module';
 import { ChatModule } from '../chat/chat.module';
 import { AuthModule } from '../auth/auth.module';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AuthModule } from '../auth/auth.module';
     StorageModule,
     ChatModule,
     AuthModule,
+    AdminModule,
   ],
   controllers: [DisputesController],
   providers: [DisputesService],

@@ -31,6 +31,7 @@ isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable r
 | `backend/src/reviews/` | Buyer reviews of completed orders, seller/listing rating aggregates | `backend/src/reviews/CLAUDE.md` |
 | `backend/src/chat/` | Order-scoped chat (buyer/seller messages + lifecycle system messages) | `backend/src/chat/CLAUDE.md` |
 | `backend/src/disputes/` | Order dispute resolution (open/discuss/evidence, admin-resolves to wallet+order state) | `backend/src/disputes/CLAUDE.md` |
+| `backend/src/admin/` | Admin role guard + audit logging — the foundation every admin-guarded route builds on | `backend/src/admin/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 
