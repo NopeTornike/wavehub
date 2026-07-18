@@ -8,6 +8,7 @@ import type {
   PublicReview,
   PublicOrderSummary,
   PublicOrderDetail,
+  PublicMessage,
   ListingType,
 } from '@wavehub/shared-types'
 
@@ -173,6 +174,16 @@ export const api = {
     request<unknown>(`/orders/${id}/cancel-as-seller`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
+    }),
+
+  // --- Order chat --- (backend/src/chat/) — messages live under an order, not a separate
+  // conversation id; the participant check happens server-side against the order.
+  listMessages: (orderId: string) => request<PublicMessage[]>(`/orders/${orderId}/messages`),
+
+  sendMessage: (orderId: string, body: string) =>
+    request<PublicMessage>(`/orders/${orderId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
     }),
 
   // --- WaveCoin top-up via Bank of Georgia ---

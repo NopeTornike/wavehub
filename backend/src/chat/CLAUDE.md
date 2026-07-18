@@ -54,10 +54,13 @@ are never hard-deleted).
   response shape.
 
 ## Status
-Backend-only. `ensureConversation` + one system message per lifecycle transition are wired into
-every `OrdersService` mutation; real buyer/seller messaging (`GET`/`POST /orders/:id/messages`)
-works but has no frontend yet — no chat UI in `frontend/pages/orders/[id].tsx` (build-plan Phase 6
-said "start with polling, not WebSockets" — that's still true whenever the frontend piece happens).
-Not verified against a live Postgres transaction (no DB available in the sandbox this was built
-in). No Direct (non-order) conversations, no read receipts, no message editing/deletion, no
+`ensureConversation` + one system message per lifecycle transition are wired into every
+`OrdersService` mutation; real buyer/seller messaging (`GET`/`POST /orders/:id/messages`) has a
+frontend now too — `frontend/pages/orders/[id].tsx` renders a chat panel (`.chat-panel` in
+`frontend/styles/global.css`) that polls `api.listMessages` every 5s (`MESSAGE_POLL_MS`), per the
+build plan's explicit "start with polling, not WebSockets" call — see `frontend/CLAUDE.md`. System
+messages render centered/muted; the viewer's own messages align right; everyone else's align left
+with a `@username` prefix. Not verified against a live Postgres transaction (no DB available in the
+sandbox this was built in) or in an actual browser (see `frontend/CLAUDE.md`'s sandbox-preview
+caveat). No Direct (non-order) conversations, no read receipts, no message editing/deletion, no
 message reporting (that's `backend/src/reviews/`'s `ReviewReport` pattern, not yet mirrored here).

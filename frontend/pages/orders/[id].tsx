@@ -1,10 +1,12 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
-import type { PublicOrderDetail } from '@wavehub/shared-types'
-import { OrderStatus } from '@wavehub/shared-types'
+import type { PublicMessage, PublicOrderDetail } from '@wavehub/shared-types'
+import { MessageType, OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+
+const MESSAGE_POLL_MS = 5000
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   [OrderStatus.PendingPayment]: 'გადახდის მოლოდინში',
@@ -35,6 +37,11 @@ export default function OrderDetail() {
   const [reviewBody, setReviewBody] = useState('')
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
 
+  const [messages, setMessages] = useState<PublicMessage[]>([])
+  const [draftMessage, setDraftMessage] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
+  const [chatError, setChatError] = useState('')
+
   const reload = () => {
     if (!id) return Promise.resolve()
     return api.getOrder(id).then(setOrder)
@@ -62,6 +69,44 @@ export default function OrderDetail() {
       cancelled = true
     }
   }, [id])
+
+  // Polling, not WebSockets — matches the build plan's explicit "narrow scope first" call for
+  // Order Chat (see backend/src/chat/CLAUDE.md). Runs regardless of order status; only stops when
+  // the id changes or the page unmounts.
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    const load = () => {
+      api
+        .listMessages(id)
+        .then((data) => {
+          if (!cancelled) setMessages(data)
+        })
+        .catch(() => undefined)
+    }
+    load()
+    const interval = setInterval(load, MESSAGE_POLL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [id])
+
+  const sendMessage = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!id || !draftMessage.trim()) return
+    setChatError('')
+    setSendingMessage(true)
+    try {
+      const message = await api.sendMessage(id, draftMessage.trim())
+      setMessages((prev) => [...prev, message])
+      setDraftMessage('')
+    } catch (err) {
+      setChatError(err instanceof ApiError ? err.message : 'შეტყობინების გაგზავნა ვერ მოხერხდა.')
+    } finally {
+      setSendingMessage(false)
+    }
+  }
 
   const runAction = async (action: () => Promise<unknown>) => {
     setActionError('')
@@ -196,6 +241,60 @@ export default function OrderDetail() {
             {isSeller && (order.status === OrderStatus.InProgress || order.status === OrderStatus.Delivered) && (
               <div style={{ marginTop: 12 }}>
                 <input type="file" onChange={uploadFile} disabled={busy} />
+              </div>
+            )}
+          </div>
+
+          <div className="order-section">
+            <h2>დისკუსია</h2>
+            <div className="chat-panel">
+              <div className="chat-messages">
+                {messages.length === 0 ? (
+                  <p className="note" style={{ margin: 0 }}>
+                    შეტყობინებები ჯერ არ არის.
+                  </p>
+                ) : (
+                  messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`chat-message${
+                        message.type === MessageType.System
+                          ? ' chat-message-system'
+                          : message.senderId === me?.id
+                            ? ' chat-message-mine'
+                            : ''
+                      }`}
+                    >
+                      {message.type !== MessageType.System && message.senderId !== me?.id && (
+                        <strong>@{message.senderUsername} </strong>
+                      )}
+                      {message.body}
+                      <span className="chat-message-meta">
+                        {new Date(message.createdAt).toLocaleTimeString('ka-GE', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <form className="chat-form" onSubmit={sendMessage}>
+                <input
+                  className="input"
+                  placeholder="დაწერეთ შეტყობინება…"
+                  value={draftMessage}
+                  onChange={(event) => setDraftMessage(event.target.value)}
+                  disabled={sendingMessage}
+                />
+                <button className="button glow-on-hover" type="submit" disabled={sendingMessage || !draftMessage.trim()}>
+                  გაგზავნა
+                </button>
+              </form>
+            </div>
+            {chatError && (
+              <div className="status-text status-error" style={{ marginTop: 8 }}>
+                {chatError}
               </div>
             )}
           </div>

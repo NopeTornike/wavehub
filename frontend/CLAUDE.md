@@ -28,12 +28,16 @@ it into real components here, don't extend it further.
   `listOrdersAsSeller`)
 - `pages/orders/[id].tsx` — order detail: status, price/fee breakdown (fee only shown to the
   seller), requirements answers, delivery files (+ upload widget for the seller while
-  `InProgress`/`Delivered`), and every status-gated action (start/deliver for the seller;
-  accept/request-revision/cancel for the buyer; cancel-with-reason for the seller) — the viewer's
-  role is inferred by comparing `api.me()`'s id against `order.buyer.id`/`order.seller.id`, not a
-  separate flag. A completed order shows a review form (`api.createReview`) if the viewer is the
-  buyer — the backend's `orderId` unique constraint is the actual duplicate-review guard, this page
-  doesn't try to pre-check that itself
+  `InProgress`/`Delivered`), a chat panel, and every status-gated action (start/deliver for the
+  seller; accept/request-revision/cancel for the buyer; cancel-with-reason for the seller) — the
+  viewer's role is inferred by comparing `useAuth()`'s user id against `order.buyer.id`/
+  `order.seller.id`, not a separate flag. A completed order shows a review form
+  (`api.createReview`) if the viewer is the buyer — the backend's `orderId` unique constraint is
+  the actual duplicate-review guard, this page doesn't try to pre-check that itself. The chat panel
+  polls `api.listMessages` every `MESSAGE_POLL_MS` (5s) rather than using WebSockets — matches the
+  build plan's explicit call for Order Chat (`backend/src/chat/CLAUDE.md`); a sent message is
+  appended to local state immediately on success rather than waiting for the next poll tick, so
+  sending feels instant even though received messages lag up to 5s behind
 - `pages/wallet.tsx` — balance (from `api.me().user.wavecoinBalance` — there's no separate wallet
   balance endpoint, see `backend/src/wallet/CLAUDE.md`) + a WaveCoin top-up form that calls
   `api.createBogTopupOrder` and redirects the browser to BOG's hosted checkout page
@@ -64,9 +68,10 @@ it into real components here, don't extend it further.
   handling duplicated inline (small enough not to warrant a second shared helper yet)
 - `styles/global.css` — CSS custom properties for a dark/purple gradient theme (`--bg`,
   `--gradient-start/mid/end`, etc.), plus the marketplace/detail-page classes (`.listing-grid`,
-  `.listing-card`, `.filter-bar`, `.detail-layout`, `.package-list`, `.review-item`, etc.) and the
+  `.listing-card`, `.filter-bar`, `.detail-layout`, `.package-list`, `.review-item`, etc.), the
   order/wallet classes (`.order-tabs`, `.order-card`, `.order-status` + its per-status color
-  modifiers, `.order-actions`, `.wallet-balance`, `.delivery-file-list`)
+  modifiers, `.order-actions`, `.wallet-balance`, `.delivery-file-list`), and the chat classes
+  (`.chat-panel`, `.chat-messages`, `.chat-message` + `-mine`/`-system` modifiers, `.chat-form`)
 
 ## Data model
 N/A on the frontend itself. Talks to the NestJS backend (`backend/`) over HTTP; shared request/response
@@ -123,10 +128,10 @@ backed by the real `backend/src/listings/`, `backend/src/orders/`, `backend/src/
 `backend/src/payments/`+`backend/src/wallet/` endpoints, no mock data. Session state is now shared
 via `lib/auth.tsx`'s `AuthProvider`/`useAuth()` (replacing the per-page `api.me()` duplication that
 used to exist in `Header`, `listings/[id].tsx`, `orders/[id].tsx`, `orders/index.tsx`, and
-`wallet.tsx` — all five now read from the one provider instead). No cart page (checkout is a direct
-single-listing buy, not a multi-item cart — matches the WaveCoin/order model, not an oversight), no
-seller dashboard / create-listing frontend, no coaching/profile/messages pages yet, and no chat UI
-on `orders/[id].tsx` even though the backend (`backend/src/chat/`) supports it. The repo-root static
+`wallet.tsx` — all five now read from the one provider instead). `orders/[id].tsx` now also has a
+polling chat panel (`backend/src/chat/CLAUDE.md`). No cart page (checkout is a direct single-listing
+buy, not a multi-item cart — matches the WaveCoin/order model, not an oversight), no seller
+dashboard / create-listing frontend, no coaching/profile/messages pages yet. The repo-root static
 site remains the reference mockup for all of that until it's ported here.
 
 **Verification caveat**: this workspace has no Docker/Postgres available (a constraint noted
