@@ -152,6 +152,35 @@ export enum NotificationType {
   ReviewPosted = 'review_posted',
   WithdrawalStatusChanged = 'withdrawal_status_changed',
   NewMessage = 'new_message',
+  TicketReplied = 'ticket_replied',
+}
+
+// Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
+// Saved Replies list verbatim ("payment problem, order status, refund process, verification,
+// marketplace, coaching, technical problem"), plus a catch-all `Other`.
+export enum TicketCategory {
+  Payment = 'payment',
+  OrderStatus = 'order_status',
+  Refund = 'refund',
+  Verification = 'verification',
+  Marketplace = 'marketplace',
+  Coaching = 'coaching',
+  Technical = 'technical',
+  Other = 'other',
+}
+
+export enum TicketPriority {
+  Low = 'low',
+  Medium = 'medium',
+  High = 'high',
+  Urgent = 'urgent',
+}
+
+export enum TicketStatus {
+  Open = 'open',
+  InProgress = 'in_progress',
+  Escalated = 'escalated',
+  Closed = 'closed',
 }
 
 export interface PublicUser {
@@ -444,6 +473,58 @@ export interface PublicNotification {
   metadata: Record<string, string> | null;
   readAt: string | null;
   createdAt: string;
+}
+
+// --- Support ticketing (backend/src/support/) ---
+
+export interface PublicTicketMessage {
+  id: string;
+  senderId: string;
+  senderUsername: string;
+  body: string;
+  // Internal notes are staff-only — never present in a response returned to the ticket's
+  // requester (see SupportService#getMine, which filters these out server-side rather than
+  // relying on the frontend to hide them).
+  isInternalNote: boolean;
+  createdAt: string;
+}
+
+export interface PublicTicket {
+  id: string;
+  requesterId: string;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  orderId: string | null;
+  assignedToId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  messages: PublicTicketMessage[];
+}
+
+// The admin ticket-list queue — lighter than PublicTicket (no messages), plus requester/assignee
+// usernames a staff member needs to triage without a follow-up lookup.
+export interface AdminTicketSummary {
+  id: string;
+  requesterId: string;
+  requesterUsername: string;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assignedToId: string | null;
+  assignedToUsername: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicSavedReply {
+  id: string;
+  category: TicketCategory;
+  title: string;
+  body: string;
 }
 
 // --- Admin panel response shapes ---

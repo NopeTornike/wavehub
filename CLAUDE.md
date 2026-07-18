@@ -35,6 +35,7 @@ isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable r
 | `backend/src/withdrawals/` | Seller payout requests + derived wallet balance view (available/pending/earned/withdrawn) | `backend/src/withdrawals/CLAUDE.md` |
 | `backend/src/notifications/` | In-app notification center + the order/dispute/review/withdrawal/chat hook points that populate it | `backend/src/notifications/CLAUDE.md` |
 | `backend/src/settings/` | Platform-wide configurable numbers (fee %, min withdrawal, maintenance flag) — a singleton table | `backend/src/settings/CLAUDE.md` |
+| `backend/src/support/` | Support ticketing — user tickets, staff replies, internal notes, Saved Replies | `backend/src/support/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 
@@ -158,8 +159,11 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   can't do; don't infer from a role's name. **Phase 11c (core CRUD) has landed**: a real admin
   panel exists at `frontend/pages/admin/*.tsx` covering listing approval, review moderation,
   dispute resolution, withdrawal payout processing, and user search/suspend/restore/ban/unban —
-  see `backend/src/admin/CLAUDE.md` and `frontend/CLAUDE.md`. Coaching (11b, a wholly new domain)
-  and Support ticketing/Trust & Safety/Content/Analytics (11d–11g) are still fully ahead.
+  see `backend/src/admin/CLAUDE.md` and `frontend/CLAUDE.md`. **Phase 11d (Support ticketing) has
+  also landed** — see `backend/src/support/CLAUDE.md`. **Phase 11f is partially done** (platform
+  fee % and minimum withdrawal are admin-configurable — `backend/src/settings/CLAUDE.md` — but
+  promo codes, banners, and Maintenance Mode enforcement are not). Coaching (11b, a wholly new
+  domain — no Coach entity exists) and Trust & Safety/Analytics (11e, 11g) are still fully ahead.
 
 ## Docker / local readiness
 

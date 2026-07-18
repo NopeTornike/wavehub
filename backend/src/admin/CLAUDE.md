@@ -111,6 +111,8 @@ exercised `AdminGuard`'s DB lookup against a real `users` row with a real `admin
 there's no way to set one outside a direct DB update right now. Not yet built: any way to grant
 `adminRole` via the API, the `AuditLog`/`ActivityLog` distinction question from
 SPECIFICATION.md §5.13.7 (still open, still not guessed at), a permission-matrix-aware frontend
-nav, and everything else in Phase 11's 11b/11d–11g (Coaching, Support ticketing, Trust & Safety,
-Content/Marketing, Analytics) — 11c's own scope (core CRUD across the modules that already
-existed) is now substantially covered, but Coaching is a wholly new domain not started at all.
+nav. Support ticketing (Phase 11d — `backend/src/support/CLAUDE.md`) has since landed too, using
+this same `AdminGuard`/`AdminAuditService` foundation. Phase 11f is partially done (platform fee %
+and minimum withdrawal are admin-configurable, `backend/src/settings/CLAUDE.md` — promo codes,
+banners, and Maintenance Mode enforcement are not). Still fully ahead: Coaching (11b — a wholly
+new domain, no Coach entity exists at all) and Trust & Safety/Analytics (11e, 11g).

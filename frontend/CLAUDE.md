@@ -102,7 +102,14 @@ it into real components here, don't extend it further.
   view intentionally doesn't duplicate. `admin/settings.tsx` is a simple view/edit form over
   `backend/src/settings/`'s platform fee %, minimum withdrawal, and a maintenance-mode checkbox
   that's stored but has no enforced effect yet (the form says so inline, matching that module's own
-  Status section).
+  Status section). `admin/tickets.tsx` (status/priority-filtered queue) and
+  `admin/tickets/[id].tsx` (full thread, reply, internal-note form, a saved-reply picker that
+  fills the reply textarea, status/priority/assign controls, an "assign to me" shortcut) are the
+  staff side of `backend/src/support/`.
+- `pages/support/index.tsx`, `pages/support/[id].tsx` — the user-facing side of support ticketing:
+  open a new ticket (subject/category/description), list your own tickets, and a thread view that
+  reuses the same `.chat-panel` CSS as order chat/disputes. Linked from `Header` as "დახმარება" for
+  any logged-in user.
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the
@@ -185,6 +192,8 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
   those modules' docs for status-transition rules and response shapes before changing either side.
   Note `wallet.tsx`'s balance/transaction endpoints actually live in `backend/src/withdrawals/`'s
   controller, not `backend/src/wallet/`'s — see that module's doc.
+- `backend/src/support/` — backs `pages/support/*.tsx` and `pages/admin/tickets*.tsx`.
+- `backend/src/settings/` — backs `pages/admin/settings.tsx`.
 
 ## Status
 The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
@@ -204,11 +213,12 @@ panel (`backend/src/chat/CLAUDE.md`) and a dispute panel (open/discuss/attach ev
 `backend/src/disputes/CLAUDE.md`). `Header` now shows a notification bell (unread badge, dropdown
 panel, mark-read/mark-all-read — `NotificationBell`, `backend/src/notifications/CLAUDE.md`).
 A real admin panel now exists: `AdminLayout` + `pages/admin/*.tsx` cover listing approval, review
-moderation, dispute resolution, withdrawal payout processing, and user search/suspend/restore/
-ban/unban — see the Key files entry above and `backend/src/admin/CLAUDE.md` for the backend side.
-This is Phase 11c's scope (core CRUD across modules that already existed); Coaching (a wholly new
-domain, Phase 11b) and Support ticketing/Trust & Safety/Content/Analytics (11d–11g) have no
-frontend at all yet. No cart page
+moderation, dispute resolution, withdrawal payout processing, user search/suspend/restore/
+ban/unban, platform settings, and support-ticket triage — see the Key files entry above and
+`backend/src/admin/CLAUDE.md` for the backend side. This covers Phase 11c (core CRUD), 11d
+(Support ticketing — both the staff queue and the user-facing `pages/support/*.tsx`), and part of
+11f (platform settings). Coaching (a wholly new domain, Phase 11b) and Trust & Safety/Analytics
+(11e, 11g) have no frontend at all yet. No cart page
 (checkout is a direct single-listing buy, not a multi-item cart — matches the WaveCoin/order model,
 not an oversight), no seller dashboard / create-listing frontend, no coaching/profile/messages
 pages yet. The repo-root static site remains the reference mockup for all of that until it's

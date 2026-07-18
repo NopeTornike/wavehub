@@ -15,6 +15,7 @@ export default function Header() {
         {!checked ? null : user ? (
           <>
             <Link href="/orders">შეკვეთები</Link>
+            <Link href="/support">დახმარება</Link>
             <Link href="/wallet">{user.wavecoinBalance} WC</Link>
             <NotificationBell />
             <span className="note" style={{ margin: 0 }}>

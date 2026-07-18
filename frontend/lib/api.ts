@@ -25,6 +25,12 @@ import type {
   AdminReviewSummary,
   PublicPlatformSettings,
   UserStatus,
+  TicketCategory,
+  TicketPriority,
+  TicketStatus,
+  PublicTicket,
+  AdminTicketSummary,
+  PublicSavedReply,
 } from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -347,4 +353,37 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(patch),
     }),
+
+  // --- Support ticketing --- (backend/src/support/)
+  createTicket: (payload: { subject: string; category: TicketCategory; description: string; orderId?: string }) =>
+    request<PublicTicket>('/tickets', { method: 'POST', body: JSON.stringify(payload) }),
+
+  listMyTickets: () => request<AdminTicketSummary[]>('/tickets/mine'),
+
+  getMyTicket: (id: string) => request<PublicTicket>(`/tickets/mine/${id}`),
+
+  replyToTicket: (id: string, body: string) =>
+    request<PublicTicket>(`/tickets/mine/${id}/reply`, { method: 'POST', body: JSON.stringify({ body }) }),
+
+  adminListTickets: (filters: { status?: TicketStatus; priority?: TicketPriority; assignedToId?: string } = {}) => {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    })
+    const query = params.toString()
+    return request<AdminTicketSummary[]>(`/admin/tickets${query ? `?${query}` : ''}`)
+  },
+
+  adminGetTicket: (id: string) => request<PublicTicket>(`/admin/tickets/${id}`),
+
+  adminReplyTicket: (id: string, body: string) =>
+    request<PublicTicket>(`/admin/tickets/${id}/reply`, { method: 'POST', body: JSON.stringify({ body }) }),
+
+  adminAddTicketInternalNote: (id: string, body: string) =>
+    request<PublicTicket>(`/admin/tickets/${id}/internal-note`, { method: 'POST', body: JSON.stringify({ body }) }),
+
+  adminUpdateTicket: (id: string, patch: { status?: TicketStatus; priority?: TicketPriority; assignedToId?: string | null }) =>
+    request<PublicTicket>(`/admin/tickets/${id}/update`, { method: 'POST', body: JSON.stringify(patch) }),
+
+  adminListSavedReplies: () => request<PublicSavedReply[]>('/admin/saved-replies'),
 }
