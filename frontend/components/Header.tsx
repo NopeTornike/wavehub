@@ -1,38 +1,8 @@
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import type { PublicUser } from '@wavehub/shared-types'
-import { api } from '../lib/api'
+import { useAuth } from '../lib/auth'
 
-// No persistent client-side auth store exists yet (see frontend/CLAUDE.md) — every page/component
-// that needs to know "is someone logged in" calls api.me() itself. Header is the first place this
-// matters visibly (showing Login/Register vs the user's name), so it's the reference example for
-// that pattern until a shared AuthProvider is worth building.
 export default function Header() {
-  const [user, setUser] = useState<PublicUser | null>(null)
-  const [checked, setChecked] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    api
-      .me()
-      .then((res) => {
-        if (!cancelled) setUser(res.user)
-      })
-      .catch(() => {
-        if (!cancelled) setUser(null)
-      })
-      .finally(() => {
-        if (!cancelled) setChecked(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const logout = async () => {
-    await api.logout().catch(() => undefined)
-    setUser(null)
-  }
+  const { user, checked, logout } = useAuth()
 
   return (
     <header className="site-header">

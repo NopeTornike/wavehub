@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState, type FormEvent } from 'react'
 import { api, ApiError } from '../lib/api'
+import { useAuth } from '../lib/auth'
 
 // `next` must be a same-origin relative path (starting with exactly one `/`) — never redirect to
 // an absolute/protocol-relative URL taken from a query param, that's an open-redirect vector.
@@ -14,6 +15,7 @@ function safeNextPath(next: unknown): string {
 
 export default function Login() {
   const router = useRouter()
+  const { refresh } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -36,6 +38,7 @@ export default function Login() {
       const result = await api.login({ username: trimmedUsername, password })
       setPassword('')
       setSuccess(`შესვლა წარმატებით დასრულდა: ${result.user.firstName} ${result.user.lastName}`)
+      await refresh()
       router.push(safeNextPath(router.query.next))
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'სერვერთან დაკავშირება ვერ მოხერხდა.')

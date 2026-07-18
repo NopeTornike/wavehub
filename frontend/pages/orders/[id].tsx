@@ -1,9 +1,10 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
-import type { PublicOrderDetail, PublicUser } from '@wavehub/shared-types'
+import type { PublicOrderDetail } from '@wavehub/shared-types'
 import { OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, ApiError } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   [OrderStatus.PendingPayment]: 'გადახდის მოლოდინში',
@@ -20,8 +21,8 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 export default function OrderDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
+  const { user: me } = useAuth()
 
-  const [me, setMe] = useState<PublicUser | null>(null)
   const [order, setOrder] = useState<PublicOrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -38,10 +39,6 @@ export default function OrderDetail() {
     if (!id) return Promise.resolve()
     return api.getOrder(id).then(setOrder)
   }
-
-  useEffect(() => {
-    api.me().then((res) => setMe(res.user)).catch(() => setMe(null))
-  }, [])
 
   useEffect(() => {
     if (!id) return

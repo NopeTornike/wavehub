@@ -6,7 +6,15 @@ The Next.js app — **this is the one real frontend going forward** (confirmed d
 it into real components here, don't extend it further.
 
 ## Key files
-- `pages/_app.tsx` — trivial App wrapper, imports `styles/global.css`
+- `lib/auth.tsx` — `AuthProvider` + `useAuth()`. The single place that calls `api.me()` on load;
+  every page reads `{ user, checked, refresh, logout }` from `useAuth()` instead of calling
+  `api.me()` itself. `checked` distinguishes "haven't checked session yet" from "checked, logged
+  out" — needed by any page that redirects when logged out, so it doesn't bounce a still-loading
+  visitor. Call `refresh()` after anything that changes the session server-side without a full page
+  navigation (e.g. `login.tsx` calls it right after a successful login, before its `router.push`,
+  since Next keeps the same React tree across client-side navigation — without this the header
+  would keep showing "logged out" after login until a hard reload)
+- `pages/_app.tsx` — wraps every page in `AuthProvider`
 - `pages/index.tsx` — minimal home page, links into `/marketplace`
 - `pages/marketplace.tsx` — browse grid with category/game/type filters + pagination, wrapped in
   `Layout`
@@ -43,9 +51,9 @@ it into real components here, don't extend it further.
   load; offers a "resend" button on failure (only works if the visitor still has a valid session —
   see `api.resendVerification` in `lib/api.ts`)
 - `components/Layout.tsx`, `components/Header.tsx`, `components/Footer.tsx` — shared chrome.
-  `Header` calls `api.me()` itself on mount (see Status below re: no shared auth state). `Layout` is
-  applied per-page, not globally in `_app.tsx` — the auth pages (`login`/`register`/etc.) intentionally
-  render bare, without the marketing header/footer
+  `Header` reads identity from `useAuth()` (no fetch of its own). `Layout` is applied per-page, not
+  globally in `_app.tsx` — the auth pages (`login`/`register`/etc.) intentionally render bare,
+  without the marketing header/footer
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the
@@ -112,21 +120,25 @@ listing detail page with packages/reviews and a working buy button (including th
 form for service listings), an order list + detail page with the full status-gated action set
 (start/deliver/accept/revision/cancel/review), and a wallet page with balance + BOG top-up — all
 backed by the real `backend/src/listings/`, `backend/src/orders/`, `backend/src/reviews/`, and
-`backend/src/payments/`+`backend/src/wallet/` endpoints, no mock data. Still no persistent
-client-side "am I logged in" state (every page that needs identity calls `api.me()` itself — a
-shared auth context/provider is worth building once more pages need it, not before; several pages
-now duplicate the same "load `api.me()`, redirect to `/login?next=...` if absent" pattern —
-`listings/[id].tsx`, `orders/[id].tsx`, `wallet.tsx` — that duplication is the strongest signal yet
-that this is worth building). No cart page (checkout is a direct single-listing buy, not a
-multi-item cart — matches the WaveCoin/order model, not an oversight), no seller dashboard /
-create-listing frontend, no coaching/profile/messages pages yet. The repo-root static site remains
-the reference mockup for all of that until it's ported here.
+`backend/src/payments/`+`backend/src/wallet/` endpoints, no mock data. Session state is now shared
+via `lib/auth.tsx`'s `AuthProvider`/`useAuth()` (replacing the per-page `api.me()` duplication that
+used to exist in `Header`, `listings/[id].tsx`, `orders/[id].tsx`, `orders/index.tsx`, and
+`wallet.tsx` — all five now read from the one provider instead). No cart page (checkout is a direct
+single-listing buy, not a multi-item cart — matches the WaveCoin/order model, not an oversight), no
+seller dashboard / create-listing frontend, no coaching/profile/messages pages yet, and no chat UI
+on `orders/[id].tsx` even though the backend (`backend/src/chat/`) supports it. The repo-root static
+site remains the reference mockup for all of that until it's ported here.
 
 **Verification caveat**: this workspace has no Docker/Postgres available (a constraint noted
 throughout this repo's `CLAUDE.md` files), so everything above was verified via
 `npm run build`/`lint`/typecheck only, against real response *shapes* from `packages/shared-types` —
-not against a running backend with real seeded data in an actual browser. In particular, the BOG
-top-up redirect and the full purchase→deliver→accept→review order lifecycle have never been
-click-tested end-to-end. Do that (`docker-compose up`, seed a listing, walk a full buyer+seller
-journey through `/marketplace` → `/orders` → `/wallet`) before trusting this in front of a real
-user.
+not against a running backend with real seeded data in an actual browser. **A live browser preview
+of this app is also not reachable from this particular sandbox**: the session's primary working
+directory is a sibling of this repo, and the sandbox blocks the shell from `cd`-ing into it to run
+`npm run dev` (`shell-init: error retrieving current directory: getcwd: cannot access parent
+directories: Operation not permitted`) — this is a harness-level restriction, not a project bug; a
+session whose primary working directory is inside this repo shouldn't hit it. In particular, the
+BOG top-up redirect and the full purchase→deliver→accept→review order lifecycle have never been
+click-tested end-to-end. Do that (from a working directory inside this repo, `docker-compose up`,
+seed a listing, walk a full buyer+seller journey through `/marketplace` → `/orders` → `/wallet`)
+before trusting this in front of a real user.

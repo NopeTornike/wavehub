@@ -1,9 +1,11 @@
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import type { PublicOrderSummary } from '@wavehub/shared-types'
 import { OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, ApiError } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   [OrderStatus.PendingPayment]: 'გადახდის მოლოდინში',
@@ -18,12 +20,21 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 }
 
 export default function Orders() {
+  const router = useRouter()
+  const { user, checked } = useAuth()
   const [tab, setTab] = useState<'buyer' | 'seller'>('buyer')
   const [orders, setOrders] = useState<PublicOrderSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (checked && !user) {
+      router.push('/login?next=/orders')
+    }
+  }, [checked, user, router])
+
+  useEffect(() => {
+    if (!user) return
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
@@ -43,7 +54,7 @@ export default function Orders() {
     return () => {
       cancelled = true
     }
-  }, [tab])
+  }, [tab, user])
 
   return (
     <Layout>

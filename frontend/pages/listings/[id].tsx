@@ -1,15 +1,16 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import type { PublicListingDetail, PublicReview, PublicUser } from '@wavehub/shared-types'
+import type { PublicListingDetail, PublicReview } from '@wavehub/shared-types'
 import { ListingType } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, ApiError } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
 
 export default function ListingDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
+  const { user: me } = useAuth()
 
-  const [me, setMe] = useState<PublicUser | null>(null)
   const [listing, setListing] = useState<PublicListingDetail | null>(null)
   const [reviews, setReviews] = useState<PublicReview[]>([])
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null)
@@ -19,10 +20,6 @@ export default function ListingDetail() {
   const [requirementAnswers, setRequirementAnswers] = useState<Record<string, string>>({})
   const [purchaseError, setPurchaseError] = useState('')
   const [purchasing, setPurchasing] = useState(false)
-
-  useEffect(() => {
-    api.me().then((res) => setMe(res.user)).catch(() => setMe(null))
-  }, [])
 
   useEffect(() => {
     if (!id) return

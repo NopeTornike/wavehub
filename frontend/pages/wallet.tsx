@@ -1,32 +1,31 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
-import type { PublicUser } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import { api, ApiError } from '../lib/api'
+import { useAuth } from '../lib/auth'
 
 const TOPUP_AMOUNTS = [10, 25, 50, 100]
 
 export default function Wallet() {
   const router = useRouter()
-  const [me, setMe] = useState<PublicUser | null>(null)
-  const [checked, setChecked] = useState(false)
+  const { user, checked, refresh } = useAuth()
   const [amount, setAmount] = useState(25)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    api
-      .me()
-      .then((res) => setMe(res.user))
-      .catch(() => setMe(null))
-      .finally(() => setChecked(true))
-  }, [])
-
-  useEffect(() => {
-    if (checked && !me) {
+    if (checked && !user) {
       router.push('/login?next=/wallet')
     }
-  }, [checked, me, router])
+  }, [checked, user, router])
+
+  useEffect(() => {
+    // The balance shown was fetched once on app load — after a successful BOG top-up redirect back
+    // here, re-fetch it so the new balance actually shows instead of the stale pre-top-up number.
+    if (router.query.topup === 'success') {
+      refresh()
+    }
+  }, [router.query.topup, refresh])
 
   const topUp = async (event: FormEvent) => {
     event.preventDefault()
@@ -64,10 +63,10 @@ export default function Wallet() {
 
           {!checked ? (
             <div className="empty-state">იტვირთება…</div>
-          ) : me ? (
+          ) : user ? (
             <>
               <div className="card" style={{ marginBottom: 24 }}>
-                <div className="wallet-balance">{me.wavecoinBalance} WC</div>
+                <div className="wallet-balance">{user.wavecoinBalance} WC</div>
                 <p className="note">1 WaveCoin = 1 ლარი</p>
               </div>
 
