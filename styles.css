@@ -1610,6 +1610,18 @@ button {
   font-weight: 850;
 }
 
+.public-profile-copy .public-profile-bio {
+  max-width: 720px;
+  margin: 4px 0 0;
+  overflow: visible;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .public-profile-stats {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1727,7 +1739,8 @@ button {
 }
 
 .profile-photo-row label,
-.profile-form-grid label {
+.profile-form-grid label,
+.profile-bio-field {
   display: grid;
   gap: 8px;
   color: var(--muted);
@@ -1736,7 +1749,8 @@ button {
 }
 
 .profile-photo-row input,
-.profile-form-grid input {
+.profile-form-grid input,
+.profile-bio-field textarea {
   width: 100%;
   min-height: 42px;
   border: 1px solid var(--line);
@@ -1746,6 +1760,23 @@ button {
   background: rgba(0, 0, 0, 0.24);
   padding: 0 12px;
   font: inherit;
+}
+
+.profile-bio-field textarea {
+  min-height: 104px;
+  padding: 11px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.profile-bio-field textarea:focus {
+  border-color: rgba(255, 72, 163, 0.72);
+}
+
+.profile-bio-field small {
+  justify-self: end;
+  color: var(--muted-2);
+  font-size: 11px;
 }
 
 .profile-form-grid input[readonly] {

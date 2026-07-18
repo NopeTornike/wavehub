@@ -331,6 +331,7 @@
             <h2 id="publicProfileName">User profile</h2>
             <span id="publicProfileHandle">@user</span>
             <small id="publicProfileJoined">Joined -</small>
+            <p class="public-profile-bio" id="publicProfileBio" hidden></p>
           </div>
           <a class="auth-open-button" id="publicProfileMessage" href="messages.html">Message</a>
         </section>
@@ -412,6 +413,12 @@
               <input id="profileLastNameInput" type="text" maxlength="40" autocomplete="family-name" />
             </label>
           </div>
+
+          <label class="profile-bio-field">
+            <span>Bio</span>
+            <textarea id="profileBioInput" maxlength="300" rows="4" placeholder="Tell the community a little about yourself..."></textarea>
+            <small><span id="profileBioCount">0</span>/300 characters</small>
+          </label>
 
           <div class="profile-form-actions">
             <button class="seller-submit-button" type="submit">Save Changes</button>
