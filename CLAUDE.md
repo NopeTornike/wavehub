@@ -147,6 +147,50 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   `SPECIFICATION.md` §5.13 — read it before starting Phase 11 or before assuming what a role can/
   can't do; don't infer from a role's name.
 
+## Docker / local readiness
+
+`docker-compose.yml`, `backend/Dockerfile`, and `frontend/Dockerfile` build from the **monorepo root**
+as their Docker build context (`context: .`, `dockerfile: backend/Dockerfile` /
+`frontend/Dockerfile`) — not from `./backend`/`./frontend` as isolated contexts. This is required
+because both apps depend on `packages/shared-types` via npm workspace hoisting; a subdirectory-only
+build context can't see that package at all and `npm install` inside it would fail to resolve
+`@wavehub/shared-types`. Both Dockerfiles are deliberately single-stage (not a slimmed multi-stage
+build) — correctly isolating one workspace's production-only dependencies out of an npm-workspaces
+monorepo is easy to get subtly wrong, and this has never been verified against a real Docker daemon
+(no Docker available in the environment that wrote it), so correctness/simplicity was prioritized over
+image size.
+
+`docker-compose.yml`'s `backend` service sets `JWT_SECRET` to an insecure local-only default
+(`wavehub-local-dev-secret-change-me`) so `docker compose up` works out of the box — `auth.module.ts`
+throws at boot if `JWT_SECRET` is unset while `NODE_ENV=production`, which is the default `NODE_ENV`
+here. **Always override `JWT_SECRET` via a real `.env` file or secret manager past local/throwaway
+use.** `FRONTEND_URL`/`BACKEND_PUBLIC_URL`/`BOG_CLIENT_ID`/`BOG_CLIENT_SECRET` are also now passed
+through from the host environment (the BOG ones are legitimately optional — `/payments/bog/*` 503s
+without them, everything else works).
+
+Root `.dockerignore` (new) excludes `node_modules`, `**/node_modules`, build output
+(`backend/dist`, `frontend/.next`, `packages/*/dist`), `.git`, `.env*` (except `.env.example`), and
+editor/OS noise. This matters more than it looks: without it, a root-context `COPY . .` would
+overwrite the image's freshly-`npm install`ed Linux-native `node_modules` (bcrypt's native addon,
+Next.js/SWC's platform binary) with whatever's on the host machine — silently breaking native
+dependencies at container runtime. This was the single most severe gap found in the pre-existing
+Docker setup.
+
+**Status: fixed but unverified against a real Docker daemon** — same standing sandbox constraint
+noted throughout `/Users/sarvat/.claude/plans/mighty-mapping-robin.md`'s progress log (no Docker
+available in the environment these files were edited in). Run a real `docker compose build &&
+docker compose up` before relying on this for an actual deployment.
+
+Known stale/unaddressed cleanup candidates, not yet actioned:
+- `backend/package-lock.json` and `frontend/package-lock.json` are leftover per-workspace lockfiles
+  from before the npm-workspaces migration (untouched since the repo's first commit) — the root
+  `package-lock.json` is the only one that's actually authoritative. Likely safe to delete, not yet
+  confirmed/done.
+- `frontend/node_modules` exists as a stray local install alongside root-level hoisting.
+- Neither `backend/package.json` nor `frontend/package.json` lists `@wavehub/shared-types` as an
+  explicit dependency — it resolves purely through workspace hoisting from the root install, which
+  works but isn't self-documenting at the package.json level.
+
 ## Tool portability
 
 `CLAUDE.md` is a Claude Code-specific auto-load filename. `AGENTS.md` is the emerging cross-tool

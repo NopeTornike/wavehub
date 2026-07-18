@@ -13,10 +13,13 @@
   "scripts": {
     "backend:dev": "npm run start:dev -w backend",
     "backend:build": "npm run build -w backend",
+    "backend:start": "npm run start -w backend",
     "backend:lint": "npm run lint -w backend",
     "backend:test": "npm run test -w backend",
+    "backend:migrate": "npm run migration:run -w backend",
     "frontend:dev": "npm run dev -w frontend",
     "frontend:build": "npm run build -w frontend",
+    "frontend:start": "npm run start -w frontend",
     "frontend:lint": "npm run lint -w frontend"
   }
 }

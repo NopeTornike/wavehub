@@ -13,7 +13,9 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
@@ -23,6 +25,19 @@ services:
       PORT: 4000
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       TYPEORM_SYNC: ${TYPEORM_SYNC:-true}
+      NODE_ENV: ${NODE_ENV:-production}
+      # Insecure placeholder so `docker-compose up` works out of the box — auth.module.ts throws
+      # at boot if this is unset AND NODE_ENV=production (which this image's Dockerfile sets by
+      # default), so it must always resolve to *something* here. Override with a real secret via a
+      # `.env` file or your deployment's secret manager for anything beyond local/throwaway use —
+      # never rely on this default past that.
+      JWT_SECRET: ${JWT_SECRET:-wavehub-local-dev-secret-change-me}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL:-http://localhost:4000}
+      # Unset by default — /payments/bog/* returns 503 until these are provided (see
+      # backend/src/payments/CLAUDE.md), everything else works fine without them.
+      BOG_CLIENT_ID: ${BOG_CLIENT_ID:-}
+      BOG_CLIENT_SECRET: ${BOG_CLIENT_SECRET:-}
     depends_on:
       - postgres
     ports:
@@ -30,7 +45,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
     ports:

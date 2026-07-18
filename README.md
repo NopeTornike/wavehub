@@ -21,6 +21,20 @@ docker compose up
 Backend runs on `http://localhost:4000`.
 Frontend runs on `http://localhost:3000/register`.
 
+`docker-compose.yml` fills in insecure local-only defaults for everything required to boot
+(including `JWT_SECRET`) so this works out of the box — **override `JWT_SECRET` via a real `.env`
+file or your deployment's secret manager for anything beyond local/throwaway use.** `BOG_CLIENT_ID`/
+`BOG_CLIENT_SECRET` are left unset by default; only `/payments/bog/*` (WaveCoin top-up) needs them,
+everything else works without them.
+
+> **Caveat:** `backend/Dockerfile`, `frontend/Dockerfile`, and this `docker-compose.yml` were
+> rewritten to work with the npm-workspaces monorepo layout (the versions from before that
+> migration built from `./backend`/`./frontend` as isolated contexts and couldn't resolve the
+> `@wavehub/shared-types` workspace dependency at all — see `backend/CLAUDE.md`). This rewrite has
+> **not** been run against a real Docker daemon — the environment it was written in had none
+> available. Do a real `docker compose build && docker compose up` before relying on this for an
+> actual deployment.
+
 ## Local Development
 
 Requires Node.js 20.9+.

@@ -1,0 +1,30 @@
+# Critical: without this, `COPY . .` in backend/Dockerfile and frontend/Dockerfile would overwrite
+# the image's freshly-installed Linux-native node_modules (bcrypt's native addon, Next.js/SWC's
+# platform binary) with whatever's on the host machine's filesystem — silently breaking native
+# dependencies at runtime. This file must stay in sync with anything that shouldn't cross into a
+# build context; when in doubt, exclude rather than include.
+node_modules
+**/node_modules
+
+# Build output — regenerated inside the image by `npm run backend:build`/`frontend:build`, never
+# copied in from the host.
+backend/dist
+frontend/.next
+packages/*/dist
+
+.git
+.github
+
+# Runtime-only, never meaningful to bake into an image.
+backend/uploads
+tmp
+
+# Local env files may contain real secrets — never let them leak into an image layer.
+.env
+.env.*
+!.env.example
+
+# Editor/OS noise.
+.DS_Store
+.vscode
+.idea
