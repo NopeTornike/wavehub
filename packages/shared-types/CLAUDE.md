@@ -54,7 +54,9 @@ endpoint, `/auth/me` is it. `PublicOrderSummary`/`PublicOrderDetail`/`PublicOrde
 `backend/src/orders/`'s `OrdersService#toSummary` and the frontend's `orders/` pages — same
 hand-written-not-derived-from-the-entity discipline as the `PublicListing*` shapes. `PublicMessage`
 was added alongside `backend/src/chat/` — `ConversationType`/`MessageType`/`MessageStatus` now have
-a backing table too (`ChatService#toPublicMessage`). The rest of the enums (`WalletLedgerType`,
-`DisputeStatus`, etc.) still don't have a backing table/entity yet; they're defined ahead of the
-modules that will use them so later phases have a single place to import from instead of
-re-deriving the same status strings per module.
+a backing table too (`ChatService#toPublicMessage`). `PublicDispute`/`PublicDisputeMessage`/
+`PublicDisputeEvidence` were added alongside `backend/src/disputes/` — `DisputeStatus`/
+`DisputeResolution` now have a backing table too (`DisputesService#toPublic`). The only enum left
+without a backing table/entity is `WalletLedgerType`/`WalletLedgerStatus` (a table exists —
+`wallet_ledger_entries` — but no dedicated `Public*` response shape wraps it yet, since there's no
+ledger-listing endpoint; see `backend/src/wallet/CLAUDE.md`'s Status section).

@@ -322,6 +322,43 @@ export interface PublicMessage {
   createdAt: string;
 }
 
+// --- Dispute response shapes ---
+// What backend/src/disputes' endpoints return. `resolution`/`resolutionNote`/`resolvedBy`/
+// `resolvedAt` stay null until a dispute is resolved — see DisputesService#resolve.
+
+export interface PublicDisputeMessage {
+  id: string;
+  senderId: string;
+  senderUsername: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface PublicDisputeEvidence {
+  id: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedBy: string;
+  createdAt: string;
+}
+
+export interface PublicDispute {
+  id: string;
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  openedBy: string;
+  reason: string;
+  status: DisputeStatus;
+  resolution: DisputeResolution | null;
+  resolutionNote: string | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  messages: PublicDisputeMessage[];
+  evidence: PublicDisputeEvidence[];
+}
+
 export interface PublicReview {
   id: string;
   rating: number;

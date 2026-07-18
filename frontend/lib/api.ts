@@ -9,6 +9,7 @@ import type {
   PublicOrderSummary,
   PublicOrderDetail,
   PublicMessage,
+  PublicDispute,
   ListingType,
 } from '@wavehub/shared-types'
 
@@ -185,6 +186,38 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ body }),
     }),
+
+  // --- Disputes --- (backend/src/disputes/) — a dispute lives under an order too; opening one
+  // moves the order to `disputed` status server-side.
+  openDispute: (orderId: string, reason: string) =>
+    request<PublicDispute>(`/orders/${orderId}/dispute`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  getDispute: (orderId: string) => request<PublicDispute>(`/orders/${orderId}/dispute`),
+
+  addDisputeMessage: (orderId: string, body: string) =>
+    request<PublicDispute>(`/orders/${orderId}/dispute/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+
+  addDisputeEvidence: async (orderId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(`${API_URL}/orders/${orderId}/dispute/evidence`, {
+      method: 'POST',
+      credentials: 'include',
+      body: form,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
+      throw new ApiError(res.status, data?.error || message || 'Upload failed')
+    }
+    return data as PublicDispute
+  },
 
   // --- WaveCoin top-up via Bank of Georgia ---
   // Response shape is `{ ok: true, orderId, redirectUrl }` (see BogPaymentsController#createOrder /

@@ -626,6 +626,7 @@ body::before {
 .order-status-delivered { color: #ffd166; }
 .order-status-completed { color: #4ade80; }
 .order-status-cancelled, .order-status-refunded { color: #f87171; }
+.order-status-disputed { color: #ffb86b; }
 
 .order-actions {
   display: flex;

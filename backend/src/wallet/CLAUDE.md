@@ -55,13 +55,14 @@ the referenced table caught up.
 - **No cron marks `pending` entries `available` yet**, even though `@nestjs/schedule` is now
   installed (Phase 4, for Orders' unrelated 72h auto-complete job) — nothing has wired an
   equivalent job for wallet entries because there's still no real caller needing "is this seller
-  balance actually withdrawable" (that's Phase 8, seller-facing wallet/withdrawals). Anything that
-  needs that question answered must compare `availableAt` to `now()` at query time, not trust
-  `status` alone — `status` currently only distinguishes
-  `available`/`pending`/`held`(future dispute-freeze use)/`reversed`, it isn't time-aware by itself.
+  balance actually withdrawable" (that's Phase 9, seller-facing wallet/withdrawals — corrected from
+  an earlier "Phase 8" typo in this file; Phase 8 is Disputes, see below). Anything that needs that
+  question answered must compare `availableAt` to `now()` at query time, not trust `status` alone —
+  `status` currently only distinguishes `available`/`pending`/`held`/`reversed`, it isn't
+  time-aware by itself.
 - Derived views (available balance, pending balance, total earned, withdrawn — the numbers a seller
   dashboard would show) are **not implemented here**. They're `SUM()` queries over this table and
-  belong with whatever module actually renders them (build-plan Phase 8, seller-facing wallet). Don't
+  belong with whatever module actually renders them (build-plan Phase 9, seller-facing wallet). Don't
   add balance-summary methods to `WalletService` speculatively before there's a real caller.
 - WaveCoin is always an integer — never switch any of these fields to a float/decimal.
 
@@ -72,18 +73,23 @@ the referenced table caught up.
   auto-complete), and `refundBuyer` (cancellation) — all composed into `OrdersService`'s own
   transactions via the `manager` param. Read `orders/CLAUDE.md` for the composition pattern before
   adding a new money-moving call site anywhere.
+- `backend/src/disputes/` — the second real caller of `releaseSellerEarnings`/`refundBuyer`
+  (admin-decided outcomes via `DisputesService#resolve`), composed the same way via `manager`. This
+  did **not** end up being the thing that sets `status: Held` on a ledger entry (an earlier version
+  of this doc predicted it would) — dispute resolution reuses the existing `Pending`/`Available`
+  statuses exactly as `OrdersService` already used them; `Held` is still unset by anything. See
+  `backend/src/disputes/CLAUDE.md` for how a dispute "freezes" an order (via `Order.status`, not a
+  wallet-ledger flag).
 - `packages/shared-types/` — `WalletLedgerType`/`WalletLedgerStatus` enums.
-- Future `backend/src/disputes/` (Phase 8) will be the next real caller of `refundBuyer`/
-  `releaseSellerEarnings` for admin-decided outcomes, and the first thing to actually set
-  `status: Held` on a ledger entry.
 
 ## Status
 `recordTopup`, `debitForOrder`, `releaseSellerEarnings`, and `refundBuyer` are all fully wired to
-real callers now (`backend/src/payments/` and `backend/src/orders/`) and exercised by unit tests —
-no more "built ahead of its caller" primitives left in this module. There's still no `WalletController`
-— the only way to read a balance is `PublicUser.wavecoinBalance` on `/auth/me` (see
-`backend/src/users/CLAUDE.md`), which is what `frontend/pages/wallet.tsx` uses; there is still no
-ledger/transaction-history endpoint, so that page can only show the current balance and a top-up
-form, not a history list. Not yet built: withdrawals (seller-facing balance requests, Phase 8),
-derived balance-summary views (available/pending/earned/withdrawn, also Phase 8), dispute-driven
-freezing (`status: Held` is defined but nothing sets it yet — Phase 8).
+real callers now (`backend/src/payments/`, `backend/src/orders/`, and `backend/src/disputes/`) and
+exercised by unit tests — no more "built ahead of its caller" primitives left in this module.
+There's still no `WalletController` — the only way to read a balance is
+`PublicUser.wavecoinBalance` on `/auth/me` (see `backend/src/users/CLAUDE.md`), which is what
+`frontend/pages/wallet.tsx` uses; there is still no ledger/transaction-history endpoint, so that
+page can only show the current balance and a top-up form, not a history list. Not yet built:
+withdrawals (seller-facing balance requests, Phase 9), derived balance-summary views (available/
+pending/earned/withdrawn, also Phase 9), and anything that actually sets `status: Held` (still
+unused).

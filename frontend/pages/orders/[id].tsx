@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
-import type { PublicMessage, PublicOrderDetail } from '@wavehub/shared-types'
-import { MessageType, OrderStatus } from '@wavehub/shared-types'
+import type { PublicDispute, PublicMessage, PublicOrderDetail } from '@wavehub/shared-types'
+import { DisputeStatus, MessageType, OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -18,6 +18,16 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   [OrderStatus.Refunded]: 'თანხა დაბრუნებულია',
   [OrderStatus.Disputed]: 'დავის პროცესშია',
   [OrderStatus.Expired]: 'ვადაგასულია',
+}
+
+const DISPUTABLE_STATUSES = [OrderStatus.Paid, OrderStatus.InProgress, OrderStatus.Delivered]
+
+const DISPUTE_STATUS_LABELS: Record<DisputeStatus, string> = {
+  [DisputeStatus.Open]: 'გახსნილია',
+  [DisputeStatus.UnderReview]: 'განიხილება',
+  [DisputeStatus.WaitingForEvidence]: 'მტკიცებულებების მოლოდინში',
+  [DisputeStatus.Resolved]: 'გადაწყვეტილია',
+  [DisputeStatus.Closed]: 'დახურულია',
 }
 
 export default function OrderDetail() {
@@ -42,9 +52,24 @@ export default function OrderDetail() {
   const [sendingMessage, setSendingMessage] = useState(false)
   const [chatError, setChatError] = useState('')
 
+  const [dispute, setDispute] = useState<PublicDispute | null>(null)
+  const [disputeReason, setDisputeReason] = useState('')
+  const [disputeDraftMessage, setDisputeDraftMessage] = useState('')
+  const [disputeBusy, setDisputeBusy] = useState(false)
+  const [disputeError, setDisputeError] = useState('')
+
   const reload = () => {
     if (!id) return Promise.resolve()
     return api.getOrder(id).then(setOrder)
+  }
+
+  const reloadDispute = () => {
+    if (!id) return Promise.resolve()
+    // 404 just means no dispute has ever been opened for this order — not an error state.
+    return api
+      .getDispute(id)
+      .then(setDispute)
+      .catch(() => setDispute(null))
   }
 
   useEffect(() => {
@@ -69,6 +94,61 @@ export default function OrderDetail() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    reloadDispute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+
+  const openDispute = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!id) return
+    setDisputeError('')
+    setDisputeBusy(true)
+    try {
+      const opened = await api.openDispute(id, disputeReason)
+      setDispute(opened)
+      setDisputeReason('')
+      await reload()
+    } catch (err) {
+      setDisputeError(err instanceof ApiError ? err.message : 'დავის გახსნა ვერ მოხერხდა.')
+    } finally {
+      setDisputeBusy(false)
+    }
+  }
+
+  const sendDisputeMessage = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!id || !disputeDraftMessage.trim()) return
+    setDisputeError('')
+    setDisputeBusy(true)
+    try {
+      const updated = await api.addDisputeMessage(id, disputeDraftMessage.trim())
+      setDispute(updated)
+      setDisputeDraftMessage('')
+    } catch (err) {
+      setDisputeError(err instanceof ApiError ? err.message : 'შეტყობინების გაგზავნა ვერ მოხერხდა.')
+    } finally {
+      setDisputeBusy(false)
+    }
+  }
+
+  const uploadDisputeEvidence = async (event: FormEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0]
+    if (!file || !id) return
+    setDisputeError('')
+    setDisputeBusy(true)
+    try {
+      const updated = await api.addDisputeEvidence(id, file)
+      setDispute(updated)
+    } catch (err) {
+      setDisputeError(err instanceof ApiError ? err.message : 'ფაილის ატვირთვა ვერ მოხერხდა.')
+    } finally {
+      setDisputeBusy(false)
+      event.currentTarget.value = ''
+    }
+  }
 
   // Polling, not WebSockets — matches the build plan's explicit "narrow scope first" call for
   // Order Chat (see backend/src/chat/CLAUDE.md). Runs regardless of order status; only stops when
@@ -298,6 +378,106 @@ export default function OrderDetail() {
               </div>
             )}
           </div>
+
+          {(isBuyer || isSeller) && (
+            <div className="order-section">
+              <h2>დავა</h2>
+              {disputeError && <div className="status-text status-error">{disputeError}</div>}
+
+              {dispute ? (
+                <>
+                  <p>
+                    სტატუსი: <strong>{DISPUTE_STATUS_LABELS[dispute.status]}</strong>
+                  </p>
+                  <p className="note">მიზეზი: {dispute.reason}</p>
+                  {dispute.status === DisputeStatus.Resolved && (
+                    <p className="note">გადაწყვეტილება: {dispute.resolutionNote}</p>
+                  )}
+
+                  <div className="chat-panel" style={{ marginTop: 12 }}>
+                    <div className="chat-messages">
+                      {dispute.messages.length === 0 ? (
+                        <p className="note" style={{ margin: 0 }}>
+                          შეტყობინებები ჯერ არ არის.
+                        </p>
+                      ) : (
+                        dispute.messages.map((message) => (
+                          <div
+                            key={message.id}
+                            className={`chat-message${message.senderId === me?.id ? ' chat-message-mine' : ''}`}
+                          >
+                            {message.senderId !== me?.id && <strong>@{message.senderUsername} </strong>}
+                            {message.body}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {dispute.status !== DisputeStatus.Resolved && dispute.status !== DisputeStatus.Closed && (
+                      <form className="chat-form" onSubmit={sendDisputeMessage}>
+                        <input
+                          className="input"
+                          placeholder="დაწერეთ შეტყობინება…"
+                          value={disputeDraftMessage}
+                          onChange={(event) => setDisputeDraftMessage(event.target.value)}
+                          disabled={disputeBusy}
+                        />
+                        <button
+                          className="button glow-on-hover"
+                          type="submit"
+                          disabled={disputeBusy || !disputeDraftMessage.trim()}
+                        >
+                          გაგზავნა
+                        </button>
+                      </form>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: 16 }}>
+                    <h2 style={{ fontSize: '1rem' }}>მტკიცებულებები</h2>
+                    {dispute.evidence.length === 0 ? (
+                      <p className="note">მტკიცებულებები ჯერ არ არის.</p>
+                    ) : (
+                      <div className="delivery-file-list">
+                        {dispute.evidence.map((file) => (
+                          <div key={file.id} className="delivery-file-item">
+                            <a href={file.fileUrl} target="_blank" rel="noreferrer">
+                              {file.fileUrl.split('/').pop()}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {dispute.status !== DisputeStatus.Resolved && dispute.status !== DisputeStatus.Closed && (
+                      <div style={{ marginTop: 8 }}>
+                        <input type="file" onChange={uploadDisputeEvidence} disabled={disputeBusy} />
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                DISPUTABLE_STATUSES.includes(order.status) && (
+                  <form onSubmit={openDispute}>
+                    <div className="form-group">
+                      <label htmlFor="disputeReason">
+                        თუ პრობლემა გაქვთ ამ შეკვეთასთან დაკავშირებით, შეგიძლიათ დავის გახსნა
+                      </label>
+                      <textarea
+                        id="disputeReason"
+                        className="input"
+                        value={disputeReason}
+                        onChange={(event) => setDisputeReason(event.target.value)}
+                        placeholder="აღწერეთ პრობლემა (მინიმუმ 10 სიმბოლო)"
+                        required
+                      />
+                    </div>
+                    <button className="button" type="submit" disabled={disputeBusy || disputeReason.trim().length < 10}>
+                      დავის გახსნა
+                    </button>
+                  </form>
+                )
+              )}
+            </div>
+          )}
 
           {actionError && (
             <div className="status-text status-error" style={{ marginTop: 16 }}>

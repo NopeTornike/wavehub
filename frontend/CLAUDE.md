@@ -37,7 +37,15 @@ it into real components here, don't extend it further.
   polls `api.listMessages` every `MESSAGE_POLL_MS` (5s) rather than using WebSockets — matches the
   build plan's explicit call for Order Chat (`backend/src/chat/CLAUDE.md`); a sent message is
   appended to local state immediately on success rather than waiting for the next poll tick, so
-  sending feels instant even though received messages lag up to 5s behind
+  sending feels instant even though received messages lag up to 5s behind. There's also a dispute
+  section: `api.getDispute` is fetched once on load (a 404 just means none exists yet, handled
+  silently, not shown as an error) — if none exists and the order's status is disputable
+  (`DISPUTABLE_STATUSES`, mirroring `backend/src/disputes/`'s `OPENABLE_STATUSES`), an "open a
+  dispute" form renders; once one exists, a dispute panel renders instead (status, reason,
+  resolution note once resolved, a message thread reusing the chat panel's CSS classes, and an
+  evidence file list + upload widget, both locked once the dispute is `Resolved`/`Closed`) — no
+  polling on this one, since `openDispute`/`sendDisputeMessage`/`uploadDisputeEvidence` each
+  refresh `dispute` from their own response instead of needing a separate re-fetch
 - `pages/wallet.tsx` — balance (from `api.me().user.wavecoinBalance` — there's no separate wallet
   balance endpoint, see `backend/src/wallet/CLAUDE.md`) + a WaveCoin top-up form that calls
   `api.createBogTopupOrder` and redirects the browser to BOG's hosted checkout page
@@ -70,8 +78,10 @@ it into real components here, don't extend it further.
   `--gradient-start/mid/end`, etc.), plus the marketplace/detail-page classes (`.listing-grid`,
   `.listing-card`, `.filter-bar`, `.detail-layout`, `.package-list`, `.review-item`, etc.), the
   order/wallet classes (`.order-tabs`, `.order-card`, `.order-status` + its per-status color
-  modifiers, `.order-actions`, `.wallet-balance`, `.delivery-file-list`), and the chat classes
-  (`.chat-panel`, `.chat-messages`, `.chat-message` + `-mine`/`-system` modifiers, `.chat-form`)
+  modifiers including `.order-status-disputed`, `.order-actions`, `.wallet-balance`,
+  `.delivery-file-list`), and the chat classes (`.chat-panel`, `.chat-messages`, `.chat-message` +
+  `-mine`/`-system` modifiers, `.chat-form`) — the dispute panel reuses these chat classes and
+  `.delivery-file-list` rather than defining its own, since the shapes are visually identical
 
 ## Data model
 N/A on the frontend itself. Talks to the NestJS backend (`backend/`) over HTTP; shared request/response
@@ -112,9 +122,9 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
 - `packages/shared-types/` — always check here first for an enum/type before defining one locally.
 - `backend/src/auth/` — every endpoint `lib/api.ts` calls is defined there; check that module's doc
   for request/response shapes and behavior before changing either side.
-- `backend/src/orders/`, `backend/src/wallet/`, `backend/src/payments/` — back the orders/wallet
-  pages; check those modules' docs for status-transition rules and response shapes before changing
-  either side.
+- `backend/src/orders/`, `backend/src/wallet/`, `backend/src/payments/`, `backend/src/chat/`,
+  `backend/src/disputes/` — back the orders/wallet/chat/dispute pages; check those modules' docs
+  for status-transition rules and response shapes before changing either side.
 
 ## Status
 The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
@@ -129,10 +139,12 @@ backed by the real `backend/src/listings/`, `backend/src/orders/`, `backend/src/
 via `lib/auth.tsx`'s `AuthProvider`/`useAuth()` (replacing the per-page `api.me()` duplication that
 used to exist in `Header`, `listings/[id].tsx`, `orders/[id].tsx`, `orders/index.tsx`, and
 `wallet.tsx` — all five now read from the one provider instead). `orders/[id].tsx` now also has a
-polling chat panel (`backend/src/chat/CLAUDE.md`). No cart page (checkout is a direct single-listing
-buy, not a multi-item cart — matches the WaveCoin/order model, not an oversight), no seller
-dashboard / create-listing frontend, no coaching/profile/messages pages yet. The repo-root static
-site remains the reference mockup for all of that until it's ported here.
+polling chat panel (`backend/src/chat/CLAUDE.md`) and a dispute panel (open/discuss/attach evidence
+— `backend/src/disputes/CLAUDE.md`); there's no admin resolution UI anywhere, since
+`DisputesService#resolve` has no HTTP route yet (build-plan Phase 11). No cart page (checkout is a
+direct single-listing buy, not a multi-item cart — matches the WaveCoin/order model, not an
+oversight), no seller dashboard / create-listing frontend, no coaching/profile/messages pages yet.
+The repo-root static site remains the reference mockup for all of that until it's ported here.
 
 **Verification caveat**: this workspace has no Docker/Postgres available (a constraint noted
 throughout this repo's `CLAUDE.md` files), so everything above was verified via

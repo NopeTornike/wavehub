@@ -2,8 +2,8 @@
 
 ## Purpose
 The structural core of the marketplace — the purchase flow, delivery lifecycle, and the only thing
-that actually triggers WaveCoin movement between buyer and seller. Reviews, disputes, and seller
-payouts (future phases) all hang off an Order existing.
+that actually triggers WaveCoin movement between buyer and seller. Reviews, disputes, chat, and
+seller payouts (withdrawals, still a future phase) all hang off an Order existing.
 
 ## Key files
 - `order.entity.ts` — `Order`: buyer/seller/listing/package refs, a `status` (`OrderStatus`), and
@@ -112,24 +112,27 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   is checked in the service layer, not the controller.
 - `backend/src/reviews/` gates review creation on `order.status === Completed` and denormalizes
   `listingId`/`sellerId` from the order onto each review.
-- Future `backend/src/disputes/` (Phase 8) will extend `order-lifecycle.ts`'s transition map to
-  reach `Disputed`/`Refunded` — those targets exist in the enum but aren't wired here on purpose;
-  don't guess at dispute rules in this module.
 - `backend/src/chat/` — order-scoped chat, auto-created in `purchase()` and posted to at every
   lifecycle transition. `ChatModule` has no dependency on this module (methods take plain
   `orderId`/`buyerId`/`sellerId` params) so the import direction is one-way (`orders → chat`) with
   no risk of a circular dependency.
+- `backend/src/disputes/` — the only other module allowed to drive `Order.status` into/out of
+  `Disputed`, `Refunded`, or a dispute-driven `Cancelled`. Unlike chat, `DisputesService` depends
+  directly on this module's `Order` repo (it needs to read/write order status itself), so the
+  dependency direction is `disputes → orders`, not the other way — this module has zero awareness
+  of disputes existing, by design (see `order-lifecycle.ts`'s own comment on why `Disputed` is
+  reachable but this module never triggers it).
 
 ## Status
 Full purchase-to-completion flow implemented and unit-tested at the validation/lifecycle layer
-(guard clauses, state machine, requirements validation, and now the INSUFFICIENT_BALANCE
-translation) — 96 backend tests total after Order Chat landed. Not verified against a live Postgres
-transaction (no DB available in the sandbox this was built in — see the migration's own notes and
-`backend/src/wallet/CLAUDE.md`'s equivalent caveat). Frontend exists for checkout and order
-management: `frontend/pages/listings/[id].tsx` (including the requirements-form for service
-listings), an order list at `frontend/pages/orders/index.tsx` (buyer/seller tabs), and an order
-detail/actions page at `frontend/pages/orders/[id].tsx` (start/deliver/accept/revision/cancel +
-delivery-file upload + leave-a-review once completed) — see `frontend/CLAUDE.md`. Order Chat
-(`backend/src/chat/`) is backend-only so far — `GET`/`POST /orders/:id/messages` work but
-`orders/[id].tsx` doesn't render a chat panel yet. Still deferred: dispute integration,
+(guard clauses, state machine, requirements validation, and the INSUFFICIENT_BALANCE translation)
+— 119 backend tests total after Disputes landed. Not verified against a live Postgres transaction
+(no DB available in the sandbox this was built in — see the migration's own notes and
+`backend/src/wallet/CLAUDE.md`'s equivalent caveat). Frontend exists for checkout, order
+management, chat, and disputes: `frontend/pages/listings/[id].tsx` (including the requirements-form
+for service listings), an order list at `frontend/pages/orders/index.tsx` (buyer/seller tabs), and
+an order detail/actions page at `frontend/pages/orders/[id].tsx` (start/deliver/accept/revision/
+cancel + delivery-file upload + leave-a-review once completed + a polling chat panel + an
+open-dispute form and dispute panel) — see `frontend/CLAUDE.md`. `order-lifecycle.ts`'s
+`Disputed`/`Refunded` targets are now real (see `backend/src/disputes/CLAUDE.md`). Still deferred:
 admin-configurable fee rate, multi-instance-safe cron.
