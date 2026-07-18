@@ -4989,7 +4989,7 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 .cover-cs2 {
   background:
     linear-gradient(180deg, rgba(16, 18, 20, 0.04), rgba(16, 18, 20, 0.24)),
-    url("assets/cs2-popular-games-photo.png") center / cover no-repeat,
+    url("assets/cs2-popular-games-photo.jpeg") center / cover no-repeat,
     #17110c;
 }
 
