@@ -508,6 +508,17 @@ export interface AdminWithdrawRequestSummary {
   createdAt: string;
 }
 
+// What backend/src/settings/platform-settings.controller.ts returns (GET and POST both return
+// the full current row). `maintenanceMode` is stored but not yet enforced anywhere — see
+// settings/CLAUDE.md.
+export interface PublicPlatformSettings {
+  id: string;
+  platformFeePercent: number;
+  minWithdrawalWaveCoin: number;
+  maintenanceMode: boolean;
+  updatedAt: string;
+}
+
 // What backend/src/users/admin-users.controller.ts returns — a superset of PublicUser (adds
 // email, role, createdAt, moderationReason) that only ever goes to an admin-guarded route, never
 // to the user themselves or the public. Keep this list distinct from PublicUser rather than

@@ -35,6 +35,7 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
     // directly.
     const chat = { ensureConversation: jest.fn(), postSystemMessage: jest.fn() } as any;
     const notifications = { emit: jest.fn() } as any;
+    const platformSettings = { getPlatformFeePercent: jest.fn(async () => 10) } as any;
 
     const service = new OrdersService(
       {} as any, // orders repo — not reached before the guard clauses under test
@@ -48,9 +49,10 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
       storage,
       chat,
       notifications,
+      platformSettings,
     );
 
-    return { service, dataSource, wallet, chat, notifications };
+    return { service, dataSource, wallet, chat, notifications, platformSettings };
   }
 
   it('rejects a listing that does not exist or is not Active', async () => {

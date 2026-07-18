@@ -43,10 +43,10 @@ columns on `wallet_ledger_entries` — a withdrawal's fund movement reuses that 
   module's own table) — `wallet/` has no access to `WithdrawRequest`, and shouldn't (dependency
   direction is `withdrawals → wallet`, one-way). Look here first if you're hunting for a wallet
   balance endpoint and it's not in `backend/src/wallet/`.
-- **`MIN_WITHDRAWAL_WAVECOIN = 20`** is a hardcoded constant (SPECIFICATION.md §5.6: "$20
-  recommended default, should be admin-configurable") — same tradeoff as `orders.service.ts`'s
-  10% platform fee constant. Becomes admin-configurable in build-plan Phase 11f (Platform
-  Settings), not before.
+- **The minimum withdrawal (default 20, SPECIFICATION.md §5.6) is now admin-configurable** —
+  `request()` reads it from `PlatformSettingsService.getMinWithdrawalWaveCoin()`
+  (`backend/src/settings/`) instead of a hardcoded constant. Same module as the platform fee
+  percent `orders.service.ts` reads.
 - **`request()`'s active-dispute check queries `Dispute` directly** (`Not(In([Resolved,
   Closed]))` — any non-terminal status blocks a new withdrawal, not just `Open`) rather than
   importing `DisputesService`. Same "inject the entity you need, don't import the whole module"
@@ -72,6 +72,7 @@ columns on `wallet_ledger_entries` — a withdrawal's fund movement reuses that 
 - `backend/src/disputes/` — the active-dispute check reads `Dispute` directly (see the gotcha
   above).
 - `backend/src/admin/` — `AdminGuard`/`@RequireAdminRole`/`AdminAuditService`, used by `process()`.
+- `backend/src/settings/` — `request()` reads the current minimum withdrawal from here.
 - `backend/src/notifications/` — `WithdrawalStatusChanged`, fired on every `process()` call
   (Processing/Completed/Rejected all notify, not just the terminal ones).
 - `packages/shared-types/` — `WithdrawStatus`/`WithdrawMethod` enums (already existed, unused

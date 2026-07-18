@@ -13,6 +13,7 @@ import { StorageModule } from '../storage/storage.module';
 import { AuthModule } from '../auth/auth.module';
 import { ChatModule } from '../chat/chat.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AuthModule,
     ChatModule,
     NotificationsModule,
+    SettingsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

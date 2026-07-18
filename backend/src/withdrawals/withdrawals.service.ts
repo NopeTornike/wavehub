@@ -9,13 +9,7 @@ import { assertValidTransition } from './withdraw-lifecycle';
 import { CreateWithdrawRequestDto } from './dto/create-withdraw-request.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { NotificationsService } from '../notifications/notifications.service';
-
-// SPECIFICATION.md §5.6: "Minimum withdrawal $20 (recommended default, should be
-// admin-configurable)" — 1 GEL/WaveCoin at the current fixed top-up rate (see
-// backend/src/payments/CLAUDE.md), so 20 WaveCoin. Hardcoded for now, same tradeoff as the
-// platform fee constant in orders.service.ts — becomes admin-configurable in build-plan Phase
-// 11f (Platform Settings), not before.
-const MIN_WITHDRAWAL_WAVECOIN = 20;
+import { PlatformSettingsService } from '../settings/platform-settings.service';
 
 const STATUS_LABELS_KA: Record<WithdrawStatus, string> = {
   [WithdrawStatus.Pending]: 'მოლოდინში',
@@ -35,17 +29,20 @@ export class WithdrawalsService {
     private readonly dataSource: DataSource,
     private readonly wallet: WalletService,
     private readonly notifications: NotificationsService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
-  // Gated on: amount >= MIN_WITHDRAWAL_WAVECOIN, no active dispute for this seller (any status
-  // that isn't Resolved/Closed — a fresh Open dispute should block just as much as one already
-  // UnderReview), and amount <= the derived availableToWithdraw ceiling (see
-  // WalletService#getBalanceSummary for why that's capped at the current wallet balance, not just
-  // cleared earnings). The WithdrawRequest insert and the wallet hold happen in one transaction —
-  // same "atomic, not compensated after the fact" principle as OrdersService.purchase.
+  // Gated on: amount >= the admin-configured minimum (backend/src/settings/), no active dispute
+  // for this seller (any status that isn't Resolved/Closed — a fresh Open dispute should block
+  // just as much as one already UnderReview), and amount <= the derived availableToWithdraw
+  // ceiling (see WalletService#getBalanceSummary for why that's capped at the current wallet
+  // balance, not just cleared earnings). The WithdrawRequest insert and the wallet hold happen in
+  // one transaction — same "atomic, not compensated after the fact" principle as
+  // OrdersService.purchase.
   async request(sellerId: string, dto: CreateWithdrawRequestDto): Promise<PublicWithdrawRequest> {
-    if (dto.amountWaveCoin < MIN_WITHDRAWAL_WAVECOIN) {
-      throw new ForbiddenException(`Minimum withdrawal is ${MIN_WITHDRAWAL_WAVECOIN} WaveCoin`);
+    const minWithdrawal = await this.platformSettings.getMinWithdrawalWaveCoin();
+    if (dto.amountWaveCoin < minWithdrawal) {
+      throw new ForbiddenException(`Minimum withdrawal is ${minWithdrawal} WaveCoin`);
     }
 
     const activeDispute = await this.disputes.findOne({

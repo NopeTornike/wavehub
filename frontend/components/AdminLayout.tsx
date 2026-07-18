@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/admin/disputes', label: 'დავები' },
   { href: '/admin/withdrawals', label: 'გატანები' },
   { href: '/admin/users', label: 'მომხმარებლები' },
+  { href: '/admin/settings', label: 'პლატფორმის პარამეტრები' },
 ]
 
 // Wraps every /admin/* page: redirects a logged-out visitor to login, shows a plain "not

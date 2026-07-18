@@ -54,9 +54,10 @@ describe('WithdrawalsService', () => {
     } as any;
 
     const notifications = { emit: jest.fn() } as any;
+    const platformSettings = { getMinWithdrawalWaveCoin: jest.fn(async () => 20) } as any;
 
-    const service = new WithdrawalsService(withdrawals, disputes, dataSource, wallet, notifications);
-    return { service, manager, withdrawals, disputes, wallet, notifications };
+    const service = new WithdrawalsService(withdrawals, disputes, dataSource, wallet, notifications, platformSettings);
+    return { service, manager, withdrawals, disputes, wallet, notifications, platformSettings };
   }
 
   describe('request', () => {

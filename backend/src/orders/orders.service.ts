@@ -19,11 +19,8 @@ import { calculatePlatformFee } from '../wallet/fee.util';
 import { StorageService } from '../storage/storage.service';
 import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PlatformSettingsService } from '../settings/platform-settings.service';
 
-// 10% matches every example in the source spec. Not admin-configurable yet — that's build-plan
-// Phase 11 (Platform Settings). Snapshotted onto each Order at creation (platformFeePercentSnapshot)
-// so a later rate change never retroactively changes an existing order's math.
-const DEFAULT_PLATFORM_FEE_PERCENT = 10;
 const AUTO_COMPLETE_HOURS = 72;
 const ALLOWED_DELIVERY_MIME_TYPES = [
   'image/jpeg',
@@ -51,6 +48,7 @@ export class OrdersService {
     private readonly storage: StorageService,
     private readonly chat: ChatService,
     private readonly notifications: NotificationsService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   // Every lifecycle system-message post goes through this — chat is a side channel, never allowed
@@ -122,10 +120,8 @@ export class OrdersService {
       itemIsUnique = details?.isUnique ?? true;
     }
 
-    const { feeWaveCoin, sellerReceivesWaveCoin } = calculatePlatformFee(
-      priceWaveCoin,
-      DEFAULT_PLATFORM_FEE_PERCENT,
-    );
+    const platformFeePercent = await this.platformSettings.getPlatformFeePercent();
+    const { feeWaveCoin, sellerReceivesWaveCoin } = calculatePlatformFee(priceWaveCoin, platformFeePercent);
 
     const saved = await this.dataSource.transaction(async (manager) => {
       const orderNumber = await this.generateOrderNumber(manager);
@@ -141,7 +137,7 @@ export class OrdersService {
         status: OrderStatus.Paid,
         requirementsAnswers: listing.type === ListingType.Service ? (dto.requirementsAnswers ?? {}) : null,
         priceWaveCoin,
-        platformFeePercentSnapshot: DEFAULT_PLATFORM_FEE_PERCENT,
+        platformFeePercentSnapshot: platformFeePercent,
         platformFeeWaveCoin: feeWaveCoin,
         sellerPayoutWaveCoin: sellerReceivesWaveCoin,
         deliveryDueAt: deliveryTimeDays ? new Date(now.getTime() + deliveryTimeDays * 86_400_000) : null,

@@ -99,7 +99,10 @@ it into real components here, don't extend it further.
   `users.tsx` additionally has a search/status-filter form. `admin/disputes.tsx` is list-only
   (linking into `orders/[id].tsx`'s existing dispute panel, which has since gained a resolve form —
   see that page's entry below) since resolving needs the full evidence/message thread this list
-  view intentionally doesn't duplicate.
+  view intentionally doesn't duplicate. `admin/settings.tsx` is a simple view/edit form over
+  `backend/src/settings/`'s platform fee %, minimum withdrawal, and a maintenance-mode checkbox
+  that's stored but has no enforced effect yet (the form says so inline, matching that module's own
+  Status section).
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the

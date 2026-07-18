@@ -23,6 +23,7 @@ import type {
   AdminWithdrawRequestSummary,
   AdminListingSummary,
   AdminReviewSummary,
+  PublicPlatformSettings,
   UserStatus,
 } from '@wavehub/shared-types'
 
@@ -334,4 +335,16 @@ export const api = {
     request<AdminUserSummary>(`/admin/users/${id}/ban`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
   adminUnbanUser: (id: string) => request<AdminUserSummary>(`/admin/users/${id}/unban`, { method: 'POST' }),
+
+  adminGetPlatformSettings: () => request<PublicPlatformSettings>('/admin/platform-settings'),
+
+  adminUpdatePlatformSettings: (patch: {
+    platformFeePercent?: number
+    minWithdrawalWaveCoin?: number
+    maintenanceMode?: boolean
+  }) =>
+    request<PublicPlatformSettings>('/admin/platform-settings', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    }),
 }

@@ -55,11 +55,11 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   "work" to start). This was a deliberate simplification to avoid building a second state machine
   before there's real usage data suggesting item orders need different treatment — revisit if it
   turns out awkward in practice.
-- **Platform fee is a hardcoded 10% constant** (`DEFAULT_PLATFORM_FEE_PERCENT` in
-  `orders.service.ts`), snapshotted onto each order (`platformFeePercentSnapshot`) so a later rate
-  change never retroactively changes historical orders' math. Becomes admin-configurable in
-  build-plan Phase 11 (Platform Settings) — when that lands, read the rate from wherever that phase
-  stores it instead of this constant, but keep snapshotting it per-order.
+- **Platform fee is now admin-configurable** — `purchase()` reads it from
+  `PlatformSettingsService.getPlatformFeePercent()` (`backend/src/settings/`, default 10%) rather
+  than a hardcoded constant, but still snapshots the rate it read onto each order
+  (`platformFeePercentSnapshot`) so a later admin rate change never retroactively changes an
+  existing order's math. Read `backend/src/settings/CLAUDE.md` before touching fee calculation.
 - **`listing.ordersCount` increments on order *completion*, not on purchase** — it's meant to reflect
   "orders completed" (what marketplace cards show per the spec), not "orders placed." Don't move this
   increment earlier.
@@ -125,6 +125,7 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
 - `backend/src/notifications/` — every lifecycle mutation notifies the relevant party via a private
   `notify` helper (mirrors `postSystemMessage`'s shape) — see `notifications/CLAUDE.md` for the
   full hook-point list across all five modules that use it.
+- `backend/src/settings/` — `purchase()` reads the current platform fee percent from here.
 
 ## Status
 Full purchase-to-completion flow implemented and unit-tested at the validation/lifecycle layer
@@ -137,5 +138,5 @@ for service listings), an order list at `frontend/pages/orders/index.tsx` (buyer
 an order detail/actions page at `frontend/pages/orders/[id].tsx` (start/deliver/accept/revision/
 cancel + delivery-file upload + leave-a-review once completed + a polling chat panel + an
 open-dispute form and dispute panel) — see `frontend/CLAUDE.md`. `order-lifecycle.ts`'s
-`Disputed`/`Refunded` targets are now real (see `backend/src/disputes/CLAUDE.md`). Still deferred:
-admin-configurable fee rate, multi-instance-safe cron.
+`Disputed`/`Refunded` targets are now real (see `backend/src/disputes/CLAUDE.md`). The platform fee
+rate is now admin-configurable (`backend/src/settings/`). Still deferred: multi-instance-safe cron.
