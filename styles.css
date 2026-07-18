@@ -5689,6 +5689,10 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
   display: none;
 }
 
+.mobile-bottom-nav {
+  display: none;
+}
+
 @media (max-width: 1180px) {
   .game-grid .game-card {
     flex-basis: clamp(176px, 28vw, 230px);
@@ -5832,6 +5836,91 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 }
 
 @media (max-width: 620px) {
+  body {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    z-index: 50;
+    right: 10px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 10px;
+    height: 82px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: center;
+    padding: 8px 4px 6px;
+    border: 1px solid rgba(115, 137, 181, 0.14);
+    border-radius: 22px;
+    background: rgba(5, 10, 20, 0.96);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.48);
+    backdrop-filter: blur(20px);
+  }
+
+  .mobile-bottom-nav a {
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #8991a7;
+    font-size: clamp(9px, 2.8vw, 12px);
+    line-height: 1;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .mobile-bottom-nav a > svg,
+  .mobile-home-icon svg {
+    width: 25px;
+    height: 25px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .mobile-bottom-nav a.active {
+    color: #ff3ba2;
+  }
+
+  .mobile-bottom-nav .mobile-home-link {
+    overflow: visible;
+    color: #ff3ba2;
+  }
+
+  .mobile-home-icon {
+    width: 68px;
+    height: 68px;
+    margin-top: -42px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #ff32a0;
+    border-radius: 50%;
+    color: #ff48aa;
+    background: #0a0d18;
+    box-shadow: 0 0 12px rgba(255, 45, 159, 0.8), inset 0 0 18px rgba(255, 45, 159, 0.16);
+  }
+
+  .mobile-home-icon svg {
+    width: 30px;
+    height: 30px;
+    stroke-width: 2;
+  }
+
+  .mobile-home-link > span:last-child {
+    margin-top: -2px;
+  }
+
+  .marketplace-cart-footer {
+    bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+
   .top-actions {
     flex-wrap: wrap;
   }
