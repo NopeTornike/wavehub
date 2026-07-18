@@ -65,6 +65,9 @@ that migration's `CATEGORIES`/`GAMES` constants, not a separate seed script), `l
 - `backend/src/orders/` — references `listings`/`packages` by id at purchase time (snapshotting
   price/delivery-time onto the `Order`), and drives listing pause/unpause for item sell-outs — read
   that module's doc before changing anything about how a listing's price or stock is read.
+- `backend/src/reviews/` — writes `listing.ratingAvg`/`ratingCount` (added by the `CreateReviewsSchema`
+  migration) whenever a review is created, hidden, or restored; this module doesn't write those
+  columns itself.
 - Future `backend/src/admin/` (Phase 11) wraps `approve`/`reject`/`pause` in guarded routes.
 
 ## Status

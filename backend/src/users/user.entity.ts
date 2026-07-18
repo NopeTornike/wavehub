@@ -35,4 +35,14 @@ export class User {
   // backend/src/wallet/CLAUDE.md.
   @Column({ type: 'integer', default: 0 })
   wavecoinBalance: number;
+
+  // Seller-level rating aggregate — meaningless for a user with no listings, only ever populated
+  // for sellers in practice. Lives here as a pragmatic stopgap (there's no `seller_profiles` table
+  // yet — see build-plan schema notes); move it there if/when that table gets built rather than
+  // adding a second copy. Recomputed by ReviewsService, never edited directly.
+  @Column({ type: 'numeric', precision: 3, scale: 2, nullable: true })
+  sellerRatingAvg: string | null;
+
+  @Column({ type: 'integer', default: 0 })
+  sellerRatingCount: number;
 }

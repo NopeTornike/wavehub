@@ -60,6 +60,16 @@ export class Listing {
   @Column({ default: false })
   isFeatured: boolean;
 
+  // Denormalized rating aggregate — recomputed by ReviewsService on every new review, never edited
+  // directly elsewhere. Numeric(3,2) holds values like 4.60; null (not 0) until the first review
+  // exists, so "no reviews yet" and "reviewed, average is exactly 0" (impossible given a 1-5 scale,
+  // but keep the distinction anyway) aren't conflated in the UI.
+  @Column({ type: 'numeric', precision: 3, scale: 2, nullable: true })
+  ratingAvg: string | null;
+
+  @Column({ type: 'integer', default: 0 })
+  ratingCount: number;
+
   // Item-type pricing only — service-type listings price via `packages` and leave these null.
   @Column({ type: 'integer', nullable: true })
   priceWaveCoin: number | null;

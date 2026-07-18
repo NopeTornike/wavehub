@@ -9,7 +9,10 @@ up a user without each reimplementing repository queries.
   `firstName`, `lastName`, `passwordHash` (`select: false`), `role` (`'buyer' | 'seller'`, default
   `'buyer'`), `status` (`UserStatus` from `@wavehub/shared-types`, default `pending_verification`),
   `emailVerifiedAt` (nullable), `wavecoinBalance` (integer, default 0 — **never write to this
-  directly, always go through `WalletService`**, see `backend/src/wallet/CLAUDE.md`)
+  directly, always go through `WalletService`**, see `backend/src/wallet/CLAUDE.md`),
+  `sellerRatingAvg`/`sellerRatingCount` (nullable/0 default — **never write directly, only
+  `ReviewsService` recomputes these**, see `backend/src/reviews/CLAUDE.md`; meaningless for a user
+  with no listings, living here only as a stopgap until `seller_profiles` exists)
 - `users.service.ts` — `findById`/`findByUsername`/`findByEmail`, `markEmailVerified`,
   `setPasswordHash`, `toPublicUser` (maps the entity to the `PublicUser` shape from
   `@wavehub/shared-types` — the one place that mapping happens, use it instead of hand-building a
@@ -17,10 +20,11 @@ up a user without each reimplementing repository queries.
 - `users.module.ts` — exports `UsersService` for other modules to import
 
 ## Data model
-`users` table. Schema built up across four migrations: `InitUsersTable` (Phase 0 baseline),
+`users` table. Schema built up across five migrations: `InitUsersTable` (Phase 0 baseline),
 `AddUserEmailStatusVerification` (adds `email`/`status`/`emailVerifiedAt`, Phase 1),
-`CreateAuthTokenTables` (the two token tables that FK into `users`, Phase 1), and
-`CreateWalletLedger` (adds `wavecoinBalance`, Phase 2).
+`CreateAuthTokenTables` (the two token tables that FK into `users`, Phase 1),
+`CreateWalletLedger` (adds `wavecoinBalance`, Phase 2), and `CreateReviewsSchema` (adds
+`sellerRatingAvg`/`sellerRatingCount`, Phase 5).
 
 ## Conventions & gotchas
 - `role` is still a blunt `'buyer' | 'seller'` flag, unrelated to `status`. Per the build plan, a
@@ -41,6 +45,7 @@ up a user without each reimplementing repository queries.
 - `backend/src/auth/` — the primary consumer; also owns direct write access to this entity for
   registration/status changes (this module intentionally doesn't expose a generic `update()`).
 - `backend/src/wallet/` — the only module allowed to write `wavecoinBalance`.
+- `backend/src/reviews/` — the only module allowed to write `sellerRatingAvg`/`sellerRatingCount`.
 - `packages/shared-types/` — `UserStatus` and `PublicUser` come from here; keep them in sync if this
   entity's shape changes.
 

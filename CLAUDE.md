@@ -28,11 +28,12 @@ isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable r
 | `backend/src/listings/` | Marketplace listings (service + item), moderation lifecycle | `backend/src/listings/CLAUDE.md` |
 | `backend/src/storage/` | File storage abstraction (local disk today, not production-ready) | `backend/src/storage/CLAUDE.md` |
 | `backend/src/orders/` | Purchase flow, delivery lifecycle, the only trigger for wallet money movement | `backend/src/orders/CLAUDE.md` |
+| `backend/src/reviews/` | Buyer reviews of completed orders, seller/listing rating aggregates | `backend/src/reviews/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 
-New top-level modules (`backend/src/disputes/`, `backend/src/chat/`, `backend/src/reviews/`,
-`backend/src/notifications/`, `backend/src/admin/`, `backend/src/content/`) will each get a row here
+New top-level modules (`backend/src/disputes/`, `backend/src/chat/`, `backend/src/notifications/`,
+`backend/src/admin/`, `backend/src/content/`) will each get a row here
 and their own `CLAUDE.md` as they're built — see the phased build plan. Add the row in the same
 change that adds the module.
 

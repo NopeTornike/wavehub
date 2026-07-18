@@ -88,7 +88,8 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
 - `backend/src/storage/` — delivery file persistence, same interface as listing images.
 - `backend/src/auth/` — every route is `AuthGuard`-protected; ownership (`buyerId`/`sellerId` match)
   is checked in the service layer, not the controller.
-- Future `backend/src/reviews/` (Phase 6/7) gates on `order.status === Completed`.
+- `backend/src/reviews/` gates review creation on `order.status === Completed` and denormalizes
+  `listingId`/`sellerId` from the order onto each review.
 - Future `backend/src/disputes/` (Phase 8) will extend `order-lifecycle.ts`'s transition map to
   reach `Disputed`/`Refunded` — those targets exist in the enum but aren't wired here on purpose;
   don't guess at dispute rules in this module.

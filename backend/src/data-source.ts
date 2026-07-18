@@ -14,6 +14,8 @@ import { Category } from './listings/category.entity';
 import { Game } from './listings/game.entity';
 import { Order } from './orders/order.entity';
 import { OrderDeliveryFile } from './orders/order-delivery-file.entity';
+import { Review } from './reviews/review.entity';
+import { ReviewReport } from './reviews/review-report.entity';
 
 // Used by the TypeORM CLI (migration:generate / migration:run / migration:revert — see
 // package.json scripts) and, in future phases, by tests that need a real DB connection outside
@@ -44,6 +46,8 @@ const AppDataSource = new DataSource({
     Game,
     Order,
     OrderDeliveryFile,
+    Review,
+    ReviewReport,
   ],
   migrations: [__dirname + '/migrations/*.{ts,js}'],
   synchronize: false,

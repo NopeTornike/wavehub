@@ -23,6 +23,9 @@ import { Game } from './listings/game.entity';
 import { OrdersModule } from './orders/orders.module';
 import { Order } from './orders/order.entity';
 import { OrderDeliveryFile } from './orders/order-delivery-file.entity';
+import { ReviewsModule } from './reviews/reviews.module';
+import { Review } from './reviews/review.entity';
+import { ReviewReport } from './reviews/review-report.entity';
 
 // Postgres is mandatory from Phase 1 onward — the JSON-file fallback that used to make this
 // conditional (USE_FILE_STORE) was removed along with AuthService's dual-mode logic. See
@@ -60,6 +63,8 @@ import { OrderDeliveryFile } from './orders/order-delivery-file.entity';
         Game,
         Order,
         OrderDeliveryFile,
+        Review,
+        ReviewReport,
       ],
       synchronize: process.env.TYPEORM_SYNC === 'true',
     }),
@@ -69,6 +74,7 @@ import { OrderDeliveryFile } from './orders/order-delivery-file.entity';
     PaymentsModule,
     ListingsModule,
     OrdersModule,
+    ReviewsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
