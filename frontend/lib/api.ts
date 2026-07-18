@@ -6,6 +6,8 @@ import type {
   PublicListingSummary,
   PublicListingDetail,
   PublicReview,
+  PublicOrderSummary,
+  PublicOrderDetail,
   ListingType,
 } from '@wavehub/shared-types'
 
@@ -123,4 +125,64 @@ export const api = {
     request<PublicReview[]>(
       `/listings/${listingId}/reviews${sort ? `?sort=${sort}` : ''}`,
     ),
+
+  createReview: (payload: { orderId: string; rating: number; body?: string; tags?: string[] }) =>
+    request<PublicReview>('/reviews', { method: 'POST', body: JSON.stringify(payload) }),
+
+  // --- Orders --- (also not wrapped in `{ ok: true, ... }`, same as the marketplace endpoints)
+  purchase: (payload: { listingId: string; packageId?: string; requirementsAnswers?: Record<string, unknown> }) =>
+    request<PublicOrderDetail>('/orders', { method: 'POST', body: JSON.stringify(payload) }),
+
+  listOrdersAsBuyer: () => request<PublicOrderSummary[]>('/orders/as-buyer'),
+
+  listOrdersAsSeller: () => request<PublicOrderSummary[]>('/orders/as-seller'),
+
+  getOrder: (id: string) => request<PublicOrderDetail>(`/orders/${id}`),
+
+  startOrder: (id: string) => request<unknown>(`/orders/${id}/start`, { method: 'POST' }),
+
+  deliverOrder: (id: string) => request<unknown>(`/orders/${id}/deliver`, { method: 'POST' }),
+
+  addDeliveryFile: async (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(`${API_URL}/orders/${id}/delivery-files`, {
+      method: 'POST',
+      credentials: 'include',
+      body: form,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
+      throw new ApiError(res.status, data?.error || message || 'Upload failed')
+    }
+    return data
+  },
+
+  acceptDelivery: (id: string) => request<unknown>(`/orders/${id}/accept`, { method: 'POST' }),
+
+  requestRevision: (id: string, reason: string) =>
+    request<unknown>(`/orders/${id}/request-revision`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  cancelOrderAsBuyer: (id: string) => request<unknown>(`/orders/${id}/cancel-as-buyer`, { method: 'POST' }),
+
+  cancelOrderAsSeller: (id: string, reason: string) =>
+    request<unknown>(`/orders/${id}/cancel-as-seller`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  // --- WaveCoin top-up via Bank of Georgia ---
+  // Response shape is `{ ok: true, orderId, redirectUrl }` (see BogPaymentsController#createOrder /
+  // BogPaymentsService#createWavecoinOrder) — redirect the browser to `redirectUrl` to hand off to
+  // BOG's hosted checkout page; WaveCoin is credited later via the server-to-server callback, not
+  // by anything this call does.
+  createBogTopupOrder: (payload: { amountGel: number; successUrl: string; failUrl: string }) =>
+    request<{ ok: true; orderId: string; redirectUrl: string }>('/payments/bog/create-order', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 }

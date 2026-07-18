@@ -47,7 +47,12 @@ user.entity.ts` and `users.service.ts#toPublicUser`, `frontend/lib/api.ts`) — 
 sync across both apps if they change. `AdminRole` was expanded from a 3-value placeholder to the
 real 6 named roles (client's "Staff Management System" docs — see `SPECIFICATION.md` §5.13) but has
 no backing column on `User` yet (`PublicUser.adminRole` is still hardcoded `null` in
-`toPublicUser()` — see `backend/src/users/CLAUDE.md`). The rest of the enums (`OrderStatus`,
-`WalletLedgerType`, `DisputeStatus`, etc.) still don't have a backing table/entity yet; they're
-defined ahead of the modules that will use them so later phases have a single place to import from
-instead of re-deriving the same status strings per module.
+`toPublicUser()` — see `backend/src/users/CLAUDE.md`). `PublicUser` gained `wavecoinBalance` when
+the frontend wallet page needed somewhere to read it from — there is no separate wallet-balance
+endpoint, `/auth/me` is it. `PublicOrderSummary`/`PublicOrderDetail`/`PublicOrderParty`/
+`PublicOrderListingRef`/`PublicOrderPackageRef`/`PublicOrderDeliveryFile` were added alongside
+`backend/src/orders/`'s `OrdersService#toSummary` and the frontend's `orders/` pages — same
+hand-written-not-derived-from-the-entity discipline as the `PublicListing*` shapes. The rest of the
+enums (`WalletLedgerType`, `DisputeStatus`, etc.) still don't have a backing table/entity yet
+(`OrderStatus` now does); they're defined ahead of the modules that will use them so later phases
+have a single place to import from instead of re-deriving the same status strings per module.

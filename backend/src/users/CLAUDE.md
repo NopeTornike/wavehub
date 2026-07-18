@@ -16,7 +16,9 @@ up a user without each reimplementing repository queries.
 - `users.service.ts` — `findById`/`findByUsername`/`findByEmail`, `markEmailVerified`,
   `setPasswordHash`, `toPublicUser` (maps the entity to the `PublicUser` shape from
   `@wavehub/shared-types` — the one place that mapping happens, use it instead of hand-building a
-  public user object elsewhere)
+  public user object elsewhere; includes `wavecoinBalance`, so `/auth/me` is how the frontend reads
+  a logged-in user's spendable balance — see `frontend/pages/wallet.tsx` — there's no separate
+  `GET /wallet/balance` endpoint)
 - `users.module.ts` — exports `UsersService` for other modules to import
 
 ## Data model

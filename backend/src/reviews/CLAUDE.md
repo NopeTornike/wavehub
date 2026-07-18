@@ -64,7 +64,11 @@ BETWEEN 1 AND 5)` — both enforced by Postgres, not just app-layer validation.
 
 ## Status
 Create/reply/report/browse are implemented and unit-tested (guard clauses, duplicate-review
-race-safety via the DB constraint, reply-once enforcement) — 89 backend tests total after this
-module. Not verified against a live Postgres transaction (no DB available in the sandbox this was
-built in). Not yet built: the admin HTTP routes for hide/remove/restore/reports-queue, and any
-frontend (no review display/submission UI in `frontend/` yet).
+race-safety via the DB constraint, reply-once enforcement) — 90 backend tests total as of the last
+update. Not verified against a live Postgres transaction (no DB available in the sandbox this was
+built in). Frontend now exists: `frontend/pages/listings/[id].tsx` displays a listing's reviews
+(sortable), and `frontend/pages/orders/[id].tsx` shows a submission form once an order is
+`Completed` and the viewer is the buyer — it doesn't pre-check "have I already reviewed this order,"
+it just lets the backend's `orderId` unique constraint reject a second attempt with a clear error.
+No seller-reply UI yet (reply is backend-only so far). Not yet built: the admin HTTP routes for
+hide/remove/restore/reports-queue.

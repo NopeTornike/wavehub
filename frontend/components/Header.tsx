@@ -43,6 +43,8 @@ export default function Header() {
         <Link href="/marketplace">Marketplace</Link>
         {!checked ? null : user ? (
           <>
+            <Link href="/orders">შეკვეთები</Link>
+            <Link href="/wallet">{user.wavecoinBalance} WC</Link>
             <span className="note" style={{ margin: 0 }}>
               {user.firstName}
             </span>

@@ -11,10 +11,32 @@ it into real components here, don't extend it further.
 - `pages/marketplace.tsx` — browse grid with category/game/type filters + pagination, wrapped in
   `Layout`
 - `pages/listings/[id].tsx` — listing detail: gallery, description, requirements/FAQ (service),
-  package picker (service) or stock/price (item), reviews with sort. The "buy" button is a visible
-  placeholder (`ყიდვა`) — checkout has no frontend yet (Phase 5's Orders backend exists, its
-  frontend doesn't), so it deliberately does not wire to anything real yet rather than fake success
-- `pages/login.tsx`, `pages/register.tsx` — auth forms
+  package picker (service) or stock/price (item), reviews with sort. The "buy" button calls
+  `api.purchase()` for real (redirects to `/login?next=...` first if logged out) and, for a service
+  listing with a `requirementsSchema`, renders a form for it before allowing purchase — the answers
+  are sent as `requirementsAnswers`, validated server-side by
+  `backend/src/orders/requirements-validator.ts`
+- `pages/orders/index.tsx` — buyer/seller tab list of the viewer's orders (`api.listOrdersAsBuyer`/
+  `listOrdersAsSeller`)
+- `pages/orders/[id].tsx` — order detail: status, price/fee breakdown (fee only shown to the
+  seller), requirements answers, delivery files (+ upload widget for the seller while
+  `InProgress`/`Delivered`), and every status-gated action (start/deliver for the seller;
+  accept/request-revision/cancel for the buyer; cancel-with-reason for the seller) — the viewer's
+  role is inferred by comparing `api.me()`'s id against `order.buyer.id`/`order.seller.id`, not a
+  separate flag. A completed order shows a review form (`api.createReview`) if the viewer is the
+  buyer — the backend's `orderId` unique constraint is the actual duplicate-review guard, this page
+  doesn't try to pre-check that itself
+- `pages/wallet.tsx` — balance (from `api.me().user.wavecoinBalance` — there's no separate wallet
+  balance endpoint, see `backend/src/wallet/CLAUDE.md`) + a WaveCoin top-up form that calls
+  `api.createBogTopupOrder` and redirects the browser to BOG's hosted checkout page
+  (`redirectUrl`); WaveCoin is credited later by the backend's signature-verified callback, not by
+  anything on this page — the `?topup=success|fail` query param after BOG redirects back is just a
+  banner, not a trigger for crediting anything
+- `pages/login.tsx`, `pages/register.tsx` — auth forms. `login.tsx` supports a `?next=` query param
+  (validated with `safeNextPath` — must be a same-origin relative path starting with exactly one
+  `/`, never an absolute/protocol-relative URL, to avoid an open redirect) and pushes there on
+  successful login; other pages link to `/login?next=/wherever` when they need to force a login
+  first (see `wallet.tsx`, `listings/[id].tsx`)
 - `pages/forgot-password.tsx` — request a reset link by email
 - `pages/reset-password.tsx` — landing page for the reset link (`?token=`), sets a new password
 - `pages/verify-email.tsx` — landing page for the verification link (`?token=`), auto-verifies on
@@ -27,12 +49,16 @@ it into real components here, don't extend it further.
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the
-  marketplace methods (`listCategories`/`listGames`/`browseListings`/`getListing`/
-  `listReviewsForListing`) return the raw backend shape, unlike the auth methods which are wrapped in
-  `{ ok: true, ... }` — don't assume a uniform envelope
+  marketplace/order/review methods return the raw backend shape, unlike the auth methods which are
+  wrapped in `{ ok: true, ... }` — don't assume a uniform envelope. `addDeliveryFile` is the one
+  method that doesn't go through the shared `request()` helper — it needs `FormData`/multipart, not
+  a JSON body, so it does its own `fetch()` with the same `credentials: 'include'` + `ApiError`
+  handling duplicated inline (small enough not to warrant a second shared helper yet)
 - `styles/global.css` — CSS custom properties for a dark/purple gradient theme (`--bg`,
   `--gradient-start/mid/end`, etc.), plus the marketplace/detail-page classes (`.listing-grid`,
-  `.listing-card`, `.filter-bar`, `.detail-layout`, `.package-list`, `.review-item`, etc.)
+  `.listing-card`, `.filter-bar`, `.detail-layout`, `.package-list`, `.review-item`, etc.) and the
+  order/wallet classes (`.order-tabs`, `.order-card`, `.order-status` + its per-status color
+  modifiers, `.order-actions`, `.wallet-balance`, `.delivery-file-list`)
 
 ## Data model
 N/A on the frontend itself. Talks to the NestJS backend (`backend/`) over HTTP; shared request/response
@@ -73,22 +99,34 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
 - `packages/shared-types/` — always check here first for an enum/type before defining one locally.
 - `backend/src/auth/` — every endpoint `lib/api.ts` calls is defined there; check that module's doc
   for request/response shapes and behavior before changing either side.
+- `backend/src/orders/`, `backend/src/wallet/`, `backend/src/payments/` — back the orders/wallet
+  pages; check those modules' docs for status-transition rules and response shapes before changing
+  either side.
 
 ## Status
 The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
 register, login, logout, `/me`, email verification (with a working landing page + resend), password
-reset (request + confirm, both with working pages). Marketplace browsing is now real too: home page,
-filtered/paginated browse grid, and a listing detail page with packages/reviews — all backed by the
-real `backend/src/listings/` and `backend/src/reviews/` endpoints, no mock data. Still no persistent
-client-side "am I logged in" state (every page that needs identity calls `api.me()` itself — a shared
-auth context/provider is worth building once more pages need it, not before). No checkout/order-
-tracking/cart pages yet (Orders backend exists, Orders frontend doesn't — that's the next natural
-piece); no coaching, profile, messages, or wallet pages yet either. The repo-root static site remains
+reset (request + confirm, both with working pages). Marketplace browsing, checkout, order
+management, and WaveCoin top-up are now real too: home page, filtered/paginated browse grid, a
+listing detail page with packages/reviews and a working buy button (including the requirements
+form for service listings), an order list + detail page with the full status-gated action set
+(start/deliver/accept/revision/cancel/review), and a wallet page with balance + BOG top-up — all
+backed by the real `backend/src/listings/`, `backend/src/orders/`, `backend/src/reviews/`, and
+`backend/src/payments/`+`backend/src/wallet/` endpoints, no mock data. Still no persistent
+client-side "am I logged in" state (every page that needs identity calls `api.me()` itself — a
+shared auth context/provider is worth building once more pages need it, not before; several pages
+now duplicate the same "load `api.me()`, redirect to `/login?next=...` if absent" pattern —
+`listings/[id].tsx`, `orders/[id].tsx`, `wallet.tsx` — that duplication is the strongest signal yet
+that this is worth building). No cart page (checkout is a direct single-listing buy, not a
+multi-item cart — matches the WaveCoin/order model, not an oversight), no seller dashboard /
+create-listing frontend, no coaching/profile/messages pages yet. The repo-root static site remains
 the reference mockup for all of that until it's ported here.
 
 **Verification caveat**: this workspace has no Docker/Postgres available (a constraint noted
-throughout this repo's `CLAUDE.md` files), so the marketplace pages above were verified via
+throughout this repo's `CLAUDE.md` files), so everything above was verified via
 `npm run build`/`lint`/typecheck only, against real response *shapes* from `packages/shared-types` —
-not against a running backend with real seeded data in an actual browser. Do an end-to-end
-browser click-through (`docker-compose up`, seed a listing, load `/marketplace` and click into it)
-before trusting this in front of a real user.
+not against a running backend with real seeded data in an actual browser. In particular, the BOG
+top-up redirect and the full purchase→deliver→accept→review order lifecycle have never been
+click-tested end-to-end. Do that (`docker-compose up`, seed a listing, walk a full buyer+seller
+journey through `/marketplace` → `/orders` → `/wallet`) before trusting this in front of a real
+user.

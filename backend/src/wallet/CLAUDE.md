@@ -80,7 +80,10 @@ the referenced table caught up.
 ## Status
 `recordTopup`, `debitForOrder`, `releaseSellerEarnings`, and `refundBuyer` are all fully wired to
 real callers now (`backend/src/payments/` and `backend/src/orders/`) and exercised by unit tests —
-no more "built ahead of its caller" primitives left in this module. Not yet built: withdrawals
-(seller-facing balance requests, Phase 8), derived balance-summary views (available/pending/earned/
-withdrawn, also Phase 8), dispute-driven freezing (`status: Held` is defined but nothing sets it yet
-— Phase 8).
+no more "built ahead of its caller" primitives left in this module. There's still no `WalletController`
+— the only way to read a balance is `PublicUser.wavecoinBalance` on `/auth/me` (see
+`backend/src/users/CLAUDE.md`), which is what `frontend/pages/wallet.tsx` uses; there is still no
+ledger/transaction-history endpoint, so that page can only show the current balance and a top-up
+form, not a history list. Not yet built: withdrawals (seller-facing balance requests, Phase 8),
+derived balance-summary views (available/pending/earned/withdrawn, also Phase 8), dispute-driven
+freezing (`status: Held` is defined but nothing sets it yet — Phase 8).

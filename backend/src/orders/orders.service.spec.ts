@@ -42,7 +42,7 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
       storage,
     );
 
-    return { service, dataSource };
+    return { service, dataSource, wallet };
   }
 
   it('rejects a listing that does not exist or is not Active', async () => {
@@ -119,5 +119,22 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
 
     expect(dataSource.transaction).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ id: 'order-1' });
+  });
+
+  it('translates WalletService.debitForOrder INSUFFICIENT_BALANCE into a clean ForbiddenException', async () => {
+    const { service, dataSource, wallet } = build({
+      'listing-1': { id: 'listing-1', sellerId, status: ListingStatus.Active, type: ListingType.Item, priceWaveCoin: 15, stockQuantity: 3 },
+    });
+    const manager = {
+      query: jest.fn().mockResolvedValue([{ n: '123' }]),
+      create: jest.fn((_entity: any, data: any) => data),
+      save: jest.fn(async (row: any) => ({ ...row, id: 'order-1' })),
+    };
+    dataSource.transaction.mockImplementation((fn: any) => fn(manager));
+    wallet.debitForOrder.mockRejectedValue(new Error('INSUFFICIENT_BALANCE'));
+
+    await expect(
+      service.purchase(buyerId, { listingId: 'listing-1' } as any),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

@@ -144,6 +144,10 @@ export interface PublicUser {
   lastName: string;
   status: UserStatus;
   adminRole: AdminRole | null;
+  // The buyer-spendable WaveCoin balance (backend/src/wallet/CLAUDE.md) — a seller's earnings
+  // (available/pending/withdrawn) are a separate derived view over the wallet ledger, not this
+  // field; this is only ever what the user can spend at checkout.
+  wavecoinBalance: number;
 }
 
 export interface AuthMeResponse {
@@ -241,6 +245,68 @@ export interface PublicListingDetail extends PublicListingSummary {
   requirementsSchema?: RequirementField[];
   faq?: FaqEntry[];
   itemAttributes?: Record<string, unknown>;
+}
+
+// --- Order response shapes ---
+// What backend/src/orders' endpoints actually return (see OrdersService#findMineAsBuyer/
+// #findMineAsSeller/#findForParticipant) — both buyer and seller are always included (whichever
+// side the viewer isn't is just "the counterparty"), since order participants can already see each
+// other's basic identity in this context; there's no restricted-view variant of this shape.
+
+export interface PublicOrderParty {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface PublicOrderListingRef {
+  id: string;
+  title: string;
+  type: ListingType;
+}
+
+export interface PublicOrderPackageRef {
+  id: string;
+  name: string;
+}
+
+export interface PublicOrderDeliveryFile {
+  id: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedBy: string;
+  createdAt: string;
+}
+
+// The shape findMineAsBuyer/findMineAsSeller return per row — enough for a list card, not the
+// full detail (no requirementsAnswers/deliveryFiles — see PublicOrderDetail for that).
+export interface PublicOrderSummary {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  listing: PublicOrderListingRef;
+  package: PublicOrderPackageRef | null;
+  buyer: PublicOrderParty;
+  seller: PublicOrderParty;
+  priceWaveCoin: number;
+  deliveryDueAt: string | null;
+  deliveredAt: string | null;
+  autoCompleteAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+// What findForParticipant returns — a PublicOrderSummary plus everything a detail page needs to
+// render status-specific actions and history.
+export interface PublicOrderDetail extends PublicOrderSummary {
+  requirementsAnswers: Record<string, unknown> | null;
+  platformFeeWaveCoin: number;
+  sellerPayoutWaveCoin: number;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  revisionReason: string | null;
+  deliveryFiles: PublicOrderDeliveryFile[];
 }
 
 export interface PublicReview {

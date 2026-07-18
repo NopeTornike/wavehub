@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import type { PublicListingDetail, PublicReview } from '@wavehub/shared-types'
+import type { PublicListingDetail, PublicReview, PublicUser } from '@wavehub/shared-types'
 import { ListingType } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, ApiError } from '../../lib/api'
@@ -9,12 +9,20 @@ export default function ListingDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
 
+  const [me, setMe] = useState<PublicUser | null>(null)
   const [listing, setListing] = useState<PublicListingDetail | null>(null)
   const [reviews, setReviews] = useState<PublicReview[]>([])
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null)
   const [sort, setSort] = useState<'newest' | 'highest' | 'lowest'>('newest')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [requirementAnswers, setRequirementAnswers] = useState<Record<string, string>>({})
+  const [purchaseError, setPurchaseError] = useState('')
+  const [purchasing, setPurchasing] = useState(false)
+
+  useEffect(() => {
+    api.me().then((res) => setMe(res.user)).catch(() => setMe(null))
+  }, [])
 
   useEffect(() => {
     if (!id) return
@@ -236,12 +244,100 @@ export default function ListingDetail() {
                 </div>
               )}
 
-              <button className="button glow-on-hover" type="button" style={{ width: '100%', marginTop: 16 }}>
-                {displayPrice !== null ? `ყიდვა — ${displayPrice} WC` : 'ყიდვა'}
+              {listing.type === ListingType.Service &&
+                listing.requirementsSchema &&
+                listing.requirementsSchema.length > 0 && (
+                  <div className="detail-section" style={{ marginTop: 16 }}>
+                    <h2>შეავსეთ შეკვეთამდე</h2>
+                    {listing.requirementsSchema.map((field) => (
+                      <div className="form-group" key={field.key}>
+                        <label htmlFor={field.key}>
+                          {field.label}
+                          {field.required ? ' *' : ''}
+                        </label>
+                        {field.type === 'dropdown' ? (
+                          <select
+                            id={field.key}
+                            className="input"
+                            value={requirementAnswers[field.key] ?? ''}
+                            onChange={(event) =>
+                              setRequirementAnswers((prev) => ({ ...prev, [field.key]: event.target.value }))
+                            }
+                          >
+                            <option value="">აირჩიეთ…</option>
+                            {(field.options ?? []).map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        ) : field.type === 'textarea' ? (
+                          <textarea
+                            id={field.key}
+                            className="input"
+                            value={requirementAnswers[field.key] ?? ''}
+                            onChange={(event) =>
+                              setRequirementAnswers((prev) => ({ ...prev, [field.key]: event.target.value }))
+                            }
+                          />
+                        ) : (
+                          <input
+                            id={field.key}
+                            className="input"
+                            type={field.type === 'number' ? 'number' : 'text'}
+                            value={requirementAnswers[field.key] ?? ''}
+                            onChange={(event) =>
+                              setRequirementAnswers((prev) => ({ ...prev, [field.key]: event.target.value }))
+                            }
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+              {purchaseError && (
+                <div className="status-text status-error" style={{ marginTop: 8 }}>
+                  {purchaseError}
+                </div>
+              )}
+
+              <button
+                className="button glow-on-hover"
+                type="button"
+                style={{ width: '100%', marginTop: 16 }}
+                disabled={purchasing || (listing.type === ListingType.Service && !selectedPackageId)}
+                onClick={async () => {
+                  setPurchaseError('')
+                  if (!me) {
+                    router.push(`/login?next=/listings/${listing.id}`)
+                    return
+                  }
+                  setPurchasing(true)
+                  try {
+                    const order = await api.purchase({
+                      listingId: listing.id,
+                      packageId: listing.type === ListingType.Service ? selectedPackageId ?? undefined : undefined,
+                      requirementsAnswers:
+                        listing.type === ListingType.Service ? requirementAnswers : undefined,
+                    })
+                    router.push(`/orders/${order.id}`)
+                  } catch (err) {
+                    setPurchaseError(
+                      err instanceof ApiError ? err.message : 'შეკვეთის გაფორმება ვერ მოხერხდა.',
+                    )
+                  } finally {
+                    setPurchasing(false)
+                  }
+                }}
+              >
+                {purchasing ? 'მიმდინარეობს…' : displayPrice !== null ? `ყიდვა — ${displayPrice} WC` : 'ყიდვა'}
               </button>
-              <p className="note" style={{ textAlign: 'center', marginTop: 8 }}>
-                შეკვეთის გაფორმება მალე დაემატება
-              </p>
+              {!me && (
+                <p className="note" style={{ textAlign: 'center', marginTop: 8 }}>
+                  შესყიდვისთვის საჭიროა ავტორიზაცია
+                </p>
+              )}
             </div>
           </div>
         </div>

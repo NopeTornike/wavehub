@@ -78,6 +78,18 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   state machine alone would also structurally allow other buyer-initiated-shaped cancellations if
   called wrong; the extra check is deliberate belt-and-suspenders for a money-moving action, not
   redundant.
+- **`WalletService.debitForOrder`'s `INSUFFICIENT_BALANCE`/`USER_NOT_FOUND` are plain `Error`s, not
+  `HttpException`s** — `purchase()` catches `INSUFFICIENT_BALANCE` specifically and rethrows as
+  `ForbiddenException` so a real buyer sees a clean 4xx instead of an unhandled 500 (found and fixed
+  while wiring the frontend checkout flow — nothing had ever exercised this path with a real
+  insufficient-balance buyer before). Any other error from the wallet call still propagates
+  unmodified (real bug, should 500).
+- **`findMineAsBuyer`/`findMineAsSeller`/`findForParticipant` return `PublicOrderSummary`/
+  `PublicOrderDetail` (from `@wavehub/shared-types`), not bare `Order` rows** — joins
+  `listing`/`package`/`buyer`/`seller` (same N+1-avoidance reasoning as
+  `ListingsService#browseActive`) and, for the detail call, a separate `deliveryFiles` query. The
+  private `toSummary(order)` mapper is the one place that shapes an `Order` entity into the public
+  response — update it (and the matching shared-types interface) together if either changes.
 
 ## Related modules
 - `backend/src/wallet/` — every money-moving action here (`debitForOrder`, `releaseSellerEarnings`,
@@ -96,9 +108,12 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
 
 ## Status
 Full purchase-to-completion flow implemented and unit-tested at the validation/lifecycle layer
-(guard clauses, state machine, requirements validation) — 80 backend tests total after this module.
-Not verified against a live Postgres transaction (no DB available in the sandbox this was built in —
-see the migration's own notes and `backend/src/wallet/CLAUDE.md`'s equivalent caveat). Not yet built:
-any frontend (no checkout/order-tracking pages in `frontend/` yet — this is backend API only), and
-the parts explicitly deferred above (dispute integration, per-revision history, admin-configurable
-fee rate, multi-instance-safe cron).
+(guard clauses, state machine, requirements validation, and now the INSUFFICIENT_BALANCE
+translation) — 90 backend tests total after this update. Not verified against a live Postgres
+transaction (no DB available in the sandbox this was built in — see the migration's own notes and
+`backend/src/wallet/CLAUDE.md`'s equivalent caveat). Frontend now exists: checkout is wired from
+`frontend/pages/listings/[id].tsx` (including the requirements-form for service listings), an order
+list at `frontend/pages/orders/index.tsx` (buyer/seller tabs), and an order detail/actions page at
+`frontend/pages/orders/[id].tsx` (start/deliver/accept/revision/cancel + delivery-file upload +
+leave-a-review once completed) — see `frontend/CLAUDE.md`. Still deferred: dispute integration,
+per-revision history, admin-configurable fee rate, multi-instance-safe cron.

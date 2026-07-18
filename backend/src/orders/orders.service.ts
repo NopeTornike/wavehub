@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, LessThanOrEqual, Repository } from 'typeorm';
 import { ListingStatus, ListingType, OrderStatus } from '@wavehub/shared-types';
+import type { PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
 import { Order } from './order.entity';
 import { OrderDeliveryFile } from './order-delivery-file.entity';
 import { Listing } from '../listings/listing.entity';
@@ -119,8 +120,17 @@ export class OrdersService {
       });
       const saved = await manager.save(order);
 
-      // Throws INSUFFICIENT_BALANCE if the buyer can't afford it — rolls back the Order insert too.
-      await this.wallet.debitForOrder(buyerId, saved.id, priceWaveCoin, manager);
+      // WalletService throws a plain Error('INSUFFICIENT_BALANCE') — translate it to a clean 4xx
+      // here rather than letting it fall through as an unhandled 500 (rolls back the Order insert
+      // either way; this only changes what the caller sees).
+      try {
+        await this.wallet.debitForOrder(buyerId, saved.id, priceWaveCoin, manager);
+      } catch (err) {
+        if (err instanceof Error && err.message === 'INSUFFICIENT_BALANCE') {
+          throw new ForbiddenException('Insufficient WaveCoin balance for this purchase');
+        }
+        throw err;
+      }
 
       if (listing.type === ListingType.Item) {
         if (listing.stockQuantity != null) {
@@ -210,20 +220,85 @@ export class OrdersService {
     return this.cancelOrder(order, reason);
   }
 
-  async findMineAsBuyer(buyerId: string): Promise<Order[]> {
-    return this.orders.find({ where: { buyerId }, order: { createdAt: 'DESC' } });
+  // Relations are joined here (not left as bare FK ids) so a list page can render a card — title,
+  // counterparty name, package name — without an N+1 follow-up request per row. See
+  // ListingsService#browseActive for the same reasoning applied to listings.
+  async findMineAsBuyer(buyerId: string): Promise<PublicOrderSummary[]> {
+    const orders = await this.orders.find({
+      where: { buyerId },
+      relations: ['listing', 'package', 'buyer', 'seller'],
+      order: { createdAt: 'DESC' },
+    });
+    return orders.map((order) => this.toSummary(order));
   }
 
-  async findMineAsSeller(sellerId: string): Promise<Order[]> {
-    return this.orders.find({ where: { sellerId }, order: { createdAt: 'DESC' } });
+  async findMineAsSeller(sellerId: string): Promise<PublicOrderSummary[]> {
+    const orders = await this.orders.find({
+      where: { sellerId },
+      relations: ['listing', 'package', 'buyer', 'seller'],
+      order: { createdAt: 'DESC' },
+    });
+    return orders.map((order) => this.toSummary(order));
   }
 
-  async findForParticipant(userId: string, orderId: string): Promise<Order> {
-    const order = await this.getOrderOrThrow(orderId);
+  async findForParticipant(userId: string, orderId: string): Promise<PublicOrderDetail> {
+    const order = await this.orders.findOne({
+      where: { id: orderId },
+      relations: ['listing', 'package', 'buyer', 'seller'],
+    });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
     if (order.buyerId !== userId && order.sellerId !== userId) {
       throw new ForbiddenException("This order doesn't belong to you");
     }
-    return order;
+
+    const files = await this.deliveryFiles.find({ where: { orderId }, order: { createdAt: 'ASC' } });
+
+    return {
+      ...this.toSummary(order),
+      requirementsAnswers: order.requirementsAnswers,
+      platformFeeWaveCoin: order.platformFeeWaveCoin,
+      sellerPayoutWaveCoin: order.sellerPayoutWaveCoin,
+      cancelledAt: order.cancelledAt?.toISOString() ?? null,
+      cancellationReason: order.cancellationReason,
+      revisionReason: order.revisionReason,
+      deliveryFiles: files.map((file) => ({
+        id: file.id,
+        fileUrl: file.fileUrl,
+        fileType: file.fileType,
+        uploadedBy: file.uploadedBy,
+        createdAt: file.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  private toSummary(order: Order): PublicOrderSummary {
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      listing: { id: order.listing.id, title: order.listing.title, type: order.listing.type },
+      package: order.package ? { id: order.package.id, name: order.package.name } : null,
+      buyer: {
+        id: order.buyer.id,
+        username: order.buyer.username,
+        firstName: order.buyer.firstName,
+        lastName: order.buyer.lastName,
+      },
+      seller: {
+        id: order.seller.id,
+        username: order.seller.username,
+        firstName: order.seller.firstName,
+        lastName: order.seller.lastName,
+      },
+      priceWaveCoin: order.priceWaveCoin,
+      deliveryDueAt: order.deliveryDueAt?.toISOString() ?? null,
+      deliveredAt: order.deliveredAt?.toISOString() ?? null,
+      autoCompleteAt: order.autoCompleteAt?.toISOString() ?? null,
+      completedAt: order.completedAt?.toISOString() ?? null,
+      createdAt: order.createdAt.toISOString(),
+    };
   }
 
   // Runs hourly — a 72h auto-complete window doesn't need per-minute precision, and hourly keeps
