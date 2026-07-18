@@ -66,4 +66,8 @@ a backing table too (`ChatService#toPublicMessage`). `PublicDispute`/`PublicDisp
 (previously scaffolded-but-unused since Phase 0), and `PublicWalletTransaction` finally gives
 `WalletLedgerType`/`WalletLedgerStatus` (backed by `wallet_ledger_entries` since Phase 2, but with
 no response shape of its own until now) a `Public*` wrapper, since `GET wallet/transactions` needed
-one. Every enum in this file now has both a backing table and at least one `Public*` consumer.
+one. `NotificationType`/`PublicNotification` were added alongside `backend/src/notifications/` —
+this is a genuinely new enum (not a Phase-0-scaffolded-then-later-used one like every other enum in
+this file), since notifications weren't anticipated with a placeholder the way order/wallet/dispute
+concepts were. Every enum in this file now has both a backing table and at least one `Public*`
+consumer.

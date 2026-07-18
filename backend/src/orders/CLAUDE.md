@@ -122,6 +122,9 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   dependency direction is `disputes → orders`, not the other way — this module has zero awareness
   of disputes existing, by design (see `order-lifecycle.ts`'s own comment on why `Disputed` is
   reachable but this module never triggers it).
+- `backend/src/notifications/` — every lifecycle mutation notifies the relevant party via a private
+  `notify` helper (mirrors `postSystemMessage`'s shape) — see `notifications/CLAUDE.md` for the
+  full hook-point list across all five modules that use it.
 
 ## Status
 Full purchase-to-completion flow implemented and unit-tested at the validation/lifecycle layer

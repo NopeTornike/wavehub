@@ -47,9 +47,14 @@ are never hard-deleted).
   default `Sent`** — read receipts are out of scope for this narrow-first pass, per the build plan.
 
 ## Related modules
-- `backend/src/orders/` — the only caller. Every lifecycle transition that should produce a system
-  message is listed in the gotcha above; if you add a new order status transition, decide whether
-  it needs one too.
+- `backend/src/orders/` — the primary caller. Every lifecycle transition that should produce a
+  system message is listed in the gotcha above; if you add a new order status transition, decide
+  whether it needs one too.
+- `backend/src/disputes/` — also posts system notices (`open()`/`resolve()`) via
+  `postSystemMessage`, same best-effort pattern — this doc's "the only caller" framing from earlier
+  phases is now stale, corrected here.
+- `backend/src/notifications/` — `postMessage` (real buyer/seller messages only, not system
+  notices) notifies the recipient via `NotificationType.NewMessage`.
 - `packages/shared-types/` — `ConversationType`/`MessageType`/`MessageStatus` enums, `PublicMessage`
   response shape.
 

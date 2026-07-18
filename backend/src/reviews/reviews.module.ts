@@ -9,9 +9,15 @@ import { ReviewsService } from './reviews.service';
 import { ReviewsController } from './reviews.controller';
 import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Review, ReviewReport, Order, Listing, User]), AuthModule, AdminModule],
+  imports: [
+    TypeOrmModule.forFeature([Review, ReviewReport, Order, Listing, User]),
+    AuthModule,
+    AdminModule,
+    NotificationsModule,
+  ],
   controllers: [ReviewsController],
   providers: [ReviewsService],
   exports: [ReviewsService],

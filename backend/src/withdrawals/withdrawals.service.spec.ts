@@ -53,8 +53,10 @@ describe('WithdrawalsService', () => {
       reverseWithdrawal: jest.fn(),
     } as any;
 
-    const service = new WithdrawalsService(withdrawals, disputes, dataSource, wallet);
-    return { service, manager, withdrawals, disputes, wallet };
+    const notifications = { emit: jest.fn() } as any;
+
+    const service = new WithdrawalsService(withdrawals, disputes, dataSource, wallet, notifications);
+    return { service, manager, withdrawals, disputes, wallet, notifications };
   }
 
   describe('request', () => {

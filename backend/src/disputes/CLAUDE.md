@@ -90,6 +90,8 @@ CASCADE` from `disputes`.
   there, this module imports it rather than duplicating the transition map.
 - `backend/src/wallet/` — `releaseSellerEarnings`/`refundBuyer`, called from `resolve()`.
 - `backend/src/chat/` — `ChatService.postSystemMessage`, called best-effort from `open()`/`resolve()`.
+- `backend/src/notifications/` — `DisputeOpened` (to the counterpart) and `DisputeResolved` (to
+  both parties), via the same private `notify` helper shape as `backend/src/orders/`.
 - `backend/src/storage/` — evidence file persistence, same interface as delivery files/listing
   images.
 - `packages/shared-types/` — `DisputeStatus`/`DisputeResolution` enums, `PublicDispute` +

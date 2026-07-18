@@ -1,13 +1,14 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Not, In, Repository } from 'typeorm';
-import { DisputeStatus, WithdrawStatus } from '@wavehub/shared-types';
+import { DisputeStatus, NotificationType, WithdrawStatus } from '@wavehub/shared-types';
 import type { PublicWalletBalance, PublicWithdrawRequest } from '@wavehub/shared-types';
 import { WithdrawRequest } from './withdraw-request.entity';
 import { Dispute } from '../disputes/dispute.entity';
 import { assertValidTransition } from './withdraw-lifecycle';
 import { CreateWithdrawRequestDto } from './dto/create-withdraw-request.dto';
 import { WalletService } from '../wallet/wallet.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // SPECIFICATION.md §5.6: "Minimum withdrawal $20 (recommended default, should be
 // admin-configurable)" — 1 GEL/WaveCoin at the current fixed top-up rate (see
@@ -16,13 +17,24 @@ import { WalletService } from '../wallet/wallet.service';
 // 11f (Platform Settings), not before.
 const MIN_WITHDRAWAL_WAVECOIN = 20;
 
+const STATUS_LABELS_KA: Record<WithdrawStatus, string> = {
+  [WithdrawStatus.Pending]: 'მოლოდინში',
+  [WithdrawStatus.Processing]: 'მუშავდება',
+  [WithdrawStatus.Completed]: 'შესრულებულია',
+  [WithdrawStatus.Rejected]: 'უარყოფილია',
+  [WithdrawStatus.Cancelled]: 'გაუქმებულია',
+};
+
 @Injectable()
 export class WithdrawalsService {
+  private readonly logger = new Logger(WithdrawalsService.name);
+
   constructor(
     @InjectRepository(WithdrawRequest) private readonly withdrawals: Repository<WithdrawRequest>,
     @InjectRepository(Dispute) private readonly disputes: Repository<Dispute>,
     private readonly dataSource: DataSource,
     private readonly wallet: WalletService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Gated on: amount >= MIN_WITHDRAWAL_WAVECOIN, no active dispute for this seller (any status
@@ -103,6 +115,18 @@ export class WithdrawalsService {
         await this.wallet.reverseWithdrawal(request.sellerId, request.amountWaveCoin, id, manager);
       }
     });
+
+    try {
+      await this.notifications.emit(
+        request.sellerId,
+        NotificationType.WithdrawalStatusChanged,
+        'გატანის მოთხოვნის სტატუსი შეიცვალა',
+        `თქვენი გატანის მოთხოვნა (${request.amountWaveCoin} WC) ${STATUS_LABELS_KA[status]}${note ? `: ${note}` : ''}`,
+        { withdrawRequestId: id },
+      );
+    } catch (err) {
+      this.logger.error(`Failed to notify seller ${request.sellerId} of withdrawal status change`, err as Error);
+    }
 
     const updated = await this.withdrawals.findOne({ where: { id } });
     return this.toPublic(updated!);

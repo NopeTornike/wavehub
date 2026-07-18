@@ -68,6 +68,8 @@ columns on `wallet_ledger_entries` — a withdrawal's fund movement reuses that 
 - `backend/src/disputes/` — the active-dispute check reads `Dispute` directly (see the gotcha
   above).
 - `backend/src/admin/` — `AdminGuard`/`@RequireAdminRole`/`AdminAuditService`, used by `process()`.
+- `backend/src/notifications/` — `WithdrawalStatusChanged`, fired on every `process()` call
+  (Processing/Completed/Rejected all notify, not just the terminal ones).
 - `packages/shared-types/` — `WithdrawStatus`/`WithdrawMethod` enums (already existed, unused
   until now), `PublicWalletBalance`/`PublicWalletTransaction`/`PublicWithdrawRequest` response
   shapes.

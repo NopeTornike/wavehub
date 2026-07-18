@@ -137,6 +137,23 @@ export enum MessageStatus {
   Seen = 'seen',
 }
 
+// The subset of SPECIFICATION.md §5.12's full event catalog that's actually wired up —
+// backend/src/notifications/CLAUDE.md's Status section tracks exactly which hook points exist and
+// which (account events, marketplace approve/reject/pause events) are deliberately deferred.
+export enum NotificationType {
+  OrderPaid = 'order_paid',
+  OrderStarted = 'order_started',
+  OrderDelivered = 'order_delivered',
+  OrderRevisionRequested = 'order_revision_requested',
+  OrderCompleted = 'order_completed',
+  OrderCancelled = 'order_cancelled',
+  DisputeOpened = 'dispute_opened',
+  DisputeResolved = 'dispute_resolved',
+  ReviewPosted = 'review_posted',
+  WithdrawalStatusChanged = 'withdrawal_status_changed',
+  NewMessage = 'new_message',
+}
+
 export interface PublicUser {
   id: string;
   username: string;
@@ -413,4 +430,18 @@ export interface PublicWithdrawRequest {
   adminNote: string | null;
   createdAt: string;
   processedAt: string | null;
+}
+
+// What backend/src/notifications/'s NotificationsController returns. `metadata` carries whatever
+// id a frontend needs to deep-link (orderId/disputeId/reviewId/withdrawRequestId) — shape varies
+// by `type`, deliberately not broken into a discriminated union yet since nothing renders these
+// beyond a flat list today; see notifications/CLAUDE.md.
+export interface PublicNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  metadata: Record<string, string> | null;
+  readAt: string | null;
+  createdAt: string;
 }

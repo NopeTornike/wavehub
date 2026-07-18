@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nest
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, LessThanOrEqual, Repository } from 'typeorm';
-import { ListingStatus, ListingType, OrderStatus } from '@wavehub/shared-types';
+import { ListingStatus, ListingType, NotificationType, OrderStatus } from '@wavehub/shared-types';
 import type { PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
 import { Order } from './order.entity';
 import { OrderDeliveryFile } from './order-delivery-file.entity';
@@ -18,6 +18,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { calculatePlatformFee } from '../wallet/fee.util';
 import { StorageService } from '../storage/storage.service';
 import { ChatService } from '../chat/chat.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // 10% matches every example in the source spec. Not admin-configurable yet — that's build-plan
 // Phase 11 (Platform Settings). Snapshotted onto each Order at creation (platformFeePercentSnapshot)
@@ -49,6 +50,7 @@ export class OrdersService {
     private readonly wallet: WalletService,
     private readonly storage: StorageService,
     private readonly chat: ChatService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Every lifecycle system-message post goes through this — chat is a side channel, never allowed
@@ -59,6 +61,19 @@ export class OrdersService {
       await this.chat.postSystemMessage(orderId, body);
     } catch (err) {
       this.logger.error(`Failed to post system message for order ${orderId}`, err as Error);
+    }
+  }
+
+  // Same best-effort principle as postSystemMessage above — a notification failure must never
+  // block the real order state change. No email bundling yet (NotificationsService#emit supports
+  // it via `alsoEmail`, but that needs the recipient's address, which would mean pulling
+  // UsersService into every hook module — deferred until a real caller needs it, see
+  // notifications/CLAUDE.md).
+  private async notify(userId: string, type: NotificationType, title: string, body: string, orderId: string): Promise<void> {
+    try {
+      await this.notifications.emit(userId, type, title, body, { orderId });
+    } catch (err) {
+      this.logger.error(`Failed to notify user ${userId} for order ${orderId}`, err as Error);
     }
   }
 
@@ -167,6 +182,13 @@ export class OrdersService {
     } catch (err) {
       this.logger.error(`Failed to create chat for order ${saved.orderNumber}`, err as Error);
     }
+    await this.notify(
+      saved.sellerId,
+      NotificationType.OrderPaid,
+      'ახალი შეკვეთა',
+      `თქვენ მიიღეთ ახალი შეკვეთა #${saved.orderNumber}.`,
+      saved.id,
+    );
 
     return saved;
   }
@@ -177,6 +199,13 @@ export class OrdersService {
     order.status = OrderStatus.InProgress;
     const saved = await this.orders.save(order);
     await this.postSystemMessage(orderId, 'გამყიდველმა დაიწყო სამუშაო.');
+    await this.notify(
+      saved.buyerId,
+      NotificationType.OrderStarted,
+      'სამუშაო დაიწყო',
+      `გამყიდველმა დაიწყო სამუშაო შეკვეთაზე #${saved.orderNumber}.`,
+      saved.id,
+    );
     return saved;
   }
 
@@ -188,6 +217,13 @@ export class OrdersService {
     order.autoCompleteAt = new Date(Date.now() + AUTO_COMPLETE_HOURS * 60 * 60 * 1000);
     const saved = await this.orders.save(order);
     await this.postSystemMessage(orderId, 'შეკვეთა მიწოდებულია.');
+    await this.notify(
+      saved.buyerId,
+      NotificationType.OrderDelivered,
+      'შეკვეთა მიწოდებულია',
+      `თქვენი შეკვეთა #${saved.orderNumber} მიწოდებულია — გადახედეთ და დაადასტურეთ მიღება.`,
+      saved.id,
+    );
     return saved;
   }
 
@@ -228,6 +264,13 @@ export class OrdersService {
     order.autoCompleteAt = null;
     const saved = await this.orders.save(order);
     await this.postSystemMessage(orderId, `მყიდველმა მოითხოვა გადამუშავება: ${reason}`);
+    await this.notify(
+      saved.sellerId,
+      NotificationType.OrderRevisionRequested,
+      'გადამუშავება მოთხოვნილია',
+      `მყიდველმა მოითხოვა გადამუშავება შეკვეთაზე #${saved.orderNumber}: ${reason}`,
+      saved.id,
+    );
     return saved;
   }
 
@@ -367,6 +410,20 @@ export class OrdersService {
       return savedOrder;
     });
     await this.postSystemMessage(order.id, 'შეკვეთა დასრულებულია.');
+    await this.notify(
+      saved.buyerId,
+      NotificationType.OrderCompleted,
+      'შეკვეთა დასრულებულია',
+      `შეკვეთა #${saved.orderNumber} დასრულებულია.`,
+      saved.id,
+    );
+    await this.notify(
+      saved.sellerId,
+      NotificationType.OrderCompleted,
+      'შეკვეთა დასრულებულია',
+      `შეკვეთა #${saved.orderNumber} დასრულებულია და თანხა ჩაირიცხა თქვენს ბალანსზე.`,
+      saved.id,
+    );
     return saved;
   }
 
@@ -394,6 +451,20 @@ export class OrdersService {
       return savedOrder;
     });
     await this.postSystemMessage(order.id, `შეკვეთა გაუქმებულია: ${reason}`);
+    await this.notify(
+      saved.buyerId,
+      NotificationType.OrderCancelled,
+      'შეკვეთა გაუქმებულია',
+      `შეკვეთა #${saved.orderNumber} გაუქმებულია: ${reason}`,
+      saved.id,
+    );
+    await this.notify(
+      saved.sellerId,
+      NotificationType.OrderCancelled,
+      'შეკვეთა გაუქმებულია',
+      `შეკვეთა #${saved.orderNumber} გაუქმებულია: ${reason}`,
+      saved.id,
+    );
     return saved;
   }
 

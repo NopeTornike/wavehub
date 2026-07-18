@@ -37,6 +37,8 @@ import { AdminModule } from './admin/admin.module';
 import { AuditLog } from './admin/audit-log.entity';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 import { WithdrawRequest } from './withdrawals/withdraw-request.entity';
+import { NotificationsModule } from './notifications/notifications.module';
+import { Notification } from './notifications/notification.entity';
 
 // Postgres is mandatory from Phase 1 onward — the JSON-file fallback that used to make this
 // conditional (USE_FILE_STORE) was removed along with AuthService's dual-mode logic. See
@@ -83,6 +85,7 @@ import { WithdrawRequest } from './withdrawals/withdraw-request.entity';
         DisputeEvidence,
         AuditLog,
         WithdrawRequest,
+        Notification,
       ],
       synchronize: process.env.TYPEORM_SYNC === 'true',
     }),
@@ -97,6 +100,7 @@ import { WithdrawRequest } from './withdrawals/withdraw-request.entity';
     DisputesModule,
     AdminModule,
     WithdrawalsModule,
+    NotificationsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

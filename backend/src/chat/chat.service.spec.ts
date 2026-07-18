@@ -34,10 +34,14 @@ describe('ChatService', () => {
     };
   }
 
+  function fakeNotifications() {
+    return { emit: jest.fn() };
+  }
+
   describe('ensureConversation', () => {
     it('creates a conversation when none exists for the order', async () => {
       const conversations = fakeConversations(null);
-      const service = new ChatService(conversations as any, fakeMessages() as any);
+      const service = new ChatService(conversations as any, fakeMessages() as any, fakeNotifications() as any);
 
       await service.ensureConversation(orderId, buyerId, sellerId);
 
@@ -47,7 +51,7 @@ describe('ChatService', () => {
 
     it('is idempotent — does not create a second row when one already exists', async () => {
       const conversations = fakeConversations({ id: 'conversation-1', orderId, buyerId, sellerId });
-      const service = new ChatService(conversations as any, fakeMessages() as any);
+      const service = new ChatService(conversations as any, fakeMessages() as any, fakeNotifications() as any);
 
       const result = await service.ensureConversation(orderId, buyerId, sellerId);
 
@@ -58,14 +62,15 @@ describe('ChatService', () => {
 
   describe('postMessage', () => {
     it('rejects when no conversation exists for the order yet', async () => {
-      const service = new ChatService(fakeConversations(null) as any, fakeMessages() as any);
+      const service = new ChatService(fakeConversations(null) as any, fakeMessages() as any, fakeNotifications() as any);
       await expect(service.postMessage(orderId, buyerId, 'hi')).rejects.toThrow(NotFoundException);
     });
 
     it('saves a real-user message with type Text and a real senderId', async () => {
       const conversations = fakeConversations({ id: 'conversation-1', orderId, buyerId, sellerId });
       const messages = fakeMessages();
-      const service = new ChatService(conversations as any, messages as any);
+      const notifications = fakeNotifications();
+      const service = new ChatService(conversations as any, messages as any, notifications as any);
 
       const result = await service.postMessage(orderId, buyerId, 'hello seller');
 
@@ -77,12 +82,29 @@ describe('ChatService', () => {
       });
       expect(result.senderId).toBe(buyerId);
     });
+
+    it('notifies the recipient (the other participant), not the sender', async () => {
+      const conversations = fakeConversations({ id: 'conversation-1', orderId, buyerId, sellerId });
+      const messages = fakeMessages();
+      const notifications = fakeNotifications();
+      const service = new ChatService(conversations as any, messages as any, notifications as any);
+
+      await service.postMessage(orderId, buyerId, 'hello seller');
+
+      expect(notifications.emit).toHaveBeenCalledWith(
+        sellerId,
+        expect.any(String),
+        expect.any(String),
+        'hello seller',
+        expect.objectContaining({ orderId }),
+      );
+    });
   });
 
   describe('postSystemMessage', () => {
     it('no-ops rather than throwing when no conversation exists yet', async () => {
       const messages = fakeMessages();
-      const service = new ChatService(fakeConversations(null) as any, messages as any);
+      const service = new ChatService(fakeConversations(null) as any, messages as any, fakeNotifications() as any);
 
       await expect(service.postSystemMessage(orderId, 'Order created.')).resolves.toBeUndefined();
       expect(messages.save).not.toHaveBeenCalled();
@@ -91,7 +113,7 @@ describe('ChatService', () => {
     it('saves a message with a null senderId and type System', async () => {
       const conversations = fakeConversations({ id: 'conversation-1', orderId, buyerId, sellerId });
       const messages = fakeMessages();
-      const service = new ChatService(conversations as any, messages as any);
+      const service = new ChatService(conversations as any, messages as any, fakeNotifications() as any);
 
       await service.postSystemMessage(orderId, 'Order created.');
 

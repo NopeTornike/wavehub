@@ -12,6 +12,7 @@ import { StorageModule } from '../storage/storage.module';
 import { ChatModule } from '../chat/chat.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AdminModule } from '../admin/admin.module';
     ChatModule,
     AuthModule,
     AdminModule,
+    NotificationsModule,
   ],
   controllers: [DisputesController],
   providers: [DisputesService],

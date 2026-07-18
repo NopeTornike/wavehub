@@ -61,6 +61,8 @@ BETWEEN 1 AND 5)` — both enforced by Postgres, not just app-layer validation.
 - `backend/src/listings/` — `Listing.ratingAvg`/`ratingCount` written here, read there (and by
   marketplace browse/search once that exists).
 - `backend/src/users/` — `User.sellerRatingAvg`/`sellerRatingCount` written here.
+- `backend/src/notifications/` — `ReviewPosted`, best-effort, chained after `create()`'s
+  transaction resolves (not inside it — see `notifications/CLAUDE.md`).
 - `packages/shared-types/` — `ReviewStatus` enum.
 - `backend/src/admin/` — `AdminGuard`/`@RequireAdminRole`/`AdminAuditService`, used by
   `hide`/`remove`/`restore`. No reports-queue view over `review_reports` exists yet — an admin has

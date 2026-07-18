@@ -1,16 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MessageType } from '@wavehub/shared-types';
+import { MessageType, NotificationType } from '@wavehub/shared-types';
 import type { PublicMessage } from '@wavehub/shared-types';
 import { Conversation } from './conversation.entity';
 import { Message } from './message.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectRepository(Conversation) private readonly conversations: Repository<Conversation>,
     @InjectRepository(Message) private readonly messages: Repository<Message>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Idempotent — safe to call unconditionally from OrdersService.purchase even though it should
@@ -49,6 +53,22 @@ export class ChatService {
     // Re-fetch with the sender relation loaded rather than hand-assembling the public shape from
     // the caller's own user id — keeps `toPublicMessage` the single place that does this mapping.
     const withSender = await this.messages.findOne({ where: { id: message.id }, relations: ['sender'] });
+
+    // Best-effort, same principle as postSystemMessage's callers — a notification failure must
+    // never block a real chat message from sending. Only the recipient (not the sender) gets one.
+    const recipientId = senderId === conversation.buyerId ? conversation.sellerId : conversation.buyerId;
+    try {
+      await this.notifications.emit(
+        recipientId,
+        NotificationType.NewMessage,
+        'ახალი შეტყობინება',
+        body,
+        { orderId },
+      );
+    } catch (err) {
+      this.logger.error(`Failed to notify user ${recipientId} of new message`, err as Error);
+    }
+
     return this.toPublicMessage(withSender!);
   }
 

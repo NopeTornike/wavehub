@@ -7,9 +7,16 @@ import { WithdrawalsController } from './withdrawals.controller';
 import { WalletModule } from '../wallet/wallet.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([WithdrawRequest, Dispute]), WalletModule, AuthModule, AdminModule],
+  imports: [
+    TypeOrmModule.forFeature([WithdrawRequest, Dispute]),
+    WalletModule,
+    AuthModule,
+    AdminModule,
+    NotificationsModule,
+  ],
   controllers: [WithdrawalsController],
   providers: [WithdrawalsService],
   exports: [WithdrawalsService],

@@ -68,9 +68,17 @@ it into real components here, don't extend it further.
   load; offers a "resend" button on failure (only works if the visitor still has a valid session —
   see `api.resendVerification` in `lib/api.ts`)
 - `components/Layout.tsx`, `components/Header.tsx`, `components/Footer.tsx` — shared chrome.
-  `Header` reads identity from `useAuth()` (no fetch of its own). `Layout` is applied per-page, not
-  globally in `_app.tsx` — the auth pages (`login`/`register`/etc.) intentionally render bare,
-  without the marketing header/footer
+  `Header` reads identity from `useAuth()` (no fetch of its own) and, when logged in, renders
+  `NotificationBell`. `Layout` is applied per-page, not globally in `_app.tsx` — the auth pages
+  (`login`/`register`/etc.) intentionally render bare, without the marketing header/footer
+- `components/NotificationBell.tsx` — bell icon with an unread-count badge (polls
+  `api.getUnreadNotificationCount` every 20s) that opens a dropdown panel on click (fetches
+  `api.listNotifications` fresh each time it opens, not cached). Clicking a notification marks it
+  read (`api.markNotificationRead`) then navigates via `targetForNotification` — a small function
+  that deep-links off `notification.metadata` (`orderId` → `/orders/:id`, `withdrawRequestId` →
+  `/wallet`, else falls back to `/orders`). Closes on outside-click via a `mousedown` listener on
+  `document`, matching no other existing pattern in this codebase (first dropdown-style UI) — see
+  `backend/src/notifications/CLAUDE.md` for the backend side
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the
@@ -89,7 +97,8 @@ it into real components here, don't extend it further.
   `.chat-message` + `-mine`/`-system` modifiers, `.chat-form`) — the dispute panel reuses these
   chat classes and `.delivery-file-list` rather than defining its own, since the shapes are
   visually identical; the withdrawal-request list on `wallet.tsx` reuses `.order-card`/`.order-list`
-  for the same reason
+  for the same reason; and the notification classes (`.notification-bell`, `.notification-panel`,
+  `.notification-item` + `.unread` modifier), which are new — nothing existing fit a dropdown
 
 ## Data model
 N/A on the frontend itself. Talks to the NestJS backend (`backend/`) over HTTP; shared request/response
@@ -131,10 +140,11 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
 - `backend/src/auth/` — every endpoint `lib/api.ts` calls is defined there; check that module's doc
   for request/response shapes and behavior before changing either side.
 - `backend/src/orders/`, `backend/src/wallet/`, `backend/src/withdrawals/`,
-  `backend/src/payments/`, `backend/src/chat/`, `backend/src/disputes/` — back the orders/wallet/
-  chat/dispute pages; check those modules' docs for status-transition rules and response shapes
-  before changing either side. Note `wallet.tsx`'s balance/transaction endpoints actually live in
-  `backend/src/withdrawals/`'s controller, not `backend/src/wallet/`'s — see that module's doc.
+  `backend/src/payments/`, `backend/src/chat/`, `backend/src/disputes/`,
+  `backend/src/notifications/` — back the orders/wallet/chat/dispute/notification pages; check
+  those modules' docs for status-transition rules and response shapes before changing either side.
+  Note `wallet.tsx`'s balance/transaction endpoints actually live in `backend/src/withdrawals/`'s
+  controller, not `backend/src/wallet/`'s — see that module's doc.
 
 ## Status
 The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
@@ -151,7 +161,9 @@ data. Session state is shared via `lib/auth.tsx`'s `AuthProvider`/`useAuth()` (r
 per-page `api.me()` duplication that used to exist in `Header`, `listings/[id].tsx`,
 `orders/[id].tsx`, `orders/index.tsx`, and `wallet.tsx`). `orders/[id].tsx` also has a polling chat
 panel (`backend/src/chat/CLAUDE.md`) and a dispute panel (open/discuss/attach evidence —
-`backend/src/disputes/CLAUDE.md`). There's still no admin UI anywhere in `frontend/` — `.approve`/
+`backend/src/disputes/CLAUDE.md`). `Header` now shows a notification bell (unread badge, dropdown
+panel, mark-read/mark-all-read — `NotificationBell`, `backend/src/notifications/CLAUDE.md`).
+There's still no admin UI anywhere in `frontend/` — `.approve`/
 `.reject`/`.hide`/`.remove`/`.restore`/dispute `.resolve`/withdrawal `.process` all have real
 guarded backend routes now (`backend/src/admin/CLAUDE.md`), but nothing in this app calls them; a
 Super Admin (or whichever role) can only reach them via a direct API call today. No cart page

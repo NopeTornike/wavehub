@@ -34,9 +34,10 @@ describe('ReviewsService', () => {
     const orders = { findOne: jest.fn(async () => order) } as any;
     const reviews = { findOne: jest.fn(async () => existingReview), save: jest.fn(async (r: any) => r), update: jest.fn() } as any;
     const reports = { create: jest.fn((d: any) => d), save: jest.fn(async (r: any) => r) } as any;
+    const notifications = { emit: jest.fn() } as any;
 
-    const service = new ReviewsService(reviews, reports, orders, dataSource);
-    return { service, manager, reviews, reports };
+    const service = new ReviewsService(reviews, reports, orders, dataSource, notifications);
+    return { service, manager, reviews, reports, notifications };
   }
 
   describe('create', () => {
@@ -84,7 +85,7 @@ describe('ReviewsService', () => {
       manager.save.mockRejectedValueOnce({ code: '23505' });
       const dataSource = { transaction: jest.fn(async (cb: any) => cb(manager)) } as any;
       const orders = { findOne: jest.fn(async () => order) } as any;
-      const service = new ReviewsService({} as any, {} as any, orders, dataSource);
+      const service = new ReviewsService({} as any, {} as any, orders, dataSource, { emit: jest.fn() } as any);
 
       await expect(
         service.create(buyerId, { orderId, rating: 5 } as any),

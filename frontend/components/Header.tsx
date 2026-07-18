@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { useAuth } from '../lib/auth'
+import NotificationBell from './NotificationBell'
 
 export default function Header() {
   const { user, checked, logout } = useAuth()
@@ -15,6 +16,7 @@ export default function Header() {
           <>
             <Link href="/orders">შეკვეთები</Link>
             <Link href="/wallet">{user.wavecoinBalance} WC</Link>
+            <NotificationBell />
             <span className="note" style={{ margin: 0 }}>
               {user.firstName}
             </span>

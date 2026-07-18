@@ -1,23 +1,27 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
-import { OrderStatus, ReviewStatus } from '@wavehub/shared-types';
+import { NotificationType, OrderStatus, ReviewStatus } from '@wavehub/shared-types';
 import { Review } from './review.entity';
 import { ReviewReport } from './review-report.entity';
 import { Order } from '../orders/order.entity';
 import { Listing } from '../listings/listing.entity';
 import { User } from '../users/user.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
 @Injectable()
 export class ReviewsService {
+  private readonly logger = new Logger(ReviewsService.name);
+
   constructor(
     @InjectRepository(Review) private readonly reviews: Repository<Review>,
     @InjectRepository(ReviewReport) private readonly reports: Repository<ReviewReport>,
     @InjectRepository(Order) private readonly orders: Repository<Order>,
     private readonly dataSource: DataSource,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Gated on: the caller is the order's buyer, the order is Completed, and one review per order —
@@ -60,6 +64,21 @@ export class ReviewsService {
       await this.recomputeListingRating(manager, order.listingId);
       await this.recomputeSellerRating(manager, order.sellerId);
 
+      return saved;
+    }).then(async (saved) => {
+      // Best-effort, outside the transaction — a notification failure must never undo a
+      // successful review, same principle as every other hook module's `notify` helper.
+      try {
+        await this.notifications.emit(
+          order.sellerId,
+          NotificationType.ReviewPosted,
+          'ახალი შეფასება',
+          `თქვენ მიიღეთ ახალი შეფასება: ${dto.rating} ★`,
+          { reviewId: saved.id, orderId: order.id },
+        );
+      } catch (err) {
+        this.logger.error(`Failed to notify seller ${order.sellerId} of new review`, err as Error);
+      }
       return saved;
     });
   }

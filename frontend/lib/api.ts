@@ -13,6 +13,7 @@ import type {
   PublicWalletBalance,
   PublicWalletTransaction,
   PublicWithdrawRequest,
+  PublicNotification,
   ListingType,
   WithdrawMethod,
 } from '@wavehub/shared-types'
@@ -251,4 +252,15 @@ export const api = {
   listMyWithdrawals: () => request<PublicWithdrawRequest[]>('/withdrawals/mine'),
 
   cancelWithdrawal: (id: string) => request<PublicWithdrawRequest>(`/withdrawals/${id}/cancel`, { method: 'POST' }),
+
+  // --- Notifications --- (backend/src/notifications/)
+  listNotifications: (limit = 20, offset = 0) =>
+    request<PublicNotification[]>(`/notifications?limit=${limit}&offset=${offset}`),
+
+  getUnreadNotificationCount: () => request<{ count: number }>('/notifications/unread-count'),
+
+  markNotificationRead: (id: string) =>
+    request<PublicNotification>(`/notifications/${id}/read`, { method: 'POST' }),
+
+  markAllNotificationsRead: () => request<{ ok: true }>('/notifications/read-all', { method: 'POST' }),
 }

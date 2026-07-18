@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { DisputeResolution, DisputeStatus, ListingStatus, ListingType, OrderStatus } from '@wavehub/shared-types';
+import { DisputeResolution, DisputeStatus, ListingStatus, ListingType, NotificationType, OrderStatus } from '@wavehub/shared-types';
 import type { PublicDispute } from '@wavehub/shared-types';
 import { Dispute } from './dispute.entity';
 import { DisputeMessage } from './dispute-message.entity';
@@ -13,6 +13,7 @@ import { assertValidTransition as assertValidListingTransition } from '../listin
 import { WalletService } from '../wallet/wallet.service';
 import { StorageService } from '../storage/storage.service';
 import { ChatService } from '../chat/chat.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 const DISPUTE_WINDOW_DAYS = 7;
@@ -48,7 +49,18 @@ export class DisputesService {
     private readonly wallet: WalletService,
     private readonly storage: StorageService,
     private readonly chat: ChatService,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  // Same best-effort principle as postChatNotice below — a notification failure must never block
+  // the dispute action itself.
+  private async notify(userId: string, type: NotificationType, title: string, body: string, disputeId: string): Promise<void> {
+    try {
+      await this.notifications.emit(userId, type, title, body, { disputeId });
+    } catch (err) {
+      this.logger.error(`Failed to notify user ${userId} for dispute ${disputeId}`, err as Error);
+    }
+  }
 
   // Gated on: caller is the order's buyer or seller, the order is in an "open" enough status
   // (Paid/InProgress/Delivered), and — if Delivered — within DISPUTE_WINDOW_DAYS of delivery. One
@@ -98,6 +110,14 @@ export class DisputesService {
     }
 
     await this.postChatNotice(orderId, `დავა გაიხსნა: ${reason}`);
+    const counterpart = userId === order.buyerId ? order.sellerId : order.buyerId;
+    await this.notify(
+      counterpart,
+      NotificationType.DisputeOpened,
+      'დავა გაიხსნა',
+      `დავა გაიხსნა შეკვეთაზე #${order.orderNumber}: ${reason}`,
+      saved.id,
+    );
     return this.toPublic(saved, [], []);
   }
 
@@ -205,6 +225,8 @@ export class DisputesService {
     });
 
     await this.postChatNotice(order.id, `დავა გადაწყდა: ${note}`);
+    await this.notify(order.buyerId, NotificationType.DisputeResolved, 'დავა გადაწყდა', `დავა გადაწყდა შეკვეთაზე #${order.orderNumber}: ${note}`, dispute.id);
+    await this.notify(order.sellerId, NotificationType.DisputeResolved, 'დავა გადაწყდა', `დავა გადაწყდა შეკვეთაზე #${order.orderNumber}: ${note}`, dispute.id);
     const resolved = await this.disputes.findOne({ where: { id: dispute.id } });
     return this.loadPublic(resolved!);
   }

@@ -12,6 +12,7 @@ import { WalletModule } from '../wallet/wallet.module';
 import { StorageModule } from '../storage/storage.module';
 import { AuthModule } from '../auth/auth.module';
 import { ChatModule } from '../chat/chat.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ChatModule } from '../chat/chat.module';
     StorageModule,
     AuthModule,
     ChatModule,
+    NotificationsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],
