@@ -55,6 +55,16 @@ export class ListingsController {
     return this.listings.findMine(sellerId);
   }
 
+  // Admin-only — the approval queue. MUST stay registered before `listings/:id` below: Express
+  // matches routes in registration order, and `:id` would otherwise swallow this path treating
+  // "pending-review" as an id.
+  @Get('listings/pending-review')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  listPendingReview() {
+    return this.listings.listPendingReview();
+  }
+
   @Get('listings/:id')
   findOne(@Param('id') id: string) {
     return this.listings.findPublicById(id);

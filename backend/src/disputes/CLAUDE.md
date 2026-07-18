@@ -17,6 +17,9 @@ one of three outcomes wired straight into the wallet and order state machine. Bu
   admin-only `resolve`
 - `disputes.controller.ts` — `/orders/:orderId/dispute[...]` routes, guarded, participant checks
   live in the service (same convention as every other module)
+- `admin-disputes.controller.ts` — `AdminDisputesController` (`@Controller('disputes')`, separate
+  from `DisputesController` above — see the first gotcha below for why): `GET disputes` (the
+  cross-order open-dispute queue) and `GET disputes/:orderId` (full thread, no participant check)
 - `dto/open-dispute.dto.ts`, `dto/add-dispute-message.dto.ts`
 
 ## Data model
@@ -32,6 +35,18 @@ CASCADE` from `disputes`.
   status), so there's no dependency-direction reason to avoid a dedicated controller the way there
   was for chat. Don't use this module as a precedent for chat's decision or vice versa — they're
   different tradeoffs, not an inconsistency.
+- **`AdminDisputesController` is a *second*, separate controller** (`@Controller('disputes')`
+  rather than `DisputesController`'s `@Controller('orders/:orderId/dispute')`) because `GET
+  disputes` (the cross-order list) genuinely doesn't fit the order-scoped path — there's no single
+  `orderId` to nest it under. `GET disputes/:orderId` lives on this same controller (not
+  `DisputesController`) specifically because it skips the participant check `getForOrder` enforces
+  — mixing an admin-only, no-ownership-check route onto a controller whose other routes all assume
+  "caller is a participant" would be an easy place to introduce a real authz bug later. Both
+  routes are `@RequireAdminRole()` (Super Admin only), same gating as `resolve()` below —
+  `getForOrderAsAdmin()` exists so a Super Admin's resolve decision can be evidence-informed rather
+  than blind by orderId; wider roles (Operation Lead/Main Administrator can "view all" disputes per
+  spec) aren't opened up here yet for the same reason `resolve()` stays Super-Admin-only — their
+  narrower review/prepare/escalate actions aren't built.
 - **`order-lifecycle.ts`'s transition map now includes `Disputed`** — reachable from
   `Paid`/`InProgress`/`Delivered`, resolving to exactly one of `Completed` (release to seller),
   `Refunded` (refund buyer), or `Cancelled` (cancel order). `order-lifecycle.ts` itself has no
@@ -102,13 +117,14 @@ CASCADE` from `disputes`.
   `resolve` block before changing anything here.
 
 ## Status
-`open`/`getForOrder`/`addMessage`/`addEvidence`/`resolve` are all implemented and unit-tested
-(guard clauses, the 7-day window, the unique-constraint race, all three resolution outcomes) — 127
-backend tests total as of the last update. Not verified against a live Postgres transaction (no DB
-available in the sandbox this was built in). Frontend exists too:
-`frontend/pages/orders/[id].tsx` shows an "open dispute" form when the order is in a disputable
-status and no dispute exists yet, and a dispute panel (status, reason, chat-style message thread,
-evidence list + upload) once one does — see `frontend/CLAUDE.md`. `resolve()` has a real route now
-(`POST orders/:orderId/dispute/resolve`, Super-Admin-only), but there's still no admin resolution
-UI anywhere in `frontend/` — the full remaining Phase 11 admin panel (11b–11g) is what would give
-Super Admin a screen to actually call it from.
+`open`/`getForOrder`/`addMessage`/`addEvidence`/`resolve`/`listOpen`/`getForOrderAsAdmin` are all
+implemented and unit-tested (guard clauses, the 7-day window, the unique-constraint race, all three
+resolution outcomes) — 176 backend tests total as of the last update. Not verified against a live
+Postgres transaction (no DB available in the sandbox this was built in). Frontend now covers the
+full loop: `frontend/pages/admin/disputes.tsx` lists open disputes (linking into the order detail
+page), and `frontend/pages/orders/[id].tsx` shows the buyer/seller "open dispute" form or the
+message-thread/evidence panel as before, **plus** a resolve form (three buttons, one per
+`DisputeResolution`, gated to `dispute.status === Open` and the viewer's `adminRole === SuperAdmin`)
+— that page's dispute-loading logic now falls back to the admin-only `GET disputes/:orderId` route
+when the participant-only `getDispute` 403s, so a Super Admin viewing an order they aren't the
+buyer/seller of can still see the thread. See `frontend/CLAUDE.md`.

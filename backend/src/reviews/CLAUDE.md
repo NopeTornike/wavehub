@@ -51,9 +51,16 @@ BETWEEN 1 AND 5)` — both enforced by Postgres, not just app-layer validation.
   aggregates, since the aggregate query only counts `status = 'published'` reviews.
 - **`report()` immediately flips the review to `Reported` status** on the first report — there's no
   threshold. This matches the source spec's status list but means a single bad-faith report hides a
-  review from aggregate-affecting queries until an admin acts on it (`hide`/`restore` — no separate
-  reports-queue view exists yet, see Status). If this turns out to be abusable, the narrow fix is
-  not flipping status until N reports or an admin action, not rearchitecting this file.
+  review from aggregate-affecting queries until an admin acts on it (`hide`/`restore`). If this
+  turns out to be abusable, the narrow fix is not flipping status until N reports or an admin
+  action, not rearchitecting this file.
+- **`GET reviews/reported`** (same three roles as `hide` above) is the moderation queue —
+  `listReported()` returns `AdminReviewSummary[]` (`@wavehub/shared-types`), joined with
+  listing/buyer/seller usernames but not the full entities (same "don't leak a full `User` row
+  into an admin table" reasoning as `ListingsService.listPendingReview`). This queries
+  `reviews.status = 'reported'`, **not** the separate `review_reports` table — it surfaces which
+  reviews need attention, not each individual report's own reason/reporter. A per-report browse
+  view over `review_reports` itself still doesn't exist (see Related modules).
 
 ## Related modules
 - `backend/src/orders/` — `create()`'s only real dependency: an order must exist, belong to the
@@ -65,18 +72,18 @@ BETWEEN 1 AND 5)` — both enforced by Postgres, not just app-layer validation.
   transaction resolves (not inside it — see `notifications/CLAUDE.md`).
 - `packages/shared-types/` — `ReviewStatus` enum.
 - `backend/src/admin/` — `AdminGuard`/`@RequireAdminRole`/`AdminAuditService`, used by
-  `hide`/`remove`/`restore`. No reports-queue view over `review_reports` exists yet — an admin has
-  no way to browse pending reports, only to act on a review by id once they know it's reported.
+  `hide`/`remove`/`restore`/`listReported`. A per-report browse view over `review_reports` (each
+  individual report's own reason/reporter, as opposed to `listReported`'s "which reviews are
+  currently reported") still doesn't exist.
 
 ## Status
 Create/reply/report/browse/admin-moderate are implemented and unit-tested (guard clauses,
-duplicate-review race-safety via the DB constraint, reply-once enforcement) — 127 backend tests
+duplicate-review race-safety via the DB constraint, reply-once enforcement) — 176 backend tests
 total as of the last update. Not verified against a live Postgres transaction (no DB available in
 the sandbox this was built in). Frontend now exists: `frontend/pages/listings/[id].tsx` displays a
-listing's reviews (sortable), and `frontend/pages/orders/[id].tsx` shows a submission form once an
-order is `Completed` and the viewer is the buyer — it doesn't pre-check "have I already reviewed
-this order,"
-it just lets the backend's `orderId` unique constraint reject a second attempt with a clear error.
-No seller-reply UI yet (reply is backend-only so far), and no admin moderation UI either — the
-`hide`/`remove`/`restore` routes work but nothing in `frontend/` calls them. Still no
-reports-queue view.
+listing's reviews (sortable), `frontend/pages/orders/[id].tsx` shows a submission form once an
+order is `Completed` and the viewer is the buyer (it doesn't pre-check "have I already reviewed
+this order," it just lets the backend's `orderId` unique constraint reject a second attempt with a
+clear error), and `frontend/pages/admin/reviews.tsx` gives moderators a real hide/remove/restore
+UI over the `listReported` queue. No seller-reply UI yet (reply is backend-only so far). Still no
+per-report browse view over `review_reports` itself.

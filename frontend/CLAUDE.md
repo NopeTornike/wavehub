@@ -45,7 +45,15 @@ it into real components here, don't extend it further.
   resolution note once resolved, a message thread reusing the chat panel's CSS classes, and an
   evidence file list + upload widget, both locked once the dispute is `Resolved`/`Closed`) — no
   polling on this one, since `openDispute`/`sendDisputeMessage`/`uploadDisputeEvidence` each
-  refresh `dispute` from their own response instead of needing a separate re-fetch
+  refresh `dispute` from their own response instead of needing a separate re-fetch. The message-
+  send/evidence-upload forms are further gated to `isBuyer || isSeller` (a Super Admin viewing an
+  order they aren't a party to can read the thread but not post into it — those endpoints are
+  participant-only server-side and would 403). If a Super Admin and `dispute.status === 'open'`, a
+  resolve form also renders (a required note + one button per `DisputeResolution` — release to
+  seller / refund buyer / cancel order), calling `api.adminResolveDispute`. `reloadDispute` tries
+  the participant-only `api.getDispute` first and falls back to the admin-only
+  `api.adminGetDispute` (no participant check) on failure, so a non-participant Super Admin can
+  still see the thread instead of getting stuck on the resulting 403
 - `pages/wallet.tsx` — full wallet view: the derived balance breakdown (`api.getWalletBalance`
   — available/pending-clearance/earned/withdrawn, see `backend/src/withdrawals/CLAUDE.md` for how
   each number is computed), a WaveCoin top-up form (`api.createBogTopupOrder`, redirects the
@@ -79,6 +87,19 @@ it into real components here, don't extend it further.
   `/wallet`, else falls back to `/orders`). Closes on outside-click via a `mousedown` listener on
   `document`, matching no other existing pattern in this codebase (first dropdown-style UI) — see
   `backend/src/notifications/CLAUDE.md` for the backend side
+- `components/AdminLayout.tsx` + `pages/admin/{index,listings,reviews,disputes,withdrawals,users}.tsx`
+  — the admin panel. `AdminLayout` wraps `Layout`, redirects a logged-out visitor to login, shows a
+  plain "access denied" state for a logged-in user with no `adminRole`, and otherwise renders a
+  section nav (all six links shown to any staff account — see the gotcha below on why this doesn't
+  mirror the backend's full per-role matrix). `admin/index.tsx` shows four stat tiles (pending
+  listings/reported reviews/open disputes/pending withdrawals counts, each fetched independently via
+  `Promise.allSettled` so one role-restricted section 403ing doesn't blank the whole dashboard).
+  `admin/listings.tsx`/`reviews.tsx`/`withdrawals.tsx`/`users.tsx` are each a fetch-a-queue +
+  act-on-a-row page (approve/reject, hide/remove/restore, process, suspend/restore/ban/unban) —
+  `users.tsx` additionally has a search/status-filter form. `admin/disputes.tsx` is list-only
+  (linking into `orders/[id].tsx`'s existing dispute panel, which has since gained a resolve form —
+  see that page's entry below) since resolving needs the full evidence/message thread this list
+  view intentionally doesn't duplicate.
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the
@@ -134,6 +155,22 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
   `useTransition`) to replace it.
 - Copy is in Georgian, matching the existing auth pages — keep new user-facing text in Georgian
   unless told otherwise.
+- **`AdminLayout` shows every nav link to any user with a non-null `adminRole`, regardless of
+  which specific role.** It does not replicate SPECIFICATION.md §5.13's full per-role CAN/CANNOT
+  matrix client-side — each page's own API calls are the real enforcement (`AdminGuard` +
+  `@RequireAdminRole(...)` server-side), and a role without access to a section just gets an
+  `ApiError` with the backend's 403 message rendered in that page's error banner. Building a
+  client-side mirror of the exact backend matrix was judged not worth the duplication/drift risk
+  for a first pass — six roles with genuinely different per-capability access would need real
+  upkeep to keep in sync. If this becomes confusing in practice (a role clicking into a section
+  that immediately errors), revisit by hiding nav links per role rather than by duplicating the
+  guard logic in a different form.
+- Admin-panel mutation responses (`adminApproveListing`/`adminRejectListing`/`adminHideReview`/
+  `adminRemoveReview`/`adminRestoreReview`) are typed `unknown` in `lib/api.ts`, not
+  `PublicListingDetail`/`PublicReview` — those backend routes return the raw, unmapped TypeORM
+  entity, not the `Public*` shape. The admin pages that call them only care that the call
+  succeeded (they remove the row from local state on success), not the response body — don't add a
+  `Public*` type to these calls without first fixing the backend to actually return that shape.
 
 ## Related modules
 - `packages/shared-types/` — always check here first for an enum/type before defining one locally.
@@ -163,10 +200,12 @@ per-page `api.me()` duplication that used to exist in `Header`, `listings/[id].t
 panel (`backend/src/chat/CLAUDE.md`) and a dispute panel (open/discuss/attach evidence —
 `backend/src/disputes/CLAUDE.md`). `Header` now shows a notification bell (unread badge, dropdown
 panel, mark-read/mark-all-read — `NotificationBell`, `backend/src/notifications/CLAUDE.md`).
-There's still no admin UI anywhere in `frontend/` — `.approve`/
-`.reject`/`.hide`/`.remove`/`.restore`/dispute `.resolve`/withdrawal `.process` all have real
-guarded backend routes now (`backend/src/admin/CLAUDE.md`), but nothing in this app calls them; a
-Super Admin (or whichever role) can only reach them via a direct API call today. No cart page
+A real admin panel now exists: `AdminLayout` + `pages/admin/*.tsx` cover listing approval, review
+moderation, dispute resolution, withdrawal payout processing, and user search/suspend/restore/
+ban/unban — see the Key files entry above and `backend/src/admin/CLAUDE.md` for the backend side.
+This is Phase 11c's scope (core CRUD across modules that already existed); Coaching (a wholly new
+domain, Phase 11b) and Support ticketing/Trust & Safety/Content/Analytics (11d–11g) have no
+frontend at all yet. No cart page
 (checkout is a direct single-listing buy, not a multi-item cart — matches the WaveCoin/order model,
 not an oversight), no seller dashboard / create-listing frontend, no coaching/profile/messages
 pages yet. The repo-root static site remains the reference mockup for all of that until it's

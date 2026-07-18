@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 import { AdminRole, UserStatus } from '@wavehub/shared-types';
 
 @Entity('users')
@@ -55,4 +55,13 @@ export class User {
   // this role via the API today, only a direct DB update).
   @Column({ type: 'varchar', nullable: true })
   adminRole: AdminRole | null;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt: Date;
+
+  // Free-text reason from the most recent suspend/ban action (or null once unbanned/restored) —
+  // shown on the account itself for a quick "why" without joining audit_logs. The full history of
+  // every moderation action still lives in audit_logs; this is only ever the latest one.
+  @Column({ type: 'varchar', nullable: true })
+  moderationReason: string | null;
 }

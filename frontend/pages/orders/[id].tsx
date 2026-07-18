@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicDispute, PublicMessage, PublicOrderDetail } from '@wavehub/shared-types'
-import { DisputeStatus, MessageType, OrderStatus } from '@wavehub/shared-types'
+import { AdminRole, DisputeResolution, DisputeStatus, MessageType, OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -28,6 +28,14 @@ const DISPUTE_STATUS_LABELS: Record<DisputeStatus, string> = {
   [DisputeStatus.WaitingForEvidence]: 'მტკიცებულებების მოლოდინში',
   [DisputeStatus.Resolved]: 'გადაწყვეტილია',
   [DisputeStatus.Closed]: 'დახურულია',
+}
+
+// Only Super Admin can resolve (see backend/src/disputes/disputes.controller.ts#resolve) — the
+// three outcomes DisputesService actually implements.
+const RESOLUTION_LABELS: Record<DisputeResolution, string> = {
+  [DisputeResolution.ReleaseToSeller]: 'თანხის გადარიცხვა გამყიდველზე',
+  [DisputeResolution.RefundBuyer]: 'თანხის დაბრუნება მყიდველზე',
+  [DisputeResolution.CancelOrder]: 'შეკვეთის გაუქმება',
 }
 
 export default function OrderDetail() {
@@ -57,19 +65,54 @@ export default function OrderDetail() {
   const [disputeDraftMessage, setDisputeDraftMessage] = useState('')
   const [disputeBusy, setDisputeBusy] = useState(false)
   const [disputeError, setDisputeError] = useState('')
+  const [resolveNote, setResolveNote] = useState('')
 
   const reload = () => {
     if (!id) return Promise.resolve()
     return api.getOrder(id).then(setOrder)
   }
 
+  const isSuperAdmin = me?.adminRole === AdminRole.SuperAdmin
+
   const reloadDispute = () => {
     if (!id) return Promise.resolve()
     // 404 just means no dispute has ever been opened for this order — not an error state.
+    // getDispute is participant-only server-side; a Super Admin viewing an order they're not the
+    // buyer/seller of falls back to the admin-guarded route instead of getting stuck on the
+    // resulting 403.
     return api
       .getDispute(id)
       .then(setDispute)
-      .catch(() => setDispute(null))
+      .catch(() => {
+        if (!isSuperAdmin) {
+          setDispute(null)
+          return
+        }
+        return api
+          .adminGetDispute(id)
+          .then(setDispute)
+          .catch(() => setDispute(null))
+      })
+  }
+
+  const resolveDispute = async (resolution: DisputeResolution) => {
+    if (!id) return
+    if (!resolveNote.trim()) {
+      setDisputeError('დაამატეთ შენიშვნა გადაწყვეტილებამდე.')
+      return
+    }
+    setDisputeError('')
+    setDisputeBusy(true)
+    try {
+      const updated = await api.adminResolveDispute(id, resolution, resolveNote.trim())
+      setDispute(updated)
+      setResolveNote('')
+      await reload()
+    } catch (err) {
+      setDisputeError(err instanceof ApiError ? err.message : 'გადაწყვეტა ვერ შესრულდა.')
+    } finally {
+      setDisputeBusy(false)
+    }
   }
 
   useEffect(() => {
@@ -379,7 +422,7 @@ export default function OrderDetail() {
             )}
           </div>
 
-          {(isBuyer || isSeller) && (
+          {(isBuyer || isSeller || isSuperAdmin) && (
             <div className="order-section">
               <h2>დავა</h2>
               {disputeError && <div className="status-text status-error">{disputeError}</div>}
@@ -412,24 +455,26 @@ export default function OrderDetail() {
                         ))
                       )}
                     </div>
-                    {dispute.status !== DisputeStatus.Resolved && dispute.status !== DisputeStatus.Closed && (
-                      <form className="chat-form" onSubmit={sendDisputeMessage}>
-                        <input
-                          className="input"
-                          placeholder="დაწერეთ შეტყობინება…"
-                          value={disputeDraftMessage}
-                          onChange={(event) => setDisputeDraftMessage(event.target.value)}
-                          disabled={disputeBusy}
-                        />
-                        <button
-                          className="button glow-on-hover"
-                          type="submit"
-                          disabled={disputeBusy || !disputeDraftMessage.trim()}
-                        >
-                          გაგზავნა
-                        </button>
-                      </form>
-                    )}
+                    {(isBuyer || isSeller) &&
+                      dispute.status !== DisputeStatus.Resolved &&
+                      dispute.status !== DisputeStatus.Closed && (
+                        <form className="chat-form" onSubmit={sendDisputeMessage}>
+                          <input
+                            className="input"
+                            placeholder="დაწერეთ შეტყობინება…"
+                            value={disputeDraftMessage}
+                            onChange={(event) => setDisputeDraftMessage(event.target.value)}
+                            disabled={disputeBusy}
+                          />
+                          <button
+                            className="button glow-on-hover"
+                            type="submit"
+                            disabled={disputeBusy || !disputeDraftMessage.trim()}
+                          >
+                            გაგზავნა
+                          </button>
+                        </form>
+                      )}
                   </div>
 
                   <div style={{ marginTop: 16 }}>
@@ -447,14 +492,46 @@ export default function OrderDetail() {
                         ))}
                       </div>
                     )}
-                    {dispute.status !== DisputeStatus.Resolved && dispute.status !== DisputeStatus.Closed && (
-                      <div style={{ marginTop: 8 }}>
-                        <input type="file" onChange={uploadDisputeEvidence} disabled={disputeBusy} />
-                      </div>
-                    )}
+                    {(isBuyer || isSeller) &&
+                      dispute.status !== DisputeStatus.Resolved &&
+                      dispute.status !== DisputeStatus.Closed && (
+                        <div style={{ marginTop: 8 }}>
+                          <input type="file" onChange={uploadDisputeEvidence} disabled={disputeBusy} />
+                        </div>
+                      )}
                   </div>
+
+                  {isSuperAdmin && dispute.status === DisputeStatus.Open && (
+                    <div className="order-section">
+                      <h2 style={{ fontSize: '1rem' }}>დავის გადაწყვეტა</h2>
+                      <div className="form-group">
+                        <label htmlFor="resolveNote">შენიშვნა გადაწყვეტილებაზე</label>
+                        <textarea
+                          id="resolveNote"
+                          className="input"
+                          value={resolveNote}
+                          onChange={(event) => setResolveNote(event.target.value)}
+                          placeholder="დაასაბუთეთ გადაწყვეტილება — ჩანს ორივე მხარისთვის"
+                        />
+                      </div>
+                      <div className="order-actions">
+                        {Object.values(DisputeResolution).map((resolution) => (
+                          <button
+                            key={resolution}
+                            type="button"
+                            className="button"
+                            disabled={disputeBusy || !resolveNote.trim()}
+                            onClick={() => resolveDispute(resolution)}
+                          >
+                            {RESOLUTION_LABELS[resolution]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
+                (isBuyer || isSeller) &&
                 DISPUTABLE_STATUSES.includes(order.status) && (
                   <form onSubmit={openDispute}>
                     <div className="form-group">

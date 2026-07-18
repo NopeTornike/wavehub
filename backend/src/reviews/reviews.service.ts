@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nest
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { NotificationType, OrderStatus, ReviewStatus } from '@wavehub/shared-types';
+import type { AdminReviewSummary } from '@wavehub/shared-types';
 import { Review } from './review.entity';
 import { ReviewReport } from './review-report.entity';
 import { Order } from '../orders/order.entity';
@@ -121,9 +122,32 @@ export class ReviewsService {
     return qb.getMany();
   }
 
-  // Admin-only actions per the source spec but, like ListingsService.approve/reject, not wired to
-  // any HTTP route yet — built ahead of the admin panel (build-plan Phase 11). Both recompute
-  // ratings since the aggregate only counts `Published` reviews.
+  // Backs the admin `GET reviews/reported` route — the moderation queue. hide/remove/restore
+  // (below) got wired to real HTTP routes in Phase 11a; this is the matching "what needs my
+  // attention" list, same gap pattern as ListingsService.listPendingReview. Returns a
+  // purpose-built projection, not the raw joined entity — same "don't leak full User rows into an
+  // admin table" reasoning as ListingsService.listPendingReview.
+  async listReported(): Promise<AdminReviewSummary[]> {
+    const rows = await this.reviews.find({
+      where: { status: ReviewStatus.Reported },
+      relations: ['listing', 'buyer', 'seller'],
+      order: { createdAt: 'ASC' },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      listingId: row.listingId,
+      listingTitle: row.listing.title,
+      buyerUsername: row.buyer.username,
+      sellerUsername: row.seller.username,
+      rating: row.rating,
+      body: row.body,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+    }));
+  }
+
+  // Admin-only actions, wired to real HTTP routes on ReviewsController since Phase 11a. Both
+  // recompute ratings since the aggregate only counts `Published` reviews.
   async hide(reviewId: string): Promise<Review> {
     return this.setStatusAndRecompute(reviewId, ReviewStatus.Hidden);
   }

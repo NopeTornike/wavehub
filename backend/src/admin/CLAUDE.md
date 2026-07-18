@@ -2,11 +2,15 @@
 
 ## Purpose
 The shared foundation every admin-guarded route in the repo builds on: role-checking (`AdminGuard`
-+ `@RequireAdminRole(...)`) and audit logging (`AdminAuditService`). This is **not** the full
-admin panel from build-plan Phase 11 — it's the minimum slice (11a, "Staff & Roles foundation")
-needed to finally give `ListingsService.approve`/`.reject`, `ReviewsService.hide`/`.remove`/
-`.restore`, and `DisputesService.resolve` real HTTP routes, all of which had been sitting built but
-unreachable since their own phases landed.
++ `@RequireAdminRole(...)`) and audit logging (`AdminAuditService`). Started as the minimum 11a
+slice ("Staff & Roles foundation") needed to give `ListingsService.approve`/`.reject`,
+`ReviewsService.hide`/`.remove`/`.restore`, and `DisputesService.resolve` real HTTP routes; Phase
+11c added real user management (`AdminUsersController`, declared here — see Key files) and, across
+`backend/src/listings/`, `backend/src/reviews/`, `backend/src/disputes/`, and
+`backend/src/withdrawals/`, the missing "what needs my attention" list endpoints those admin
+actions had no way to discover before (`GET listings/pending-review`, `GET reviews/reported`,
+`GET disputes`, `GET withdrawals/pending`) plus a real frontend (`frontend/pages/admin/*.tsx`,
+`frontend/components/AdminLayout.tsx`) that actually calls all of it.
 
 ## Key files
 - `admin-role.guard.ts` — `AdminGuard`: loads the fresh `User` row for `request.userId` (set by
@@ -22,6 +26,13 @@ unreachable since their own phases landed.
   non-negotiable rule), `adminRole` is a snapshot at action time, not a live join
 - `admin-audit.service.ts` — `AdminAuditService.log(...)`, called explicitly at the end of each
   admin controller action (see gotcha below on why this isn't automatic yet)
+- `../users/admin-users.controller.ts` — `AdminUsersController` (`GET/POST /admin/users/...`) is
+  physically in `backend/src/users/` but **declared in `admin.module.ts`**, not `users.module.ts` —
+  it needs both `AuthGuard` and `AdminGuard`, and `UsersModule` can't import `AuthModule` or
+  `AdminModule` without a circular dependency (both already import `UsersModule` for
+  `UsersService`). `AdminModule` importing `AuthModule` + `UsersModule` directly has no such cycle.
+  If you add another controller that needs both guards, follow this same split rather than fighting
+  the cycle with `forwardRef()`.
 
 ## Data model
 `audit_logs` (migration: `CreateAuditLogs`). Also owns the migration that added `users.adminRole`
@@ -64,23 +75,42 @@ picks the lower-friction option now rather than blocking on an answer, and says 
   as every other `*.service.spec.ts` in this repo.
 
 ## Related modules
-- `backend/src/users/` — owns the `adminRole` column this guard reads; there is still no way to
-  *grant* this role via the API (no admin-account-management flow exists yet — Phase 11's fuller
-  Staff & Roles work).
-- `backend/src/listings/`, `backend/src/reviews/`, `backend/src/disputes/` — the three modules with
-  admin-guarded routes so far; each imports `AdminModule` and calls `AdminAuditService` from its
-  controller.
-- `packages/shared-types/` — `AdminRole` enum (already existed, unused until now).
+- `backend/src/users/` — owns the `adminRole` column this guard reads, and now also the
+  suspend/restore/ban/unban actions `AdminUsersController` calls (declared here, see Key files
+  above). There is still no way to *grant* `adminRole` via the API (no admin-account-management
+  flow exists yet — Phase 11's fuller Staff & Roles work).
+- `backend/src/listings/`, `backend/src/reviews/`, `backend/src/disputes/`,
+  `backend/src/withdrawals/` — the modules with admin-guarded routes so far; each imports
+  `AdminModule` and calls `AdminAuditService` from its controller. `disputes/` additionally has a
+  second controller (`admin-disputes.controller.ts`) purely for the cross-order `GET disputes`
+  list/detail routes — see that module's doc for why it isn't folded into the existing
+  order-scoped `DisputesController`.
+- `frontend/components/AdminLayout.tsx` + `frontend/pages/admin/*.tsx` — the first real UI that
+  calls any of this. Role-gates at the page level (redirects a non-staff user to a plain "access
+  denied" state) but does **not** mirror the backend's full per-role CAN/CANNOT matrix — every
+  route here is still the actual enforcement; the frontend is a convenience layer, not a second
+  copy of the authorization logic.
+- `packages/shared-types/` — `AdminRole` enum, plus `AdminUserSummary`/`AdminListingSummary`/
+  `AdminReviewSummary`/`AdminDisputeSummary`/`AdminWithdrawRequestSummary` — purpose-built response
+  shapes for admin list views, deliberately distinct from the `Public*` shapes (which would leak
+  full joined entities like a seller's email into an approval-queue table).
 
 ## Status
 `AdminGuard`/`@RequireAdminRole`/`AdminAuditService` are implemented and unit-tested (guard logic:
 missing decorator, no user, no role, wrong role, exact-match role, SuperAdmin bypass in both an
-explicit-list and empty-list case). `ListingsController.approve`/`.reject`,
-`ReviewsController.hide`/`.remove`/`.restore`, and `DisputesController.resolve` are now real,
-guarded, audit-logged routes. Not verified against a live Postgres transaction (no DB available in
-the sandbox this was built in) — in particular, nothing has exercised `AdminGuard`'s DB lookup
-against a real `users` row with a real `adminRole` set, since there's no way to set one outside a
-direct DB update right now. Not yet built: any way to grant `adminRole` via the API, the
-`AuditLog`/`ActivityLog` distinction question from SPECIFICATION.md §5.13.7 (still open, still not
-guessed at), a permission-matrix UI, and everything else in Phase 11's 11b–11g (Coaching, Support
-ticketing, Trust & Safety, Content/Marketing, Analytics) — this module is only the 11a slice.
+explicit-list and empty-list case). Real, guarded, audit-logged routes now exist for:
+`ListingsController.approve`/`.reject` + `listPendingReview`, `ReviewsController.hide`/`.remove`/
+`.restore` + `listReported`, `DisputesController.resolve` + `AdminDisputesController.listOpen`/
+`getOne`, `WithdrawalsController.process` + `listPending`, and the full
+`AdminUsersController` (list/suspend/restore/ban/unban). All of them are reachable from a real
+frontend (`frontend/pages/admin/*.tsx`) for the first time as of Phase 11c — previously every one
+of these except the mutation actions themselves had "built but nothing can reach it" as an open
+gap; that's now closed for the six sections that exist. Not verified against a live Postgres
+transaction (no DB available in the sandbox this was built in) — in particular, nothing has
+exercised `AdminGuard`'s DB lookup against a real `users` row with a real `adminRole` set, since
+there's no way to set one outside a direct DB update right now. Not yet built: any way to grant
+`adminRole` via the API, the `AuditLog`/`ActivityLog` distinction question from
+SPECIFICATION.md §5.13.7 (still open, still not guessed at), a permission-matrix-aware frontend
+nav, and everything else in Phase 11's 11b/11d–11g (Coaching, Support ticketing, Trust & Safety,
+Content/Marketing, Analytics) — 11c's own scope (core CRUD across the modules that already
+existed) is now substantially covered, but Coaching is a wholly new domain not started at all.

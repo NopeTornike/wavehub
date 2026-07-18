@@ -111,10 +111,19 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   something to actually fix, not defer.
 - `.github/workflows/ci.yml` has an `audit` job running `npm audit --omit=dev` on every PR — a
   vulnerable production dependency fails CI, it doesn't rely on someone remembering to check.
+- **A suspended or banned account's existing session cookie stops working immediately, not just at
+  its next login.** `AuthGuard` (`backend/src/auth/auth.guard.ts`) does one lightweight
+  `UsersService.findStatusById()` lookup per guarded request and rejects with 403 if the account is
+  `suspended`/`banned` — added alongside the admin suspend/ban feature (`backend/src/users/
+  admin-users.controller.ts`) specifically so a ban isn't a no-op against a session issued before
+  the ban. This adds a small DB round-trip to every guarded request; accepted as the cost of a ban
+  actually taking effect. There is still no way to revoke one specific session early ("log out this
+  device") short of a full account suspend/ban.
 - Not yet done, tracked for later phases: CSRF tokens (see reasoning above — currently judged
-  unnecessary, not forgotten), CAPTCHA/bot-protection on registration, structured audit logging
-  (exists as a *rule* for the future admin panel, §non-negotiable-rule-3, but the `audit_logs` table
-  itself doesn't exist until Phase 11).
+  unnecessary, not forgotten), CAPTCHA/bot-protection on registration. Structured audit logging
+  (§non-negotiable-rule-3) landed in Phase 11a — `audit_logs` (`backend/src/admin/CLAUDE.md`) is a
+  manual call at the end of each admin action today, not yet an automatic `@Audited(action)`
+  decorator+interceptor.
 
 ## Architecture notes
 
@@ -145,7 +154,11 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   separate from Seller, full support ticketing, promo codes, content/banner management, platform
   settings, and Trust & Safety/fraud tooling. Full per-role CAN/CANNOT catalog is in
   `SPECIFICATION.md` §5.13 — read it before starting Phase 11 or before assuming what a role can/
-  can't do; don't infer from a role's name.
+  can't do; don't infer from a role's name. **Phase 11c (core CRUD) has landed**: a real admin
+  panel exists at `frontend/pages/admin/*.tsx` covering listing approval, review moderation,
+  dispute resolution, withdrawal payout processing, and user search/suspend/restore/ban/unban —
+  see `backend/src/admin/CLAUDE.md` and `frontend/CLAUDE.md`. Coaching (11b, a wholly new domain)
+  and Support ticketing/Trust & Safety/Content/Analytics (11d–11g) are still fully ahead.
 
 ## Docker / local readiness
 

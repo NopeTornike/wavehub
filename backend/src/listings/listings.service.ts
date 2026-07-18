@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ListingStatus, ListingType } from '@wavehub/shared-types';
+import type { AdminListingSummary } from '@wavehub/shared-types';
 import { Listing } from './listing.entity';
 import { ListingImage } from './listing-image.entity';
 import { ServiceDetails } from './service-details.entity';
@@ -81,6 +82,30 @@ export class ListingsService {
 
   async findMine(sellerId: string): Promise<Listing[]> {
     return this.listings.find({ where: { sellerId }, order: { createdAt: 'DESC' } });
+  }
+
+  // Backs the admin `GET listings/pending-review` route — the "what needs my approval" queue.
+  // Returns a purpose-built projection (AdminListingSummary), not the raw joined entity — a bare
+  // Listing.seller relation would carry the seller's full User row (email, wavecoinBalance, etc.)
+  // into an approval-queue table that has no reason to see it. approve/reject already existed
+  // (Phase 11a) but had nothing that could actually list the ids to act on.
+  async listPendingReview(): Promise<AdminListingSummary[]> {
+    const rows = await this.listings.find({
+      where: { status: ListingStatus.PendingReview },
+      relations: ['seller', 'category', 'game'],
+      order: { createdAt: 'ASC' },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      type: row.type,
+      sellerId: row.sellerId,
+      sellerUsername: row.seller.username,
+      categoryName: row.category.name,
+      gameName: row.game?.name ?? null,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+    }));
   }
 
   // Public browse — only ever returns Active listings. A listing's owner viewing their own

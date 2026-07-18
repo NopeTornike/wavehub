@@ -34,6 +34,14 @@ export class ReviewsController {
     return this.reviews.findForListing(listingId, query.sort);
   }
 
+  // Admin-only — the moderation queue for `hide`/`remove`/`restore` below.
+  @Get('reviews/reported')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...REVIEW_MODERATION_ROLES)
+  listReported() {
+    return this.reviews.listReported();
+  }
+
   @Post('reviews')
   @UseGuards(AuthGuard)
   create(@CurrentUserId() buyerId: string, @Body() dto: CreateReviewDto) {

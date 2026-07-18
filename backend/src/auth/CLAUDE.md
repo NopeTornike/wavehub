@@ -33,12 +33,14 @@ directly, to keep one place owning "how do I fetch a user."
   way to revoke a single session early (e.g. "log out this device") without waiting for the 7-day
   expiry. If that becomes a real requirement, that's the point to add a session table or a
   denylist — don't build around the gap by inventing something ad hoc in another module.
-- `AuthGuard` only verifies the JWT's signature/expiry — it does **not** re-check the user's
-  `status` (active/suspended/banned) against the database on every request, to keep guarded
-  requests cheap. `GET /me` loads the fresh user row anyway (it needs to return current data), so
-  it's the one place status is actually current. If you're building something where a
-  suspended/banned user must be blocked immediately (not just eventually via short token expiry),
-  don't assume `AuthGuard` alone covers that — add an explicit status check in that endpoint.
+- `AuthGuard` verifies the JWT's signature/expiry, then does one lightweight `UsersService
+  .findStatusById()` lookup (id + status columns only) and rejects with 403 if the account is
+  `suspended`/`banned` — added when admin suspend/ban became a real reachable action
+  (`backend/src/users/admin-users.controller.ts`), since a ban is meaningless if the banned user's
+  existing session cookie keeps working for up to 7 more days. This adds one small DB round-trip to
+  every guarded request; that's accepted as the cost of a ban actually taking effect immediately.
+  There is still no way to revoke one specific session early ("log out this device") short of a
+  full account suspend — only the suspended/banned case is covered.
 - Both verification and reset tokens are stored as **SHA-256 hashes**, never the raw token — same
   reasoning as password hashing. Compare by hashing the incoming token and looking up the hash.
 - `requestPasswordReset` always returns `{ ok: true }` regardless of whether the email matched an
@@ -70,9 +72,9 @@ directly, to keep one place owning "how do I fetch a user."
   reimplementing session verification.
 
 ## Status
-Real session, guard, `/me`, email verification, password reset, and rate limiting are all
-implemented and functional end-to-end (register → verify → login → me → reset), pending real
-Postgres/CI verification (no live DB was available in the sandbox this was authored in — see the
-migration files' own notes). Not yet built: CAPTCHA/bot protection, OAuth ("Gmail-ით
-რეგისტრაცია" noted in the frontend copy as a future addition), and any suspension/ban
-enforcement beyond what `GET /me` naturally surfaces.
+Real session, guard, `/me`, email verification, password reset, rate limiting, and
+suspended/banned enforcement in `AuthGuard` are all implemented and functional end-to-end
+(register → verify → login → me → reset), pending real Postgres/CI verification (no live DB was
+available in the sandbox this was authored in — see the migration files' own notes). Not yet built:
+CAPTCHA/bot protection, OAuth ("Gmail-ით რეგისტრაცია" noted in the frontend copy as a future
+addition), single-session revocation short of a full suspend/ban.

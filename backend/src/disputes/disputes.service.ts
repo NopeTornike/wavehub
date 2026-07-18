@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nest
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { DisputeResolution, DisputeStatus, ListingStatus, ListingType, NotificationType, OrderStatus } from '@wavehub/shared-types';
-import type { PublicDispute } from '@wavehub/shared-types';
+import type { AdminDisputeSummary, PublicDispute } from '@wavehub/shared-types';
 import { Dispute } from './dispute.entity';
 import { DisputeMessage } from './dispute-message.entity';
 import { DisputeEvidence } from './dispute-evidence.entity';
@@ -245,6 +245,43 @@ export class DisputesService {
       throw new NotFoundException('No dispute exists for this order');
     }
     return this.resolve(dispute.id, adminId, resolution, note);
+  }
+
+  // Backs the admin `GET disputes` route (see admin-disputes.controller.ts) — the resolution
+  // queue. `resolve`/`resolveForOrder` above have existed since Phase 8/11a but there was no way
+  // to discover which orders actually have an open dispute short of already knowing the orderId,
+  // same "built the action before the list" gap as Listings/Reviews. Only `Open` for now —
+  // `UnderReview`/`WaitingForEvidence` are defined in the enum but nothing sets them yet (see
+  // disputes/CLAUDE.md).
+  async listOpen(): Promise<AdminDisputeSummary[]> {
+    const disputes = await this.disputes.find({
+      where: { status: DisputeStatus.Open },
+      relations: ['order'],
+      order: { createdAt: 'ASC' },
+    });
+    return disputes.map((d) => ({
+      id: d.id,
+      orderId: d.orderId,
+      orderNumber: d.order.orderNumber,
+      buyerId: d.buyerId,
+      sellerId: d.sellerId,
+      status: d.status,
+      reason: d.reason,
+      createdAt: d.createdAt.toISOString(),
+    }));
+  }
+
+  // Admin view of a dispute's full thread (messages + evidence) — no participant check, unlike
+  // getForOrder. Backs `GET disputes/:orderId` (admin-disputes.controller.ts), which an admin
+  // needs before resolve() can be a real, evidence-informed decision rather than a blind action by
+  // orderId. Super-Admin-only, matching resolve's own gating — see that route's comment for why
+  // broader roles aren't wired here yet.
+  async getForOrderAsAdmin(orderId: string): Promise<PublicDispute> {
+    const dispute = await this.disputes.findOne({ where: { orderId } });
+    if (!dispute) {
+      throw new NotFoundException('No dispute exists for this order');
+    }
+    return this.loadPublic(dispute);
   }
 
   private async getDisputeAsParticipant(userId: string, orderId: string): Promise<Dispute> {

@@ -16,6 +16,14 @@ import type {
   PublicNotification,
   ListingType,
   WithdrawMethod,
+  WithdrawStatus,
+  DisputeResolution,
+  AdminUserSummary,
+  AdminDisputeSummary,
+  AdminWithdrawRequestSummary,
+  AdminListingSummary,
+  AdminReviewSummary,
+  UserStatus,
 } from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -263,4 +271,67 @@ export const api = {
     request<PublicNotification>(`/notifications/${id}/read`, { method: 'POST' }),
 
   markAllNotificationsRead: () => request<{ ok: true }>('/notifications/read-all', { method: 'POST' }),
+
+  // --- Admin panel --- (backend/src/admin/, plus admin-only routes on each domain module).
+  // Server-side role checks are the real enforcement (AdminGuard/@RequireAdminRole) — the
+  // frontend's role checks in components/AdminLayout.tsx only decide what to *show*, calling one
+  // of these while unauthorized just gets a 403 from the backend.
+  adminListPendingListings: () => request<AdminListingSummary[]>('/listings/pending-review'),
+
+  // Return the raw (unmapped) Listing entity server-side, not PublicListingDetail — untyped as
+  // `unknown`, same convention as the review moderation actions below.
+  adminApproveListing: (id: string) => request<unknown>(`/listings/${id}/approve`, { method: 'POST' }),
+
+  adminRejectListing: (id: string, reason: string) =>
+    request<unknown>(`/listings/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  adminListReportedReviews: () => request<AdminReviewSummary[]>('/reviews/reported'),
+
+  // These return the raw (unmapped) Review entity server-side, not PublicReview — matching
+  // response shape untyped as `unknown`, same convention as orders' action endpoints below.
+  adminHideReview: (id: string) => request<unknown>(`/reviews/${id}/hide`, { method: 'POST' }),
+
+  adminRemoveReview: (id: string) => request<unknown>(`/reviews/${id}/remove`, { method: 'POST' }),
+
+  adminRestoreReview: (id: string) => request<unknown>(`/reviews/${id}/restore`, { method: 'POST' }),
+
+  adminListOpenDisputes: () => request<AdminDisputeSummary[]>('/disputes'),
+
+  // Full thread for one dispute, no participant check — for an admin viewing a case they aren't
+  // the buyer/seller of. Participants should keep using getDispute above (works for them too, but
+  // this route is admin-guarded and would 403 a non-admin participant).
+  adminGetDispute: (orderId: string) => request<PublicDispute>(`/disputes/${orderId}`),
+
+  adminResolveDispute: (orderId: string, resolution: DisputeResolution, note: string) =>
+    request<PublicDispute>(`/orders/${orderId}/dispute/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ resolution, note }),
+    }),
+
+  adminListPendingWithdrawals: () => request<AdminWithdrawRequestSummary[]>('/withdrawals/pending'),
+
+  adminProcessWithdrawal: (id: string, status: WithdrawStatus, note?: string) =>
+    request<PublicWithdrawRequest>(`/withdrawals/${id}/process`, {
+      method: 'POST',
+      body: JSON.stringify({ status, note }),
+    }),
+
+  adminListUsers: (params: { query?: string; status?: UserStatus; limit?: number; offset?: number } = {}) => {
+    const search = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') search.set(key, String(value))
+    })
+    const qs = search.toString()
+    return request<{ items: AdminUserSummary[]; total: number }>(`/admin/users${qs ? `?${qs}` : ''}`)
+  },
+
+  adminSuspendUser: (id: string, reason: string) =>
+    request<AdminUserSummary>(`/admin/users/${id}/suspend`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  adminRestoreUser: (id: string) => request<AdminUserSummary>(`/admin/users/${id}/restore`, { method: 'POST' }),
+
+  adminBanUser: (id: string, reason: string) =>
+    request<AdminUserSummary>(`/admin/users/${id}/ban`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  adminUnbanUser: (id: string) => request<AdminUserSummary>(`/admin/users/${id}/unban`, { method: 'POST' }),
 }

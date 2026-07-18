@@ -42,6 +42,14 @@ that migration's `CATEGORIES`/`GAMES` constants, not a separate seed script), `l
   role comes straight from SPECIFICATION.md §5.13.4's CAN list, not a guess. Both routes audit-log
   via `AdminAuditService` in the controller, not the service — `ListingsService.approve`/`.reject`
   themselves are unchanged (no actor param), same signatures as before.
+- **`GET listings/pending-review`** (same role as approve/reject) is the queue those two routes
+  act on — `ListingsService.listPendingReview()` returns `AdminListingSummary[]`
+  (`@wavehub/shared-types`), a purpose-built projection, not the raw entity — a bare
+  `Listing.seller` relation would leak the seller's full `User` row (email, `wavecoinBalance`,
+  etc.) into an approval-queue table that has no reason to see it. **Must stay registered before
+  `GET listings/:id`** in `listings.controller.ts` — Express matches routes in registration order,
+  so `:id` would otherwise swallow `pending-review` as if it were an id. Rendered by
+  `frontend/pages/admin/listings.tsx`.
 - **`findPublicById`/`browseActive` only ever return `Active` listings.** A draft/pending/paused
   listing is 404 to anyone but its owner (who uses `findMine` instead). Don't add a "preview" path
   that bypasses this without deciding who's allowed to see a non-active listing and why.
@@ -81,9 +89,11 @@ that migration's `CATEGORIES`/`GAMES` constants, not a separate seed script), `l
 
 ## Status
 Seller-facing CRUD (create draft, add packages, add images, submit for review, pause/unpause),
-public browse/detail, admin approve/reject, and being purchasable (via `backend/src/orders/`) are
-all implemented and unit-tested where the logic doesn't require a live DB (the lifecycle state
-machine and the item/service branching in `createDraft`). Not yet built: listing edit after draft
+public browse/detail, admin approve/reject + the pending-review queue, and being purchasable (via
+`backend/src/orders/`) are all implemented and unit-tested where the logic doesn't require a live
+DB (the lifecycle state machine and the item/service branching in `createDraft`). The admin queue
+is now reachable from a real frontend page (`frontend/pages/admin/listings.tsx`), not just curl.
+Not yet built: listing edit after draft
 (a submitted/active listing can't currently be revised — only paused, or rejected and resubmitted
 from scratch), an admin-forced pause route (see the gotcha above), search/filtering beyond the
 basic category/game/type query params (`backend/src/search/` per the build plan is its own future

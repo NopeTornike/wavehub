@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nest
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Not, In, Repository } from 'typeorm';
 import { DisputeStatus, NotificationType, WithdrawStatus } from '@wavehub/shared-types';
-import type { PublicWalletBalance, PublicWithdrawRequest } from '@wavehub/shared-types';
+import type { AdminWithdrawRequestSummary, PublicWalletBalance, PublicWithdrawRequest } from '@wavehub/shared-types';
 import { WithdrawRequest } from './withdraw-request.entity';
 import { Dispute } from '../disputes/dispute.entity';
 import { assertValidTransition } from './withdraw-lifecycle';
@@ -79,6 +79,27 @@ export class WithdrawalsService {
   async listMine(sellerId: string): Promise<PublicWithdrawRequest[]> {
     const rows = await this.withdrawals.find({ where: { sellerId }, order: { createdAt: 'DESC' } });
     return rows.map((row) => this.toPublic(row));
+  }
+
+  // Backs the admin `GET withdrawals/pending` route — `process()` below (Super Admin only) has
+  // existed since Phase 9 but had no matching "what's waiting for me" query, same gap as every
+  // other admin action added ahead of its own list endpoint.
+  async listPending(): Promise<AdminWithdrawRequestSummary[]> {
+    const rows = await this.withdrawals.find({
+      where: { status: WithdrawStatus.Pending },
+      relations: ['seller'],
+      order: { createdAt: 'ASC' },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      sellerId: row.sellerId,
+      sellerUsername: row.seller.username,
+      amountWaveCoin: row.amountWaveCoin,
+      method: row.method,
+      payoutDetails: row.payoutDetails,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+    }));
   }
 
   async cancel(sellerId: string, id: string): Promise<PublicWithdrawRequest> {

@@ -7,6 +7,7 @@ import { Order } from '../orders/order.entity';
 import { Listing } from '../listings/listing.entity';
 import { DisputesService } from './disputes.service';
 import { DisputesController } from './disputes.controller';
+import { AdminDisputesController } from './admin-disputes.controller';
 import { WalletModule } from '../wallet/wallet.module';
 import { StorageModule } from '../storage/storage.module';
 import { ChatModule } from '../chat/chat.module';
@@ -24,7 +25,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AdminModule,
     NotificationsModule,
   ],
-  controllers: [DisputesController],
+  controllers: [DisputesController, AdminDisputesController],
   providers: [DisputesService],
   exports: [DisputesService],
 })

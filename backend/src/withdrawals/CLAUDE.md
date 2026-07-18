@@ -60,6 +60,10 @@ columns on `wallet_ledger_entries` — a withdrawal's fund movement reuses that 
   list is the only one with "approve/reject withdrawal"; every other role's CANNOT list explicitly
   excludes it (checked directly against the spec, not guessed — same discipline as
   `backend/src/admin/CLAUDE.md`'s other role citations).
+- **`GET withdrawals/pending`** (same Super-Admin-only gate as `process`) is the payout queue —
+  `listPending()` returns `AdminWithdrawRequestSummary[]` (`@wavehub/shared-types`), which
+  includes `payoutDetails` (PayPal email / Wise account / bank+IBAN+SWIFT) since an admin manually
+  paying this out needs it, unlike the seller's own `PublicWithdrawRequest` view.
 
 ## Related modules
 - `backend/src/wallet/` — `holdForWithdrawal`/`reverseWithdrawal`/`getBalanceSummary`/
@@ -75,16 +79,16 @@ columns on `wallet_ledger_entries` — a withdrawal's fund movement reuses that 
   shapes.
 
 ## Status
-`request`/`cancel`/`process`/`getBalanceSummary` are implemented and unit-tested (guard clauses:
-minimum threshold, active-dispute block, exceeds-available-balance, ownership on cancel, the
-Rejected-reverses/Completed-doesn't-touch-wallet distinction) — 153 backend tests total as of the
-last update (23 new across `withdraw-lifecycle.spec.ts` and `withdrawals.service.spec.ts`). Not
-verified against a live Postgres transaction (no DB available in the sandbox this was built in).
-Frontend exists: `frontend/pages/wallet.tsx` shows the full balance breakdown, a withdrawal
-request form (method-specific payout-detail fields), the seller's own withdrawal requests with a
-cancel button for `Pending` ones, and a raw transaction history list. No admin UI for `process()` —
-same gap as every other admin-only action in this repo pending Phase 11's fuller admin panel. Not
-built: seller-profile-stored payout details (the source spec's "seller profile stores payout
+`request`/`cancel`/`process`/`getBalanceSummary`/`listPending` are implemented and unit-tested
+(guard clauses: minimum threshold, active-dispute block, exceeds-available-balance, ownership on
+cancel, the Rejected-reverses/Completed-doesn't-touch-wallet distinction) — 176 backend tests
+total as of the last update. Not verified against a live Postgres transaction (no DB available in
+the sandbox this was built in). Frontend exists on both sides now: `frontend/pages/wallet.tsx`
+shows the seller's own full balance breakdown, a withdrawal request form (method-specific
+payout-detail fields), their own requests with a cancel button for `Pending` ones, and a raw
+transaction history list; `frontend/pages/admin/withdrawals.tsx` gives Super Admin the matching
+payout-queue UI (`listPending`, then approve-as-completed or reject with a reason, via `process`).
+Not built: seller-profile-stored payout details (the source spec's "seller profile stores payout
 details" — this module asks fresh on every request instead, since there's no seller-profile
 table yet), KYC status field, automatically cancelling an in-flight withdrawal when a dispute
 opens afterward (only checked at request time), and any real bank/PayPal/Wise payout API

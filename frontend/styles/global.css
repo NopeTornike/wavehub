@@ -876,6 +876,103 @@ body::before {
   font-size: 0.88rem;
 }
 
+.admin-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.admin-nav a {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.admin-nav a.active {
+  background: var(--card);
+  color: var(--text-primary);
+  border-color: var(--gradient-mid);
+}
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.admin-stat {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  text-decoration: none;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-stat-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.admin-stat-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.admin-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  flex-wrap: wrap;
+}
+
+.admin-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.admin-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.admin-search-bar input, .admin-search-bar select {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-primary);
+}
+
+.admin-denied {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
 @media (max-width: 900px) {
   .detail-layout {
     grid-template-columns: 1fr;

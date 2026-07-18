@@ -445,3 +445,83 @@ export interface PublicNotification {
   readAt: string | null;
   createdAt: string;
 }
+
+// --- Admin panel response shapes ---
+
+// What ListingsService.listPendingReview() returns for the admin `GET listings/pending-review`
+// queue — a purpose-built projection, not the raw Listing entity (which would carry the full
+// joined `seller`/`category`/`game` rows, including seller fields like email/wavecoinBalance an
+// approval-queue table has no reason to expose).
+export interface AdminListingSummary {
+  id: string;
+  title: string;
+  type: ListingType;
+  sellerId: string;
+  sellerUsername: string;
+  categoryName: string;
+  gameName: string | null;
+  status: ListingStatus;
+  createdAt: string;
+}
+
+// What ReviewsService.listReported() returns for the admin `GET reviews/reported` queue — same
+// "purpose-built projection, not the raw entity" reasoning as AdminListingSummary above.
+export interface AdminReviewSummary {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  buyerUsername: string;
+  sellerUsername: string;
+  rating: number;
+  body: string | null;
+  status: ReviewStatus;
+  createdAt: string;
+}
+
+// What DisputesService.listOpen() returns for the admin `GET disputes` queue — deliberately
+// lighter than PublicDispute (no messages/evidence array), since the list view only needs enough
+// to route to the right order's full dispute UI (frontend/pages/orders/[id].tsx), not the full
+// thread.
+export interface AdminDisputeSummary {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  buyerId: string;
+  sellerId: string;
+  status: DisputeStatus;
+  reason: string;
+  createdAt: string;
+}
+
+// What WithdrawalsService.listPending() returns for the admin `GET withdrawals/pending` queue —
+// unlike PublicWithdrawRequest (the seller's own view), this includes `sellerId`/`sellerUsername`
+// (whose request is it) and `payoutDetails` (an admin actually paying this out manually needs the
+// PayPal email/Wise account/bank details, not just the amount).
+export interface AdminWithdrawRequestSummary {
+  id: string;
+  sellerId: string;
+  sellerUsername: string;
+  amountWaveCoin: number;
+  method: WithdrawMethod;
+  payoutDetails: Record<string, string>;
+  status: WithdrawStatus;
+  createdAt: string;
+}
+
+// What backend/src/users/admin-users.controller.ts returns — a superset of PublicUser (adds
+// email, role, createdAt, moderationReason) that only ever goes to an admin-guarded route, never
+// to the user themselves or the public. Keep this list distinct from PublicUser rather than
+// widening PublicUser itself — email/moderationReason are not meant to leak to a non-admin caller.
+export interface AdminUserSummary {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'buyer' | 'seller';
+  status: UserStatus;
+  adminRole: AdminRole | null;
+  wavecoinBalance: number;
+  moderationReason: string | null;
+  createdAt: string;
+}

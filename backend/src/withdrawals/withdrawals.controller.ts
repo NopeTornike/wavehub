@@ -59,6 +59,15 @@ export class WithdrawalsController {
     return this.withdrawals.listMine(sellerId);
   }
 
+  // Admin-only — the payout queue for `process` below. Super Admin only, matching `process`'s own
+  // gating (see the comment there).
+  @Get('withdrawals/pending')
+  @UseGuards(AdminGuard)
+  @RequireAdminRole()
+  listPending() {
+    return this.withdrawals.listPending();
+  }
+
   @Post('withdrawals/:id/cancel')
   @HttpCode(HttpStatus.OK)
   cancel(@CurrentUserId() sellerId: string, @Param('id') id: string) {
