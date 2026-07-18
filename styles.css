@@ -4832,8 +4832,30 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 
 .game-carousel {
   position: relative;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding-block: 2px 10px;
+  cursor: grab;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  scroll-snap-type: inline proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.game-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.game-carousel.is-dragging,
+.game-carousel.is-autoplaying {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
+}
+
+.game-carousel.is-autoplaying {
+  cursor: grab;
+  user-select: auto;
 }
 
 .game-carousel::before,
@@ -4867,7 +4889,7 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 
 .game-grid[data-carousel-ready="true"],
 .service-grid[data-carousel-ready="true"] {
-  animation: popular-games-scroll 28s linear infinite;
+  animation: none;
 }
 
 .game-carousel:hover .game-grid,
@@ -4899,10 +4921,12 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 
 .game-grid .game-card {
   flex: 0 0 clamp(178px, 19vw, 238px);
+  scroll-snap-align: start;
 }
 
 .service-grid .service-card {
   flex: 0 0 clamp(214px, 23vw, 286px);
+  scroll-snap-align: start;
 }
 
 @keyframes popular-games-scroll {

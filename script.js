@@ -454,17 +454,170 @@ function initCarousels() {
       return;
     }
 
-    const cards = Array.from(track.children);
+    const cards = Array.from(track.children).filter((card) => !card.classList.contains('carousel-clone'));
+    const carousel = track.closest('[data-carousel]');
+    const originalTrackWidth = track.scrollWidth;
+    const cloneSetCount = originalTrackWidth > 0
+      ? Math.max(1, Math.floor((carousel?.clientWidth || 0) / originalTrackWidth) + 1)
+      : 1;
 
-    cards.forEach((card) => {
-      const clone = card.cloneNode(true);
-      clone.classList.add('carousel-clone');
-      clone.setAttribute('aria-hidden', 'true');
-      clone.setAttribute('tabindex', '-1');
-      track.appendChild(clone);
-    });
+    for (let setIndex = 0; setIndex < cloneSetCount; setIndex += 1) {
+      cards.forEach((card) => {
+        const clone = card.cloneNode(true);
+        clone.classList.add('carousel-clone');
+        clone.setAttribute('aria-hidden', 'true');
+        clone.setAttribute('tabindex', '-1');
+        clone.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach((control) => {
+          control.setAttribute('tabindex', '-1');
+        });
+        track.appendChild(clone);
+      });
+    }
 
     track.dataset.carouselReady = 'true';
+  });
+
+  carousels.forEach((carousel) => {
+    if (carousel.dataset.carouselInteractive === 'true') {
+      return;
+    }
+
+    carousel.dataset.carouselInteractive = 'true';
+    carousel.tabIndex = carousel.tabIndex >= 0 ? carousel.tabIndex : 0;
+    carousel.setAttribute('aria-label', carousel.closest('.popular-games-section') ? 'Popular games carousel' : 'Services carousel');
+
+    let pointerId = null;
+    let startX = 0;
+    let startScrollLeft = 0;
+    let suppressClick = false;
+    let pauseUntil = 0;
+    let lastFrameTime = performance.now();
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const pauseAutoplay = (delay = 1400) => {
+      pauseUntil = Math.max(pauseUntil, performance.now() + delay);
+    };
+
+    const getLoopDistance = () => {
+      const track = carousel.querySelector('[data-carousel-track]');
+      const firstCard = track?.firstElementChild;
+      const firstClone = track?.querySelector('.carousel-clone');
+      return firstCard && firstClone ? firstClone.offsetLeft - firstCard.offsetLeft : 0;
+    };
+
+    const runAutoplay = (frameTime) => {
+      const elapsed = Math.min(frameTime - lastFrameTime, 50);
+      lastFrameTime = frameTime;
+      const loopDistance = getLoopDistance();
+      const shouldAutoplay = !reducedMotionQuery.matches
+        && pointerId === null
+        && frameTime >= pauseUntil
+        && !carousel.classList.contains('is-filtering')
+        && loopDistance > 0;
+
+      carousel.classList.toggle('is-autoplaying', shouldAutoplay);
+
+      if (shouldAutoplay) {
+        carousel.scrollLeft += elapsed * (loopDistance / 28000);
+
+        if (carousel.scrollLeft >= loopDistance) {
+          carousel.scrollLeft -= loopDistance;
+        }
+      }
+
+      window.requestAnimationFrame(runAutoplay);
+    };
+
+    window.requestAnimationFrame(runAutoplay);
+
+    const finishDrag = () => {
+      if (pointerId !== null && carousel.hasPointerCapture(pointerId)) {
+        carousel.releasePointerCapture(pointerId);
+      }
+      pointerId = null;
+      carousel.classList.remove('is-dragging');
+      pauseAutoplay();
+    };
+
+    carousel.addEventListener('pointerdown', (event) => {
+      if (event.pointerType !== 'mouse' || event.button !== 0 || carousel.classList.contains('is-filtering')) {
+        return;
+      }
+
+      pointerId = event.pointerId;
+      startX = event.clientX;
+      startScrollLeft = carousel.scrollLeft;
+      suppressClick = false;
+      pauseAutoplay();
+      carousel.setPointerCapture(pointerId);
+    });
+
+    carousel.addEventListener('pointermove', (event) => {
+      if (event.pointerId !== pointerId) {
+        return;
+      }
+
+      const distance = event.clientX - startX;
+      if (Math.abs(distance) > 5) {
+        suppressClick = true;
+        carousel.classList.add('is-dragging');
+      }
+
+      if (suppressClick) {
+        event.preventDefault();
+        carousel.scrollLeft = startScrollLeft - distance;
+      }
+    });
+
+    carousel.addEventListener('pointerup', finishDrag);
+    carousel.addEventListener('pointercancel', finishDrag);
+    carousel.addEventListener('touchstart', () => pauseAutoplay(3000), { passive: true });
+    carousel.addEventListener('touchmove', () => pauseAutoplay(3000), { passive: true });
+    carousel.addEventListener('touchend', () => pauseAutoplay(), { passive: true });
+
+    carousel.addEventListener('click', (event) => {
+      if (!suppressClick) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      suppressClick = false;
+    }, true);
+
+    carousel.addEventListener('dragstart', (event) => {
+      if (pointerId !== null) {
+        event.preventDefault();
+      }
+    });
+
+    carousel.addEventListener('wheel', (event) => {
+      if (carousel.classList.contains('is-filtering') || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) {
+        return;
+      }
+
+      const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+      const canScroll = (event.deltaY > 0 && carousel.scrollLeft < maxScrollLeft - 1)
+        || (event.deltaY < 0 && carousel.scrollLeft > 1);
+
+      if (canScroll) {
+        event.preventDefault();
+        pauseAutoplay();
+        carousel.scrollLeft += event.deltaY;
+      }
+    }, { passive: false });
+
+    carousel.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+        return;
+      }
+
+      event.preventDefault();
+      pauseAutoplay();
+      const firstCard = carousel.querySelector('.game-card, .service-card');
+      const step = firstCard ? firstCard.getBoundingClientRect().width + 12 : carousel.clientWidth * 0.8;
+      carousel.scrollBy({ left: event.key === 'ArrowRight' ? step : -step, behavior: 'smooth' });
+    });
   });
 }
 
