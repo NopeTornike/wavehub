@@ -194,15 +194,13 @@ noted throughout `/Users/sarvat/.claude/plans/mighty-mapping-robin.md`'s progres
 available in the environment these files were edited in). Run a real `docker compose build &&
 docker compose up` before relying on this for an actual deployment.
 
-Known stale/unaddressed cleanup candidates, not yet actioned:
-- `backend/package-lock.json` and `frontend/package-lock.json` are leftover per-workspace lockfiles
-  from before the npm-workspaces migration (untouched since the repo's first commit) — the root
-  `package-lock.json` is the only one that's actually authoritative. Likely safe to delete, not yet
-  confirmed/done.
-- `frontend/node_modules` exists as a stray local install alongside root-level hoisting.
-- Neither `backend/package.json` nor `frontend/package.json` lists `@wavehub/shared-types` as an
-  explicit dependency — it resolves purely through workspace hoisting from the root install, which
-  works but isn't self-documenting at the package.json level.
+**Cleanup done (2026-07-19)**: the three candidates flagged above have been resolved —
+`backend/package-lock.json`/`frontend/package-lock.json` (pre-workspaces artifacts, untouched
+since the repo's first commit) were deleted, the stray `frontend/node_modules` was removed, and
+both `backend/package.json` and `frontend/package.json` now list `"@wavehub/shared-types": "*"`
+explicitly rather than relying purely on implicit workspace hoisting. Re-ran `npm install` at the
+root afterward and confirmed the `node_modules/@wavehub/shared-types` symlink still resolves and
+every build/lint/test command still passes.
 
 ## Tool portability
 
