@@ -149,3 +149,107 @@ export interface PublicUser {
 export interface AuthMeResponse {
   user: PublicUser;
 }
+
+// --- Marketplace response shapes ---
+// These describe what backend/src/listings' endpoints actually return (see
+// ListingsService#browseActive / #findPublicById) — not full TypeORM entities, since
+// `passwordHash`-style internal fields and unrelated columns shouldn't leak into a public API
+// response even when they wouldn't in practice (User.passwordHash is `select: false`, but treat
+// that as defense in depth, not a reason to skip typing the public shape explicitly here).
+
+export interface PublicCategory {
+  id: string;
+  name: string;
+  slug: string;
+  type: 'service' | 'item' | 'both';
+}
+
+export interface PublicGame {
+  id: string;
+  name: string;
+  slug: string;
+  iconUrl: string | null;
+}
+
+export interface PublicSeller {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  sellerRatingAvg: string | null;
+  sellerRatingCount: number;
+}
+
+export interface PublicListingImage {
+  id: string;
+  url: string;
+  sortOrder: number;
+}
+
+export interface PublicPackage {
+  id: string;
+  name: string;
+  priceWaveCoin: number;
+  deliveryTimeDays: number;
+  features: string[];
+  revisionsIncluded: number;
+}
+
+// The shape browseActive returns per item — a Listing with seller/category/game/images joined, no
+// packages (see PublicListingDetail for the fuller detail-page shape).
+export interface PublicListingSummary {
+  id: string;
+  type: ListingType;
+  title: string;
+  status: ListingStatus;
+  viewsCount: number;
+  ordersCount: number;
+  isFeatured: boolean;
+  ratingAvg: string | null;
+  ratingCount: number;
+  priceWaveCoin: number | null;
+  stockQuantity: number | null;
+  // Always populated for a card display: the item's own `priceWaveCoin` for item listings, or the
+  // cheapest package's price for service listings (which price via packages, not the listing
+  // itself). Null only if a service listing somehow has zero packages. See
+  // ListingsService#browseActive for how this is computed — it's not a stored column.
+  startingPriceWaveCoin: number | null;
+  seller: PublicSeller;
+  category: PublicCategory;
+  game: PublicGame | null;
+  images: PublicListingImage[];
+}
+
+export interface RequirementField {
+  key: string;
+  label: string;
+  type: 'text' | 'dropdown' | 'number' | 'textarea';
+  required: boolean;
+  options?: string[];
+}
+
+export interface FaqEntry {
+  q: string;
+  a: string;
+}
+
+// What ListingsService#findPublicById returns — a PublicListingSummary plus the fuller detail-page
+// fields (description, packages, type-specific extras).
+export interface PublicListingDetail extends PublicListingSummary {
+  description: string;
+  packages: PublicPackage[];
+  requirementsSchema?: RequirementField[];
+  faq?: FaqEntry[];
+  itemAttributes?: Record<string, unknown>;
+}
+
+export interface PublicReview {
+  id: string;
+  rating: number;
+  body: string | null;
+  tags: string[];
+  sellerReply: string | null;
+  sellerRepliedAt: string | null;
+  createdAt: string;
+  buyer: Pick<PublicUser, 'id' | 'username'>;
+}

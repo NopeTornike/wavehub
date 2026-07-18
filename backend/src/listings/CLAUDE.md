@@ -45,6 +45,12 @@ that migration's `CATEGORIES`/`GAMES` constants, not a separate seed script), `l
 - **`findPublicById`/`browseActive` only ever return `Active` listings.** A draft/pending/paused
   listing is 404 to anyone but its owner (who uses `findMine` instead). Don't add a "preview" path
   that bypasses this without deciding who's allowed to see a non-active listing and why.
+- **`browseActive` computes `startingPriceWaveCoin` per item** — the listing's own `priceWaveCoin`
+  for item-type listings, or the cheapest package's price for service-type listings (which don't
+  have their own price). This isn't a stored column; it's one batched `MIN(priceWaveCoin) GROUP BY
+  listingId` query over `packages` for the service-type ids in the current page, merged onto each
+  item in memory — not N+1 (one extra query per page, not per listing). See
+  `packages/shared-types/CLAUDE.md` for the corresponding `PublicListingSummary` field.
 - **Ownership is checked on every seller-facing mutation** (`getOwnedListing` — throws
   `ForbiddenException` if `listing.sellerId !== callerId`). Every new seller-facing method must call
   this before touching a listing by id; don't trust an id path param alone.
@@ -78,5 +84,7 @@ item/service branching in `createDraft`). Not yet built: listing edit after draf
 active listing can't currently be revised — only paused, or rejected and resubmitted from scratch),
 the admin-facing HTTP routes for approve/reject/pause (service-layer methods exist, no controller
 yet — see the gotcha above), search/filtering beyond the basic category/game/type query params
-(`backend/src/search/` per the build plan is its own future module), and the frontend — no
-marketplace/listing-detail/create-listing/checkout pages exist in `frontend/` yet, only backend API.
+(`backend/src/search/` per the build plan is its own future module). The frontend now has real
+`marketplace`/`listings/[id]` pages (`frontend/pages/marketplace.tsx`,
+`frontend/pages/listings/[id].tsx`) consuming `browseActive`/`findPublicById` — see
+`frontend/CLAUDE.md`. Still no create-listing or checkout pages.

@@ -21,6 +21,19 @@ entities and migrations are the actual source of truth for (see each domain modu
   pre-built JS (e.g. a non-TS runtime) — it's unnecessary complexity otherwise.
 - Keep this package to types/enums only. If you're tempted to add a helper function here, ask whether
   it belongs in the specific backend/frontend module instead.
+- **`Public*` interfaces (`PublicListingSummary`, `PublicListingDetail`, `PublicSeller`,
+  `PublicReview`, etc.) describe API response shapes, not TypeORM entities** — they're hand-written
+  to match what a controller actually returns (see `ListingsService#browseActive`/`#findPublicById`),
+  deliberately excluding internal-only fields even where the entity would already exclude them
+  (e.g. `User.passwordHash` is `select: false`) — treat that as defense in depth, not a reason to
+  skip typing the public shape explicitly. **If you change what a controller returns, update the
+  matching `Public*` interface in the same change** — nothing enforces these stay in sync
+  automatically (there's no runtime validation against them), they're a discipline, not a contract.
+- **`RequirementField`/`FaqEntry` are the canonical definitions** — `backend/src/listings/
+  service-details.entity.ts` re-exports them (`export type { RequirementField, FaqEntry }`) for
+  backward-compat import paths rather than defining its own copy. If you're adding a new type that
+  started life in an entity file, prefer moving it here and re-exporting, following this precedent,
+  rather than leaving two competing definitions.
 
 ## Related modules
 - Every backend domain module (`backend/src/orders/`, `backend/src/wallet/`, `backend/src/disputes/`,

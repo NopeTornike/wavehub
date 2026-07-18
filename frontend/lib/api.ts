@@ -1,4 +1,13 @@
-import type { AuthMeResponse, PublicUser } from '@wavehub/shared-types'
+import type {
+  AuthMeResponse,
+  PublicUser,
+  PublicCategory,
+  PublicGame,
+  PublicListingSummary,
+  PublicListingDetail,
+  PublicReview,
+  ListingType,
+} from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
@@ -82,4 +91,36 @@ export const api = {
 
   // Requires an active session (the backend guards this route) — only call it while logged in.
   resendVerification: () => request<{ ok: true }>('/auth/resend-verification', { method: 'POST' }),
+
+  // --- Marketplace (listings/categories/games/reviews) ---
+  // Note: unlike the auth endpoints above, these are NOT wrapped in `{ ok: true, ... }` — they
+  // return exactly what ListingsController/ReviewsController hand back (see backend/src/listings/
+  // CLAUDE.md and backend/src/reviews/CLAUDE.md). Don't assume a uniform envelope across the API.
+  listCategories: () => request<PublicCategory[]>('/categories'),
+
+  listGames: () => request<PublicGame[]>('/games'),
+
+  browseListings: (filters: {
+    categoryId?: string
+    gameId?: string
+    type?: ListingType
+    limit?: number
+    offset?: number
+  } = {}) => {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    })
+    const query = params.toString()
+    return request<{ items: PublicListingSummary[]; total: number }>(
+      `/listings${query ? `?${query}` : ''}`,
+    )
+  },
+
+  getListing: (id: string) => request<PublicListingDetail>(`/listings/${id}`),
+
+  listReviewsForListing: (listingId: string, sort?: 'newest' | 'highest' | 'lowest') =>
+    request<PublicReview[]>(
+      `/listings/${listingId}/reviews${sort ? `?sort=${sort}` : ''}`,
+    ),
 }

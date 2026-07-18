@@ -1,8 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { ListingStatus, ListingType } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { Category } from './category.entity';
 import { Game } from './game.entity';
+import { ListingImage } from './listing-image.entity';
+import { Package } from './package.entity';
 
 // The shared base for both listing types (locked product decision — see root CLAUDE.md). A
 // `service` listing prices via child `packages` rows; an `item` listing prices itself directly via
@@ -82,4 +84,14 @@ export class Listing {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
+
+  // Virtual relations — no physical column here (the FK lives on the "many" side, e.g.
+  // `listing_images.listingId`), purely for `leftJoinAndSelect`/`relations: [...]` queries so
+  // ListingsService can return a listing with its images/packages already attached instead of the
+  // frontend needing N+1 follow-up requests. Only populated when a query explicitly asks for them.
+  @OneToMany(() => ListingImage, (image) => image.listing)
+  images: ListingImage[];
+
+  @OneToMany(() => Package, (pkg) => pkg.listing)
+  packages: Package[];
 }

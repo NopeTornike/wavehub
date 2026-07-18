@@ -1,18 +1,8 @@
 import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import type { RequirementField, FaqEntry } from '@wavehub/shared-types';
 import { Listing } from './listing.entity';
 
-export interface RequirementField {
-  key: string;
-  label: string;
-  type: 'text' | 'dropdown' | 'number' | 'textarea';
-  required: boolean;
-  options?: string[]; // only meaningful for type: 'dropdown'
-}
-
-export interface FaqEntry {
-  q: string;
-  a: string;
-}
+export type { RequirementField, FaqEntry };
 
 // 1:1 extension of `listings` where `type = 'service'`. Not created at all for item listings — see
 // CLAUDE.md for why this is a separate table rather than nullable columns on `listings` itself.

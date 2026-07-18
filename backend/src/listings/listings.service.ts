@@ -85,9 +85,21 @@ export class ListingsService {
 
   // Public browse — only ever returns Active listings. A listing's owner viewing their own
   // draft/pending/paused/rejected listings must use findMine, not this.
-  async browseActive(filters: BrowseListingsDto): Promise<{ items: Listing[]; total: number }> {
+  //
+  // Joins seller/category/game/images so the caller (the frontend marketplace grid) has enough to
+  // render a card without N+1 follow-up requests — a bare Listing only has FK ids, not names. Full
+  // package rows aren't joined (that's a detail-page concern, see findPublicById), but a
+  // `startingPriceWaveCoin` (item's own price, or a service listing's cheapest package) is computed
+  // in one batched follow-up query so cards can always show a price.
+  async browseActive(
+    filters: BrowseListingsDto,
+  ): Promise<{ items: Array<Listing & { startingPriceWaveCoin: number | null }>; total: number }> {
     const qb = this.listings
       .createQueryBuilder('listing')
+      .leftJoinAndSelect('listing.seller', 'seller')
+      .leftJoinAndSelect('listing.category', 'category')
+      .leftJoinAndSelect('listing.game', 'game')
+      .leftJoinAndSelect('listing.images', 'images')
       .where('listing.status = :status', { status: ListingStatus.Active });
 
     if (filters.categoryId) {
@@ -107,19 +119,61 @@ export class ListingsService {
       .skip(filters.offset ?? 0)
       .getManyAndCount();
 
-    return { items, total };
+    const serviceListingIds = items.filter((item) => item.type === ListingType.Service).map((i) => i.id);
+    const minPriceByListing = new Map<string, number>();
+    if (serviceListingIds.length > 0) {
+      const rows: Array<{ listingId: string; min: string }> = await this.packages
+        .createQueryBuilder('pkg')
+        .select('pkg.listingId', 'listingId')
+        .addSelect('MIN(pkg.priceWaveCoin)', 'min')
+        .where('pkg.listingId IN (:...ids)', { ids: serviceListingIds })
+        .groupBy('pkg.listingId')
+        .getRawMany();
+      rows.forEach((row) => minPriceByListing.set(row.listingId, Number(row.min)));
+    }
+
+    const withStartingPrice = items.map((item) => ({
+      ...item,
+      startingPriceWaveCoin:
+        item.type === ListingType.Item ? item.priceWaveCoin : minPriceByListing.get(item.id) ?? null,
+    }));
+
+    return { items: withStartingPrice, total };
   }
 
   // Public detail lookup — 404s on anything not Active (a draft/pending listing isn't "not found"
   // in the DB sense, but it must behave as not found to an unauthenticated/non-owner caller).
   // Increments viewsCount as a side effect, best-effort (not awaited as part of the critical path).
-  async findPublicById(id: string): Promise<Listing> {
-    const listing = await this.listings.findOne({ where: { id, status: ListingStatus.Active } });
+  //
+  // Returns more than a bare `Listing`: packages (sorted) and the type-specific requirements/FAQ/
+  // item-attributes are fetched separately (they don't join cleanly via `relations` because of the
+  // sort-order and type-branching) and attached to the response. There's no shared response DTO for
+  // this shape yet — see packages/shared-types/CLAUDE.md if that becomes worth formalizing.
+  async findPublicById(id: string) {
+    const listing = await this.listings.findOne({
+      where: { id, status: ListingStatus.Active },
+      relations: ['seller', 'category', 'game', 'images'],
+    });
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
     void this.listings.increment({ id }, 'viewsCount', 1);
-    return listing;
+
+    if (listing.type === ListingType.Service) {
+      const [packages, details] = await Promise.all([
+        this.packages.find({ where: { listingId: id }, order: { sortOrder: 'ASC' } }),
+        this.serviceDetails.findOne({ where: { listingId: id } }),
+      ]);
+      return {
+        ...listing,
+        packages,
+        requirementsSchema: details?.requirementsSchema ?? [],
+        faq: details?.faq ?? [],
+      };
+    }
+
+    const itemDetails = await this.itemDetails.findOne({ where: { listingId: id } });
+    return { ...listing, packages: [], itemAttributes: itemDetails?.attributes ?? {} };
   }
 
   async addPackage(sellerId: string, listingId: string, dto: CreatePackageDto): Promise<Package> {
