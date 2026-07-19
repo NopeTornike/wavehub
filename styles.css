@@ -6215,7 +6215,7 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
   position: sticky;
   top: 0;
   z-index: 30;
-  min-height: 58px;
+  min-height: 82px;
   display: grid;
   grid-template-columns: auto minmax(360px, 1fr) auto;
   align-items: center;
@@ -6228,19 +6228,19 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 }
 
 .coach-brand {
-  width: 168px;
-  min-width: 168px;
-  height: 48px;
+  width: 220px;
+  min-width: 220px;
+  height: 82px;
   display: grid;
   place-items: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .coach-brand > img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transform: scale(2.3);
+  transform: none;
 }
 
 .coach-brand-mark {
