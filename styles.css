@@ -202,6 +202,20 @@ button {
   color: white;
 }
 
+.nav-icon-home img {
+  width: 22px;
+  height: 22px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(255, 47, 156, 0.9));
+}
+
+.side-link:hover .nav-icon-home,
+.side-link.active .nav-icon-home {
+  background: rgba(255, 47, 143, 0.1);
+  box-shadow: 0 0 18px rgba(255, 47, 143, 0.42), inset 0 0 12px rgba(255, 47, 143, 0.12);
+}
+
 .nav-icon-heart::before {
   content: "\2665";
   color: currentColor;
