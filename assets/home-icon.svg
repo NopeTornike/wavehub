@@ -1,18 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <defs>
-    <linearGradient id="homeStroke" x1="12" y1="10" x2="52" y2="55" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#fff"/>
-      <stop offset=".3" stop-color="#ffb6df"/>
-      <stop offset=".68" stop-color="#ff2f9c"/>
-      <stop offset="1" stop-color="#b839ff"/>
-    </linearGradient>
-    <filter id="homeGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feFlood flood-color="#ff2f9c" flood-opacity=".95"/>
-      <feComposite in2="blur" operator="in"/>
-      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="homeShadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#ffffff" flood-opacity=".3"/>
     </filter>
   </defs>
   <path d="M9 29.5 29.2 10a4 4 0 0 1 5.6 0L55 29.5V55H39V39H25v16H9V29.5Z"
-        stroke="url(#homeStroke)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#homeGlow)"/>
+        stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#homeShadow)"/>
 </svg>
