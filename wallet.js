@@ -11,11 +11,9 @@ const walletTransactionList = document.getElementById('walletTransactionList');
 const walletTransactionCount = document.getElementById('walletTransactionCount');
 const walletEmpty = document.getElementById('walletEmpty');
 const onlineCount = document.getElementById('onlineCount');
-const messageCount = document.getElementById('messageCount');
 
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
-const priceOffersKey = 'wavehub.priceOffers';
 const walletsKey = 'wavehub.wallets';
 const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
 
@@ -88,17 +86,6 @@ function formatDate(value) {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function getReceivedOfferCount(username) {
-  if (!username) {
-    return 0;
-  }
-
-  const offers = readJson(priceOffersKey, []);
-  return Array.isArray(offers)
-    ? offers.filter((offer) => offer.sellerUsername === username).length
-    : 0;
 }
 
 function setStatus(type, message) {
@@ -175,7 +162,6 @@ function renderWallet() {
   document.querySelectorAll('[data-wallet-balance]').forEach((element) => {
     element.textContent = String(wallet.balance);
   });
-  if (messageCount) messageCount.textContent = String(getReceivedOfferCount(user?.username));
   if (walletTransactionCount) walletTransactionCount.textContent = `${wallet.transactions.length} records`;
 
   if (!walletTransactionList) {
@@ -428,7 +414,7 @@ walletBuyForm?.addEventListener('submit', async (event) => {
 });
 
 window.addEventListener('storage', (event) => {
-  if ([walletsKey, sessionKey, localUsersKey, priceOffersKey].includes(event.key)) {
+  if ([walletsKey, sessionKey, localUsersKey].includes(event.key)) {
     renderWallet();
   }
 });

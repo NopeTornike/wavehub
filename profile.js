@@ -11,6 +11,11 @@ const publicProfileHandle = document.getElementById('publicProfileHandle');
 const publicProfileJoined = document.getElementById('publicProfileJoined');
 const publicProfileBio = document.getElementById('publicProfileBio');
 const publicProfileMessage = document.getElementById('publicProfileMessage');
+const publicProfileRole = document.getElementById('publicProfileRole');
+const publicProfileRank = document.getElementById('publicProfileRank');
+const publicProfileRankCaption = document.getElementById('publicProfileRankCaption');
+const publicProfileRankProgress = document.getElementById('publicProfileRankProgress');
+const publicProfileRankMeta = document.getElementById('publicProfileRankMeta');
 const publicProfileRegistered = document.getElementById('publicProfileRegistered');
 const publicProfileListed = document.getElementById('publicProfileListed');
 const publicProfileSold = document.getElementById('publicProfileSold');
@@ -20,6 +25,27 @@ const publicProfileListings = document.getElementById('publicProfileListings');
 const publicProfileListingsEmpty = document.getElementById('publicProfileListingsEmpty');
 const publicProfileReviews = document.getElementById('publicProfileReviews');
 const publicProfileReviewsEmpty = document.getElementById('publicProfileReviewsEmpty');
+const publicProfileFactUsername = document.getElementById('publicProfileFactUsername');
+const publicProfileFactType = document.getElementById('publicProfileFactType');
+const publicProfileFactActivity = document.getElementById('publicProfileFactActivity');
+const publicProfileRatingTotal = document.getElementById('publicProfileRatingTotal');
+const publicProfileScore = document.getElementById('publicProfileScore');
+const publicProfileScoreStars = document.getElementById('publicProfileScoreStars');
+const publicProfileRatingBars = document.getElementById('publicProfileRatingBars');
+const publicProfileListingCount = document.getElementById('publicProfileListingCount');
+const publicProfileReviewsCount = document.getElementById('publicProfileReviewsCount');
+const publicProfileActivityNote = document.getElementById('publicProfileActivityNote');
+const publicProfileMainGame = document.getElementById('publicProfileMainGame');
+const publicProfileMainGameMeta = document.getElementById('publicProfileMainGameMeta');
+const publicProfileMainGameImage = document.getElementById('publicProfileMainGameImage');
+const publicProfileSecondaryGame = document.getElementById('publicProfileSecondaryGame');
+const publicProfileSecondaryGameMeta = document.getElementById('publicProfileSecondaryGameMeta');
+const publicProfileSecondaryGameImage = document.getElementById('publicProfileSecondaryGameImage');
+const publicProfileBadges = document.getElementById('publicProfileBadges');
+const publicProfilePerformanceReviews = document.getElementById('publicProfilePerformanceReviews');
+const publicProfilePerformanceOrders = document.getElementById('publicProfilePerformanceOrders');
+const publicProfilePerformanceListings = document.getElementById('publicProfilePerformanceListings');
+const publicProfilePerformanceGames = document.getElementById('publicProfilePerformanceGames');
 const profileControlLayout = document.getElementById('profileControlLayout');
 const profileForm = document.getElementById('profileForm');
 const profilePhotoPreview = document.getElementById('profilePhotoPreview');
@@ -76,19 +102,25 @@ const profileSessionStatus = document.getElementById('profileSessionStatus');
 const profileSessionCloseButton = document.getElementById('profileSessionCloseButton');
 const profileSessionCancelButton = document.getElementById('profileSessionCancelButton');
 const onlineCount = document.getElementById('onlineCount');
-const messageCount = document.getElementById('messageCount');
 
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const sellerListingsKey = 'wavehub.sellerListings';
 const purchasesKey = 'wavehub.purchases';
 const sellerReviewsKey = 'wavehub.sellerReviews';
-const priceOffersKey = 'wavehub.priceOffers';
 const cartKey = 'wavehub.cart';
 const favoritesKey = 'wavehub.favorites';
 const listingGames = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
 const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
 const sessionTimeOptions = ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '18:30', '19:00', '19:30', '20:00', '21:00'];
+const publicProfileGameImages = {
+  'PUBG Mobile': 'assets/pubg-photo.jpeg',
+  'Call of Duty': 'assets/call-of-duty-marketplace-photo.png',
+  CS2: 'assets/cs2-photo.jpeg',
+  'Mobile Legends': 'assets/mobile-legends-photo.jpeg',
+  'Free Fire': 'assets/freefire-photo.jpeg',
+  Roblox: 'assets/roblox-photo.jpeg',
+};
 
 function readJson(key, fallback) {
   try {
@@ -231,17 +263,6 @@ function getSellerSoldItems(username, listings = getSellerListings(), user = get
       || (item.listingId && listingIds.has(item.listingId))
       || (displayName && item.seller === displayName)
     ));
-}
-
-function getReceivedOfferCount(username) {
-  if (!username) {
-    return 0;
-  }
-
-  const offers = readJson(priceOffersKey, []);
-  return Array.isArray(offers)
-    ? offers.filter((offer) => offer.sellerUsername === username).length
-    : 0;
 }
 
 function renderOnlineCount() {
@@ -598,10 +619,12 @@ function removeListingReferences(listingId) {
 
   saveCartItems(getCartItems().filter((item) => item.listingId !== listingId && item.id !== favoriteId));
 
-  const offers = readJson(priceOffersKey, []);
-  if (Array.isArray(offers)) {
-    writeJson(priceOffersKey, offers.filter((offer) => offer.listingId !== listingId));
-  }
+}
+
+function formatProfileMonth(value) {
+  const date = new Date(value || '');
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString([], { year: 'numeric', month: 'short' });
 }
 
 function getPurchases() {
@@ -812,17 +835,32 @@ function createPublicReviewCard(review) {
   const head = document.createElement('div');
   head.className = 'public-review-head';
 
+  const reviewerWrap = document.createElement('div');
+  reviewerWrap.className = 'public-review-reviewer';
+
+  const reviewerAvatar = document.createElement('span');
+  reviewerAvatar.className = 'message-avatar';
+  const reviewerName = review.buyerName || review.buyerUsername || 'Verified buyer';
+  const reviewerUser = getUserByUsername(review.buyerUsername);
+  if (reviewerUser) {
+    applyAvatar(reviewerAvatar, reviewerUser);
+  } else {
+    reviewerAvatar.textContent = String(reviewerName).trim().charAt(0).toUpperCase() || '?';
+  }
+
   const reviewer = document.createElement('strong');
-  reviewer.textContent = review.buyerName || review.buyerUsername || 'Verified buyer';
+  reviewer.textContent = reviewerName;
+  reviewerWrap.append(reviewerAvatar, reviewer);
 
   const rating = document.createElement('span');
   rating.className = 'public-review-rating';
-  rating.textContent = `${formatRating(Number(review.rating))}/5`;
+  const numericRating = Math.max(0, Math.min(5, Number(review.rating) || 0));
+  rating.textContent = `${'★'.repeat(Math.round(numericRating))}${'☆'.repeat(5 - Math.round(numericRating))}`;
 
   const date = document.createElement('small');
   date.textContent = formatProfileDate(review.createdAt);
 
-  head.append(reviewer, rating, date);
+  head.append(reviewerWrap, rating, date);
 
   const item = document.createElement('span');
   item.textContent = review.itemTitle ? `Order: ${review.itemTitle}` : 'Marketplace order';
@@ -832,6 +870,114 @@ function createPublicReviewCard(review) {
 
   card.append(head, item, body);
   return card;
+}
+
+function getPublicProfileRank(username) {
+  const users = readJson(localUsersKey, []);
+  const listings = getSellerListings();
+  const rankedUsers = (Array.isArray(users) ? users : []).map((user) => {
+    const userListings = listings.filter((listing) => listing.sellerUsername === user.username);
+    const orders = getSellerSoldItems(user.username, userListings, user).length;
+    const reviews = getSellerReviews(user.username);
+    return {
+      username: user.username,
+      orders,
+      reviews: reviews.length,
+      listings: userListings.length,
+      rating: getAverageRating(reviews) || 0,
+    };
+  }).filter((entry) => entry.orders || entry.reviews || entry.listings).sort((a, b) => (
+    b.orders - a.orders
+    || b.reviews - a.reviews
+    || b.listings - a.listings
+    || b.rating - a.rating
+    || a.username.localeCompare(b.username)
+  ));
+
+  const index = rankedUsers.findIndex((entry) => entry.username === username);
+  if (index < 0) return null;
+  const rank = index + 1;
+  const total = Math.max(rankedUsers.length, 1);
+  const percentile = Math.max(1, Math.ceil((rank / total) * 100));
+  return { rank, total, percentile, progress: Math.max(4, Math.round(((total - rank + 1) / total) * 100)) };
+}
+
+function getPublicProfileGames(listings, soldItems) {
+  const activity = [...listings, ...soldItems].reduce((games, item) => {
+    const game = String(item.game || '').trim();
+    if (!game) return games;
+    const current = games.get(game) || { game, count: 0, listings: 0, orders: 0, imageData: '' };
+    current.count += 1;
+    current.listings += listings.includes(item) ? 1 : 0;
+    current.orders += soldItems.includes(item) ? 1 : 0;
+    current.imageData ||= item.imageData || '';
+    games.set(game, current);
+    return games;
+  }, new Map());
+  return [...activity.values()].sort((a, b) => b.count - a.count || a.game.localeCompare(b.game));
+}
+
+function renderPublicProfileGame(game, nameElement, metaElement, imageElement, fallbackTitle, fallbackMeta) {
+  if (nameElement) nameElement.textContent = game?.game || fallbackTitle;
+  if (metaElement) {
+    metaElement.textContent = game
+      ? `${formatCount(game.listings)} listing${game.listings === 1 ? '' : 's'} · ${formatCount(game.orders)} order${game.orders === 1 ? '' : 's'}`
+      : fallbackMeta;
+  }
+  if (imageElement) {
+    const image = game?.imageData || publicProfileGameImages[game?.game] || '';
+    imageElement.style.backgroundImage = image
+      ? `linear-gradient(180deg, rgba(4, 7, 17, 0.03), rgba(4, 7, 17, 0.5)), url("${image}")`
+      : '';
+    imageElement.classList.toggle('is-empty', !image);
+    imageElement.textContent = image ? '' : 'WH';
+  }
+}
+
+function renderPublicProfileBadges(user, listings, soldItems, reviews, averageRating) {
+  if (!publicProfileBadges) return;
+  const badges = [{ icon: 'W', title: 'WaveHub member', detail: `Joined ${formatProfileMonth(user.createdAt)}` }];
+  if (listings.length) badges.push({ icon: '◇', title: 'Active seller', detail: `${formatCount(listings.length)} public listing${listings.length === 1 ? '' : 's'}` });
+  if (averageRating !== null && averageRating >= 4.5) badges.push({ icon: '★', title: 'Top rated', detail: `${formatRating(averageRating)} average buyer rating` });
+  if (soldItems.length) {
+    const orderMilestone = soldItems.length >= 100 ? '100+ orders' : soldItems.length >= 10 ? '10+ orders' : 'First order';
+    badges.push({ icon: '✓', title: orderMilestone, detail: `${formatCount(soldItems.length)} marketplace order${soldItems.length === 1 ? '' : 's'}` });
+  }
+  if (reviews.length >= 10) badges.push({ icon: '♡', title: 'Community trusted', detail: `${formatCount(reviews.length)} verified reviews` });
+
+  publicProfileBadges.innerHTML = '';
+  badges.slice(0, 5).forEach((badge) => {
+    const card = document.createElement('article');
+    const icon = document.createElement('i');
+    const title = document.createElement('strong');
+    const detail = document.createElement('span');
+    icon.textContent = badge.icon;
+    title.textContent = badge.title;
+    detail.textContent = badge.detail;
+    card.append(icon, title, detail);
+    publicProfileBadges.appendChild(card);
+  });
+}
+
+function renderPublicRatingOverview(reviews, averageRating) {
+  const ratingText = averageRating === null ? '-' : formatRating(averageRating);
+  const roundedRating = averageRating === null ? 0 : Math.round(averageRating);
+  const stars = `${'★'.repeat(roundedRating)}${'☆'.repeat(5 - roundedRating)}`;
+
+  if (publicProfileRatingTotal) publicProfileRatingTotal.textContent = `${formatCount(reviews.length)} total reviews`;
+  if (publicProfileScore) publicProfileScore.textContent = ratingText;
+  if (publicProfileScoreStars) publicProfileScoreStars.textContent = stars;
+
+  if (!publicProfileRatingBars) return;
+  publicProfileRatingBars.innerHTML = '';
+  for (let rating = 5; rating >= 1; rating -= 1) {
+    const count = reviews.filter((review) => Math.round(Number(review.rating) || 0) === rating).length;
+    const percentage = reviews.length ? Math.round((count / reviews.length) * 100) : 0;
+    const row = document.createElement('div');
+    row.className = 'public-profile-rating-row';
+    row.innerHTML = `<span>${rating} ★</span><i><b style="width:${percentage}%"></b></i><small>${percentage}%</small>`;
+    publicProfileRatingBars.appendChild(row);
+  }
 }
 
 function renderPublicListings(user) {
@@ -887,6 +1033,7 @@ function renderPublicProfile(user) {
   if (profileLoginPanel) profileLoginPanel.hidden = true;
   if (profileControlLayout) profileControlLayout.hidden = true;
   if (publicProfileLayout) publicProfileLayout.hidden = false;
+  document.body.classList.add('public-profile-view');
 
   if (!user) {
     document.title = 'Profile not found - WaveHub';
@@ -897,14 +1044,33 @@ function renderPublicProfile(user) {
     if (publicProfileHandle) publicProfileHandle.textContent = '@unknown';
     if (publicProfileJoined) publicProfileJoined.textContent = 'This public profile is unavailable.';
     if (publicProfileBio) {
-      publicProfileBio.textContent = '';
-      publicProfileBio.hidden = true;
+      publicProfileBio.textContent = 'This user could not be found.';
     }
+    if (publicProfileRole) publicProfileRole.textContent = 'Unavailable profile';
+    if (publicProfileMessage) publicProfileMessage.hidden = true;
+    if (publicProfileRank) publicProfileRank.textContent = '#-';
+    if (publicProfileRankCaption) publicProfileRankCaption.textContent = 'Profile unavailable';
+    if (publicProfileRankProgress) publicProfileRankProgress.style.width = '0%';
+    if (publicProfileRankMeta) publicProfileRankMeta.textContent = 'No ranking data';
+    if (publicProfileFactUsername) publicProfileFactUsername.textContent = '@unknown';
+    if (publicProfileFactType) publicProfileFactType.textContent = '-';
+    if (publicProfileFactActivity) publicProfileFactActivity.textContent = 'No activity';
     if (publicProfileRegistered) publicProfileRegistered.textContent = '-';
     if (publicProfileListed) publicProfileListed.textContent = '0';
     if (publicProfileSold) publicProfileSold.textContent = '0';
     if (publicProfileReviewCount) publicProfileReviewCount.textContent = '0';
     if (publicProfileRating) publicProfileRating.textContent = '-';
+    if (publicProfileListingCount) publicProfileListingCount.textContent = '0';
+    if (publicProfileReviewsCount) publicProfileReviewsCount.textContent = '0';
+    if (publicProfileActivityNote) publicProfileActivityNote.textContent = 'Profile unavailable';
+    renderPublicProfileGame(null, publicProfileMainGame, publicProfileMainGameMeta, publicProfileMainGameImage, 'No game listed', 'No marketplace activity.');
+    renderPublicProfileGame(null, publicProfileSecondaryGame, publicProfileSecondaryGameMeta, publicProfileSecondaryGameImage, 'No second game', 'No additional marketplace activity.');
+    if (publicProfileBadges) publicProfileBadges.innerHTML = '';
+    if (publicProfilePerformanceReviews) publicProfilePerformanceReviews.textContent = '0';
+    if (publicProfilePerformanceOrders) publicProfilePerformanceOrders.textContent = '0';
+    if (publicProfilePerformanceListings) publicProfilePerformanceListings.textContent = '0';
+    if (publicProfilePerformanceGames) publicProfilePerformanceGames.textContent = '0';
+    renderPublicRatingOverview([], null);
     if (publicProfileListings) publicProfileListings.innerHTML = '';
     if (publicProfileReviews) publicProfileReviews.innerHTML = '';
     if (publicProfileListingsEmpty) {
@@ -927,24 +1093,71 @@ function renderPublicProfile(user) {
   if (publicProfileJoined) publicProfileJoined.textContent = `Joined ${joinedDate}`;
   if (publicProfileBio) {
     const bio = String(user.bio || '').trim();
-    publicProfileBio.textContent = bio;
-    publicProfileBio.hidden = !bio;
+    publicProfileBio.textContent = bio || 'This member has not added a bio yet.';
   }
   if (publicProfileMessage) {
     const currentUsername = getCurrentAccount().user?.username || '';
     publicProfileMessage.href = `messages.html?to=${encodeURIComponent(user.username)}`;
     publicProfileMessage.hidden = currentUsername === user.username;
   }
-  if (publicProfileRegistered) publicProfileRegistered.textContent = joinedDate;
+  const role = listings.length || soldItems.length ? 'Marketplace seller' : 'WaveHub member';
+  const rankedGames = getPublicProfileGames(listings, soldItems);
+  const activeGames = rankedGames.map((game) => game.game);
+  const rank = getPublicProfileRank(user.username);
+  if (publicProfileRole) publicProfileRole.textContent = role;
+  if (publicProfileFactUsername) publicProfileFactUsername.textContent = `@${user.username}`;
+  if (publicProfileFactType) publicProfileFactType.textContent = role;
+  if (publicProfileFactActivity) {
+    publicProfileFactActivity.textContent = activeGames.length
+      ? activeGames.slice(0, 3).join(', ')
+      : 'No marketplace activity yet';
+  }
+  if (publicProfileRegistered) publicProfileRegistered.textContent = formatProfileMonth(user.createdAt);
   if (publicProfileListed) publicProfileListed.textContent = formatCount(listings.length);
   if (publicProfileSold) publicProfileSold.textContent = formatCount(soldItems.length);
   if (publicProfileReviewCount) publicProfileReviewCount.textContent = formatCount(reviews.length);
-  if (publicProfileRating) publicProfileRating.textContent = averageRating === null ? '-' : `${formatRating(averageRating)}/5`;
+  if (publicProfileRating) publicProfileRating.textContent = averageRating === null ? '-' : formatRating(averageRating);
+  if (publicProfileListingCount) publicProfileListingCount.textContent = formatCount(listings.length);
+  if (publicProfileReviewsCount) publicProfileReviewsCount.textContent = formatCount(reviews.length);
+  if (publicProfileActivityNote) {
+    publicProfileActivityNote.textContent = listings.length || soldItems.length
+      ? `${formatCount(listings.length)} listed · ${formatCount(soldItems.length)} orders`
+      : 'WaveHub community member';
+  }
+  if (publicProfileRank) publicProfileRank.textContent = rank ? `#${formatCount(rank.rank)}` : '#-';
+  if (publicProfileRankCaption) {
+    publicProfileRankCaption.textContent = rank ? `Top ${rank.percentile}% of active members` : 'No marketplace activity yet';
+  }
+  if (publicProfileRankProgress) publicProfileRankProgress.style.width = rank ? `${rank.progress}%` : '0%';
+  if (publicProfileRankMeta) {
+    publicProfileRankMeta.textContent = rank ? `${formatCount(rank.rank)} of ${formatCount(rank.total)} ranked members` : 'Not ranked';
+  }
+  renderPublicProfileGame(
+    rankedGames[0],
+    publicProfileMainGame,
+    publicProfileMainGameMeta,
+    publicProfileMainGameImage,
+    'No game listed',
+    'Add a marketplace listing to show a game.',
+  );
+  renderPublicProfileGame(
+    rankedGames[1],
+    publicProfileSecondaryGame,
+    publicProfileSecondaryGameMeta,
+    publicProfileSecondaryGameImage,
+    'No second game',
+    'No additional marketplace activity.',
+  );
+  renderPublicProfileBadges(user, listings, soldItems, reviews, averageRating);
+  if (publicProfilePerformanceReviews) publicProfilePerformanceReviews.textContent = formatCount(reviews.length);
+  if (publicProfilePerformanceOrders) publicProfilePerformanceOrders.textContent = formatCount(soldItems.length);
+  if (publicProfilePerformanceListings) publicProfilePerformanceListings.textContent = formatCount(listings.length);
+  if (publicProfilePerformanceGames) publicProfilePerformanceGames.textContent = formatCount(rankedGames.length);
+  renderPublicRatingOverview(reviews, averageRating);
 
   const shownListings = renderPublicListings(user);
   const shownReviews = renderPublicReviews(reviews);
   if (profileRecordCount) profileRecordCount.textContent = String(shownListings.length + shownReviews.length);
-  if (messageCount) messageCount.textContent = String(getReceivedOfferCount(getCurrentAccount().user?.username));
 }
 
 function renderProfileForm(user) {
@@ -1049,6 +1262,7 @@ function renderPage() {
 
   const { user } = getCurrentAccount();
   const isSignedIn = Boolean(user?.username);
+  document.body.classList.remove('public-profile-view');
 
   if (publicProfileLayout) {
     publicProfileLayout.hidden = true;
@@ -1080,7 +1294,6 @@ function renderPage() {
   const sessions = renderSessions(user);
   const purchases = renderPurchases(user);
   if (profileRecordCount) profileRecordCount.textContent = String(listings.length + sessions.length + purchases.length);
-  if (messageCount) messageCount.textContent = String(getReceivedOfferCount(user.username));
   window.wavehubRenderProfileSurfaces?.();
 }
 
@@ -1473,7 +1686,7 @@ profileLogoutButton?.addEventListener('click', () => {
 profileSearch?.addEventListener('input', renderPage);
 
 window.addEventListener('storage', (event) => {
-  if ([localUsersKey, sessionKey, sellerListingsKey, purchasesKey, sellerReviewsKey, priceOffersKey, cartKey].includes(event.key)) {
+  if ([localUsersKey, sessionKey, sellerListingsKey, purchasesKey, sellerReviewsKey, cartKey].includes(event.key)) {
     renderPage();
   }
 });

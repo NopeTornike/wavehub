@@ -475,7 +475,12 @@
               const gameIconSources = {
                 'pubg mobile': 'assets/pubg-mobile-icon.png',
                 'cod mobile': 'assets/cod-mobile-icon.png',
+                'call of duty': 'assets/cod-mobile-icon.png',
                 valorant: 'assets/valorant-icon.png',
+                cs2: 'assets/cs2-popular-games-photo.png',
+                'mobile legends': 'assets/mobile-legends-popular-games-photo.png',
+                'free fire': 'assets/freefire-photo.jpeg',
+                roblox: 'assets/roblox-popular-games-photo.png',
               };
               const gameIconSource = gameIconSources[game.trim().toLowerCase()];
               const icon = gameIconSource
@@ -815,7 +820,7 @@
       .slice(0, 4)
       .map((item) => `
         <a class="coach-similar-card" href="${getCoachUrl(item)}">
-          <span class="coach-similar-avatar" style="--coach-image: url('${escapeHtml(item.image)}')">${escapeHtml(getCoachInitials(item))}</span>
+          <span class="coach-similar-avatar${hasText(item.image) ? ' has-image' : ''}" style="--coach-image: url('${escapeHtml(item.image)}')">${hasText(item.image) ? '' : escapeHtml(getCoachInitials(item))}</span>
           <span>
             <strong>${escapeHtml(item.name)}</strong>
             <small>${escapeHtml(item.rank)}</small>
@@ -924,8 +929,8 @@
 
       <section class="coach-profile-hero" aria-labelledby="coachProfileTitle">
         <div class="coach-profile-portrait-wrap">
-          <div class="coach-profile-portrait" style="--coach-image: url('${escapeHtml(coach.image)}')">
-            <span>${escapeHtml(initials)}</span>
+          <div class="coach-profile-portrait${hasText(coach.image) ? ' has-image' : ''}" style="--coach-image: url('${escapeHtml(coach.image)}')">
+            ${hasText(coach.image) ? '' : `<span>${escapeHtml(initials)}</span>`}
           </div>
           ${hasText(availabilityText) ? `<span class="coach-online-pill"><i aria-hidden="true"></i>${escapeHtml(availabilityText)}</span>` : ''}
         </div>

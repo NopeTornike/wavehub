@@ -14,6 +14,7 @@ const coachEmpty = document.getElementById('coachEmpty');
 const coachPagination = document.querySelector('.coach-pagination');
 const viewToggleButtons = document.querySelectorAll('.coach-view-toggle button');
 const cartKey = 'wavehub.cart';
+const localUsersKey = 'wavehub.users';
 const coachesPerPage = 8;
 
 let activeGame = 'all';
@@ -34,11 +35,22 @@ function isProfileCoachListing(item) {
     && (item.isCoachListing || (item.buyerUsername && item.detailUrl === 'coaching.html'));
 }
 
+function getLocalUser(username) {
+  const users = readJson(localUsersKey, []);
+  const normalizedUsername = String(username || '').trim().toLowerCase();
+  return (Array.isArray(users) ? users : []).find((user) => (
+    String(user?.username || '').trim().toLowerCase() === normalizedUsername
+  ));
+}
+
 function getCoachListingsFromSessions() {
   const items = readJson(cartKey, []);
   const sessions = Array.isArray(items) ? items.filter(isProfileCoachListing) : [];
 
-  return sessions.map((session) => ({
+  return sessions.map((session) => {
+    const owner = getLocalUser(session.buyerUsername);
+
+    return {
     id: session.id || session.listingId,
     sourceListingId: session.listingId || '',
     sourceSessionId: session.id || '',
@@ -57,7 +69,7 @@ function getCoachListingsFromSessions() {
     language: session.language || 'GE',
     languages: Array.isArray(session.languages) ? session.languages : [session.language || 'GE'],
     tags: [session.sessionLabel || 'Custom Session'],
-    image: session.imageData || '',
+    image: session.imageData || owner?.photoData || '',
     bio: session.bio || session.about || session.sessionLabel || 'Custom coaching session',
     about: session.about || session.bio || '',
     quote: session.quote || (session.about ? `Hi, I'm ${session.seller || 'your coach'}. ${session.about}` : ''),
@@ -79,7 +91,8 @@ function getCoachListingsFromSessions() {
     availableTimes: session.sessionDate && session.sessionTime
       ? [{ date: session.sessionDate, label: session.sessionLabel, times: [session.sessionTime] }]
       : [],
-  }));
+    };
+  });
 }
 
 const coaches = [
@@ -106,6 +119,21 @@ function getGameShortName(game) {
   };
 
   return labels[game] || 'WH';
+}
+
+function getGameIconPath(game) {
+  const icons = {
+    'PUBG Mobile': 'assets/pubg-mobile-icon.png',
+    'COD Mobile': 'assets/cod-mobile-icon.png',
+    'Call of Duty': 'assets/cod-mobile-icon.png',
+    Valorant: 'assets/valorant-icon.png',
+    CS2: 'assets/cs2-popular-games-photo.png',
+    'Mobile Legends': 'assets/mobile-legends-popular-games-photo.png',
+    'Free Fire': 'assets/freefire-photo.jpeg',
+    Roblox: 'assets/roblox-popular-games-photo.png',
+  };
+
+  return icons[game] || '';
 }
 
 function getCoachInitials(coach) {
@@ -230,6 +258,7 @@ function createSessionMeta(coach) {
 
 function createCoachCard(coach) {
   const card = document.createElement('article');
+  const gameIcon = getGameIconPath(coach.game);
   card.className = 'coach-card';
   card.dataset.game = coach.game;
   card.dataset.coachId = coach.id || '';
@@ -253,7 +282,9 @@ function createCoachCard(coach) {
     </div>
 
     <div class="coach-game-row">
-      <span class="coach-game-icon">${getGameShortName(coach.game)}</span>
+      <span class="coach-game-icon">${gameIcon
+        ? `<img src="${gameIcon}" alt="" aria-hidden="true" />`
+        : getGameShortName(coach.game)}</span>
       <strong>${coach.game}</strong>
       <span class="coach-service-pill">${coach.service}</span>
     </div>
@@ -268,6 +299,14 @@ function createCoachCard(coach) {
       <span class="language">${coach.language}</span>
     </div>
   `;
+
+  if (coach.image) {
+    const avatar = card.querySelector('.coach-avatar-ring');
+    avatar?.classList.add('has-image');
+    avatar?.style.setProperty('--coach-image', `url("${coach.image}")`);
+    const initials = avatar?.querySelector('span');
+    if (initials) initials.textContent = '';
+  }
 
   return card;
 }

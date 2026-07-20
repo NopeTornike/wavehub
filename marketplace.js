@@ -40,7 +40,6 @@ const accountLoggedIn = document.getElementById('accountLoggedIn');
 const logoutButton = document.getElementById('logoutButton');
 const authEntryActions = document.getElementById('authEntryActions');
 const onlineCount = document.getElementById('onlineCount');
-const messageCount = document.getElementById('messageCount');
 const cartButton = document.getElementById('cartButton');
 const cartCount = document.getElementById('cartCount');
 const cartTotal = document.getElementById('cartTotal');
@@ -51,7 +50,6 @@ const sellerListingsKey = 'wavehub.sellerListings';
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const favoritesKey = 'wavehub.favorites';
-const priceOffersKey = 'wavehub.priceOffers';
 const cartKey = 'wavehub.cart';
 const games = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
 const accountTypeImages = {
@@ -223,17 +221,6 @@ function saveUserFavorites(username, favorites) {
     ...source,
     [username]: favorites,
   });
-}
-
-function getReceivedOfferCount(username) {
-  if (!username) {
-    return 0;
-  }
-
-  const offers = readJson(priceOffersKey, []);
-  return Array.isArray(offers)
-    ? offers.filter((offer) => offer.sellerUsername === username).length
-    : 0;
 }
 
 function getFavoriteId(listing) {
@@ -581,10 +568,6 @@ function renderProfile() {
 
   if (authEntryActions) {
     authEntryActions.hidden = isSignedIn;
-  }
-
-  if (messageCount) {
-    messageCount.textContent = String(getReceivedOfferCount(user?.username));
   }
 
   if (!isSignedIn && getActiveSection() === 'Favorites') {
@@ -1257,7 +1240,7 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === sessionKey || event.key === localUsersKey || event.key === priceOffersKey) {
+  if (event.key === sessionKey || event.key === localUsersKey) {
     renderProfile();
     renderMarketplace();
   }

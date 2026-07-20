@@ -2,7 +2,6 @@
   const localUsersKey = 'wavehub.users';
   const sessionKey = 'wavehub.session';
   const directMessagesKey = 'wavehub.directMessages';
-  const priceOffersKey = 'wavehub.priceOffers';
   const purchasesKey = 'wavehub.purchases';
   const walletsKey = 'wavehub.wallets';
   const notificationSeenKey = 'wavehub.notificationSeen';
@@ -162,7 +161,6 @@
     if (!user?.username) return [];
     const username = user.username;
     const messages = readJson(directMessagesKey, []);
-    const offers = readJson(priceOffersKey, []);
     const purchases = readJson(purchasesKey, []);
     const items = [];
 
@@ -176,19 +174,6 @@
           date: message.createdAt,
           unread: !message.readAt,
           href: `messages.html?to=${encodeURIComponent(message.fromUsername)}`,
-        });
-      });
-    }
-
-    if (Array.isArray(offers)) {
-      offers.filter((offer) => offer.sellerUsername === username).forEach((offer) => {
-        items.push({
-          id: `offer:${offer.id}`,
-          type: 'offer',
-          title: `Price offer from ${offer.buyerName || offer.buyerUsername || 'buyer'}`,
-          text: offer.itemTitle || offer.message || 'A new marketplace offer arrived.',
-          date: offer.createdAt,
-          href: offer.detailUrl || 'messages.html',
         });
       });
     }
@@ -415,7 +400,7 @@
       renderMessageNotifications();
     }
 
-    if ([directMessagesKey, priceOffersKey, purchasesKey, notificationSeenKey].includes(event.key)) {
+    if ([directMessagesKey, purchasesKey, notificationSeenKey].includes(event.key)) {
       renderMessageNotifications();
       renderNotificationCenter();
     }

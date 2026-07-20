@@ -16,7 +16,6 @@ const accountLoggedIn = document.getElementById('accountLoggedIn');
 const logoutButton = document.getElementById('logoutButton');
 const authEntryActions = document.getElementById('authEntryActions');
 const onlineCount = document.getElementById('onlineCount');
-const messageCount = document.getElementById('messageCount');
 const detailLayout = document.getElementById('detailLayout');
 const detailEmpty = document.getElementById('detailEmpty');
 const detailTabButtons = document.querySelectorAll('.detail-tabs button');
@@ -70,16 +69,10 @@ const buyButton = document.getElementById('buyButton');
 const wishlistButton = document.getElementById('wishlistButton');
 const messageSellerButton = document.getElementById('messageSellerButton');
 const buyStatus = document.getElementById('buyStatus');
-const priceOfferForm = document.getElementById('priceOfferForm');
-const offerPriceInput = document.getElementById('offerPrice');
-const offerMessageInput = document.getElementById('offerMessage');
-const offerStatus = document.getElementById('offerStatus');
-
 const sellerListingsKey = 'wavehub.sellerListings';
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const favoritesKey = 'wavehub.favorites';
-const priceOffersKey = 'wavehub.priceOffers';
 const purchasesKey = 'wavehub.purchases';
 const sellerReviewsKey = 'wavehub.sellerReviews';
 const minOnlineCount = 2;
@@ -624,37 +617,6 @@ function setStatus(type, message) {
   buyStatus.textContent = message;
 }
 
-function setOfferStatus(type, message) {
-  if (!offerStatus) {
-    return;
-  }
-
-  offerStatus.className = type ? `seller-status ${type}` : 'seller-status';
-  offerStatus.textContent = message;
-}
-
-function getPriceOffers() {
-  const offers = readJson(priceOffersKey, []);
-  return Array.isArray(offers) ? offers : [];
-}
-
-function getReceivedOfferCount(username) {
-  if (!username) {
-    return 0;
-  }
-
-  return getPriceOffers().filter((offer) => offer.sellerUsername === username).length;
-}
-
-function savePriceOffer(offer) {
-  writeJson(priceOffersKey, [offer, ...getPriceOffers()]);
-}
-
-function buildOfferMessage(offer, buyerName, offeredPrice, note) {
-  const base = `${buyerName} offered ${offeredPrice} for ${offer.title}.`;
-  return note ? `${base} Message: ${note}` : base;
-}
-
 function renderProfile() {
   const { session, user } = getCurrentAccount();
   const username = user?.username || 'Guest';
@@ -680,10 +642,6 @@ function renderProfile() {
 
   if (authEntryActions) {
     authEntryActions.hidden = isSignedIn;
-  }
-
-  if (messageCount) {
-    messageCount.textContent = String(getReceivedOfferCount(user?.username));
   }
 
   syncWishlistForActiveOffer();
@@ -1026,11 +984,6 @@ function renderDetail({ countView = true } = {}) {
   if (buyButton) {
     buyButton.textContent = offer.type === 'product' ? 'Buy Now' : 'Buy service';
   }
-  if (offerPriceInput) {
-    offerPriceInput.value = '';
-    offerPriceInput.placeholder = `Offer below ${formatListingPrice(getNumericPrice(offer.price) || 1)}`;
-  }
-
   renderGallery(offer);
   renderIncluded(offer.included || []);
   renderOfferReviews(offer);
@@ -1171,68 +1124,9 @@ messageSellerButton?.addEventListener('click', () => {
     return;
   }
 
-  window.location.href = 'messages.html';
-});
-
-priceOfferForm?.addEventListener('submit', (event) => {
-  event.preventDefault();
-  setOfferStatus('', '');
-
-  const { user } = getCurrentAccount();
-
-  if (!user?.username) {
-    setOfferStatus('error', 'Please log in before sending a price offer.');
-    setProfileOpen(true);
-    profileButton?.focus();
-    return;
-  }
-
-  if (!activeOffer) {
-    setOfferStatus('error', 'Offer is not available right now.');
-    return;
-  }
-
-  if (activeOffer.sellerUsername && activeOffer.sellerUsername === user.username) {
-    setOfferStatus('error', 'You cannot send a price offer to your own listing.');
-    return;
-  }
-
-  const amount = Number(offerPriceInput?.value);
-
-  if (!Number.isFinite(amount) || amount <= 0) {
-    setOfferStatus('error', 'Please enter a valid price.');
-    return;
-  }
-
-  const offeredPrice = formatListingPrice(amount);
-  const buyerName = getDisplayName(user);
-  const note = offerMessageInput?.value.trim() || '';
-  const priceOffer = {
-    id: window.crypto?.randomUUID?.() || String(Date.now()),
-    itemId: activeOffer.id,
-    itemType: activeOffer.type,
-    itemTitle: activeOffer.title,
-    detailUrl: `detail.html?type=${activeOffer.type}&id=${encodeURIComponent(activeOffer.id)}`,
-    game: activeOffer.game,
-    askingPrice: activeOffer.price,
-    offeredPrice,
-    amount,
-    message: buildOfferMessage(activeOffer, buyerName, offeredPrice, note),
-    note,
-    buyerUsername: user.username,
-    buyerName,
-    sellerUsername: activeOffer.sellerUsername || '',
-    sellerName: activeOffer.seller,
-    status: 'sent',
-    createdAt: new Date().toISOString(),
-  };
-
-  savePriceOffer(priceOffer);
-  priceOfferForm.reset();
-  renderProfile();
-  setOfferStatus('success', activeOffer.sellerUsername
-    ? 'Price offer sent to the seller messages.'
-    : 'Price offer saved in your sent messages.');
+  window.location.href = activeOffer?.sellerUsername
+    ? `messages.html?to=${encodeURIComponent(activeOffer.sellerUsername)}`
+    : 'messages.html';
 });
 
 detailReviewForm?.addEventListener('submit', (event) => {
@@ -1302,7 +1196,7 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('storage', (event) => {
-  if ([sessionKey, localUsersKey, priceOffersKey, favoritesKey, purchasesKey, sellerReviewsKey].includes(event.key)) {
+  if ([sessionKey, localUsersKey, favoritesKey, purchasesKey, sellerReviewsKey].includes(event.key)) {
     renderProfile();
     renderDetail({ countView: false });
   }
