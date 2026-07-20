@@ -207,7 +207,9 @@ button {
 .nav-icon-settings img,
 .nav-icon-wallet img,
 .nav-icon-orders img,
-.nav-icon-coaching img {
+.nav-icon-coaching img,
+.nav-icon-heart img,
+.nav-icon-cart img {
   width: 22px;
   height: 22px;
   display: block;
@@ -226,16 +228,13 @@ button {
 .side-link:hover .nav-icon-orders,
 .side-link.active .nav-icon-orders,
 .side-link:hover .nav-icon-coaching,
-.side-link.active .nav-icon-coaching {
+.side-link.active .nav-icon-coaching,
+.side-link:hover .nav-icon-heart,
+.side-link.active .nav-icon-heart,
+.side-link:hover .nav-icon-cart,
+.side-link.active .nav-icon-cart {
   background: rgba(255, 47, 143, 0.1);
   box-shadow: 0 0 18px rgba(255, 47, 143, 0.42), inset 0 0 12px rgba(255, 47, 143, 0.12);
-}
-
-.nav-icon-heart::before {
-  content: "\2665";
-  color: currentColor;
-  font-size: 17px;
-  line-height: 1;
 }
 
 .nav-pill {
