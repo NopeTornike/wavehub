@@ -5036,7 +5036,7 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 .cover-cod {
   background:
     linear-gradient(180deg, rgba(6, 10, 17, 0.08), rgba(6, 10, 17, 0.28)),
-    url("assets/call-of-duty-marketplace-photo.png") center / cover no-repeat,
+    url("assets/call-of-duty-popular-games-photo.png") center / cover no-repeat,
     #10151f;
 }
 
@@ -5084,7 +5084,7 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 .cover-roblox {
   background:
     linear-gradient(180deg, rgba(8, 12, 23, 0.04), rgba(8, 12, 23, 0.22)),
-    url("assets/roblox-photo.jpeg") center / cover no-repeat,
+    url("assets/roblox-popular-games-photo.png") center / cover no-repeat,
     #0e1522;
 }
 
