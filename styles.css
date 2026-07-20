@@ -5040,6 +5040,406 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
     #10151f;
 }
 
+/* Mobile home account header */
+@media (max-width: 620px) {
+  .home-page {
+    background: #03060d;
+  }
+
+  .home-page::before {
+    opacity: 0.18;
+  }
+
+  .home-page .main-panel {
+    gap: 14px;
+    padding: 14px 10px 28px;
+  }
+
+  .home-page .topbar {
+    min-height: 48px;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    gap: 9px;
+  }
+
+  .home-page .menu-toggle {
+    width: 46px;
+    height: 46px;
+    gap: 5px;
+    border-color: rgba(116, 135, 174, 0.22);
+    border-radius: 11px;
+    background: rgba(8, 13, 25, 0.82);
+  }
+
+  .home-page .menu-toggle span {
+    width: 20px;
+    height: 2px;
+  }
+
+  .home-page .search-box {
+    height: 46px;
+    grid-template-columns: 40px minmax(0, 1fr);
+    border-color: rgba(116, 135, 174, 0.22);
+    border-radius: 11px;
+    background: rgba(8, 13, 25, 0.82);
+  }
+
+  .home-page .search-icon {
+    position: relative;
+    width: 40px;
+    height: 46px;
+    overflow: hidden;
+    color: transparent;
+    font-size: 0;
+  }
+
+  .home-page .search-icon::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 13px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #aeb6ca;
+    border-radius: 50%;
+  }
+
+  .home-page .search-icon::after {
+    content: "";
+    position: absolute;
+    left: 26px;
+    top: 27px;
+    width: 8px;
+    height: 2px;
+    border-radius: 999px;
+    background: #aeb6ca;
+    transform: rotate(47deg);
+    transform-origin: left center;
+  }
+
+  .home-page .search-box input {
+    padding-right: 8px;
+    font-size: 12px;
+  }
+
+  .home-page .top-actions {
+    grid-column: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 3px;
+  }
+
+  .home-page .top-actions .seller-button,
+  .home-page .top-actions .profile-menu {
+    display: none;
+  }
+
+  .home-page .top-actions .icon-button {
+    width: 35px;
+    height: 46px;
+    border-color: transparent;
+    background-color: transparent;
+  }
+
+  .home-page .top-actions .message-icon-image {
+    width: 24px;
+    height: 24px;
+  }
+
+  .home-page .top-actions .cart-icon-image {
+    width: 26px;
+    height: 26px;
+  }
+
+  .home-page .icon-button.has-alert {
+    background-size: 24px 24px;
+  }
+
+  .home-page .cart-top-button .cart-badge,
+  .home-page .message-notification-badge,
+  .home-page .notification-count-badge {
+    top: 0;
+    right: -1px;
+  }
+
+  .home-page .mobile-account-overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1.62fr) minmax(116px, 1fr);
+    grid-template-rows: repeat(2, minmax(68px, auto));
+    gap: 9px;
+    padding-top: 2px;
+  }
+
+  .mobile-account-card,
+  .mobile-account-shortcut {
+    border: 1px solid rgba(116, 135, 174, 0.2);
+    border-radius: 13px;
+    background:
+      linear-gradient(145deg, rgba(255, 47, 143, 0.025), transparent 45%),
+      rgba(7, 12, 22, 0.92);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.015);
+  }
+
+  .mobile-account-card {
+    grid-row: 1 / 3;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(82px, 0.92fr) minmax(0, 1.08fr);
+    align-items: center;
+    gap: 8px;
+    padding: 11px 10px;
+  }
+
+  .mobile-account-avatar-wrap {
+    position: relative;
+    min-width: 0;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+  }
+
+  .mobile-account-avatar-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border: 2px solid #ed30ff;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 45%, rgba(255, 47, 143, 0.22), transparent 47%),
+      #090817;
+    box-shadow: 0 0 18px rgba(224, 35, 255, 0.44), inset 0 0 16px rgba(255, 47, 143, 0.16);
+  }
+
+  .mobile-account-avatar {
+    z-index: 1;
+    width: calc(100% - 15px);
+    height: calc(100% - 15px);
+    border: 0;
+    border-radius: 50%;
+    background-color: #111329;
+    background-position: center;
+    background-size: cover;
+    font-size: clamp(22px, 8vw, 38px);
+    box-shadow: none;
+  }
+
+  .mobile-account-level {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    bottom: -1px;
+    min-width: 56px;
+    padding: 4px 8px;
+    border: 1px solid #f22bc7;
+    border-radius: 5px;
+    color: white;
+    background: #12091d;
+    font-size: 10px;
+    font-weight: 850;
+    text-align: center;
+    transform: translateX(-50%);
+    box-shadow: 0 0 12px rgba(255, 47, 143, 0.38);
+  }
+
+  .mobile-account-online {
+    position: absolute;
+    z-index: 4;
+    right: 4px;
+    bottom: 19%;
+    width: 11px;
+    height: 11px;
+    border: 2px solid #07101b;
+    border-radius: 50%;
+    background: #1ee478;
+  }
+
+  .mobile-account-copy {
+    min-width: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 9px;
+  }
+
+  .mobile-account-copy h2 {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: white;
+    font-size: clamp(14px, 4vw, 19px);
+    line-height: 1.05;
+  }
+
+  .mobile-account-copy h2 > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-account-copy h2 i {
+    flex: 0 0 auto;
+    width: 17px;
+    height: 17px;
+    display: grid;
+    place-items: center;
+    border-radius: 5px;
+    color: white;
+    background: var(--pink);
+    font-size: 11px;
+    font-style: normal;
+    transform: rotate(8deg);
+  }
+
+  .mobile-account-copy p {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    color: #b846ff;
+    font-size: clamp(10px, 3vw, 13px);
+  }
+
+  .mobile-account-copy p strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-rank-icon {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #8f45ff;
+    border-radius: 6px;
+    color: #d6a6ff;
+    font-size: 8px;
+    transform: rotate(30deg);
+  }
+
+  .mobile-rank-icon::first-letter {
+    transform: rotate(-30deg);
+  }
+
+  .mobile-account-copy > a {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    border: 1px solid rgba(116, 135, 174, 0.24);
+    border-radius: 8px;
+    color: #aeb6c8;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .mobile-account-copy > a span,
+  .mobile-shortcut-arrow {
+    color: #9099ae;
+    font-size: 25px;
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .mobile-account-shortcut {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 35px minmax(0, 1fr) 12px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .mobile-shortcut-icon {
+    width: 33px;
+    height: 33px;
+    display: grid;
+    place-items: center;
+    color: var(--pink);
+  }
+
+  .mobile-shortcut-icon svg {
+    width: 31px;
+    height: 31px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .mobile-account-shortcut > span:nth-child(2) {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .mobile-account-shortcut small {
+    overflow: hidden;
+    color: #aab1c1;
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-account-shortcut strong {
+    color: white;
+    font-size: clamp(11px, 3.2vw, 15px);
+    line-height: 1.1;
+  }
+
+  .home-page .hero-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 370px) {
+  .home-page .main-panel {
+    padding-inline: 8px;
+  }
+
+  .home-page .topbar {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 5px;
+  }
+
+  .home-page .menu-toggle {
+    width: 42px;
+  }
+
+  .home-page .top-actions .icon-button {
+    width: 30px;
+  }
+
+  .home-page .mobile-account-overview {
+    grid-template-columns: minmax(0, 1.5fr) minmax(105px, 1fr);
+    gap: 7px;
+  }
+
+  .mobile-account-card {
+    grid-template-columns: minmax(70px, 0.9fr) minmax(0, 1.1fr);
+    padding-inline: 7px;
+  }
+
+  .mobile-account-shortcut {
+    grid-template-columns: 29px minmax(0, 1fr) 8px;
+    gap: 5px;
+    padding: 7px;
+  }
+
+  .mobile-shortcut-icon,
+  .mobile-shortcut-icon svg {
+    width: 27px;
+    height: 27px;
+  }
+}
+
 .cover-cod::before,
 .cover-cod::after {
   content: none;
@@ -5725,6 +6125,10 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 }
 
 .mobile-bottom-nav {
+  display: none;
+}
+
+.mobile-account-overview {
   display: none;
 }
 

@@ -4,6 +4,7 @@
   const directMessagesKey = 'wavehub.directMessages';
   const priceOffersKey = 'wavehub.priceOffers';
   const purchasesKey = 'wavehub.purchases';
+  const walletsKey = 'wavehub.wallets';
   const notificationSeenKey = 'wavehub.notificationSeen';
   let notificationPanel = null;
 
@@ -68,7 +69,7 @@
     const username = user?.username || 'Guest';
     const displayName = isSignedIn ? getDisplayName(user) : 'Not signed in';
 
-    ['profileAvatar', 'profilePanelAvatar'].forEach((id) => {
+    ['profileAvatar', 'profilePanelAvatar', 'mobileProfileAvatar'].forEach((id) => {
       applyAvatar(document.getElementById(id), user);
     });
 
@@ -83,6 +84,10 @@
     const profileMeta = document.getElementById('profileMeta');
     const profileFullName = document.getElementById('profileFullName');
     const profileHandle = document.getElementById('profileHandle');
+    const mobileProfileUsername = document.getElementById('mobileProfileUsername');
+    const mobileProfileRank = document.getElementById('mobileProfileRank');
+    const mobileProfileLevel = document.getElementById('mobileProfileLevel');
+    const mobileWalletBalance = document.getElementById('mobileWalletBalance');
     const accountUsername = document.getElementById('accountUsername');
     const accountName = document.getElementById('accountName');
     const authEntryActions = document.getElementById('authEntryActions');
@@ -95,6 +100,14 @@
     if (profileMeta) profileMeta.textContent = isSignedIn ? 'Manage profile' : 'Not signed in';
     if (profileFullName) profileFullName.textContent = isSignedIn ? getDisplayName(user) : 'Guest account';
     if (profileHandle) profileHandle.textContent = isSignedIn ? `@${username}` : '@guest';
+    if (mobileProfileUsername) mobileProfileUsername.textContent = username;
+    if (mobileProfileRank) mobileProfileRank.textContent = user?.rank || user?.role || (isSignedIn ? 'Wave Master' : 'Wave Rookie');
+    if (mobileProfileLevel) mobileProfileLevel.textContent = String(Math.max(1, Number(user?.level) || 1));
+    if (mobileWalletBalance) {
+      const wallets = readJson(walletsKey, {});
+      const balance = isSignedIn ? Math.max(0, Number(wallets?.[username]?.balance) || 0) : 0;
+      mobileWalletBalance.textContent = balance.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
     if (accountUsername) accountUsername.textContent = username;
     if (accountName) accountName.textContent = displayName;
     if (authEntryActions) authEntryActions.hidden = isSignedIn;
@@ -397,7 +410,7 @@
   });
 
   window.addEventListener('storage', (event) => {
-    if (event.key === sessionKey || event.key === localUsersKey) {
+    if (event.key === sessionKey || event.key === localUsersKey || event.key === walletsKey) {
       renderProfileSurfaces();
       renderMessageNotifications();
     }
