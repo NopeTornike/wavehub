@@ -12,6 +12,7 @@ export default function Header() {
       </Link>
       <nav className="site-nav">
         <Link href="/marketplace">Marketplace</Link>
+        <Link href="/coaching">კოუჩინგი</Link>
         {!checked ? null : user ? (
           <>
             <Link href="/orders">შეკვეთები</Link>

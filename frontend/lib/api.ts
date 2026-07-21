@@ -31,6 +31,9 @@ import type {
   PublicTicket,
   AdminTicketSummary,
   PublicSavedReply,
+  PublicCoachSummary,
+  PublicCoachDetail,
+  AdminCoachSummary,
 } from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -386,4 +389,35 @@ export const api = {
     request<PublicTicket>(`/admin/tickets/${id}/update`, { method: 'POST', body: JSON.stringify(patch) }),
 
   adminListSavedReplies: () => request<PublicSavedReply[]>('/admin/saved-replies'),
+
+  // --- Coaching --- (backend/src/coaching/) — profile + directory + admin verification only;
+  // session booking/payment don't exist yet, see backend/src/coaching/CLAUDE.md.
+  applyAsCoach: (payload: { gameId?: string; specialty: string; bio: string; languages?: string[]; hourlyRateWaveCoin: number }) =>
+    request<unknown>('/coaches/apply', { method: 'POST', body: JSON.stringify(payload) }),
+
+  getMyCoachApplication: () => request<unknown>('/coaches/mine'),
+
+  browseCoaches: (filters: { gameId?: string; limit?: number; offset?: number } = {}) => {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    })
+    const query = params.toString()
+    return request<{ items: PublicCoachSummary[]; total: number }>(`/coaches${query ? `?${query}` : ''}`)
+  },
+
+  getCoach: (id: string) => request<PublicCoachDetail>(`/coaches/${id}`),
+
+  adminListPendingCoaches: () => request<AdminCoachSummary[]>('/coaches/pending-verification'),
+
+  adminListAllCoaches: () => request<AdminCoachSummary[]>('/coaches/all'),
+
+  adminApproveCoach: (id: string) => request<AdminCoachSummary>(`/coaches/${id}/approve`, { method: 'POST' }),
+
+  adminRejectCoach: (id: string, reason: string) =>
+    request<AdminCoachSummary>(`/coaches/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  adminSuspendCoach: (id: string) => request<AdminCoachSummary>(`/coaches/${id}/suspend`, { method: 'POST' }),
+
+  adminRestoreCoach: (id: string) => request<AdminCoachSummary>(`/coaches/${id}/restore`, { method: 'POST' }),
 }

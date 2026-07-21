@@ -114,5 +114,7 @@ SPECIFICATION.md §5.13.7 (still open, still not guessed at), a permission-matri
 nav. Support ticketing (Phase 11d — `backend/src/support/CLAUDE.md`) has since landed too, using
 this same `AdminGuard`/`AdminAuditService` foundation. Phase 11f is partially done (platform fee %
 and minimum withdrawal are admin-configurable, `backend/src/settings/CLAUDE.md` — promo codes,
-banners, and Maintenance Mode enforcement are not). Still fully ahead: Coaching (11b — a wholly
-new domain, no Coach entity exists at all) and Trust & Safety/Analytics (11e, 11g).
+banners, and Maintenance Mode enforcement are not). Phase 11b (Coaching) has a first slice too —
+coach verification/suspension routes exist (`backend/src/coaching/CLAUDE.md`, same
+`AdminGuard`/`AdminAuditService` foundation), but session booking/payment and the rest of Coaching
+Management don't. Still fully ahead: Trust & Safety/Analytics (11e, 11g).

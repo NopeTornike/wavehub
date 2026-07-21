@@ -36,6 +36,7 @@ isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable r
 | `backend/src/notifications/` | In-app notification center + the order/dispute/review/withdrawal/chat hook points that populate it | `backend/src/notifications/CLAUDE.md` |
 | `backend/src/settings/` | Platform-wide configurable numbers (fee %, min withdrawal, maintenance flag) — a singleton table | `backend/src/settings/CLAUDE.md` |
 | `backend/src/support/` | Support ticketing — user tickets, staff replies, internal notes, Saved Replies | `backend/src/support/CLAUDE.md` |
+| `backend/src/coaching/` | Coach profiles, public directory, admin verification/suspension — no session booking yet | `backend/src/coaching/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 
@@ -113,6 +114,13 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   something to actually fix, not defer.
 - `.github/workflows/ci.yml` has an `audit` job running `npm audit --omit=dev` on every PR — a
   vulnerable production dependency fails CI, it doesn't rely on someone remembering to check.
+- **`sharp`** (transitive, via `next`'s optional image-optimization dependency) is also pinned in
+  root `overrides` (`^0.35.3`) past a libvips CVE — same mechanism as `postcss`/`multer` above.
+  Note: after editing `overrides`, a plain `npm install` alone did **not** pick up the new pinned
+  version for this transitive/optional dependency in practice (`npm ls sharp` kept showing the old
+  version, annotated "overridden" but not actually reinstalled) — `npm update sharp` was needed to
+  force the actual reinstall. If a future override edit doesn't show up in `npm audit`, try `npm
+  update <package>` before assuming the override itself is broken.
 - **A suspended or banned account's existing session cookie stops working immediately, not just at
   its next login.** `AuthGuard` (`backend/src/auth/auth.guard.ts`) does one lightweight
   `UsersService.findStatusById()` lookup per guarded request and rejects with 403 if the account is
@@ -162,8 +170,11 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   see `backend/src/admin/CLAUDE.md` and `frontend/CLAUDE.md`. **Phase 11d (Support ticketing) has
   also landed** — see `backend/src/support/CLAUDE.md`. **Phase 11f is partially done** (platform
   fee % and minimum withdrawal are admin-configurable — `backend/src/settings/CLAUDE.md` — but
-  promo codes, banners, and Maintenance Mode enforcement are not). Coaching (11b, a wholly new
-  domain — no Coach entity exists) and Trust & Safety/Analytics (11e, 11g) are still fully ahead.
+  promo codes, banners, and Maintenance Mode enforcement are not). **Phase 11b (Coaching) has a
+  first slice landed too** — coach profiles, the public directory, and admin verification/
+  suspension exist (`backend/src/coaching/CLAUDE.md`), but session booking and payment don't yet;
+  that's a deliberately separate follow-up (see that module's Status section for why). Trust &
+  Safety/Analytics (11e, 11g) are still fully ahead.
 
 ## Docker / local readiness
 

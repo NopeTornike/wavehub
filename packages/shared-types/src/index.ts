@@ -475,6 +475,49 @@ export interface PublicNotification {
   createdAt: string;
 }
 
+// --- Coaching (backend/src/coaching/) ---
+// A structurally separate concept from Seller/Listing per SPECIFICATION.md §5.13.7 — a Coach has
+// its own verification flow and profile. This first slice covers profile + directory + admin
+// verification/suspension only; session booking and payment are a deliberately separate follow-up
+// (see backend/src/coaching/CLAUDE.md's Status section for why, and see VerificationStatus above
+// for the enum this reuses rather than duplicating).
+
+export enum CoachStatus {
+  Active = 'active',
+  Suspended = 'suspended',
+}
+
+export interface PublicCoachSummary {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  specialty: string;
+  gameName: string | null;
+  hourlyRateWaveCoin: number;
+  ratingAvg: string | null;
+  ratingCount: number;
+}
+
+export interface PublicCoachDetail extends PublicCoachSummary {
+  bio: string;
+  languages: string[];
+}
+
+// What CoachesService.listPendingVerification() / listAll() return for the admin queue.
+export interface AdminCoachSummary {
+  id: string;
+  userId: string;
+  username: string;
+  specialty: string;
+  gameName: string | null;
+  hourlyRateWaveCoin: number;
+  verificationStatus: VerificationStatus;
+  status: CoachStatus;
+  rejectionReason: string | null;
+  createdAt: string;
+}
+
 // --- Support ticketing (backend/src/support/) ---
 
 export interface PublicTicketMessage {

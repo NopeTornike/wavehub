@@ -45,6 +45,8 @@ import { SupportModule } from './support/support.module';
 import { Ticket } from './support/ticket.entity';
 import { TicketMessage } from './support/ticket-message.entity';
 import { SavedReply } from './support/saved-reply.entity';
+import { CoachingModule } from './coaching/coaching.module';
+import { Coach } from './coaching/coach.entity';
 
 // Postgres is mandatory from Phase 1 onward — the JSON-file fallback that used to make this
 // conditional (USE_FILE_STORE) was removed along with AuthService's dual-mode logic. See
@@ -96,6 +98,7 @@ import { SavedReply } from './support/saved-reply.entity';
         Ticket,
         TicketMessage,
         SavedReply,
+        Coach,
       ],
       synchronize: process.env.TYPEORM_SYNC === 'true',
     }),
@@ -113,6 +116,7 @@ import { SavedReply } from './support/saved-reply.entity';
     NotificationsModule,
     SettingsModule,
     SupportModule,
+    CoachingModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

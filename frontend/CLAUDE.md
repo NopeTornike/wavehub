@@ -110,6 +110,12 @@ it into real components here, don't extend it further.
   open a new ticket (subject/category/description), list your own tickets, and a thread view that
   reuses the same `.chat-panel` CSS as order chat/disputes. Linked from `Header` as "დახმარება" for
   any logged-in user.
+- `pages/coaching/index.tsx` (verified-coach directory, `.listing-grid`/`.listing-card` reused from
+  the marketplace), `pages/coaching/[id].tsx` (profile detail — the "book a session" button is a
+  visible, disabled placeholder since `backend/src/coaching/` has no session-booking model yet),
+  `pages/coaching/apply.tsx` (become-a-coach application form) — linked from `Header` as
+  "კოუჩინგი". `pages/admin/coaches.tsx` is the staff side: a pending-verification queue
+  (approve/reject) plus a full coach list with suspend/restore for already-verified ones.
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the
@@ -194,6 +200,7 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
   controller, not `backend/src/wallet/`'s — see that module's doc.
 - `backend/src/support/` — backs `pages/support/*.tsx` and `pages/admin/tickets*.tsx`.
 - `backend/src/settings/` — backs `pages/admin/settings.tsx`.
+- `backend/src/coaching/` — backs `pages/coaching/*.tsx` and `pages/admin/coaches.tsx`.
 
 ## Status
 The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
@@ -217,8 +224,10 @@ moderation, dispute resolution, withdrawal payout processing, user search/suspen
 ban/unban, platform settings, and support-ticket triage — see the Key files entry above and
 `backend/src/admin/CLAUDE.md` for the backend side. This covers Phase 11c (core CRUD), 11d
 (Support ticketing — both the staff queue and the user-facing `pages/support/*.tsx`), and part of
-11f (platform settings). Coaching (a wholly new domain, Phase 11b) and Trust & Safety/Analytics
-(11e, 11g) have no frontend at all yet. No cart page
+11f (platform settings). A first slice of Coaching (Phase 11b) has frontend too — the public
+directory/profile/apply pages and the admin verification queue — but no session-booking UI, since
+the backend has no booking model yet (see `backend/src/coaching/CLAUDE.md`). Trust & Safety/
+Analytics (11e, 11g) have no frontend at all yet. No cart page
 (checkout is a direct single-listing buy, not a multi-item cart — matches the WaveCoin/order model,
 not an oversight), no seller dashboard / create-listing frontend, no coaching/profile/messages
 pages yet. The repo-root static site remains the reference mockup for all of that until it's
