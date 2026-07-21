@@ -10,28 +10,24 @@
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
       <a class="brand" href="index.html" aria-label="WaveHub home">
-        <span class="brand-mark">W</span>
-        <span class="brand-text">
-          <strong>WAVEHUB</strong>
-          <small>boost trade win</small>
-        </span>
+        <img src="assets/logo-wavehubx.png" alt="WaveHubX" />
       </a>
 
       <nav class="side-nav" aria-label="Main pages">
         <a class="side-link" href="index.html" data-section="Home">
-          <span class="nav-icon" aria-hidden="true">H</span>
+          <span class="nav-icon nav-icon-home" aria-hidden="true"><img src="assets/home-icon.svg" alt="" /></span>
           <span>Home</span>
         </a>
         <a class="side-link" href="marketplace.html" data-section="Marketplace">
-          <span class="nav-icon" aria-hidden="true">M</span>
+          <span class="nav-icon nav-icon-marketplace" aria-hidden="true"><img src="assets/marketplace-icon.svg" alt="" /></span>
           <span>Marketplace</span>
         </a>
         <a class="side-link" href="coaching.html" data-section="Coaching">
-          <span class="nav-icon" aria-hidden="true">C</span>
+          <span class="nav-icon nav-icon-coaching" aria-hidden="true"><img src="assets/sidebar-coaching-icon.svg" alt="" /></span>
           <span>Coaching</span>
         </a>
         <a class="side-link" href="orders.html" data-section="Orders">
-          <span class="nav-icon" aria-hidden="true">O</span>
+          <span class="nav-icon nav-icon-orders" aria-hidden="true"><img src="assets/orders-icon.svg" alt="" /></span>
           <span>Orders</span>
         </a>
         <a class="side-link" href="messages.html" data-section="Messages">
@@ -40,22 +36,22 @@
           <span class="nav-pill" id="messageCount">0</span>
         </a>
         <a class="side-link" href="wallet.html" data-section="Wallet">
-          <span class="nav-icon" aria-hidden="true">₾</span>
+          <span class="nav-icon nav-icon-wallet" aria-hidden="true"><img src="assets/wallet-icon.svg" alt="" /></span>
           <span>Wallet</span>
         </a>
         <a class="side-link" href="marketplace.html#favorites" data-section="Favorites">
-          <span class="nav-icon nav-icon-heart" aria-hidden="true"></span>
+          <span class="nav-icon nav-icon-heart" aria-hidden="true"><img src="assets/favorites-icon.svg" alt="" /></span>
           <span>Favorites</span>
         </a>
         <a class="side-link" href="cart.html" data-section="Cart">
-          <span class="nav-icon" aria-hidden="true">
-            <img class="cart-icon-image" src="assets/cart-icon.png" alt="" />
+          <span class="nav-icon nav-icon-cart" aria-hidden="true">
+            <img src="assets/sidebar-cart-icon.svg" alt="" />
           </span>
           <span>Cart</span>
           <span class="nav-pill" id="cartNavCount" data-cart-count>0</span>
         </a>
         <a class="side-link active" href="profile.html" data-section="Settings">
-          <span class="nav-icon" aria-hidden="true">S</span>
+          <span class="nav-icon nav-icon-settings" aria-hidden="true"><img src="assets/settings-icon.svg" alt="" /></span>
           <span>Settings</span>
         </a>
       </nav>
@@ -324,62 +320,138 @@
       </section>
 
       <section class="public-profile-layout" id="publicProfileLayout" hidden>
-        <section class="public-profile-hero" aria-labelledby="publicProfileName">
-          <span class="public-profile-avatar avatar avatar-hot" id="publicProfileAvatar">?</span>
-          <div class="public-profile-copy">
-            <p class="section-kicker">Public profile</p>
-            <h2 id="publicProfileName">User profile</h2>
-            <span id="publicProfileHandle">@user</span>
-            <small id="publicProfileJoined">Joined -</small>
-            <p class="public-profile-bio" id="publicProfileBio" hidden></p>
-          </div>
-          <a class="auth-open-button" id="publicProfileMessage" href="messages.html">Message</a>
-        </section>
-
-        <section class="public-profile-stats" aria-label="Seller statistics">
-          <article>
-            <span>Registered</span>
-            <strong id="publicProfileRegistered">-</strong>
-          </article>
-          <article>
-            <span>For sale</span>
-            <strong id="publicProfileListed">0</strong>
-          </article>
-          <article>
-            <span>Sold</span>
-            <strong id="publicProfileSold">0</strong>
-          </article>
-          <article>
-            <span>Reviews</span>
-            <strong id="publicProfileReviewCount">0</strong>
-          </article>
-          <article>
-            <span>Rating</span>
-            <strong id="publicProfileRating">-</strong>
-          </article>
-        </section>
-
-        <section class="profile-record-section" aria-labelledby="publicProfileListingsTitle">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker">Marketplace</p>
-              <h2 id="publicProfileListingsTitle">Listings for Sale</h2>
+        <div class="public-profile-frame">
+          <section class="public-profile-hero" aria-labelledby="publicProfileName">
+            <div class="public-profile-avatar-wrap">
+              <span class="public-profile-avatar avatar avatar-hot" id="publicProfileAvatar">?</span>
+              <span class="public-profile-avatar-ring" aria-hidden="true"></span>
             </div>
-          </div>
-          <div class="profile-record-grid" id="publicProfileListings"></div>
-          <div class="marketplace-empty" id="publicProfileListingsEmpty" hidden>No public listings yet.</div>
-        </section>
 
-        <section class="profile-record-section" aria-labelledby="publicProfileReviewsTitle">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker">Buyer feedback</p>
-              <h2 id="publicProfileReviewsTitle">Reviews</h2>
+            <div class="public-profile-copy">
+              <div class="public-profile-name-row">
+                <h2 id="publicProfileName">User profile</h2>
+                <span class="public-profile-member-mark" aria-label="WaveHub member">W</span>
+              </div>
+              <span id="publicProfileHandle">@user</span>
+              <strong class="public-profile-role" id="publicProfileRole">WaveHub member</strong>
+              <small id="publicProfileJoined">Joined -</small>
             </div>
-          </div>
-          <div class="public-review-list" id="publicProfileReviews"></div>
-          <div class="marketplace-empty" id="publicProfileReviewsEmpty" hidden>No reviews yet.</div>
-        </section>
+
+            <aside class="public-profile-rank-panel" aria-label="Wave rank">
+              <span>Wave rank</span>
+              <strong id="publicProfileRank">#-</strong>
+              <small id="publicProfileRankCaption">Ranked by marketplace activity</small>
+              <i><b id="publicProfileRankProgress"></b></i>
+              <em id="publicProfileRankMeta">No activity yet</em>
+            </aside>
+          </section>
+
+          <section class="public-profile-stats" aria-label="Seller statistics">
+            <article><i aria-hidden="true">★</i><div><strong id="publicProfileRating">-</strong><span>Rating</span></div></article>
+            <article><i aria-hidden="true">✓</i><div><strong id="publicProfileSold">0</strong><span>Orders received</span></div></article>
+            <article><i aria-hidden="true">▣</i><div><strong id="publicProfileListed">0</strong><span>Public listings</span></div></article>
+            <article><i aria-hidden="true">♡</i><div><strong id="publicProfileReviewCount">0</strong><span>Buyer reviews</span></div></article>
+            <article><i aria-hidden="true">◷</i><div><strong id="publicProfileRegistered">-</strong><span>Member since</span></div></article>
+          </section>
+
+          <section class="public-profile-overview public-profile-games-overview">
+            <article class="public-profile-info-card">
+              <div class="public-profile-section-title">
+                <span>About</span>
+              </div>
+              <p class="public-profile-bio" id="publicProfileBio">No bio added yet.</p>
+              <dl class="public-profile-facts">
+                <div><dt>Username</dt><dd id="publicProfileFactUsername">@user</dd></div>
+                <div><dt>Member type</dt><dd id="publicProfileFactType">Community member</dd></div>
+                <div><dt>Marketplace activity</dt><dd id="publicProfileFactActivity">No activity yet</dd></div>
+              </dl>
+            </article>
+
+            <article class="public-profile-info-card public-profile-game-card">
+              <div class="public-profile-section-title">
+                <span>Main game</span>
+              </div>
+              <div class="public-profile-game-visual" id="publicProfileMainGameImage" aria-hidden="true"></div>
+              <div class="public-profile-game-copy">
+                <strong id="publicProfileMainGame">No game listed</strong>
+                <span id="publicProfileMainGameMeta">Add a marketplace listing to show a game.</span>
+              </div>
+            </article>
+
+            <article class="public-profile-info-card public-profile-game-card">
+              <div class="public-profile-section-title">
+                <span>Secondary game</span>
+              </div>
+              <div class="public-profile-game-visual" id="publicProfileSecondaryGameImage" aria-hidden="true"></div>
+              <div class="public-profile-game-copy">
+                <strong id="publicProfileSecondaryGame">No second game</strong>
+                <span id="publicProfileSecondaryGameMeta">No additional marketplace activity.</span>
+              </div>
+            </article>
+          </section>
+
+          <section class="public-profile-achievements" aria-labelledby="publicProfileAchievementsTitle">
+            <div class="public-profile-section-title">
+              <span id="publicProfileAchievementsTitle">Achievements &amp; badges</span>
+              <small>Based on real profile activity</small>
+            </div>
+            <div class="public-profile-badge-grid" id="publicProfileBadges"></div>
+          </section>
+
+          <section class="public-profile-performance" aria-labelledby="publicProfilePerformanceTitle">
+            <div class="public-profile-section-title">
+              <span id="publicProfilePerformanceTitle">Marketplace score</span>
+              <small id="publicProfileRatingTotal">0 total reviews</small>
+            </div>
+            <div class="public-profile-performance-grid">
+              <div class="public-profile-score">
+                <span>Buyer rating</span>
+                <strong id="publicProfileScore">-</strong>
+                <span id="publicProfileScoreStars">☆☆☆☆☆</span>
+                <small>Verified buyer feedback</small>
+              </div>
+              <div class="public-profile-rating-bars" id="publicProfileRatingBars" aria-label="Rating distribution"></div>
+              <dl class="public-profile-performance-facts">
+                <div><dt>Reviews</dt><dd id="publicProfilePerformanceReviews">0</dd></div>
+                <div><dt>Orders</dt><dd id="publicProfilePerformanceOrders">0</dd></div>
+                <div><dt>Listings</dt><dd id="publicProfilePerformanceListings">0</dd></div>
+                <div><dt>Games</dt><dd id="publicProfilePerformanceGames">0</dd></div>
+              </dl>
+            </div>
+          </section>
+
+          <section class="profile-record-section public-profile-listings-section" aria-labelledby="publicProfileListingsTitle">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">Marketplace</p>
+                <h2 id="publicProfileListingsTitle">Marketplace listings</h2>
+              </div>
+              <span class="public-profile-section-count" id="publicProfileListingCount">0</span>
+            </div>
+            <div class="profile-record-grid" id="publicProfileListings"></div>
+            <div class="marketplace-empty" id="publicProfileListingsEmpty" hidden>No public listings yet.</div>
+          </section>
+
+          <section class="profile-record-section public-profile-reviews-section" aria-labelledby="publicProfileReviewsTitle">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">Buyer feedback</p>
+                <h2 id="publicProfileReviewsTitle">Reviews</h2>
+              </div>
+              <span class="public-profile-section-count" id="publicProfileReviewsCount">0</span>
+            </div>
+            <div class="public-review-list" id="publicProfileReviews"></div>
+            <div class="marketplace-empty" id="publicProfileReviewsEmpty" hidden>No reviews yet.</div>
+          </section>
+
+          <footer class="public-profile-footer">
+            <a class="public-profile-message-button" id="publicProfileMessage" href="messages.html">
+              <img src="assets/message-icon.svg" alt="" aria-hidden="true" />
+              <span>Message</span>
+            </a>
+            <span class="public-profile-activity-note" id="publicProfileActivityNote">WaveHub public profile</span>
+          </footer>
+        </div>
       </section>
 
       <section class="profile-control-layout" id="profileControlLayout" hidden>

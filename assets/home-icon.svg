@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <filter id="homeShadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#ffffff" flood-opacity=".3"/>
+    </filter>
+  </defs>
+  <path d="M9 29.5 29.2 10a4 4 0 0 1 5.6 0L55 29.5V55H39V39H25v16H9V29.5Z"
+        stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#homeShadow)"/>
+</svg>

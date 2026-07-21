@@ -2,8 +2,8 @@
   const localUsersKey = 'wavehub.users';
   const sessionKey = 'wavehub.session';
   const directMessagesKey = 'wavehub.directMessages';
-  const priceOffersKey = 'wavehub.priceOffers';
   const purchasesKey = 'wavehub.purchases';
+  const walletsKey = 'wavehub.wallets';
   const notificationSeenKey = 'wavehub.notificationSeen';
   let notificationPanel = null;
 
@@ -68,7 +68,7 @@
     const username = user?.username || 'Guest';
     const displayName = isSignedIn ? getDisplayName(user) : 'Not signed in';
 
-    ['profileAvatar', 'profilePanelAvatar'].forEach((id) => {
+    ['profileAvatar', 'profilePanelAvatar', 'mobileProfileAvatar'].forEach((id) => {
       applyAvatar(document.getElementById(id), user);
     });
 
@@ -83,6 +83,10 @@
     const profileMeta = document.getElementById('profileMeta');
     const profileFullName = document.getElementById('profileFullName');
     const profileHandle = document.getElementById('profileHandle');
+    const mobileProfileUsername = document.getElementById('mobileProfileUsername');
+    const mobileProfileRank = document.getElementById('mobileProfileRank');
+    const mobileProfileLevel = document.getElementById('mobileProfileLevel');
+    const mobileWalletBalance = document.getElementById('mobileWalletBalance');
     const accountUsername = document.getElementById('accountUsername');
     const accountName = document.getElementById('accountName');
     const authEntryActions = document.getElementById('authEntryActions');
@@ -95,6 +99,14 @@
     if (profileMeta) profileMeta.textContent = isSignedIn ? 'Manage profile' : 'Not signed in';
     if (profileFullName) profileFullName.textContent = isSignedIn ? getDisplayName(user) : 'Guest account';
     if (profileHandle) profileHandle.textContent = isSignedIn ? `@${username}` : '@guest';
+    if (mobileProfileUsername) mobileProfileUsername.textContent = username;
+    if (mobileProfileRank) mobileProfileRank.textContent = user?.rank || user?.role || (isSignedIn ? 'Wave Master' : 'Wave Rookie');
+    if (mobileProfileLevel) mobileProfileLevel.textContent = String(Math.max(1, Number(user?.level) || 1));
+    if (mobileWalletBalance) {
+      const wallets = readJson(walletsKey, {});
+      const balance = isSignedIn ? Math.max(0, Number(wallets?.[username]?.balance) || 0) : 0;
+      mobileWalletBalance.textContent = balance.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
     if (accountUsername) accountUsername.textContent = username;
     if (accountName) accountName.textContent = displayName;
     if (authEntryActions) authEntryActions.hidden = isSignedIn;
@@ -149,7 +161,6 @@
     if (!user?.username) return [];
     const username = user.username;
     const messages = readJson(directMessagesKey, []);
-    const offers = readJson(priceOffersKey, []);
     const purchases = readJson(purchasesKey, []);
     const items = [];
 
@@ -163,19 +174,6 @@
           date: message.createdAt,
           unread: !message.readAt,
           href: `messages.html?to=${encodeURIComponent(message.fromUsername)}`,
-        });
-      });
-    }
-
-    if (Array.isArray(offers)) {
-      offers.filter((offer) => offer.sellerUsername === username).forEach((offer) => {
-        items.push({
-          id: `offer:${offer.id}`,
-          type: 'offer',
-          title: `Price offer from ${offer.buyerName || offer.buyerUsername || 'buyer'}`,
-          text: offer.itemTitle || offer.message || 'A new marketplace offer arrived.',
-          date: offer.createdAt,
-          href: offer.detailUrl || 'messages.html',
         });
       });
     }
@@ -397,12 +395,12 @@
   });
 
   window.addEventListener('storage', (event) => {
-    if (event.key === sessionKey || event.key === localUsersKey) {
+    if (event.key === sessionKey || event.key === localUsersKey || event.key === walletsKey) {
       renderProfileSurfaces();
       renderMessageNotifications();
     }
 
-    if ([directMessagesKey, priceOffersKey, purchasesKey, notificationSeenKey].includes(event.key)) {
+    if ([directMessagesKey, purchasesKey, notificationSeenKey].includes(event.key)) {
       renderMessageNotifications();
       renderNotificationCenter();
     }

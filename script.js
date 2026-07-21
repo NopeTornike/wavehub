@@ -36,14 +36,25 @@ const accountLoggedIn = document.getElementById('accountLoggedIn');
 const logoutButton = document.getElementById('logoutButton');
 const authEntryActions = document.getElementById('authEntryActions');
 const onlineCount = document.getElementById('onlineCount');
-const messageCount = document.getElementById('messageCount');
 
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const sellerListingsKey = 'wavehub.sellerListings';
 const favoritesKey = 'wavehub.favorites';
-const priceOffersKey = 'wavehub.priceOffers';
 const coachingSessionsKey = 'wavehub.cart';
+const marketplaceCleanupKey = 'wavehub.marketplaceCleared.v1';
+
+function clearExistingMarketplaceProducts() {
+  if (localStorage.getItem(marketplaceCleanupKey) === 'true') {
+    return;
+  }
+
+  localStorage.removeItem(sellerListingsKey);
+  localStorage.setItem(marketplaceCleanupKey, 'true');
+}
+
+clearExistingMarketplaceProducts();
+
 const minOnlineCount = 2;
 const maxOnlineCount = 23;
 const listingTypeConfig = {
@@ -268,17 +279,6 @@ function getUserFavorites(username) {
   const favorites = source[username];
 
   return Array.isArray(favorites) ? favorites : [];
-}
-
-function getReceivedOfferCount(username) {
-  if (!username) {
-    return 0;
-  }
-
-  const offers = readJson(priceOffersKey, []);
-  return Array.isArray(offers)
-    ? offers.filter((offer) => offer.sellerUsername === username).length
-    : 0;
 }
 
 function saveUserFavorites(username, favorites) {
@@ -945,10 +945,6 @@ function renderProfile() {
     authEntryActions.hidden = isSignedIn;
   }
 
-  if (messageCount) {
-    messageCount.textContent = String(getReceivedOfferCount(user?.username));
-  }
-
   if (!isSignedIn && getActiveSection() === 'Favorites') {
     setActiveSection('Home');
   }
@@ -1191,7 +1187,7 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === sessionKey || event.key === localUsersKey || event.key === favoritesKey || event.key === priceOffersKey) {
+  if (event.key === sessionKey || event.key === localUsersKey || event.key === favoritesKey) {
     renderProfile();
   }
 

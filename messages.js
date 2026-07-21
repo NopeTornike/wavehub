@@ -2,12 +2,8 @@ const menuToggle = document.getElementById('menuToggle');
 const scrim = document.getElementById('scrim');
 const sideLinks = document.querySelectorAll('.side-link');
 const messageSearch = document.getElementById('messageSearch');
-const receivedMessages = document.getElementById('receivedMessages');
-const sentMessages = document.getElementById('sentMessages');
 const visibleMessageCount = document.getElementById('visibleMessageCount');
 const messageCount = document.getElementById('messageCount');
-const receivedMessageCount = document.getElementById('receivedMessageCount');
-const sentMessageCount = document.getElementById('sentMessageCount');
 const directMessageContacts = document.getElementById('directMessageContacts');
 const directMessageHistory = document.getElementById('directMessageHistory');
 const directMessageForm = document.getElementById('directMessageForm');
@@ -34,7 +30,6 @@ const onlineCount = document.getElementById('onlineCount');
 
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
-const priceOffersKey = 'wavehub.priceOffers';
 const directMessagesKey = 'wavehub.directMessages';
 const minOnlineCount = 2;
 const maxOnlineCount = 23;
@@ -119,7 +114,7 @@ function formatLoginTime(value) {
   });
 }
 
-function formatOfferTime(value) {
+function formatMessageTime(value) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
@@ -132,15 +127,6 @@ function formatOfferTime(value) {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function normalizePriceText(value) {
-  return String(value || '').replace(/\$(\d+(?:\.\d+)?)/g, '$1 GEL');
-}
-
-function getPriceOffers() {
-  const offers = readJson(priceOffersKey, []);
-  return Array.isArray(offers) ? offers : [];
 }
 
 function getDirectMessages() {
@@ -193,7 +179,17 @@ function renderDirectMessages() {
   const { user } = getCurrentAccount();
   const username = user?.username || '';
   let messages = getDirectMessages();
-  const participants = username ? getDirectParticipants(username, messages) : [];
+  const query = messageSearch?.value.trim().toLowerCase() || '';
+  const participants = username
+    ? getDirectParticipants(username, messages).filter((participantUsername) => {
+      const participant = getUserByUsername(participantUsername);
+      const conversation = getConversation(messages, username, participantUsername);
+      return !query || [participantUsername, getDisplayName(participant), ...conversation.map((message) => message.body)]
+        .join(' ')
+        .toLowerCase()
+        .includes(query);
+    })
+    : [];
   const requested = new URLSearchParams(window.location.search).get('to');
   const activeParticipant = participants.includes(requested) ? requested : participants[0] || '';
   activeDirectParticipant = activeParticipant;
@@ -261,7 +257,7 @@ function renderDirectMessages() {
       const body = document.createElement('p');
       body.textContent = message.body;
       const time = document.createElement('small');
-      time.textContent = `${formatOfferTime(message.createdAt)}${message.fromUsername === username && message.readAt ? ' · Read' : ''}`;
+      time.textContent = `${formatMessageTime(message.createdAt)}${message.fromUsername === username && message.readAt ? ' · Read' : ''}`;
       bubble.append(body, time);
       directMessageHistory.appendChild(bubble);
     });
@@ -308,121 +304,20 @@ function renderOnlineCount() {
   onlineCount.textContent = `${count} online`;
 }
 
-function createMessageCard(offer, mode) {
-  const card = document.createElement('article');
-  card.className = `message-card ${mode}`;
-
-  const top = document.createElement('div');
-  top.className = 'message-card-top';
-
-  const tag = document.createElement('span');
-  tag.className = 'service-tag account';
-  tag.textContent = mode === 'received' ? 'Received' : 'Sent';
-
-  const game = document.createElement('span');
-  game.className = 'message-game';
-  game.textContent = offer.game || 'Marketplace';
-
-  const price = document.createElement('strong');
-  price.textContent = normalizePriceText(offer.offeredPrice);
-
-  const labels = document.createElement('div');
-  labels.className = 'message-card-labels';
-  labels.append(tag, game);
-  top.append(labels, price);
-
-  const title = document.createElement('h3');
-  title.textContent = offer.itemTitle;
-
-  const message = document.createElement('p');
-  message.textContent = normalizePriceText(offer.message);
-
-  const meta = document.createElement('div');
-  meta.className = 'message-meta';
-
-  const avatar = document.createElement('span');
-  avatar.className = 'message-avatar';
-  const participantName = mode === 'received' ? offer.buyerName : offer.sellerName;
-  avatar.textContent = String(participantName || '?').trim().charAt(0).toUpperCase() || '?';
-
-  const metaCopy = document.createElement('div');
-  metaCopy.className = 'message-meta-copy';
-  const participant = document.createElement('span');
-  participant.textContent = mode === 'received' ? `From ${offer.buyerName}` : `To ${offer.sellerName}`;
-
-  const ask = document.createElement('span');
-  ask.textContent = `Ask ${normalizePriceText(offer.askingPrice)}`;
-
-  const time = document.createElement('span');
-  time.textContent = formatOfferTime(offer.createdAt);
-
-  metaCopy.append(participant, ask, time);
-  meta.append(avatar, metaCopy);
-
-  const action = document.createElement('a');
-  action.className = 'auth-open-button primary';
-  action.href = offer.detailUrl;
-  action.innerHTML = '<span>View offer</span><span aria-hidden="true">→</span>';
-
-  card.append(top, title, message, meta, action);
-  return card;
-}
-
-function renderList(container, offers, emptyText, mode) {
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = '';
-
-  if (offers.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'marketplace-empty';
-    empty.textContent = emptyText;
-    container.appendChild(empty);
-    return;
-  }
-
-  offers.forEach((offer) => {
-    container.appendChild(createMessageCard(offer, mode));
-  });
-}
-
 function renderMessages() {
   const { user } = getCurrentAccount();
-  const query = messageSearch?.value.trim().toLowerCase() || '';
-
   const unreadDirect = renderDirectMessages();
 
   if (!user?.username) {
-    renderList(receivedMessages, [], 'Log in to see received offers.', 'received');
-    renderList(sentMessages, [], 'Log in to see sent offers.', 'sent');
     if (visibleMessageCount) visibleMessageCount.textContent = '0';
     if (messageCount) messageCount.textContent = '0';
-    if (receivedMessageCount) receivedMessageCount.textContent = '0';
-    if (sentMessageCount) sentMessageCount.textContent = '0';
     window.wavehubRenderMessageNotifications?.();
     return;
   }
 
-  const offers = getPriceOffers();
-  const matchesQuery = (offer) => {
-    const haystack = [offer.itemTitle, offer.game, offer.message, offer.buyerName, offer.sellerName]
-      .join(' ')
-      .toLowerCase();
-    return !query || haystack.includes(query);
-  };
-  const received = offers.filter((offer) => offer.sellerUsername === user.username && matchesQuery(offer));
-  const sent = offers.filter((offer) => offer.buyerUsername === user.username && matchesQuery(offer));
-  const total = received.length + sent.length;
-
-  renderList(receivedMessages, received, 'No received price offers yet.', 'received');
-  renderList(sentMessages, sent, 'No sent price offers yet.', 'sent');
   const directTotal = getDirectMessages().filter((message) => message.fromUsername === user.username || message.toUsername === user.username).length;
-  if (visibleMessageCount) visibleMessageCount.textContent = String(total + directTotal);
-  if (messageCount) messageCount.textContent = String(received.length + unreadDirect);
-  if (receivedMessageCount) receivedMessageCount.textContent = String(received.length);
-  if (sentMessageCount) sentMessageCount.textContent = String(sent.length);
+  if (visibleMessageCount) visibleMessageCount.textContent = String(directTotal);
+  if (messageCount) messageCount.textContent = String(unreadDirect);
   window.wavehubRenderMessageNotifications?.();
 }
 
@@ -523,7 +418,7 @@ window.addEventListener('storage', (event) => {
     renderMessages();
   }
 
-  if (event.key === priceOffersKey || event.key === directMessagesKey) {
+  if (event.key === directMessagesKey) {
     renderMessages();
   }
 });

@@ -10,28 +10,24 @@
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
       <a class="brand" href="index.html" aria-label="WaveHub home">
-        <span class="brand-mark">W</span>
-        <span class="brand-text">
-          <strong>WAVEHUB</strong>
-          <small>boost trade win</small>
-        </span>
+        <img src="assets/logo-wavehubx.png" alt="WaveHubX" />
       </a>
 
       <nav class="side-nav" aria-label="Main pages">
         <a class="side-link" href="index.html" data-section="Home">
-          <span class="nav-icon" aria-hidden="true">H</span>
+          <span class="nav-icon nav-icon-home" aria-hidden="true"><img src="assets/home-icon.svg" alt="" /></span>
           <span>Home</span>
         </a>
         <a class="side-link" href="marketplace.html" data-section="Marketplace">
-          <span class="nav-icon" aria-hidden="true">M</span>
+          <span class="nav-icon nav-icon-marketplace" aria-hidden="true"><img src="assets/marketplace-icon.svg" alt="" /></span>
           <span>Marketplace</span>
         </a>
         <a class="side-link" href="coaching.html" data-section="Coaching">
-          <span class="nav-icon" aria-hidden="true">C</span>
+          <span class="nav-icon nav-icon-coaching" aria-hidden="true"><img src="assets/sidebar-coaching-icon.svg" alt="" /></span>
           <span>Coaching</span>
         </a>
         <a class="side-link" href="orders.html" data-section="Orders">
-          <span class="nav-icon" aria-hidden="true">O</span>
+          <span class="nav-icon nav-icon-orders" aria-hidden="true"><img src="assets/orders-icon.svg" alt="" /></span>
           <span>Orders</span>
         </a>
         <a class="side-link active" href="messages.html" data-section="Messages">
@@ -40,22 +36,22 @@
           <span class="nav-pill" id="messageCount">0</span>
         </a>
         <a class="side-link" href="wallet.html" data-section="Wallet">
-          <span class="nav-icon" aria-hidden="true">₾</span>
+          <span class="nav-icon nav-icon-wallet" aria-hidden="true"><img src="assets/wallet-icon.svg" alt="" /></span>
           <span>Wallet</span>
         </a>
         <a class="side-link" href="index.html#favorites" data-section="Favorites">
-          <span class="nav-icon nav-icon-heart" aria-hidden="true"></span>
+          <span class="nav-icon nav-icon-heart" aria-hidden="true"><img src="assets/favorites-icon.svg" alt="" /></span>
           <span>Favorites</span>
         </a>
         <a class="side-link" href="cart.html" data-section="Cart">
-          <span class="nav-icon" aria-hidden="true">
-            <img class="cart-icon-image" src="assets/cart-icon.png" alt="" />
+          <span class="nav-icon nav-icon-cart" aria-hidden="true">
+            <img src="assets/sidebar-cart-icon.svg" alt="" />
           </span>
           <span>Cart</span>
           <span class="nav-pill" id="cartNavCount" data-cart-count>0</span>
         </a>
         <a class="side-link" href="profile.html" data-section="Settings">
-          <span class="nav-icon" aria-hidden="true">S</span>
+          <span class="nav-icon nav-icon-settings" aria-hidden="true"><img src="assets/settings-icon.svg" alt="" /></span>
           <span>Settings</span>
         </a>
       </nav>
@@ -149,7 +145,7 @@
           <div>
             <p class="section-kicker">Your conversations</p>
             <h1 id="messagesTitle">Messages</h1>
-            <p class="messages-hero-description">Chat with users, reply to messages and keep track of marketplace offers.</p>
+            <p class="messages-hero-description">Chat with users and reply to messages.</p>
           </div>
         </div>
         <div class="marketplace-total" aria-label="Visible messages">
@@ -184,35 +180,6 @@
         </section>
       </section>
 
-      <section class="messages-layout" aria-label="Price offer messages">
-        <div class="message-column received-column">
-          <div class="section-heading">
-            <div class="message-column-title">
-              <span class="message-column-icon" aria-hidden="true">↓</span>
-              <div>
-                <p class="section-kicker">Seller inbox</p>
-                <h2>Received Offers</h2>
-              </div>
-            </div>
-            <span class="message-column-count" id="receivedMessageCount">0</span>
-          </div>
-          <div class="message-list" id="receivedMessages"></div>
-        </div>
-
-        <div class="message-column sent-column">
-          <div class="section-heading">
-            <div class="message-column-title">
-              <span class="message-column-icon" aria-hidden="true">↑</span>
-              <div>
-                <p class="section-kicker">Buyer outbox</p>
-                <h2>Sent Offers</h2>
-              </div>
-            </div>
-            <span class="message-column-count" id="sentMessageCount">0</span>
-          </div>
-          <div class="message-list" id="sentMessages"></div>
-        </div>
-      </section>
     </main>
   </div>
 

@@ -25,12 +25,10 @@ const accountLoggedIn = document.getElementById('accountLoggedIn');
 const logoutButton = document.getElementById('logoutButton');
 const authEntryActions = document.getElementById('authEntryActions');
 const onlineCount = document.getElementById('onlineCount');
-const messageCount = document.getElementById('messageCount');
 
 const cartKey = 'wavehub.cart';
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
-const priceOffersKey = 'wavehub.priceOffers';
 const purchasesKey = 'wavehub.purchases';
 const sellerListingsKey = 'wavehub.sellerListings';
 
@@ -150,17 +148,6 @@ function formatLoginTime(value) {
   });
 }
 
-function getReceivedOfferCount(username) {
-  if (!username) {
-    return 0;
-  }
-
-  const offers = readJson(priceOffersKey, []);
-  return Array.isArray(offers)
-    ? offers.filter((offer) => offer.sellerUsername === username).length
-    : 0;
-}
-
 function setSidebarOpen(isOpen) {
   document.body.classList.toggle('sidebar-open', isOpen);
   menuToggle?.setAttribute('aria-expanded', String(isOpen));
@@ -206,9 +193,6 @@ function renderProfile() {
     authEntryActions.hidden = isSignedIn;
   }
 
-  if (messageCount) {
-    messageCount.textContent = String(getReceivedOfferCount(user?.username));
-  }
 }
 
 function renderOnlineCount() {
@@ -399,7 +383,7 @@ window.addEventListener('storage', (event) => {
     renderCart();
   }
 
-  if (event.key === sessionKey || event.key === localUsersKey || event.key === priceOffersKey) {
+  if (event.key === sessionKey || event.key === localUsersKey) {
     renderProfile();
   }
 });
