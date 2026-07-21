@@ -359,7 +359,7 @@
               <div class="public-profile-section-title">
                 <span>About</span>
               </div>
-              <p class="public-profile-bio" id="publicProfileBio">No bio added yet.</p>
+              <p class="public-profile-bio" id="publicProfileBio">BIO: No bio added yet.</p>
               <dl class="public-profile-facts">
                 <div><dt>Username</dt><dd id="publicProfileFactUsername">@user</dd></div>
                 <div><dt>Member type</dt><dd id="publicProfileFactType">Community member</dd></div>
@@ -374,7 +374,7 @@
               <div class="public-profile-game-visual" id="publicProfileMainGameImage" aria-hidden="true"></div>
               <div class="public-profile-game-copy">
                 <strong id="publicProfileMainGame">No game listed</strong>
-                <span id="publicProfileMainGameMeta">Add a marketplace listing to show a game.</span>
+                <span id="publicProfileMainGameMeta">Choose games in profile settings.</span>
               </div>
             </article>
 
@@ -385,7 +385,7 @@
               <div class="public-profile-game-visual" id="publicProfileSecondaryGameImage" aria-hidden="true"></div>
               <div class="public-profile-game-copy">
                 <strong id="publicProfileSecondaryGame">No second game</strong>
-                <span id="publicProfileSecondaryGameMeta">No additional marketplace activity.</span>
+                <span id="publicProfileSecondaryGameMeta">Choose up to two games in settings.</span>
               </div>
             </article>
           </section>
@@ -491,6 +491,19 @@
             <textarea id="profileBioInput" maxlength="300" rows="4" placeholder="Tell the community a little about yourself..."></textarea>
             <small><span id="profileBioCount">0</span>/300 characters</small>
           </label>
+
+          <fieldset class="profile-main-games-field" id="profileMainGamesField">
+            <legend>Main games <small>Select up to 2</small></legend>
+            <div class="profile-main-games-options">
+              <label><input type="checkbox" name="mainGames" value="PUBG Mobile" /><span>PUBG Mobile</span></label>
+              <label><input type="checkbox" name="mainGames" value="Call of Duty" /><span>Call of Duty</span></label>
+              <label><input type="checkbox" name="mainGames" value="CS2" /><span>CS2</span></label>
+              <label><input type="checkbox" name="mainGames" value="Mobile Legends" /><span>Mobile Legends</span></label>
+              <label><input type="checkbox" name="mainGames" value="Free Fire" /><span>Free Fire</span></label>
+              <label><input type="checkbox" name="mainGames" value="Roblox" /><span>Roblox</span></label>
+            </div>
+            <small class="profile-main-games-help" id="profileMainGamesHelp">0 of 2 selected</small>
+          </fieldset>
 
           <div class="profile-form-actions">
             <button class="seller-submit-button" type="submit">Save Changes</button>

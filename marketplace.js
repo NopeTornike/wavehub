@@ -511,7 +511,6 @@ function getProductStats(listing, config) {
   }
 
   return [
-    { symbol: '#', value: formatAccountStatus(listing.accountStatus).replace(' Account', ''), label: 'Type' },
     { symbol: 'LV', value: getCardLevel(listing) ? formatCount(getCardLevel(listing)) : '-', label: 'Level' },
     { symbol: 'V', value: formatCount(getCardViews(listing)), label: 'Views' },
   ];
@@ -645,6 +644,15 @@ function updateSellerTypeFields() {
   document.querySelectorAll('.seller-account-field').forEach((field) => {
     field.hidden = !isAccount;
   });
+
+  if (sellerAccountLevel) {
+    sellerAccountLevel.required = isAccount;
+    sellerAccountLevel.disabled = !isAccount;
+  }
+
+  if (sellerAccountStatus) {
+    sellerAccountStatus.disabled = !isAccount;
+  }
 }
 
 function getFilteredListings() {
@@ -703,11 +711,8 @@ function createProductShowcaseCard(listing) {
   const config = getListingConfig(listing);
   const card = document.createElement('article');
   const detailUrl = getDetailUrl(listing);
-  const level = getCardLevel(listing);
   const favoriteCount = getCardScore(listing);
-  const productTitle = getListingTitle(listing);
   const sellerName = getListingSellerName(listing);
-  const primaryLabel = config.type === 'account' ? formatAccountStatus(listing.accountStatus) : 'Skin';
   const image = getMarketplaceCardImage(listing, config);
 
   card.className = `marketplace-card product-showcase-card ${config.type}-showcase-card`;
@@ -729,15 +734,17 @@ function createProductShowcaseCard(listing) {
   const badges = document.createElement('div');
   badges.className = 'product-showcase-badges';
 
-  const typeBadge = document.createElement('span');
-  typeBadge.className = 'showcase-badge showcase-badge-gold';
-  typeBadge.textContent = primaryLabel;
-
   const instantBadge = document.createElement('span');
   instantBadge.className = 'showcase-badge showcase-badge-green';
   instantBadge.textContent = 'Instant';
 
-  badges.append(typeBadge, instantBadge);
+  if (config.type === 'skin') {
+    const typeBadge = document.createElement('span');
+    typeBadge.className = 'showcase-badge showcase-badge-gold';
+    typeBadge.textContent = 'Skin';
+    badges.appendChild(typeBadge);
+  }
+  badges.appendChild(instantBadge);
 
   const saveButton = document.createElement('button');
   saveButton.className = 'save-button product-showcase-save';
@@ -753,17 +760,7 @@ function createProductShowcaseCard(listing) {
   const rankRow = document.createElement('div');
   rankRow.className = 'product-showcase-rank';
 
-  const rankSymbol = document.createElement('span');
-  rankSymbol.className = 'showcase-symbol';
-  rankSymbol.textContent = config.type === 'skin' ? '*' : 'W';
-
-  const rankCopy = document.createElement('span');
-  const rankTitle = document.createElement('strong');
-  rankTitle.textContent = config.type === 'skin' ? productTitle : (listing.accountStatus ? primaryLabel.replace(' Account', '') : listing.game || 'WaveHub');
-  const rankMeta = document.createElement('small');
-  rankMeta.textContent = config.type === 'skin' ? listing.game || 'WaveHub' : `Lv. ${level ? formatCount(level) : '-'}`;
-  rankCopy.append(rankTitle, rankMeta);
-  rankRow.append(rankSymbol, rankCopy, saveButton);
+  rankRow.appendChild(saveButton);
 
   const stats = document.createElement('div');
   stats.className = 'product-showcase-stats';
@@ -809,13 +806,14 @@ function createProductShowcaseCard(listing) {
   const sellerTitle = document.createElement('strong');
   sellerTitle.textContent = sellerName;
 
-  const sellerGame = document.createElement('small');
-  sellerGame.textContent = listing.game || 'WaveHub';
+  const sellerLevel = document.createElement('small');
+  const cardLevel = getCardLevel(listing);
+  sellerLevel.textContent = `Lv. ${cardLevel ? formatCount(cardLevel) : '-'}`;
 
   const sellerRating = document.createElement('small');
   sellerRating.textContent = `${formatCount(favoriteCount)} saved`;
 
-  sellerCopy.append(sellerTitle, sellerGame, sellerRating);
+  sellerCopy.append(sellerTitle, sellerLevel, sellerRating);
   seller.append(sellerAvatar, sellerCopy);
 
   body.appendChild(seller);
@@ -1193,6 +1191,7 @@ sellerForm?.addEventListener('submit', async (event) => {
   const titleValue = sellerTitle?.value.trim() || '';
   const title = titleValue || `${game} ${config.label}`;
   const price = Number(sellerPrice?.value);
+  const accountLevel = Number(sellerAccountLevel?.value);
   const description = sellerDescription?.value.trim() || '';
 
   if (!game || !description || !Number.isFinite(price) || price <= 0) {
@@ -1202,6 +1201,12 @@ sellerForm?.addEventListener('submit', async (event) => {
 
   if (listingType === 'skin' && !titleValue) {
     setSellerStatus('error', 'Please write the skin name.');
+    return;
+  }
+
+  if (listingType === 'account' && (!Number.isInteger(accountLevel) || accountLevel < 1 || accountLevel > 9999)) {
+    setSellerStatus('error', 'Please enter the real account level.');
+    sellerAccountLevel?.focus();
     return;
   }
 
@@ -1216,7 +1221,6 @@ sellerForm?.addEventListener('submit', async (event) => {
 
   const sellerUser = getCurrentAccount().user;
   const accountStatus = sellerAccountStatus?.value || 'basic';
-  const accountLevel = Number(sellerAccountLevel?.value) || '';
   const listing = {
     id: window.crypto?.randomUUID?.() || String(Date.now()),
     listingType,
