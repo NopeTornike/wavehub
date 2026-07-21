@@ -78,91 +78,6 @@
 
     <div class="scrim" id="scrim" hidden></div>
 
-    <div class="seller-modal" id="sellerModal" role="dialog" aria-modal="true" aria-labelledby="sellerModalTitle" hidden>
-      <div class="seller-modal-panel">
-        <div class="seller-modal-head">
-          <div>
-            <p class="section-kicker">Seller offer</p>
-            <h2 id="sellerModalTitle">Sell Accounts or Skins</h2>
-          </div>
-          <button class="seller-close-button" id="sellerCloseButton" type="button" aria-label="Close seller form">x</button>
-        </div>
-
-        <form class="seller-form" id="sellerForm">
-          <label>
-            <span>Listing type</span>
-            <select id="sellerProductType" name="productType" required>
-              <option value="account">Account</option>
-              <option value="skin">Skin</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Game</span>
-            <select id="sellerGame" name="game" required>
-              <option value="">Select game</option>
-            </select>
-          </label>
-
-          <label>
-            <span id="sellerTitleLabel">Account title</span>
-            <input id="sellerTitle" name="title" type="text" maxlength="44" placeholder="PUBG Mobile Ace account" autocomplete="off" />
-          </label>
-
-          <label class="seller-account-field">
-            <span>Account type</span>
-            <select id="sellerAccountStatus" name="accountStatus">
-              <option value="basic">Basic Account</option>
-              <option value="full-collection">Full Collection Account</option>
-              <option value="og">OG Account</option>
-              <option value="premium">Premium Account</option>
-              <option value="ranked">Ranked Account</option>
-              <option value="rare">Rare Account</option>
-            </select>
-          </label>
-
-          <label class="seller-account-field">
-            <span>Account level</span>
-            <input id="sellerAccountLevel" name="accountLevel" type="number" min="1" step="1" placeholder="27" />
-          </label>
-
-          <label class="seller-account-field">
-            <span>Views</span>
-            <input id="sellerAccountViews" name="accountViews" type="number" min="0" step="1" placeholder="1200" />
-          </label>
-
-          <label>
-            <span>Price (GEL)</span>
-            <input id="sellerPrice" name="price" type="number" min="1" step="1" placeholder="50" required />
-          </label>
-
-          <label class="seller-image-field">
-            <span>Product images</span>
-            <span class="upload-control">
-              <span class="upload-icon" aria-hidden="true"></span>
-              <span class="upload-copy">
-                <strong>Upload files</strong>
-                <small>PNG, JPG or WEBP. Shown in the product gallery.</small>
-              </span>
-              <input id="sellerImage" name="image" type="file" accept="image/*" multiple />
-            </span>
-          </label>
-
-          <label>
-            <span>Description</span>
-            <textarea id="sellerDescription" name="description" maxlength="160" placeholder="Rank, skins, level, delivery details..." required></textarea>
-          </label>
-
-          <p class="seller-status" id="sellerStatus" aria-live="polite"></p>
-
-          <div class="seller-modal-actions">
-            <button class="secondary-seller-action" id="sellerCancelButton" type="button">Cancel</button>
-            <button class="seller-submit-button" type="submit">Publish Listing</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <main class="main-panel">
       <header class="topbar">
         <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
@@ -187,7 +102,6 @@
           <button class="icon-button has-alert" type="button" aria-label="Notifications" title="Notifications">
             <span aria-hidden="true">!</span>
           </button>
-          <button class="seller-button" id="sellerButton" type="button" aria-haspopup="dialog" aria-controls="sellerModal">Become a Seller</button>
           <div class="profile-menu" id="profileMenu">
             <button class="profile-chip" id="profileButton" type="button" aria-label="Profile" aria-haspopup="true" aria-expanded="false">
               <span class="avatar avatar-hot" id="profileAvatar">?</span>
