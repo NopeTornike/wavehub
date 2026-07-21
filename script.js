@@ -42,6 +42,19 @@ const sessionKey = 'wavehub.session';
 const sellerListingsKey = 'wavehub.sellerListings';
 const favoritesKey = 'wavehub.favorites';
 const coachingSessionsKey = 'wavehub.cart';
+const marketplaceCleanupKey = 'wavehub.marketplaceCleared.v1';
+
+function clearExistingMarketplaceProducts() {
+  if (localStorage.getItem(marketplaceCleanupKey) === 'true') {
+    return;
+  }
+
+  localStorage.removeItem(sellerListingsKey);
+  localStorage.setItem(marketplaceCleanupKey, 'true');
+}
+
+clearExistingMarketplaceProducts();
+
 const minOnlineCount = 2;
 const maxOnlineCount = 23;
 const listingTypeConfig = {

@@ -51,6 +51,19 @@ const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const favoritesKey = 'wavehub.favorites';
 const cartKey = 'wavehub.cart';
+const marketplaceCleanupKey = 'wavehub.marketplaceCleared.v1';
+
+function clearExistingMarketplaceProducts() {
+  if (localStorage.getItem(marketplaceCleanupKey) === 'true') {
+    return;
+  }
+
+  localStorage.removeItem(sellerListingsKey);
+  localStorage.setItem(marketplaceCleanupKey, 'true');
+}
+
+clearExistingMarketplaceProducts();
+
 const games = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
 const accountTypeImages = {
   basic: 'assets/basic-account.png',
