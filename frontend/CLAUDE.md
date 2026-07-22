@@ -5,6 +5,28 @@ The Next.js app — **this is the one real frontend going forward** (confirmed d
 `CLAUDE.md`). The static HTML/JS prototype at the repo root is UI/UX reference only; port ideas from
 it into real components here, don't extend it further.
 
+**2026-07-22 design pivot**: the user asked for this app's UI to visually match the static
+prototype's actual design exactly, not just take loose inspiration from it — "UI should be a copy
+of Tornike's [main branch]." `frontend/styles/global.css` is now a direct copy of the repo-root
+`styles.css` (11,600+ lines — the prototype's real, actively-maintained design system: colors,
+the sidebar app-shell layout, every page-specific component class), not the smaller custom
+dark-purple theme this app used before. `frontend/public/assets/` is a copy of the repo-root
+`assets/` folder for the same reason. `components/Layout.tsx`/`Sidebar.tsx`/`Topbar.tsx` now
+implement the sidebar app-shell structure from `index.html` (`.app-shell` > `.sidebar` +
+`.main-panel` > `.topbar`), replacing the old top-nav `Header`/`Footer` pair (`Header.tsx` deleted
+— `Footer.tsx` still exists and is rendered inside `.main-panel`, but hasn't been restyled to
+match the prototype's own footer yet).
+**Still in progress, page by page** (see the build plan's progress log for the up-to-date list):
+most page *content* (marketplace, listing detail, auth, orders, wallet, admin, etc.) still uses
+this app's own older component classes (`.page`, `.card`, `.filter-bar`, `.admin-*`, etc.) rather
+than the prototype's exact per-page markup (`.market-*`, `.auth-*`, `.cart-*`, ...) — those old
+classes were preserved verbatim at the bottom of `global.css` (see the "Legacy WaveHub-app
+component classes" comment block in that file) specifically so nothing visually broke while this
+migration happens incrementally, but they are **not** the prototype's real design, just a
+functional bridge. A page is only "done" for this pivot once its actual JSX uses the prototype's
+real class names/structure. Do not assume a page matches the static site just because it renders
+without errors — check it against the corresponding `.html` file at the repo root.
+
 ## Key files
 - `lib/auth.tsx` — `AuthProvider` + `useAuth()`. The single place that calls `api.me()` on load;
   every page reads `{ user, checked, refresh, logout }` from `useAuth()` instead of calling

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <filter id="coachShadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#ffffff" flood-opacity=".3"/>
+    </filter>
+  </defs>
+  <path d="M10 35v-6a22 22 0 0 1 44 0v7" stroke="#fff" stroke-width="4.5" stroke-linecap="round" filter="url(#coachShadow)"/>
+  <rect x="7" y="29" width="12" height="20" rx="5" stroke="#fff" stroke-width="4.5" filter="url(#coachShadow)"/>
+  <rect x="45" y="29" width="12" height="20" rx="5" stroke="#fff" stroke-width="4.5" filter="url(#coachShadow)"/>
+  <path d="M51 49v2a7 7 0 0 1-7 7h-7" stroke="#fff" stroke-width="4.5" stroke-linecap="round" filter="url(#coachShadow)"/>
+  <rect x="27" y="53" width="12" height="7" rx="3.5" stroke="#fff" stroke-width="4" filter="url(#coachShadow)"/>
+</svg>

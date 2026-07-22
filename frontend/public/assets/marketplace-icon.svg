@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <filter id="bagShadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#ffffff" flood-opacity=".3"/>
+    </filter>
+  </defs>
+  <path d="M15 25h34l4 31H11l4-31Z" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#bagShadow)"/>
+  <path d="M23 28V19a9 9 0 0 1 18 0v9" stroke="#fff" stroke-width="5" stroke-linecap="round" filter="url(#bagShadow)"/>
+</svg>
