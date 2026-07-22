@@ -209,7 +209,8 @@ button {
 .nav-icon-orders img,
 .nav-icon-coaching img,
 .nav-icon-heart img,
-.nav-icon-cart img {
+.nav-icon-cart img,
+.nav-icon-tournaments img {
   width: 22px;
   height: 22px;
   display: block;
@@ -232,7 +233,9 @@ button {
 .side-link:hover .nav-icon-heart,
 .side-link.active .nav-icon-heart,
 .side-link:hover .nav-icon-cart,
-.side-link.active .nav-icon-cart {
+.side-link.active .nav-icon-cart,
+.side-link:hover .nav-icon-tournaments,
+.side-link.active .nav-icon-tournaments {
   background: rgba(255, 47, 143, 0.1);
   box-shadow: 0 0 18px rgba(255, 47, 143, 0.42), inset 0 0 12px rgba(255, 47, 143, 0.12);
 }
@@ -2048,6 +2051,10 @@ button {
 }
 
 .profile-listing-account-field[hidden] {
+  display: none;
+}
+
+.orders-listing-account-field[hidden] {
   display: none;
 }
 
@@ -4039,7 +4046,23 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 
 .detail-tab-panels {
   display: grid;
-  gap: 14px;
+  gap: 20px;
+}
+
+#detailGallery {
+  order: -1;
+}
+
+.detail-combined-section {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.detail-combined-title {
+  margin: 0;
+  color: white;
+  font-size: 20px;
 }
 
 .detail-tab-panel[hidden] {
@@ -8273,6 +8296,13 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 .orders-empty { border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); padding: 42px; text-align: center; }
 .orders-empty[hidden] { display: none; }
 .orders-empty p { margin-bottom: 0; }
+
+.orders-listings-section {
+  margin-top: 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(8, 13, 27, 0.72);
+}
 
 @media (max-width: 720px) {
   .orders-page-head { align-items: flex-start; padding-inline: 18px; }

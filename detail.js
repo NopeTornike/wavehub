@@ -798,18 +798,8 @@ function toggleActiveOfferFavorite(username) {
 }
 
 function setActiveDetailTab(targetId = 'detailOverview') {
-  const nextTargetId = document.getElementById(targetId)?.classList.contains('detail-tab-panel')
-    ? targetId
-    : 'detailOverview';
-
-  detailTabButtons.forEach((button) => {
-    const isActive = button.dataset.detailTarget === nextTargetId;
-    button.classList.toggle('active', isActive);
-    button.setAttribute('aria-selected', String(isActive));
-  });
-
   detailTabPanels.forEach((panel) => {
-    panel.hidden = panel.id !== nextTargetId;
+    panel.hidden = false;
   });
 }
 

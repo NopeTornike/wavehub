@@ -16,6 +16,7 @@
         <a class="side-link" href="index.html"><span class="nav-icon nav-icon-home" aria-hidden="true"><img src="assets/home-icon.svg" alt="" /></span><span>Home</span></a>
         <a class="side-link" href="marketplace.html"><span class="nav-icon nav-icon-marketplace" aria-hidden="true"><img src="assets/marketplace-icon.svg" alt="" /></span><span>Marketplace</span></a>
         <a class="side-link" href="coaching.html"><span class="nav-icon nav-icon-coaching" aria-hidden="true"><img src="assets/sidebar-coaching-icon.svg" alt="" /></span><span>Coaching</span></a>
+        <a class="side-link" href="index.html#tournaments"><span class="nav-icon nav-icon-tournaments" aria-hidden="true"><img src="assets/tournaments-icon.svg" alt="" /></span><span>Tournaments</span></a>
         <a class="side-link active" href="orders.html"><span class="nav-icon nav-icon-orders" aria-hidden="true"><img src="assets/orders-icon.svg" alt="" /></span><span>Orders</span></a>
         <a class="side-link" href="messages.html"><span class="nav-icon"><img class="message-icon-image" src="assets/message-icon.svg" alt="" /></span><span>Messages</span><span class="nav-pill" id="messageCount">0</span></a>
         <a class="side-link" href="wallet.html"><span class="nav-icon nav-icon-wallet" aria-hidden="true"><img src="assets/wallet-icon.svg" alt="" /></span><span>Wallet</span></a>
@@ -27,6 +28,28 @@
     </aside>
 
     <div class="scrim" id="scrim" hidden></div>
+
+    <div class="seller-modal" id="ordersListingModal" role="dialog" aria-modal="true" aria-labelledby="ordersListingModalTitle" hidden>
+      <div class="seller-modal-panel">
+        <div class="seller-modal-head">
+          <div><p class="section-kicker">Seller panel</p><h2 id="ordersListingModalTitle">Edit Listing</h2></div>
+          <button class="seller-close-button" id="ordersListingClose" type="button" aria-label="Close listing editor">x</button>
+        </div>
+        <form class="seller-form" id="ordersListingForm">
+          <input id="ordersListingId" type="hidden" />
+          <label><span>Listing type</span><select id="ordersListingType" required><option value="account">Account</option><option value="skin">Skin</option></select></label>
+          <label><span>Game</span><select id="ordersListingGame" required></select></label>
+          <label><span>Title</span><input id="ordersListingTitle" type="text" maxlength="44" required /></label>
+          <label class="orders-listing-account-field"><span>Account type</span><select id="ordersListingAccountStatus"><option value="basic">Basic Account</option><option value="full-collection">Full Collection Account</option><option value="og">OG Account</option><option value="premium">Premium Account</option><option value="ranked">Ranked Account</option><option value="rare">Rare Account</option></select></label>
+          <label class="orders-listing-account-field"><span>Account level</span><input id="ordersListingAccountLevel" type="number" min="1" max="9999" step="1" /></label>
+          <label><span>Price (GEL)</span><input id="ordersListingPrice" type="number" min="1" step="1" required /></label>
+          <label><span>Replace product images</span><span class="upload-control"><span class="upload-icon" aria-hidden="true"></span><span class="upload-copy"><strong>Choose new files</strong><small>Leave empty to keep current images.</small></span><input id="ordersListingImages" type="file" accept="image/*" multiple /></span></label>
+          <label><span>Description</span><textarea id="ordersListingDescription" maxlength="160" required></textarea></label>
+          <p class="seller-status" id="ordersListingStatus" aria-live="polite"></p>
+          <div class="seller-modal-actions"><button class="secondary-seller-action" id="ordersListingCancel" type="button">Cancel</button><button class="seller-submit-button" type="submit">Save Listing</button></div>
+        </form>
+      </div>
+    </div>
 
     <main class="main-panel">
       <header class="topbar">
@@ -60,6 +83,15 @@
         </div>
         <div class="orders-list" id="ordersList"></div>
         <div class="orders-empty" id="ordersEmpty" hidden><strong>No orders found</strong><p>Your matching orders will appear here.</p></div>
+
+        <section class="profile-record-section orders-listings-section" aria-labelledby="ordersListingsTitle">
+          <div class="section-heading">
+            <div><p class="section-kicker">Seller panel</p><h2 id="ordersListingsTitle">My Listings</h2></div>
+            <a href="marketplace.html">Add listing</a>
+          </div>
+          <div class="profile-record-grid" id="ordersListings"></div>
+          <div class="marketplace-empty" id="ordersListingsEmpty" hidden>No listings yet.</div>
+        </section>
       </section>
     </main>
   </div>

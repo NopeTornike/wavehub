@@ -26,6 +26,7 @@
           <span class="nav-icon nav-icon-coaching" aria-hidden="true"><img src="assets/sidebar-coaching-icon.svg" alt="" /></span>
           <span>Coaching</span>
         </a>
+        <a class="side-link" href="index.html#tournaments" data-section="Tournaments"><span class="nav-icon nav-icon-tournaments" aria-hidden="true"><img src="assets/tournaments-icon.svg" alt="" /></span><span>Tournaments</span></a>
         <a class="side-link" href="orders.html" data-section="Orders">
           <span class="nav-icon nav-icon-orders" aria-hidden="true"><img src="assets/orders-icon.svg" alt="" /></span>
           <span>Orders</span>
@@ -152,13 +153,6 @@
               <p class="detail-lead" id="detailDescription"></p>
             </div>
 
-            <div class="detail-tabs" aria-label="Product detail sections">
-              <button class="active" type="button" data-detail-target="detailOverview" aria-selected="true">Overview</button>
-              <button type="button" data-detail-target="detailDetails" aria-selected="false">Details</button>
-              <button type="button" data-detail-target="detailGallery" aria-selected="false">Gallery</button>
-              <button type="button" data-detail-target="detailReviews" aria-selected="false">Reviews</button>
-            </div>
-
             <div class="detail-tab-panels">
               <section class="detail-tab-panel detail-info-grid" id="detailOverview">
                 <section class="detail-section detail-summary-card" aria-labelledby="detailInfoTitle">
@@ -185,7 +179,7 @@
                 </section>
               </section>
 
-              <section class="detail-tab-panel detail-info-grid" id="detailDetails" hidden>
+              <section class="detail-tab-panel detail-info-grid" id="detailDetails">
                 <section class="detail-section detail-summary-card" aria-labelledby="detailDetailsTitle">
                   <h2 id="detailDetailsTitle">Details</h2>
                   <div class="detail-meta-grid" aria-label="Offer information">
@@ -222,7 +216,8 @@
                 </section>
               </section>
 
-              <section class="detail-tab-panel" id="detailGallery" hidden>
+              <section class="detail-tab-panel detail-combined-section" id="detailGallery">
+                <h2 class="detail-combined-title">Gallery</h2>
                 <section class="detail-gallery-card" aria-label="Product gallery">
                   <div class="detail-hero-image" id="detailHeroImage">
                     <div class="detail-hero-badges">
@@ -259,7 +254,7 @@
                 </section>
               </section>
 
-              <section class="detail-tab-panel detail-section detail-reviews-card" id="detailReviews" aria-labelledby="detailReviewsTitle" hidden>
+              <section class="detail-tab-panel detail-section detail-reviews-card" id="detailReviews" aria-labelledby="detailReviewsTitle">
                 <h2 id="detailReviewsTitle">Reviews</h2>
                 <div class="detail-review-summary" id="detailReviewSummary"></div>
                 <div class="detail-review-list" id="detailReviewList"></div>
