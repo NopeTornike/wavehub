@@ -61,6 +61,25 @@ needs a `.order-thumb` child) or keep `.legacy-order-card`.
 `wallet.tsx`'s withdrawal-request panel and orders/[id].tsx's delivery/chat/dispute panels have no
 equivalent in the static prototype at all (no seller-payout or order-detail page exists there) —
 left on legacy classes, not part of this pivot's scope.
+`coaching/index.tsx` (now uses `.coach-heading-row`/`.coach-game-tabs`/`.coach-result-row`/
+`.coach-grid`/`.coach-card` from `coaching.html`) and `coaching/[id].tsx` (reuses the listing
+detail page's `.detail-*` classes, since no coach-profile page exists in the prototype at all —
+`coach-book-session.html` is a large ~1100-line booking-flow mock for a feature this app doesn't
+have yet, not a profile page) are also done. Two things worth knowing:
+- `coaching.html` itself lives outside `.app-shell` entirely — its own standalone
+  `.coach-page`/`.coach-topbar`/`.coach-shell` shell with no sidebar, and its `--coach-*` CSS
+  custom properties (colors, line colors) are scoped to a `.coaching-body` class the prototype
+  puts on `<body>`. Kept the shared `Sidebar`/`Topbar`/`Layout` for navigation consistency with
+  the rest of the app instead of adopting that alternate shell, and scoped `.coaching-body` (and
+  therefore its variables) onto a wrapper `<div>` around just this page's content instead of
+  `<body>` — safe because `.coach-*` classes don't otherwise depend on `.coach-shell`'s layout,
+  just the CSS variables.
+- `coaching.html`'s elaborate left-side filter panel (game checkboxes, service-type, price-range
+  slider, rank/availability/language selects) isn't backed by the real API at all — `browseCoaches`
+  only supports a `gameId` filter. Used `.coach-game-tabs` (a real prototype class, single-game
+  filter) instead of trying to fake the rest.
+`coaching/apply.tsx` (the coach-application form) is untouched — no static-prototype page for it
+exists either, and it's a plain form with no strong design-system opinion to port.
 **Deliberately deferred**: `profile.html` (560 lines) is two different things bolted together —
 (a) an own-account dashboard with listing/coaching-session edit modals, which has no equivalent
 anywhere in the real app yet (there's no seller "my listings" management UI at all — a gap

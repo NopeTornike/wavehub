@@ -44,59 +44,87 @@ export default function CoachingDirectory() {
 
   return (
     <Layout>
-      <div className="page">
-        <div className="page-inner">
-          <h1 className="page-title">კოუჩინგი</h1>
-          <p className="page-subtitle">
-            ვერიფიცირებული მწვრთნელები — {total} ნაპოვნი ·{' '}
-            <Link href="/coaching/apply">გახდი მწვრთნელი</Link>
-          </p>
+      {/* .coaching-body scopes coaching.html's own --coach-* CSS variables (colors/lines) — that
+          page uses a standalone shell outside .app-shell, but we keep the sidebar for nav
+          consistency and just borrow its content classes, so the variables need this wrapper
+          instead of living on <body>. */}
+      <div className="coaching-body">
+        <section className="coach-browse" aria-labelledby="coachBrowseTitle">
+          <div className="coach-heading-row">
+            <div>
+              <h1 id="coachBrowseTitle">მწვრთნელების ძებნა</h1>
+              <p>
+                ვერიფიცირებული მწვრთნელები — <Link href="/coaching/apply">გახდი მწვრთნელი</Link>
+              </p>
+            </div>
+          </div>
 
-          <div className="filter-bar">
-            <select value={gameId} onChange={(e) => setGameId(e.target.value)}>
-              <option value="">ყველა თამაში</option>
-              {games.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
+          <div className="coach-game-tabs" aria-label="თამაშის ფილტრი">
+            <button type="button" className={gameId === '' ? 'active' : ''} onClick={() => setGameId('')}>
+              ყველა თამაში
+            </button>
+            {games.map((g) => (
+              <button key={g.id} type="button" className={gameId === g.id ? 'active' : ''} onClick={() => setGameId(g.id)}>
+                {g.name}
+              </button>
+            ))}
+          </div>
+
+          <div className="coach-result-row">
+            <span />
+            <strong>{total} მწვრთნელი ნაპოვნია</strong>
           </div>
 
           {error && <div className="status-text status-error">{error}</div>}
 
           {loading ? (
-            <div className="empty-state">იტვირთება…</div>
+            <div className="coach-empty">იტვირთება…</div>
           ) : items.length === 0 ? (
-            <div className="empty-state">მწვრთნელები ვერ მოიძებნა.</div>
+            <div className="coach-empty">მწვრთნელები ვერ მოიძებნა.</div>
           ) : (
-            <div className="listing-grid">
+            <div className="coach-grid">
               {items.map((coach) => (
-                <Link key={coach.id} href={`/coaching/${coach.id}`} className="listing-card">
-                  <div className="listing-card-body">
-                    <div className="listing-card-meta">
-                      {coach.gameName ?? 'ზოგადი'} · @{coach.username}
+                <article key={coach.id} className="coach-card">
+                  <div className="coach-card-main">
+                    <div className="coach-avatar-ring">
+                      <span>{coach.firstName[0]}{coach.lastName[0]}</span>
+                      <i />
                     </div>
-                    <div className="listing-card-title">{coach.specialty}</div>
-                    <div className="listing-card-seller">
-                      {coach.firstName} {coach.lastName}
-                    </div>
-                    <div className="listing-card-footer">
-                      {coach.ratingAvg && (
-                        <span className="rating-pill">
-                          ★ {coach.ratingAvg} ({coach.ratingCount})
-                        </span>
-                      )}
-                      <span className="price-tag">
-                        {coach.hourlyRateWaveCoin} WC<small>/სთ</small>
-                      </span>
+                    <div className="coach-card-copy">
+                      <h2>{coach.firstName} {coach.lastName}</h2>
+                      <p className="coach-rating-line">
+                        {coach.ratingAvg ? (
+                          <>
+                            <span aria-hidden="true">★</span> {coach.ratingAvg} ({coach.ratingCount})
+                          </>
+                        ) : (
+                          'შეფასების გარეშე'
+                        )}
+                      </p>
                     </div>
                   </div>
-                </Link>
+
+                  <div className="coach-game-row">
+                    <span className="coach-game-icon" aria-hidden="true">
+                      {(coach.gameName ?? 'WH').slice(0, 2).toUpperCase()}
+                    </span>
+                    <strong>{coach.gameName ?? 'ზოგადი'}</strong>
+                    <span className="coach-service-pill">{coach.specialty}</span>
+                  </div>
+
+                  <div className="coach-price-row">
+                    <p>
+                      <strong>{coach.hourlyRateWaveCoin} WC/სთ</strong>
+                    </p>
+                    <Link href={`/coaching/${coach.id}`} aria-label={`${coach.firstName} ${coach.lastName}-ის პროფილი`}>
+                      პროფილი
+                    </Link>
+                  </div>
+                </article>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </Layout>
   )
