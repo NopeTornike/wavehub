@@ -176,6 +176,64 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   that's a deliberately separate follow-up (see that module's Status section for why). Trust &
   Safety/Analytics (11e, 11g) are still fully ahead.
 
+## Real-database verification (2026-07-22) — read this before trusting older "unverified" caveats
+
+Every module doc up to this point says some variant of "not verified against a live Postgres
+transaction (no DB available in the sandbox this was built in)." **That constraint is now
+partially lifted.** A real PostgreSQL 16 instance was installed via Homebrew (`brew install
+postgresql@16` — Docker is still unavailable, but a native install works fine and needs no
+container) and every migration in this repo (20+, spanning every phase) ran against it cleanly on
+the first try. The full backend booted for the first time ever, and a real curl/browser
+click-through exercised: register → verify email → login → session cookie persistence in a real
+browser → create a listing → submit → admin-approve it → purchase it (real WaveCoin escrow debit)
+→ start → deliver → accept (real escrow release, correct 10% fee math, correct 7-day
+withdrawal-hold enforcement) → order list correctly rendering in the actual frontend UI. See
+`/Users/sarvat/.claude/plans/mighty-mapping-robin.md`'s progress log for the full session-by-session
+detail; the two real bugs this surfaced (both now fixed) are documented right below and in
+`backend/src/auth/CLAUDE.md`.
+
+**Still not covered by this**: Trust & Safety/Analytics/the rest of Coaching/promo codes/CMS
+(unbuilt features, not unverified ones), the BOG payment integration against real sandbox
+credentials, e2e/HTTP-level automated tests (still only unit tests with fake repositories — a real
+Postgres-backed e2e suite is a planned follow-up, not done yet), and a genuinely fresh `docker
+compose up` (the native-Postgres path above bypassed Docker entirely; the Dockerfiles/compose file
+themselves are still unverified against a real Docker daemon). Don't read "verified" here as
+"every corner of every feature has been clicked" — it means the core account/listing/order/escrow
+spine has been proven to actually work end-to-end for the first time, which is a categorically
+different confidence level than "the unit tests pass."
+
+**Two real, previously-invisible bugs were found and fixed by this pass** — neither could have
+been caught by unit tests, since both are about wiring that only matters when the real framework
+(Nest's DI container) or a real process (dotenv) actually runs:
+1. **`backend/.env` was never loaded by anything.** Despite `README.md` instructing "copy
+   `backend/.env.example` to `backend/.env`... before running the backend outside Docker Compose,"
+   no file in this repo ever called `dotenv.config()` — `main.ts` and `data-source.ts` only ever
+   read `process.env` directly, which stays empty unless the shell itself exports those variables
+   (Docker Compose's `environment:` block works differently and was unaffected). Fixed by adding
+   `import 'dotenv/config'` as the literal first import in both `main.ts` and `data-source.ts` (it
+   must run before any other import that reads `process.env` at module-eval time, notably
+   `auth.module.ts`'s `JWT_SECRET` check) and adding `dotenv` as an explicit dependency in
+   `backend/package.json` (previously only transitive, via `typeorm`).
+2. **`AuthModule` didn't re-export `UsersModule`, silently breaking `AuthGuard` in every module
+   that uses it except `AuthModule` itself.** When `AuthGuard` gained a `UsersService` constructor
+   dependency (the suspended/banned per-request check), `AuthModule`'s `exports` array wasn't
+   updated to also re-export `UsersModule` — so any module that only imports `AuthModule` (which is
+   nearly every controller-owning module in this app: Notifications, Settings, Listings, Orders,
+   Reviews, Disputes, Withdrawals, Support, Coaching, Chat) could resolve `AuthGuard` itself but not
+   its `UsersService` dependency, and the app failed to boot with `UnknownDependenciesException` the
+   instant it reached the first such module. This is exactly the kind of bug that's invisible to
+   unit tests (which construct services directly with fake dependencies, never exercising Nest's
+   actual DI graph) and would have been a hard, silent, whole-app-down bug in any real deployment.
+   Fixed at the source — `auth.module.ts`'s `exports` now includes `UsersModule` — rather than
+   patching every consumer individually. See `backend/src/auth/CLAUDE.md` for the fuller writeup.
+
+**Practical setup notes for whoever runs this next**: `brew install postgresql@16 && brew services
+start postgresql@16`, then `createuser -s wavehub` (or `psql` `CREATE ROLE wavehub WITH LOGIN
+PASSWORD 'wavehubpass' CREATEDB`) and `createdb -O wavehub wavehubdb` — these match
+`backend/.env.example`'s defaults exactly, so no further config is needed once `backend/.env`
+exists. Run `npm run backend:migrate` once, then `npm run backend:dev` / `npm run frontend:dev`
+(or the equivalent preview-tool launch configs) as usual.
+
 ## Docker / local readiness
 
 `docker-compose.yml`, `backend/Dockerfile`, and `frontend/Dockerfile` build from the **monorepo root**

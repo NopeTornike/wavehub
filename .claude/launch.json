@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "-w", "frontend"],
       "port": 3000
+    },
+    {
+      "name": "wavehub-backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "backend:dev"],
+      "port": 4000
     }
   ]
 }

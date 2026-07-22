@@ -41,6 +41,19 @@ directly, to keep one place owning "how do I fetch a user."
   every guarded request; that's accepted as the cost of a ban actually taking effect immediately.
   There is still no way to revoke one specific session early ("log out this device") short of a
   full account suspend — only the suspended/banned case is covered.
+- **`AuthModule`'s `exports` includes `UsersModule`, not just `AuthGuard`/`SessionService` — this
+  is load-bearing, not decorative.** When `AuthGuard` gained the `UsersService` dependency above,
+  every module that only imports `AuthModule` (which is nearly every controller-owning module in
+  this app) needs `UsersService` visible too, since Nest resolves a guard's own constructor
+  dependencies through whatever module ends up instantiating it. Exporting `UsersModule` alongside
+  `AuthGuard` here means any consumer of `AuthModule` transitively gets everything `AuthGuard`
+  needs, without every single consumer separately importing `UsersModule` itself. This was a real,
+  total-boot-failure bug (`UnknownDependenciesException` the instant Nest reached the first
+  affected module) found only by actually booting the app against a real Postgres for the first
+  time (2026-07-22) — unit tests construct services directly with fake dependencies and never
+  exercise Nest's real DI graph, so this was invisible to the entire test suite. If `AuthGuard`
+  ever gains another dependency from a different module, re-export that module here too, or
+  every consumer of `AuthGuard` will break the same way.
 - Both verification and reset tokens are stored as **SHA-256 hashes**, never the raw token — same
   reasoning as password hashing. Compare by hashing the incoming token and looking up the hash.
 - `requestPasswordReset` always returns `{ ok: true }` regardless of whether the email matched an

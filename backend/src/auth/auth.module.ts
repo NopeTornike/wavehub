@@ -32,6 +32,14 @@ if (!jwtSecret) {
   ],
   controllers: [AuthController],
   providers: [AuthService, SessionService, AuthGuard],
-  exports: [AuthGuard, SessionService],
+  // Re-exports UsersModule (not just AuthGuard/SessionService) — AuthGuard's constructor needs
+  // UsersService (added when it started checking suspended/banned status per-request, see
+  // auth.guard.ts), and a module that only imports AuthModule needs that dependency visible too.
+  // Without this, every single consumer of AuthGuard (Notifications, Settings, Listings, Orders,
+  // Reviews, Disputes, Withdrawals, Support, Coaching, ...) would need to separately import
+  // UsersModule just to satisfy AuthGuard's own dependency graph — re-exporting it here once is
+  // the actual fix, not a per-module workaround. Caught by booting against a real Postgres for
+  // the first time (previous "verification" was unit tests only, which fake the DI container).
+  exports: [AuthGuard, SessionService, UsersModule],
 })
 export class AuthModule {}

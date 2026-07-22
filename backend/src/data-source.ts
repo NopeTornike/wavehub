@@ -1,3 +1,6 @@
+// Must be the first import — see main.ts's identical note. Populates process.env from
+// backend/.env before this file reads DATABASE_HOST/etc below.
+import 'dotenv/config';
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { User } from './users/user.entity';

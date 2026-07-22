@@ -1,3 +1,9 @@
+// Must be the first import: populates process.env from backend/.env before anything else
+// (notably auth.module.ts, imported transitively via AppModule below) reads it at module-eval
+// time. Never overrides a variable already set in the real environment (Docker Compose, a real
+// deployment's env injection, etc.) — see backend/CLAUDE.md's "Local dev" note for why this file
+// previously did nothing outside Docker despite the README instructing you to create it.
+import 'dotenv/config';
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
