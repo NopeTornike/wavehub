@@ -34,6 +34,9 @@ import type {
   PublicCoachSummary,
   PublicCoachDetail,
   AdminCoachSummary,
+  PublicContentPage,
+  AdminContentPage,
+  ContentPageStatus,
 } from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -420,4 +423,14 @@ export const api = {
   adminSuspendCoach: (id: string) => request<AdminCoachSummary>(`/coaches/${id}/suspend`, { method: 'POST' }),
 
   adminRestoreCoach: (id: string) => request<AdminCoachSummary>(`/coaches/${id}/restore`, { method: 'POST' }),
+
+  // --- Content / CMS --- (backend/src/content/)
+  getContentPage: (slug: string) => request<PublicContentPage>(`/content/${slug}`),
+
+  adminListContentPages: () => request<AdminContentPage[]>('/admin/content'),
+
+  adminGetContentPage: (slug: string) => request<AdminContentPage>(`/admin/content/${slug}`),
+
+  adminUpsertContentPage: (payload: { slug: string; title: string; body?: string; status?: ContentPageStatus }) =>
+    request<AdminContentPage>('/admin/content', { method: 'POST', body: JSON.stringify(payload) }),
 }

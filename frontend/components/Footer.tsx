@@ -1,17 +1,19 @@
-// Static/legal pages (About, Terms, Privacy, Refund Policy, Guidelines) don't exist yet as real
-// routes (build-plan Phase 12, CMS-backed) — these links are placeholders pointing at "#" rather
-// than 404ing or being silently omitted, so the footer's structure matches the spec now and just
-// needs real hrefs swapped in later.
+import Link from 'next/link'
+
+// Backed by the admin-editable Content pages (backend/src/content/) — an admin can rename
+// titles/body from /admin/content, but these 5 slugs/hrefs are the fixed set Footer.tsx commits
+// to. Contact intentionally doesn't link here — logged-in users have a real Support ticket flow
+// (/support) that does more than a static contact page could.
 export default function Footer() {
   return (
     <footer className="site-footer">
       <div>© {new Date().getFullYear()} WaveHub</div>
       <div>
-        <a href="#">About</a>
-        <a href="#">Contact</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">Privacy Policy</a>
-        <a href="#">Refund Policy</a>
+        <Link href="/pages/about">About</Link>
+        <Link href="/support">Contact</Link>
+        <Link href="/pages/terms-of-service">Terms of Service</Link>
+        <Link href="/pages/privacy-policy">Privacy Policy</Link>
+        <Link href="/pages/refund-policy">Refund Policy</Link>
       </div>
     </footer>
   )

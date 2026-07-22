@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/admin/users', label: 'მომხმარებლები' },
   { href: '/admin/tickets', label: 'ბილეთები' },
   { href: '/admin/coaches', label: 'მწვრთნელები' },
+  { href: '/admin/content', label: 'კონტენტი' },
   { href: '/admin/settings', label: 'პლატფორმის პარამეტრები' },
 ]
 

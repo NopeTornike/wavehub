@@ -37,6 +37,7 @@ isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable r
 | `backend/src/settings/` | Platform-wide configurable numbers (fee %, min withdrawal, maintenance flag) — a singleton table | `backend/src/settings/CLAUDE.md` |
 | `backend/src/support/` | Support ticketing — user tickets, staff replies, internal notes, Saved Replies | `backend/src/support/CLAUDE.md` |
 | `backend/src/coaching/` | Coach profiles, public directory, admin verification/suspension — no session booking yet | `backend/src/coaching/CLAUDE.md` |
+| `backend/src/content/` | Static/legal page CMS (About/Contact/Terms/Privacy/Refund) — admin-edited, publicly rendered | `backend/src/content/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 

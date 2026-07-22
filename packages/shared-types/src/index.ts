@@ -660,3 +660,31 @@ export interface AdminUserSummary {
   moderationReason: string | null;
   createdAt: string;
 }
+
+// Static/legal page CMS — scoped to what Footer.tsx actually links to (About/Contact/Terms/
+// Privacy/Refund), not the broader banners/news/categories/badges/tags/promo-code "Content
+// Management" catalog from SPECIFICATION.md §5.13 (that's real future scope, Phase 11f).
+export enum ContentPageStatus {
+  Draft = 'draft',
+  Published = 'published',
+}
+
+// What GET /content/:slug returns — public, published pages only.
+export interface PublicContentPage {
+  slug: string;
+  title: string;
+  body: string;
+  updatedAt: string;
+}
+
+// What the admin content-pages endpoints return/accept — includes draft pages and status, unlike
+// PublicContentPage which only ever exposes published ones.
+export interface AdminContentPage {
+  id: string;
+  slug: string;
+  title: string;
+  body: string;
+  status: ContentPageStatus;
+  createdAt: string;
+  updatedAt: string;
+}
