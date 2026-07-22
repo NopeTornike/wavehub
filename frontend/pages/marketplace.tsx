@@ -62,121 +62,146 @@ export default function Marketplace() {
 
   return (
     <Layout>
-      <div className="page">
-        <div className="page-inner">
-          <h1 className="page-title">მარკეტფლეისი</h1>
-          <p className="page-subtitle">იპოვე სერვისები და ნივთები გამოცდილი გამყიდველებისგან</p>
-
-          <div className="filter-bar">
-            <select
-              value={categoryId}
-              onChange={(event) => {
-                setCategoryId(event.target.value)
-                resetOffset()
-              }}
-            >
-              <option value="">ყველა კატეგორია</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={gameId}
-              onChange={(event) => {
-                setGameId(event.target.value)
-                resetOffset()
-              }}
-            >
-              <option value="">ყველა თამაში</option>
-              {games.map((game) => (
-                <option key={game.id} value={game.id}>
-                  {game.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={type}
-              onChange={(event) => {
-                setType(event.target.value as ListingType | '')
-                resetOffset()
-              }}
-            >
-              <option value="">სერვისი და ნივთი</option>
-              <option value={ListingType.Service}>სერვისი</option>
-              <option value={ListingType.Item}>ნივთი</option>
-            </select>
-          </div>
-
-          {error && <div className="status-text status-error">{error}</div>}
-
-          {loading ? (
-            <div className="empty-state">იტვირთება…</div>
-          ) : items.length === 0 ? (
-            <div className="empty-state">ამ ფილტრებით ლისტინგი ვერ მოიძებნა.</div>
-          ) : (
-            <>
-              <div className="listing-grid">
-                {items.map((listing) => (
-                  <Link key={listing.id} href={`/listings/${listing.id}`} className="listing-card">
-                    <div className="listing-card-image">
-                      {listing.images[0] ? (
-                        <img src={listing.images[0].url} alt={listing.title} />
-                      ) : (
-                        <span>სურათი არ არის</span>
-                      )}
-                    </div>
-                    <div className="listing-card-body">
-                      <div className="listing-card-meta">
-                        <span>{listing.category.name}</span>
-                        {listing.game && <span>· {listing.game.name}</span>}
-                        {listing.isFeatured && <span className="badge badge-featured">გამორჩეული</span>}
-                      </div>
-                      <p className="listing-card-title">{listing.title}</p>
-                      <div className="listing-card-seller">@{listing.seller.username}</div>
-                      <div className="listing-card-footer">
-                        {listing.ratingCount > 0 ? (
-                          <span className="rating-pill">★ {listing.ratingAvg}</span>
-                        ) : (
-                          <span className="rating-pill" style={{ color: 'var(--text-secondary)' }}>
-                            შეფასების გარეშე
-                          </span>
-                        )}
-                        <span className="price-tag">
-                          {listing.startingPriceWaveCoin ?? '—'}
-                          <small> WC-დან</small>
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-
-              <div className="filter-bar" style={{ marginTop: 24, justifyContent: 'center' }}>
-                <button
-                  className="button"
-                  type="button"
-                  disabled={offset === 0}
-                  onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-                >
-                  წინა
-                </button>
-                <button
-                  className="button"
-                  type="button"
-                  disabled={offset + PAGE_SIZE >= total}
-                  onClick={() => setOffset(offset + PAGE_SIZE)}
-                >
-                  შემდეგი
-                </button>
-              </div>
-            </>
-          )}
+      <section className="marketplace-head" aria-labelledby="marketplaceTitle">
+        <div>
+          <p className="section-kicker">სერვისები და ნივთები</p>
+          <h1 id="marketplaceTitle">მარკეტფლეისი</h1>
         </div>
-      </div>
+        <div className="marketplace-total" aria-label="ხილული ლისტინგები">
+          <strong>{total}</strong>
+          <span>ლისტინგი</span>
+        </div>
+      </section>
+
+      <section className="marketplace-toolbar" aria-label="მარკეტფლეისის ფილტრები">
+        <label>
+          <span>კატეგორია</span>
+          <select
+            value={categoryId}
+            onChange={(event) => {
+              setCategoryId(event.target.value)
+              resetOffset()
+            }}
+          >
+            <option value="">ყველა კატეგორია</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>თამაში</span>
+          <select
+            value={gameId}
+            onChange={(event) => {
+              setGameId(event.target.value)
+              resetOffset()
+            }}
+          >
+            <option value="">ყველა თამაში</option>
+            {games.map((game) => (
+              <option key={game.id} value={game.id}>
+                {game.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>ტიპი</span>
+          <select
+            value={type}
+            onChange={(event) => {
+              setType(event.target.value as ListingType | '')
+              resetOffset()
+            }}
+          >
+            <option value="">სერვისი და ნივთი</option>
+            <option value={ListingType.Service}>სერვისი</option>
+            <option value={ListingType.Item}>ნივთი</option>
+          </select>
+        </label>
+      </section>
+
+      <section className="marketplace-list-section" aria-labelledby="marketplaceListTitle">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">ცოცხალი ლისტინგები</p>
+            <h2 id="marketplaceListTitle">სერვისები და ნივთები</h2>
+          </div>
+        </div>
+
+        {error && <div className="status-text status-error">{error}</div>}
+
+        {loading ? (
+          <div className="marketplace-empty">იტვირთება…</div>
+        ) : items.length === 0 ? (
+          <div className="marketplace-empty">ამ ფილტრებით ლისტინგი ვერ მოიძებნა.</div>
+        ) : (
+          <>
+            <div className="marketplace-grid">
+              {items.map((listing) => (
+                <Link key={listing.id} href={`/listings/${listing.id}`} className="marketplace-card">
+                  {listing.images[0] && (
+                    <div
+                      className="marketplace-card-cover"
+                      style={{ backgroundImage: `url(${listing.images[0].url})` }}
+                    />
+                  )}
+
+                  <div className="marketplace-card-top">
+                    <span className="service-tag">{listing.type === ListingType.Service ? 'სერვისი' : 'ნივთი'}</span>
+                    <div className="marketplace-card-actions">
+                      <strong>
+                        {listing.startingPriceWaveCoin ?? '—'} WC{listing.type === ListingType.Service ? '-დან' : ''}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <h3>{listing.title}</h3>
+
+                  <div className="marketplace-card-meta">
+                    <span className="avatar avatar-blue">{listing.category.name[0]}</span>
+                    <span>
+                      {listing.category.name}
+                      {listing.game && ` · ${listing.game.name}`}
+                    </span>
+                    {listing.ratingCount > 0 ? (
+                      <span className="rating-pill">★ {listing.ratingAvg}</span>
+                    ) : (
+                      <span className="rating-pill" style={{ color: 'var(--text-secondary)' }}>
+                        —
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="filter-bar" style={{ marginTop: 24, justifyContent: 'center' }}>
+              <button
+                className="button"
+                type="button"
+                disabled={offset === 0}
+                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+              >
+                წინა
+              </button>
+              <button
+                className="button"
+                type="button"
+                disabled={offset + PAGE_SIZE >= total}
+                onClick={() => setOffset(offset + PAGE_SIZE)}
+              >
+                შემდეგი
+              </button>
+            </div>
+          </>
+        )}
+      </section>
     </Layout>
   )
 }

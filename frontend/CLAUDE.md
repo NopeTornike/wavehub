@@ -17,15 +17,33 @@ implement the sidebar app-shell structure from `index.html` (`.app-shell` > `.si
 — `Footer.tsx` still exists and is rendered inside `.main-panel`, but hasn't been restyled to
 match the prototype's own footer yet).
 **Still in progress, page by page** (see the build plan's progress log for the up-to-date list):
-most page *content* (marketplace, listing detail, auth, orders, wallet, admin, etc.) still uses
-this app's own older component classes (`.page`, `.card`, `.filter-bar`, `.admin-*`, etc.) rather
-than the prototype's exact per-page markup (`.market-*`, `.auth-*`, `.cart-*`, ...) — those old
-classes were preserved verbatim at the bottom of `global.css` (see the "Legacy WaveHub-app
-component classes" comment block in that file) specifically so nothing visually broke while this
-migration happens incrementally, but they are **not** the prototype's real design, just a
-functional bridge. A page is only "done" for this pivot once its actual JSX uses the prototype's
-real class names/structure. Do not assume a page matches the static site just because it renders
-without errors — check it against the corresponding `.html` file at the repo root.
+most page *content* (orders, wallet, profile, coaching, admin, etc.) still uses this app's own
+older component classes (`.page`, `.card`, `.filter-bar`, `.admin-*`, etc.) rather than the
+prototype's exact per-page markup — those old classes were preserved verbatim at the bottom of
+`global.css` (see the "Legacy WaveHub-app component classes" comment block in that file)
+specifically so nothing visually broke while this migration happens incrementally, but they are
+**not** the prototype's real design, just a functional bridge. A page is only "done" for this
+pivot once its actual JSX uses the prototype's real class names/structure. Do not assume a page
+matches the static site just because it renders without errors — check it against the
+corresponding `.html` file at the repo root.
+**Done so far**: the app shell (`Sidebar`/`Topbar`/`Layout`), all 5 auth pages (`login`,
+`register`, `forgot-password`, `reset-password`, `verify-email` — now use `.auth-page-shell`/
+`.auth-card`/`.auth-tabs`/`.auth-form` from `auth.html`), and `marketplace.tsx`/
+`listings/[id].tsx` (now use `.marketplace-head`/`.marketplace-toolbar`/`.marketplace-grid`/
+`.marketplace-card` from `marketplace.html` and `.detail-page`/`.detail-layout`/
+`.detail-buy-panel`/`.detail-gallery-card`/`.detail-reviews-card`/`.public-review-card` from
+`detail.html`). Two deliberate deviations from the prototype worth knowing about if you touch
+these pages again:
+- **Card variant**: `marketplace.html`'s live cards are actually `.product-showcase-card`
+  (rarity-glow borders, Level/Views stat overlay, seller-avatar-with-photo) — but that markup
+  needs `accountStatus`/`views`/`likes`/`favoriteCount` fields the real `Listing`/`User` entities
+  don't have. Used the plainer `.marketplace-card` variant instead (still real, defined CSS in
+  `styles.css`, just the "dead code" branch on the static page since every static-prototype
+  listing happens to be an account/skin) — visually consistent with the design system, just a
+  simpler card shape. Revisit if/when the backend grows rarity/view-count fields.
+  - **Pagination**: `marketplace.html` has no pagination (it renders every localStorage listing at
+  once); the real backend paginates. Kept a plain prev/next `.button` pair below the grid — not
+  part of the prototype, added because the feature has to exist somewhere.
 
 ## Key files
 - `lib/auth.tsx` — `AuthProvider` + `useAuth()`. The single place that calls `api.me()` on load;
