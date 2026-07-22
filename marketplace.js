@@ -494,6 +494,10 @@ function getCardScore(listing) {
 }
 
 function getMarketplaceCardImage(listing, config) {
+  if (listing.game === 'CS2') {
+    return 'assets/cs2-marketplace-cover.png';
+  }
+
   if (config.type === 'account') {
     return getAccountTypeImage(listing.accountStatus) || listing.imageData || '';
   }

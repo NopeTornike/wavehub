@@ -719,14 +719,17 @@ function getGalleryVisuals(offer) {
   }));
   const uploadedImages = Array.isArray(offer.galleryImages) ? offer.galleryImages : [offer.imageData].filter(Boolean);
 
-  const accountTypeImage = offer.productType === 'account' ? getAccountTypeImage(offer.accountStatus) : '';
+  const isCs2Product = offer.type === 'product' && offer.game === 'CS2';
+  const accountTypeImage = isCs2Product
+    ? 'assets/cs2-marketplace-cover.png'
+    : offer.productType === 'account' ? getAccountTypeImage(offer.accountStatus) : '';
 
   if (accountTypeImage) {
     visuals[0] = {
-      label: offer.accountStatusLabel || 'Account card',
+      label: isCs2Product ? 'CS2' : offer.accountStatusLabel || 'Account card',
       coverClass: '',
       src: accountTypeImage,
-      isBasicCard: true,
+      isBasicCard: !isCs2Product,
     };
 
     uploadedImages.slice(0, 5).forEach((src, index) => {
