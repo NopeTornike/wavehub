@@ -17,15 +17,15 @@ implement the sidebar app-shell structure from `index.html` (`.app-shell` > `.si
 — `Footer.tsx` still exists and is rendered inside `.main-panel`, but hasn't been restyled to
 match the prototype's own footer yet).
 **Still in progress, page by page** (see the build plan's progress log for the up-to-date list):
-most page *content* (orders, wallet, profile, coaching, admin, etc.) still uses this app's own
-older component classes (`.page`, `.card`, `.filter-bar`, `.admin-*`, etc.) rather than the
-prototype's exact per-page markup — those old classes were preserved verbatim at the bottom of
-`global.css` (see the "Legacy WaveHub-app component classes" comment block in that file)
-specifically so nothing visually broke while this migration happens incrementally, but they are
-**not** the prototype's real design, just a functional bridge. A page is only "done" for this
-pivot once its actual JSX uses the prototype's real class names/structure. Do not assume a page
-matches the static site just because it renders without errors — check it against the
-corresponding `.html` file at the repo root.
+most page *content* (coaching, admin, support, etc.) still uses this app's own older component
+classes (`.page`, `.card`, `.filter-bar`, `.admin-*`, etc.) rather than the prototype's exact
+per-page markup — those old classes were preserved verbatim at the bottom of `global.css` (see
+the "Legacy WaveHub-app component classes" comment block in that file) specifically so nothing
+visually broke while this migration happens incrementally, but they are **not** the prototype's
+real design, just a functional bridge. A page is only "done" for this pivot once its actual JSX
+uses the prototype's real class names/structure. Do not assume a page matches the static site
+just because it renders without errors — check it against the corresponding `.html` file at the
+repo root.
 **Done so far**: the app shell (`Sidebar`/`Topbar`/`Layout`), all 5 auth pages (`login`,
 `register`, `forgot-password`, `reset-password`, `verify-email` — now use `.auth-page-shell`/
 `.auth-card`/`.auth-tabs`/`.auth-form` from `auth.html`), and `marketplace.tsx`/
@@ -44,6 +44,33 @@ these pages again:
   - **Pagination**: `marketplace.html` has no pagination (it renders every localStorage listing at
   once); the real backend paginates. Kept a plain prev/next `.button` pair below the grid — not
   part of the prototype, added because the feature has to exist somewhere.
+`orders/index.tsx` (now uses `.orders-page-head`/`.orders-summary`/`.orders-tabs`/`.orders-list`/
+`.order-card`+`.order-thumb`+`.order-copy`+`.order-side` from `orders.html`) and `wallet.tsx`
+(now uses `.wallet-page-head`/`.wallet-dashboard-hero`/`.wallet-hero-breakdown`/`.wallet-layout`/
+`.wallet-buy-panel`/`.wallet-history-section`/`.wallet-transaction-card` from `wallet.html`) are
+also done. One class-collision fix this required: the real `orders.html` design defines its own
+`.order-card` (a 3-column grid: thumb/copy/side) — but `.order-card` was already in use elsewhere
+in this app (`wallet.tsx`'s withdrawal-request list, `support/index.tsx`, `admin/tickets.tsx`,
+`admin/disputes.tsx`) as a flat flex-row card from the *legacy* bridge section of `global.css`.
+Since both rules shared the same class name, cascade order meant the legacy one was silently
+winning everywhere, including on the real orders.html-style card once it got built. Fixed by
+renaming the legacy CSS rule to `.legacy-order-card` and updating its 4 other consumers to match
+— `orders/index.tsx` is now the only page using the real `.order-card`. If you port one of those
+4 remaining pages later, decide then whether it should adopt the real `.order-card` shape too (it
+needs a `.order-thumb` child) or keep `.legacy-order-card`.
+`wallet.tsx`'s withdrawal-request panel and orders/[id].tsx's delivery/chat/dispute panels have no
+equivalent in the static prototype at all (no seller-payout or order-detail page exists there) —
+left on legacy classes, not part of this pivot's scope.
+**Deliberately deferred**: `profile.html` (560 lines) is two different things bolted together —
+(a) an own-account dashboard with listing/coaching-session edit modals, which has no equivalent
+anywhere in the real app yet (there's no seller "my listings" management UI at all — a gap
+predating this pivot, see `backend/src/listings/CLAUDE.md`), so porting it isn't a visual-port
+task, it's new seller-dashboard feature work; (b) a public seller-profile viewer
+(`.public-profile-hero`/`.public-profile-stats`/`.public-profile-overview`, reached via
+`profile.html?user=username`) that *is* portable but needs a public `GET /users/:username`-style
+backend endpoint that doesn't exist yet (only `/auth/me` and admin-only user routes do). Tracked
+as a separate task (see the build plan) rather than silently dropped or faked with placeholder
+data.
 
 ## Key files
 - `lib/auth.tsx` — `AuthProvider` + `useAuth()`. The single place that calls `api.me()` on load;

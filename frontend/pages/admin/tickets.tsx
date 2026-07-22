@@ -99,7 +99,7 @@ export default function AdminTickets() {
       ) : (
         <div className="order-list">
           {tickets.map((ticket) => (
-            <Link key={ticket.id} href={`/admin/tickets/${ticket.id}`} className="order-card">
+            <Link key={ticket.id} href={`/admin/tickets/${ticket.id}`} className="legacy-order-card">
               <div className="order-card-main">
                 <strong>{ticket.subject}</strong>
                 <span className="note" style={{ margin: 0 }}>

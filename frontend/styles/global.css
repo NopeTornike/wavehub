@@ -12291,7 +12291,10 @@ body.public-profile-view .main-panel {
   gap: 12px;
 }
 
-.order-card {
+/* Renamed from `.order-card` — that class name now belongs to the real orders.html grid layout
+   (see the Tornike-design block earlier in this file); this is the flat flex-row variant still
+   used by pages not yet ported to that design (wallet, support, admin tickets/disputes). */
+.legacy-order-card {
   display: flex;
   align-items: center;
   justify-content: space-between;

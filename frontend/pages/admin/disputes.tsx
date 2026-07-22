@@ -46,7 +46,7 @@ export default function AdminDisputes() {
       ) : (
         <div className="order-list">
           {items.map((item) => (
-            <Link key={item.id} href={`/orders/${item.orderId}`} className="order-card">
+            <Link key={item.id} href={`/orders/${item.orderId}`} className="legacy-order-card">
               <div className="order-card-main">
                 <strong>{item.orderNumber}</strong>
                 <span className="note" style={{ margin: 0 }}>{item.reason}</span>

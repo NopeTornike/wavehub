@@ -56,54 +56,85 @@ export default function Orders() {
     }
   }, [tab, user])
 
+  // The API only returns the active tab's orders at a time, so unlike orders.html's
+  // localStorage-backed dashboard (which shows both Purchased and Sold counts side by side at
+  // once), this summary only ever has real numbers for the currently selected tab — the other
+  // one shows a dash rather than a fabricated 0.
+  const totalPrice = orders.reduce((sum, order) => sum + order.priceWaveCoin, 0)
+
   return (
     <Layout>
-      <div className="page">
-        <div className="page-inner">
-          <h1 className="page-title">ჩემი შეკვეთები</h1>
-          <p className="page-subtitle">ნახეთ და მართეთ თქვენი შესყიდვები და გაყიდვები</p>
-
-          <div className="order-tabs">
-            <button className={tab === 'buyer' ? 'active' : ''} type="button" onClick={() => setTab('buyer')}>
-              შესყიდვები
-            </button>
-            <button className={tab === 'seller' ? 'active' : ''} type="button" onClick={() => setTab('seller')}>
-              გაყიდვები
-            </button>
-          </div>
-
-          {error && <div className="status-text status-error">{error}</div>}
-
-          {loading ? (
-            <div className="empty-state">იტვირთება…</div>
-          ) : orders.length === 0 ? (
-            <div className="empty-state">შეკვეთები ჯერ არ არის.</div>
-          ) : (
-            <div className="order-list">
-              {orders.map((order) => {
-                const counterpart = tab === 'buyer' ? order.seller : order.buyer
-                return (
-                  <Link key={order.id} href={`/orders/${order.id}`} className="order-card">
-                    <div className="order-card-main">
-                      <strong>{order.listing.title}</strong>
-                      <span className="note" style={{ margin: 0 }}>
-                        {order.orderNumber} · @{counterpart.username}
-                        {order.package ? ` · ${order.package.name}` : ''}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <span className={`order-status order-status-${order.status}`}>
-                        {STATUS_LABELS[order.status]}
-                      </span>
-                      <span className="price-tag">{order.priceWaveCoin} WC</span>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
+      <section className="orders-page-head">
+        <div>
+          <p className="section-kicker">შეკვეთების ისტორია</p>
+          <h1>ჩემი შეკვეთები</h1>
+          <p>ნახეთ და მართეთ თქვენი შესყიდვები და გაყიდვები WaveHub-ზე.</p>
         </div>
-      </div>
+        <div className="marketplace-total">
+          <strong>{orders.length}</strong>
+          <span>შეკვეთა</span>
+        </div>
+      </section>
+
+      <section className="orders-dashboard">
+        <div className="orders-summary" aria-label="შეკვეთების შეჯამება">
+          <article>
+            <span>შესყიდვები</span>
+            <strong>{tab === 'buyer' ? orders.length : '—'}</strong>
+            <small>{tab === 'buyer' ? `${totalPrice} WC` : ''}</small>
+          </article>
+          <article>
+            <span>გაყიდვები</span>
+            <strong>{tab === 'seller' ? orders.length : '—'}</strong>
+            <small>{tab === 'seller' ? `${totalPrice} WC` : ''}</small>
+          </article>
+        </div>
+
+        <div className="orders-tabs" role="tablist">
+          <button className={tab === 'buyer' ? 'active' : ''} type="button" role="tab" aria-selected={tab === 'buyer'} onClick={() => setTab('buyer')}>
+            შესყიდვები
+          </button>
+          <button className={tab === 'seller' ? 'active' : ''} type="button" role="tab" aria-selected={tab === 'seller'} onClick={() => setTab('seller')}>
+            გაყიდვები
+          </button>
+        </div>
+
+        {error && <div className="status-text status-error">{error}</div>}
+
+        {loading ? (
+          <div className="orders-empty">იტვირთება…</div>
+        ) : orders.length === 0 ? (
+          <div className="orders-empty">
+            <strong>შეკვეთები ვერ მოიძებნა</strong>
+            <p>თქვენი შესაბამისი შეკვეთები აქ გამოჩნდება.</p>
+          </div>
+        ) : (
+          <div className="orders-list">
+            {orders.map((order) => {
+              const counterpart = tab === 'buyer' ? order.seller : order.buyer
+              return (
+                <Link key={order.id} href={`/orders/${order.id}`} className="order-card">
+                  <span className="order-thumb" aria-hidden="true">
+                    {order.listing.title.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="order-copy">
+                    <div>
+                      <span className="order-status">{STATUS_LABELS[order.status]}</span>
+                    </div>
+                    <h2>{order.listing.title}</h2>
+                    <p>{order.package ? order.package.name : order.listing.title}</p>
+                    <span>{tab === 'buyer' ? 'გამყიდველი' : 'მყიდველი'}: @{counterpart.username}</span>
+                    <code>Order #{order.orderNumber}</code>
+                  </div>
+                  <div className="order-side">
+                    <strong>{order.priceWaveCoin} WC</strong>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        )}
+      </section>
     </Layout>
   )
 }
