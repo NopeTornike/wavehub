@@ -39,6 +39,7 @@ const detailTitle = document.getElementById('detailTitle');
 const detailDescription = document.getElementById('detailDescription');
 const detailSeller = document.getElementById('detailSeller');
 const detailGame = document.getElementById('detailGame');
+const detailGameIcon = document.getElementById('detailGameIcon');
 const detailDelivery = document.getElementById('detailDelivery');
 const detailStatusLabel = document.getElementById('detailStatusLabel');
 const detailStatusText = document.getElementById('detailStatusText');
@@ -66,6 +67,18 @@ const detailSideQualityScoreLabel = document.getElementById('detailSideQualitySc
 const detailTag = document.getElementById('detailTag');
 const detailSideDelivery = document.getElementById('detailSideDelivery');
 const detailPrice = document.getElementById('detailPrice');
+
+const detailGameIcons = {
+  'PUBG Mobile': 'assets/pubg-mobile-icon.png',
+  PUBG: 'assets/pubg-mobile-icon.png',
+  'Call of Duty': 'assets/cod-mobile-icon.png',
+  'COD Mobile': 'assets/cod-mobile-icon.png',
+  Valorant: 'assets/valorant-icon.png',
+  CS2: 'assets/cs2-popular-games-photo.png',
+  'Mobile Legends': 'assets/mobile-legends-popular-games-photo.png',
+  'Free Fire': 'assets/freefire-photo.jpeg',
+  Roblox: 'assets/roblox-popular-games-photo.png',
+};
 const buyButton = document.getElementById('buyButton');
 const wishlistButton = document.getElementById('wishlistButton');
 const messageSellerButton = document.getElementById('messageSellerButton');
@@ -950,6 +963,12 @@ function renderDetail({ countView = true } = {}) {
     }
   }
   if (detailGame) detailGame.textContent = offer.game;
+  if (detailGameIcon) {
+    const gameIcon = detailGameIcons[offer.game] || '';
+    detailGameIcon.src = gameIcon;
+    detailGameIcon.alt = gameIcon ? `${offer.game} icon` : '';
+    detailGameIcon.hidden = !gameIcon;
+  }
   if (detailDelivery) detailDelivery.textContent = offer.delivery;
   if (detailStatusText) detailStatusText.textContent = offer.status;
   if (detailLevel) detailLevel.textContent = formatNumber(offer.accountLevel);

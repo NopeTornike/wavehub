@@ -105,7 +105,7 @@ button {
   width: 100%;
   height: 104px;
   object-fit: contain;
-  transform: scale(2.3);
+  transform: none;
 }
 
 .brand-mark {
@@ -4111,6 +4111,21 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
   overflow-wrap: anywhere;
   color: var(--text);
   font-size: 13px;
+}
+
+.detail-meta-grid .detail-game-value {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.detail-game-value img {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 11px;
+  object-fit: cover;
+  box-shadow: 0 0 14px rgba(255, 47, 143, 0.2);
 }
 
 .detail-profile-link {
