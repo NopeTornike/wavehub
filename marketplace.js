@@ -64,7 +64,20 @@ function clearExistingMarketplaceProducts() {
 
 clearExistingMarketplaceProducts();
 
-const games = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
+const games = [
+  'Call of Duty',
+  'Mobile Legends',
+  'CS2',
+  'PUBG Mobile',
+  'Roblox',
+  'Clash of Clans',
+  'League of Legends',
+  'Fortnite',
+  'Minecraft',
+  'GTA 5',
+  'Dota 2',
+  'Valorant',
+];
 const accountTypeImages = {
   basic: 'assets/basic-account.png',
   'full-collection': 'assets/full-collection-account.png',

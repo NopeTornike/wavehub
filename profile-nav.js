@@ -336,6 +336,83 @@
     });
   }
 
+  function renderMarketplaceGameMenu() {
+    const marketplaceGames = [
+      'Call of Duty',
+      'Mobile Legends',
+      'CS2',
+      'PUBG Mobile',
+      'Roblox',
+      'Clash of Clans',
+      'League of Legends',
+      'Fortnite',
+      'Minecraft',
+      'GTA 5',
+      'Dota 2',
+      'Valorant',
+    ];
+
+    document.querySelectorAll('.side-nav > a[href="marketplace.html"]').forEach((marketplaceLink) => {
+      if (marketplaceLink.parentElement?.classList.contains('marketplace-game-menu')) return;
+
+      const menu = document.createElement('div');
+      menu.className = 'marketplace-game-menu';
+      marketplaceLink.parentNode.insertBefore(menu, marketplaceLink);
+      menu.appendChild(marketplaceLink);
+
+      const arrow = document.createElement('span');
+      arrow.className = 'marketplace-menu-arrow';
+      arrow.setAttribute('aria-hidden', 'true');
+      marketplaceLink.appendChild(arrow);
+      marketplaceLink.setAttribute('aria-haspopup', 'true');
+      marketplaceLink.setAttribute('aria-expanded', 'false');
+
+      const dropdown = document.createElement('div');
+      dropdown.className = 'marketplace-game-dropdown';
+      dropdown.setAttribute('aria-label', 'Marketplace games');
+
+      const allGames = document.createElement('a');
+      allGames.href = 'marketplace.html';
+      allGames.textContent = 'All Games';
+      dropdown.appendChild(allGames);
+
+      marketplaceGames.forEach((game) => {
+        const gameLink = document.createElement('a');
+        gameLink.href = `marketplace.html?game=${encodeURIComponent(game)}`;
+        gameLink.textContent = game;
+        dropdown.appendChild(gameLink);
+      });
+
+      menu.appendChild(dropdown);
+      marketplaceLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const isOpen = menu.classList.toggle('open');
+        marketplaceLink.setAttribute('aria-expanded', String(isOpen));
+      }, true);
+
+      menu.addEventListener('mouseleave', () => {
+        if (!menu.classList.contains('open')) marketplaceLink.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      document.querySelectorAll('.marketplace-game-menu.open').forEach((menu) => {
+        if (menu.contains(event.target)) return;
+        menu.classList.remove('open');
+        menu.querySelector('.side-link')?.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      document.querySelectorAll('.marketplace-game-menu.open').forEach((menu) => {
+        menu.classList.remove('open');
+        menu.querySelector('.side-link')?.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
   function renderMobileNavigation() {
     if (document.querySelector('.mobile-bottom-nav')) {
       return;
@@ -384,6 +461,7 @@
   renderProfileSurfaces();
   renderMessageNotifications();
   bindProfileRoutes();
+  renderMarketplaceGameMenu();
   bindNotificationCenter();
   renderNotificationCenter();
   renderMobileNavigation();

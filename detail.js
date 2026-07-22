@@ -107,6 +107,13 @@ const gameVisualConfig = {
   'Mobile Legends': { coverClass: 'cover-ml', label: 'MLBB' },
   'Free Fire': { coverClass: 'cover-freefire', label: 'FF' },
   Roblox: { coverClass: 'cover-roblox', label: 'RBX' },
+  'Clash of Clans': { coverClass: '', label: 'COC' },
+  'League of Legends': { coverClass: '', label: 'LOL' },
+  Fortnite: { coverClass: '', label: 'FN' },
+  Minecraft: { coverClass: '', label: 'MC' },
+  'GTA 5': { coverClass: '', label: 'GTA' },
+  'Dota 2': { coverClass: '', label: 'DOTA' },
+  Valorant: { coverClass: 'cover-valorant', label: 'VAL' },
 };
 const listingTypeConfig = {
   account: {

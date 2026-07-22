@@ -5,7 +5,20 @@
   const sellerListingsKey = 'wavehub.sellerListings';
   const cartKey = 'wavehub.cart';
   const favoritesKey = 'wavehub.favorites';
-  const listingGames = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
+  const listingGames = [
+    'Call of Duty',
+    'Mobile Legends',
+    'CS2',
+    'PUBG Mobile',
+    'Roblox',
+    'Clash of Clans',
+    'League of Legends',
+    'Fortnite',
+    'Minecraft',
+    'GTA 5',
+    'Dota 2',
+    'Valorant',
+  ];
   const list = document.getElementById('ordersList');
   const empty = document.getElementById('ordersEmpty');
   const dashboard = document.getElementById('ordersDashboard');

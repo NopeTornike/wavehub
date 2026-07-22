@@ -149,6 +149,66 @@ button {
   gap: 5px;
 }
 
+.marketplace-game-menu {
+  position: relative;
+  min-width: 0;
+}
+
+.marketplace-game-menu > .side-link {
+  width: 100%;
+}
+
+.marketplace-menu-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 160ms ease;
+}
+
+.marketplace-game-menu.open .marketplace-menu-arrow,
+.marketplace-game-menu:hover .marketplace-menu-arrow {
+  transform: rotate(225deg) translate(-2px, -1px);
+}
+
+.marketplace-game-dropdown {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 208px;
+  max-height: min(370px, calc(100vh - 170px));
+  display: none;
+  overflow-y: auto;
+  padding: 7px;
+  border: 1px solid rgba(255, 47, 143, 0.3);
+  border-radius: 10px;
+  background: rgba(5, 8, 19, 0.98);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.48);
+}
+
+.marketplace-game-menu:hover .marketplace-game-dropdown,
+.marketplace-game-menu:focus-within .marketplace-game-dropdown,
+.marketplace-game-menu.open .marketplace-game-dropdown {
+  display: grid;
+  gap: 3px;
+}
+
+.marketplace-game-dropdown a {
+  padding: 9px 10px;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.marketplace-game-dropdown a:hover,
+.marketplace-game-dropdown a:focus-visible {
+  color: white;
+  background: linear-gradient(90deg, rgba(255, 47, 143, 0.22), rgba(143, 69, 255, 0.13));
+}
+
 .side-link {
   min-height: 38px;
   display: grid;

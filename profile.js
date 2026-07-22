@@ -112,7 +112,20 @@ const purchasesKey = 'wavehub.purchases';
 const sellerReviewsKey = 'wavehub.sellerReviews';
 const cartKey = 'wavehub.cart';
 const favoritesKey = 'wavehub.favorites';
-const listingGames = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
+const listingGames = [
+  'Call of Duty',
+  'Mobile Legends',
+  'CS2',
+  'PUBG Mobile',
+  'Roblox',
+  'Clash of Clans',
+  'League of Legends',
+  'Fortnite',
+  'Minecraft',
+  'GTA 5',
+  'Dota 2',
+  'Valorant',
+];
 const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
 const sessionTimeOptions = ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '18:30', '19:00', '19:30', '20:00', '21:00'];
 const publicProfileGameImages = {
