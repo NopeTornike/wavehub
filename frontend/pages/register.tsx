@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { api, ApiError } from '../lib/api'
 
@@ -146,117 +147,119 @@ export default function Register() {
   }
 
   return (
-    <div className="container">
-      <div className="card">
-        <h1>WaveHub - რეგისტრაცია</h1>
-        <p className="note">პლატფორმა თამაშებისა და ექაუნთების ყიდვა/გაყიდვისთვის</p>
-        <form className="register-form" onSubmit={submit}>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
+    <main className="auth-page-shell">
+      <section className="auth-card" aria-labelledby="authTitle">
+        <div className="auth-card-top">
+          <Link className="auth-brand" href="/" aria-label="Back to WaveHub">
+            <img src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" />
+          </Link>
+        </div>
+
+        <div className="auth-card-head">
+          <p className="section-kicker">WaveHub account</p>
+          <h1 id="authTitle">Log in or create account</h1>
+        </div>
+
+        <div className="auth-tabs" role="tablist" aria-label="Authentication">
+          <Link className="auth-tab" href="/login" role="tab" aria-selected="false">
+            Log in
+          </Link>
+          <button className="auth-tab active" type="button" role="tab" aria-selected="true">
+            Register
+          </button>
+        </div>
+
+        <form className="auth-form" onSubmit={submit}>
+          <label>
+            <span>Username</span>
             <input
-              id="username"
               autoComplete="username"
-              className="input"
               name="username"
-              placeholder="შეიყვანეთ უნიკალური username"
+              placeholder="choose_username"
               required
               value={form.username}
               onChange={onChange}
             />
-            {usernameError && <div className="status-text status-error">{usernameError}</div>}
-            {form.username && isValidUsername(form.username) && checkingUsername && (
-              <div className="status-text status-info">შემოწმება...</div>
-            )}
-            {form.username && isValidUsername(form.username) && usernameAvailable === true && (
-              <div className="status-text status-success">Username თავისუფალია</div>
-            )}
+          </label>
+          {usernameError && (
+            <p className="auth-status" style={{ color: 'var(--red)' }}>
+              {usernameError}
+            </p>
+          )}
+          {form.username && isValidUsername(form.username) && checkingUsername && <p className="auth-status">შემოწმება...</p>}
+          {form.username && isValidUsername(form.username) && usernameAvailable === true && (
+            <p className="auth-status" style={{ color: 'var(--green)' }}>
+              Username თავისუფალია
+            </p>
+          )}
+          {/* auth.html's own register form has no email field — added here because email
+              verification is a non-negotiable rule (root CLAUDE.md §"Non-negotiable rules") the
+              backend actually enforces; the static prototype never had a real backend behind it. */}
+          <label>
+            <span>Email</span>
+            <input autoComplete="email" name="email" type="email" placeholder="you@example.com" required value={form.email} onChange={onChange} />
+          </label>
+          <div className="auth-split">
+            <label>
+              <span>First name</span>
+              <input autoComplete="given-name" name="firstName" placeholder="First name" required value={form.firstName} onChange={onChange} />
+            </label>
+            <label>
+              <span>Last name</span>
+              <input autoComplete="family-name" name="lastName" placeholder="Last name" required value={form.lastName} onChange={onChange} />
+            </label>
           </div>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
+          <label>
+            <span>Password</span>
             <input
-              id="email"
-              autoComplete="email"
-              className="input"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-              value={form.email}
-              onChange={onChange}
-            />
-          </div>
-          <div className="row-two">
-            <div className="form-group">
-              <label htmlFor="firstName">სახელი</label>
-              <input
-                id="firstName"
-                autoComplete="given-name"
-                className="input"
-                name="firstName"
-                placeholder="სახელი"
-                required
-                value={form.firstName}
-                onChange={onChange}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="lastName">გვარი</label>
-              <input
-                id="lastName"
-                autoComplete="family-name"
-                className="input"
-                name="lastName"
-                placeholder="გვარი"
-                required
-                value={form.lastName}
-                onChange={onChange}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">პაროლი</label>
-            <input
-              id="password"
               autoComplete="new-password"
-              className="input"
               name="password"
               type="password"
               minLength={PASSWORD_MIN_LENGTH}
-              placeholder="პაროლი"
+              placeholder="At least 8 characters"
               required
               value={form.password}
               onChange={onChange}
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="confirmPassword">პაროლის გამეორება</label>
+          </label>
+          <label>
+            <span>Confirm password</span>
             <input
-              id="confirmPassword"
               autoComplete="new-password"
-              className="input"
               name="confirmPassword"
               type="password"
               minLength={PASSWORD_MIN_LENGTH}
-              placeholder="პაროლის გამეორება"
+              placeholder="Repeat password"
               required
               value={form.confirmPassword}
               onChange={onChange}
             />
-          </div>
+          </label>
 
-          {error && <div className="status-text status-error">{error}</div>}
-          {success && <div className="status-text status-success">{success}</div>}
+          {error && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
+              {error}
+            </p>
+          )}
+          {success && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--green)' }}>
+              {success}
+            </p>
+          )}
 
           <button
-            className="glow-on-hover button"
+            className="auth-submit-button"
             type="submit"
             disabled={Boolean(usernameError) || checkingUsername || !form.username || submitting}
           >
-            Sign up
+            Create account
           </button>
-          <div className="note">მომავალში Gmail-ით რეგისტრაცია დაემატება</div>
         </form>
-      </div>
-    </div>
+
+        <Link className="auth-back-link" href="/marketplace">
+          Back to marketplace
+        </Link>
+      </section>
+    </main>
   )
 }

@@ -13,19 +13,20 @@ function safeNextPath(next: unknown): string {
   return '/'
 }
 
+// Matches auth.html's structure — that page combines login+register as two tabs in one form
+// shell; here it's two real Next.js routes (/login, /register) instead, with the tab buttons just
+// linking between them so it looks and feels the same.
 export default function Login() {
   const router = useRouter()
   const { refresh } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
-    setSuccess('')
 
     const trimmedUsername = username.trim().toLowerCase()
     if (!trimmedUsername || !password) {
@@ -35,9 +36,8 @@ export default function Login() {
 
     setSubmitting(true)
     try {
-      const result = await api.login({ username: trimmedUsername, password })
+      await api.login({ username: trimmedUsername, password })
       setPassword('')
-      setSuccess(`შესვლა წარმატებით დასრულდა: ${result.user.firstName} ${result.user.lastName}`)
       await refresh()
       router.push(safeNextPath(router.query.next))
     } catch (err) {
@@ -48,53 +48,69 @@ export default function Login() {
   }
 
   return (
-    <div className="container">
-      <div className="card">
-        <h1>WaveHub - შესვლა</h1>
-        <p className="note">შედით username-ით და პაროლით</p>
-        <form className="register-form" onSubmit={submit}>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
+    <main className="auth-page-shell">
+      <section className="auth-card" aria-labelledby="authTitle">
+        <div className="auth-card-top">
+          <Link className="auth-brand" href="/" aria-label="Back to WaveHub">
+            <img src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" />
+          </Link>
+        </div>
+
+        <div className="auth-card-head">
+          <p className="section-kicker">WaveHub account</p>
+          <h1 id="authTitle">Log in or create account</h1>
+        </div>
+
+        <div className="auth-tabs" role="tablist" aria-label="Authentication">
+          <button className="auth-tab active" type="button" role="tab" aria-selected="true">
+            Log in
+          </button>
+          <Link className="auth-tab" href="/register" role="tab" aria-selected="false">
+            Register
+          </Link>
+        </div>
+
+        <form className="auth-form" onSubmit={submit}>
+          <label>
+            <span>Username</span>
             <input
-              id="username"
               autoComplete="username"
-              className="input"
               name="username"
-              placeholder="username"
+              placeholder="your_username"
               required
               value={username}
               onChange={(event) => setUsername(event.target.value.toLowerCase())}
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">პაროლი</label>
+          </label>
+          <label>
+            <span>Password</span>
             <input
-              id="password"
               autoComplete="current-password"
-              className="input"
               name="password"
-              placeholder="პაროლი"
+              placeholder="Password"
               required
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
-          </div>
-
-          {error && <div className="status-text status-error">{error}</div>}
-          {success && <div className="status-text status-success">{success}</div>}
-
-          <button className="glow-on-hover button" type="submit" disabled={submitting}>
-            შესვლა
+          </label>
+          {error && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
+              {error}
+            </p>
+          )}
+          <button className="auth-submit-button" type="submit" disabled={submitting}>
+            Log in
           </button>
-          <Link className="note" href="/register">
-            რეგისტრაცია
-          </Link>
-          <Link className="note" href="/forgot-password">
-            დაგავიწყდათ პაროლი?
-          </Link>
         </form>
-      </div>
-    </div>
+
+        <Link className="auth-back-link" href="/forgot-password">
+          დაგავიწყდათ პაროლი?
+        </Link>
+        <Link className="auth-back-link" href="/marketplace">
+          Back to marketplace
+        </Link>
+      </section>
+    </main>
   )
 }

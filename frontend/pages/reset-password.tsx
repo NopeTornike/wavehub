@@ -55,21 +55,29 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="container">
-      <div className="card">
-        <h1>ახალი პაროლის დაყენება</h1>
+    <main className="auth-page-shell">
+      <section className="auth-card" aria-labelledby="authTitle">
+        <div className="auth-card-top">
+          <Link className="auth-brand" href="/" aria-label="Back to WaveHub">
+            <img src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" />
+          </Link>
+        </div>
+        <div className="auth-card-head">
+          <p className="section-kicker">WaveHub account</p>
+          <h1 id="authTitle">ახალი პაროლის დაყენება</h1>
+        </div>
+
         {!token && (
-          <p className="status-text status-error">
+          <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
             ბმული არასწორია. <Link href="/forgot-password">მოითხოვეთ ახალი</Link>.
           </p>
         )}
-        <form className="register-form" onSubmit={submit}>
-          <div className="form-group">
-            <label htmlFor="newPassword">ახალი პაროლი</label>
+
+        <form className="auth-form" onSubmit={submit}>
+          <label>
+            <span>ახალი პაროლი</span>
             <input
-              id="newPassword"
               autoComplete="new-password"
-              className="input"
               name="newPassword"
               type="password"
               minLength={PASSWORD_MIN_LENGTH}
@@ -78,13 +86,11 @@ export default function ResetPassword() {
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="confirmPassword">გაიმეორეთ პაროლი</label>
+          </label>
+          <label>
+            <span>გაიმეორეთ პაროლი</span>
             <input
-              id="confirmPassword"
               autoComplete="new-password"
-              className="input"
               name="confirmPassword"
               type="password"
               minLength={PASSWORD_MIN_LENGTH}
@@ -93,19 +99,27 @@ export default function ResetPassword() {
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
             />
-          </div>
+          </label>
 
-          {error && <div className="status-text status-error">{error}</div>}
-          {success && <div className="status-text status-success">{success}</div>}
+          {error && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
+              {error}
+            </p>
+          )}
+          {success && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--green)' }}>
+              {success}
+            </p>
+          )}
 
-          <button className="glow-on-hover button" type="submit" disabled={submitting || !token}>
+          <button className="auth-submit-button" type="submit" disabled={submitting || !token}>
             პაროლის შეცვლა
           </button>
-          <Link className="note" href="/login">
-            შესვლაზე დაბრუნება
-          </Link>
         </form>
-      </div>
-    </div>
+        <Link className="auth-back-link" href="/login">
+          შესვლაზე დაბრუნება
+        </Link>
+      </section>
+    </main>
   )
 }

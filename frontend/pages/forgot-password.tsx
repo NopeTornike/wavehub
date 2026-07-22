@@ -32,17 +32,23 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="container">
-      <div className="card">
-        <h1>პაროლის აღდგენა</h1>
-        <p className="note">შეიყვანეთ თქვენი email და გამოგზავნით აღდგენის ბმულს</p>
-        <form className="register-form" onSubmit={submit}>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
+    <main className="auth-page-shell">
+      <section className="auth-card" aria-labelledby="authTitle">
+        <div className="auth-card-top">
+          <Link className="auth-brand" href="/" aria-label="Back to WaveHub">
+            <img src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" />
+          </Link>
+        </div>
+        <div className="auth-card-head">
+          <p className="section-kicker">WaveHub account</p>
+          <h1 id="authTitle">პაროლის აღდგენა</h1>
+        </div>
+
+        <form className="auth-form" onSubmit={submit}>
+          <label>
+            <span>Email</span>
             <input
-              id="email"
               autoComplete="email"
-              className="input"
               name="email"
               type="email"
               placeholder="you@example.com"
@@ -50,19 +56,27 @@ export default function ForgotPassword() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
-          </div>
+          </label>
 
-          {error && <div className="status-text status-error">{error}</div>}
-          {success && <div className="status-text status-success">{success}</div>}
+          {error && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
+              {error}
+            </p>
+          )}
+          {success && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--green)' }}>
+              {success}
+            </p>
+          )}
 
-          <button className="glow-on-hover button" type="submit" disabled={submitting}>
+          <button className="auth-submit-button" type="submit" disabled={submitting}>
             გამოგზავნა
           </button>
-          <Link className="note" href="/login">
-            შესვლაზე დაბრუნება
-          </Link>
         </form>
-      </div>
-    </div>
+        <Link className="auth-back-link" href="/login">
+          შესვლაზე დაბრუნება
+        </Link>
+      </section>
+    </main>
   )
 }

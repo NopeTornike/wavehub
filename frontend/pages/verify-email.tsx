@@ -41,40 +41,60 @@ export default function VerifyEmail() {
   }
 
   return (
-    <div className="container">
-      <div className="card">
-        <h1>Email-ის დადასტურება</h1>
+    <main className="auth-page-shell">
+      <section className="auth-card" aria-labelledby="authTitle">
+        <div className="auth-card-top">
+          <Link className="auth-brand" href="/" aria-label="Back to WaveHub">
+            <img src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" />
+          </Link>
+        </div>
+        <div className="auth-card-head">
+          <p className="section-kicker">WaveHub account</p>
+          <h1 id="authTitle">Email-ის დადასტურება</h1>
+        </div>
 
         {(!router.isReady || status === 'pending' || status === 'verifying') && (
-          <p className="status-text status-info">მოწმდება...</p>
+          <p className="auth-status" aria-live="polite">
+            მოწმდება...
+          </p>
         )}
 
         {router.isReady && !token && (
-          <p className="status-text status-error">ბმული არასწორია — token ვერ მოიძებნა.</p>
+          <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
+            ბმული არასწორია — token ვერ მოიძებნა.
+          </p>
         )}
 
         {status === 'success' && (
-          <div>
-            <p className="status-text status-success">Email წარმატებით დადასტურდა!</p>
-            <Link className="note" href="/login">
+          <>
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--green)' }}>
+              Email წარმატებით დადასტურდა!
+            </p>
+            <Link className="auth-back-link" href="/login">
               შესვლა
             </Link>
-          </div>
+          </>
         )}
 
         {status === 'error' && (
-          <div>
-            <p className="status-text status-error">{error}</p>
-            <button className="glow-on-hover button" type="button" onClick={resend}>
+          <>
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
+              {error}
+            </p>
+            <button className="auth-submit-button" type="button" onClick={resend}>
               წერილის თავიდან გამოგზავნა
             </button>
-            {resendMessage && <p className="status-text status-info">{resendMessage}</p>}
-            <Link className="note" href="/login">
+            {resendMessage && (
+              <p className="auth-status" aria-live="polite">
+                {resendMessage}
+              </p>
+            )}
+            <Link className="auth-back-link" href="/login">
               შესვლაზე დაბრუნება
             </Link>
-          </div>
+          </>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   )
 }
