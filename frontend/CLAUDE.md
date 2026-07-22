@@ -90,6 +90,23 @@ task, it's new seller-dashboard feature work; (b) a public seller-profile viewer
 backend endpoint that doesn't exist yet (only `/auth/me` and admin-only user routes do). Tracked
 as a separate task (see the build plan) rather than silently dropped or faked with placeholder
 data.
+`support/index.tsx` and `support/[id].tsx` (support ticketing) have no static-prototype reference
+at all — support ticketing was net-new backend+frontend work this project added, never part of
+Tornike's site — so they reuse the same `.detail-page`/`.detail-title-block`/`.detail-section`
+design language already established for coaching/[id].tsx and the new CMS page renderer, for
+visual consistency with the rest of the ported app rather than staying on the old `.page`/
+`.page-inner` wrapper. The `.chat-panel`/`.chat-message` classes inside stay as-is (custom-built
+earlier for order chat, no prototype reference for a chat UI either — `messages.html` was
+explicitly scoped out, see below).
+**`messages.html`/`cart.html` — deliberate scope decision, not a pending item**: neither maps onto
+anything the real backend supports. `messages.html` is a general-purpose direct-messaging inbox;
+the real app only has order-scoped chat (`backend/src/chat/`) and ticket threads
+(`backend/src/support/`) — there is no concept of a standalone conversation with another user
+outside those two contexts. `cart.html` is a multi-item shopping cart; the real checkout flow
+(`backend/src/orders/`) is single-listing-per-purchase by design (matches the WaveCoin/escrow
+model — see the build plan's Phase 5 entry), not a batched multi-item checkout. Porting either
+would mean building real backend features first, not restyling existing ones — out of scope for
+the UI pivot. Revisit only if direct messaging or bulk purchase becomes a real product decision.
 
 ## Key files
 - `lib/auth.tsx` — `AuthProvider` + `useAuth()`. The single place that calls `api.me()` on load;

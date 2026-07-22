@@ -81,23 +81,26 @@ export default function SupportTicketDetail() {
 
   return (
     <Layout>
-      <div className="page">
-        <div className="page-inner">
-          {loading ? (
-            <div className="empty-state">იტვირთება…</div>
-          ) : error && !ticket ? (
-            <div className="status-text status-error">{error}</div>
-          ) : ticket ? (
-            <>
-              <h1 className="page-title">{ticket.subject}</h1>
-              <p className="page-subtitle">
+      <div className="detail-page">
+        {loading ? (
+          <div className="marketplace-empty">იტვირთება…</div>
+        ) : error && !ticket ? (
+          <div className="marketplace-empty">{error}</div>
+        ) : ticket ? (
+          <>
+            <div className="detail-title-block">
+              <p className="section-kicker">დახმარების ბილეთი</p>
+              <h1>{ticket.subject}</h1>
+              <p className="detail-lead">
                 {CATEGORY_LABELS[ticket.category]} ·{' '}
                 <span className={`order-status order-status-${ticket.status}`}>{STATUS_LABELS[ticket.status]}</span>
               </p>
+            </div>
 
-              {error && <div className="status-text status-error">{error}</div>}
+            {error && <div className="status-text status-error">{error}</div>}
 
-              <div className="chat-panel" style={{ marginTop: 16 }}>
+            <section className="detail-section detail-reviews-card">
+              <div className="chat-panel">
                 <div className="chat-messages">
                   {ticket.messages.map((message) => (
                     <div
@@ -122,9 +125,9 @@ export default function SupportTicketDetail() {
                   </button>
                 </form>
               </div>
-            </>
-          ) : null}
-        </div>
+            </section>
+          </>
+        ) : null}
       </div>
     </Layout>
   )

@@ -81,43 +81,47 @@ export default function SupportIndex() {
 
   return (
     <Layout>
-      <div className="page">
-        <div className="page-inner">
-          <h1 className="page-title">დახმარება</h1>
-          <p className="page-subtitle">გახსენით ბილეთი ან ნახეთ თქვენი წინა მიმოწერა</p>
+      <div className="detail-page">
+        <div className="detail-title-block">
+          <p className="section-kicker">დახმარების ცენტრი</p>
+          <h1>დახმარება</h1>
+          <p className="detail-lead">გახსენით ბილეთი ან ნახეთ თქვენი წინა მიმოწერა</p>
+        </div>
 
-          <form className="card" style={{ padding: 20, marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 12 }} onSubmit={createTicket}>
-            <h2 style={{ fontSize: '1rem', margin: 0 }}>ახალი ბილეთი</h2>
-            {createError && <div className="status-text status-error">{createError}</div>}
-            <div className="form-group">
-              <label htmlFor="subject">თემა</label>
-              <input id="subject" className="input" value={subject} onChange={(e) => setSubject(e.target.value)} required minLength={3} />
-            </div>
-            <div className="form-group">
-              <label htmlFor="category">კატეგორია</label>
-              <select id="category" className="input" value={category} onChange={(e) => setCategory(e.target.value as TicketCategory)}>
-                {Object.values(TicketCategory).map((c) => (
-                  <option key={c} value={c}>
-                    {CATEGORY_LABELS[c]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="description">აღწერა</label>
-              <textarea id="description" className="input" value={description} onChange={(e) => setDescription(e.target.value)} required minLength={1} />
-            </div>
-            <button type="submit" className="button glow-on-hover" disabled={creating} style={{ alignSelf: 'flex-start' }}>
-              გაგზავნა
-            </button>
-          </form>
+        <form className="detail-section detail-summary-card" onSubmit={createTicket} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h2>ახალი ბილეთი</h2>
+          {createError && <div className="status-text status-error">{createError}</div>}
+          <div className="form-group">
+            <label htmlFor="subject">თემა</label>
+            <input id="subject" className="input" value={subject} onChange={(e) => setSubject(e.target.value)} required minLength={3} />
+          </div>
+          <div className="form-group">
+            <label htmlFor="category">კატეგორია</label>
+            <select id="category" className="input" value={category} onChange={(e) => setCategory(e.target.value as TicketCategory)}>
+              {Object.values(TicketCategory).map((c) => (
+                <option key={c} value={c}>
+                  {CATEGORY_LABELS[c]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="description">აღწერა</label>
+            <textarea id="description" className="input" value={description} onChange={(e) => setDescription(e.target.value)} required minLength={1} />
+          </div>
+          <button type="submit" className="button glow-on-hover" disabled={creating} style={{ alignSelf: 'flex-start' }}>
+            გაგზავნა
+          </button>
+        </form>
 
-          {error && <div className="status-text status-error">{error}</div>}
+        {error && <div className="status-text status-error">{error}</div>}
 
+        <section className="detail-section detail-summary-card">
+          <h2>ჩემი ბილეთები</h2>
           {loading ? (
-            <div className="empty-state">იტვირთება…</div>
+            <div className="marketplace-empty">იტვირთება…</div>
           ) : tickets.length === 0 ? (
-            <div className="empty-state">ბილეთები ჯერ არ არის.</div>
+            <div className="marketplace-empty">ბილეთები ჯერ არ არის.</div>
           ) : (
             <div className="order-list">
               {tickets.map((ticket) => (
@@ -131,7 +135,7 @@ export default function SupportIndex() {
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </Layout>
   )
