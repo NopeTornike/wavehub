@@ -40,6 +40,7 @@ const detailDescription = document.getElementById('detailDescription');
 const detailSeller = document.getElementById('detailSeller');
 const detailGame = document.getElementById('detailGame');
 const detailDelivery = document.getElementById('detailDelivery');
+const detailStatusLabel = document.getElementById('detailStatusLabel');
 const detailStatusText = document.getElementById('detailStatusText');
 const detailLevel = document.getElementById('detailLevel');
 const detailViews = document.getElementById('detailViews');
@@ -975,6 +976,7 @@ function renderDetail({ countView = true } = {}) {
   if (detailHeroDelivery) detailHeroDelivery.textContent = offer.delivery;
   if (detailSideDelivery) detailSideDelivery.textContent = offer.delivery;
   if (detailPrice) detailPrice.textContent = offer.price;
+  if (detailStatusLabel) detailStatusLabel.textContent = offer.productType === 'account' ? 'Account Type' : 'Status';
   renderOfferMetrics(offer);
   if (detailBasicStatus) detailBasicStatus.textContent = offer.accountStatusLabel || offer.tag;
   if (detailBasicGame) detailBasicGame.textContent = offer.game;

@@ -55,6 +55,8 @@ const profileFirstNameInput = document.getElementById('profileFirstNameInput');
 const profileLastNameInput = document.getElementById('profileLastNameInput');
 const profileBioInput = document.getElementById('profileBioInput');
 const profileBioCount = document.getElementById('profileBioCount');
+const profileMainGamesField = document.getElementById('profileMainGamesField');
+const profileMainGamesHelp = document.getElementById('profileMainGamesHelp');
 const profilePublicLink = document.getElementById('profilePublicLink');
 const profileLogoutButton = document.getElementById('profileLogoutButton');
 const profileStatus = document.getElementById('profileStatus');
@@ -160,7 +162,10 @@ function getUserByUsername(username) {
   }
 
   const users = readJson(localUsersKey, []);
-  return Array.isArray(users) ? users.find((user) => user.username === username) || null : null;
+  const normalizedUsername = String(username).trim().toLowerCase();
+  return Array.isArray(users)
+    ? users.find((user) => String(user.username || '').trim().toLowerCase() === normalizedUsername) || null
+    : null;
 }
 
 function getInitials(user) {
@@ -921,7 +926,9 @@ function renderPublicProfileGame(game, nameElement, metaElement, imageElement, f
   if (nameElement) nameElement.textContent = game?.game || fallbackTitle;
   if (metaElement) {
     metaElement.textContent = game
-      ? `${formatCount(game.listings)} listing${game.listings === 1 ? '' : 's'} · ${formatCount(game.orders)} order${game.orders === 1 ? '' : 's'}`
+      ? game.selected && !game.listings && !game.orders
+        ? 'Selected in profile settings'
+        : `${formatCount(game.listings)} listing${game.listings === 1 ? '' : 's'} · ${formatCount(game.orders)} order${game.orders === 1 ? '' : 's'}`
       : fallbackMeta;
   }
   if (imageElement) {
@@ -932,6 +939,27 @@ function renderPublicProfileGame(game, nameElement, metaElement, imageElement, f
     imageElement.classList.toggle('is-empty', !image);
     imageElement.textContent = image ? '' : 'WH';
   }
+}
+
+function getDisplayedProfileGames(user, rankedGames) {
+  const selectedGames = Array.isArray(user?.mainGames)
+    ? user.mainGames.filter((game) => listingGames.includes(game)).slice(0, 2)
+    : [];
+
+  if (!selectedGames.length) {
+    return rankedGames.slice(0, 2);
+  }
+
+  return selectedGames.map((gameName) => ({
+    ...(rankedGames.find((game) => game.game === gameName) || {
+      game: gameName,
+      count: 0,
+      listings: 0,
+      orders: 0,
+      imageData: '',
+    }),
+    selected: true,
+  }));
 }
 
 function renderPublicProfileBadges(user, listings, soldItems, reviews, averageRating) {
@@ -1044,7 +1072,7 @@ function renderPublicProfile(user) {
     if (publicProfileHandle) publicProfileHandle.textContent = '@unknown';
     if (publicProfileJoined) publicProfileJoined.textContent = 'This public profile is unavailable.';
     if (publicProfileBio) {
-      publicProfileBio.textContent = 'This user could not be found.';
+      publicProfileBio.textContent = 'BIO: This user could not be found.';
     }
     if (publicProfileRole) publicProfileRole.textContent = 'Unavailable profile';
     if (publicProfileMessage) publicProfileMessage.hidden = true;
@@ -1093,7 +1121,7 @@ function renderPublicProfile(user) {
   if (publicProfileJoined) publicProfileJoined.textContent = `Joined ${joinedDate}`;
   if (publicProfileBio) {
     const bio = String(user.bio || '').trim();
-    publicProfileBio.textContent = bio || 'This member has not added a bio yet.';
+    publicProfileBio.textContent = `BIO: ${bio || 'This member has not added a bio yet.'}`;
   }
   if (publicProfileMessage) {
     const currentUsername = getCurrentAccount().user?.username || '';
@@ -1102,6 +1130,7 @@ function renderPublicProfile(user) {
   }
   const role = listings.length || soldItems.length ? 'Marketplace seller' : 'WaveHub member';
   const rankedGames = getPublicProfileGames(listings, soldItems);
+  const displayedGames = getDisplayedProfileGames(user, rankedGames);
   const activeGames = rankedGames.map((game) => game.game);
   const rank = getPublicProfileRank(user.username);
   if (publicProfileRole) publicProfileRole.textContent = role;
@@ -1133,20 +1162,20 @@ function renderPublicProfile(user) {
     publicProfileRankMeta.textContent = rank ? `${formatCount(rank.rank)} of ${formatCount(rank.total)} ranked members` : 'Not ranked';
   }
   renderPublicProfileGame(
-    rankedGames[0],
+    displayedGames[0],
     publicProfileMainGame,
     publicProfileMainGameMeta,
     publicProfileMainGameImage,
     'No game listed',
-    'Add a marketplace listing to show a game.',
+    'Choose games in profile settings.',
   );
   renderPublicProfileGame(
-    rankedGames[1],
+    displayedGames[1],
     publicProfileSecondaryGame,
     publicProfileSecondaryGameMeta,
     publicProfileSecondaryGameImage,
     'No second game',
-    'No additional marketplace activity.',
+    'Choose up to two games in settings.',
   );
   renderPublicProfileBadges(user, listings, soldItems, reviews, averageRating);
   if (publicProfilePerformanceReviews) publicProfilePerformanceReviews.textContent = formatCount(reviews.length);
@@ -1170,6 +1199,11 @@ function renderProfileForm(user) {
   if (profileLastNameInput) profileLastNameInput.value = user.lastName || '';
   if (profileBioInput) profileBioInput.value = user.bio || '';
   if (profileBioCount) profileBioCount.textContent = String((user.bio || '').length);
+  const selectedGames = Array.isArray(user.mainGames) ? user.mainGames.slice(0, 2) : [];
+  profileMainGamesField?.querySelectorAll('input[name="mainGames"]').forEach((input) => {
+    input.checked = selectedGames.includes(input.value);
+  });
+  updateMainGamesSelectionState();
   if (profilePublicLink) profilePublicLink.href = getPublicProfileUrl(user.username);
   applyAvatar(profilePhotoPreview, user);
 }
@@ -1317,6 +1351,7 @@ function saveUserProfile(nextUser) {
       lastName: nextUser.lastName,
       photoData: nextUser.photoData || '',
       bio: nextUser.bio || '',
+      mainGames: Array.isArray(nextUser.mainGames) ? nextUser.mainGames.slice(0, 2) : [],
     },
   });
 }
@@ -1639,6 +1674,19 @@ profileBioInput?.addEventListener('input', () => {
   }
 });
 
+function updateMainGamesSelectionState() {
+  const inputs = Array.from(profileMainGamesField?.querySelectorAll('input[name="mainGames"]') || []);
+  const selected = inputs.filter((input) => input.checked);
+  inputs.forEach((input) => {
+    input.disabled = selected.length >= 2 && !input.checked;
+  });
+  if (profileMainGamesHelp) {
+    profileMainGamesHelp.textContent = `${selected.length} of 2 selected`;
+  }
+}
+
+profileMainGamesField?.addEventListener('change', updateMainGamesSelectionState);
+
 profileForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
 
@@ -1666,6 +1714,9 @@ profileForm?.addEventListener('submit', async (event) => {
     firstName: profileFirstNameInput?.value.trim() || '',
     lastName: profileLastNameInput?.value.trim() || '',
     bio: profileBioInput?.value.trim() || '',
+    mainGames: Array.from(profileMainGamesField?.querySelectorAll('input[name="mainGames"]:checked') || [])
+      .map((input) => input.value)
+      .slice(0, 2),
     photoData,
   };
 
