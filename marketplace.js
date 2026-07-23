@@ -774,16 +774,14 @@ function createProductShowcaseCard(listing) {
   const coverInfo = document.createElement('div');
   coverInfo.className = 'product-showcase-cover-info';
 
-  const rankRow = document.createElement('div');
-  rankRow.className = 'product-showcase-rank';
-
-  rankRow.appendChild(saveButton);
-
   const stats = document.createElement('div');
   stats.className = 'product-showcase-stats';
 
   getProductStats(listing, config).forEach((item) => {
     const stat = document.createElement('span');
+    if (item.label === 'Views') {
+      stat.classList.add('is-views-stat');
+    }
     const statTop = document.createElement('strong');
     const statIcon = document.createElement('i');
     const statLabel = document.createElement('small');
@@ -795,7 +793,7 @@ function createProductShowcaseCard(listing) {
     stats.appendChild(stat);
   });
 
-  coverInfo.append(rankRow, stats);
+  coverInfo.appendChild(stats);
   cover.append(badges, coverInfo);
 
   const body = document.createElement('div');
@@ -823,14 +821,7 @@ function createProductShowcaseCard(listing) {
   const sellerTitle = document.createElement('strong');
   sellerTitle.textContent = sellerName;
 
-  const sellerLevel = document.createElement('small');
-  const cardLevel = getCardLevel(listing);
-  sellerLevel.textContent = `Lv. ${cardLevel ? formatCount(cardLevel) : '-'}`;
-
-  const sellerRating = document.createElement('small');
-  sellerRating.textContent = `${formatCount(favoriteCount)} saved`;
-
-  sellerCopy.append(sellerTitle, sellerLevel, sellerRating);
+  sellerCopy.appendChild(sellerTitle);
   seller.append(sellerAvatar, sellerCopy);
 
   body.appendChild(seller);
@@ -865,6 +856,10 @@ function createProductShowcaseCard(listing) {
     renderCart();
   });
 
+  const iconActions = document.createElement('div');
+  iconActions.className = 'product-showcase-icon-actions';
+  iconActions.append(saveButton, cartButton);
+
   const detailButton = document.createElement('button');
   detailButton.className = 'product-showcase-details';
   detailButton.type = 'button';
@@ -875,7 +870,7 @@ function createProductShowcaseCard(listing) {
     }
   });
 
-  footer.append(price, social, cartButton, detailButton);
+  footer.append(price, social, iconActions, detailButton);
   card.append(cover, body, footer);
 
   return card;

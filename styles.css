@@ -3439,6 +3439,12 @@ button {
   gap: 3px;
 }
 
+.product-showcase-stats .is-views-stat {
+  justify-self: end;
+  justify-items: end;
+  text-align: right;
+}
+
 .product-showcase-stats strong {
   min-width: 0;
   display: inline-flex;
@@ -3566,6 +3572,21 @@ a.product-showcase-seller:focus-visible strong,
   padding: 0;
   line-height: 0;
   background: rgba(255, 47, 143, 0.12);
+}
+
+.product-showcase-icon-actions {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.product-showcase-icon-actions .product-showcase-save.save-button {
+  width: 34px;
+  height: 34px;
+  margin: 0;
 }
 
 .product-showcase-cart .cart-icon-image {
