@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <filter id="pinkGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke="#ff0878" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#pinkGlow)">
+    <rect x="8" y="11" width="48" height="46" rx="8"/>
+    <path d="M8 24h48M21 7v10M43 7v10M20 41l8 7 17-18"/>
+  </g>
+</svg>

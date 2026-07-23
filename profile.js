@@ -283,6 +283,11 @@ function getSellerSoldItems(username, listings = getSellerListings(), user = get
     ));
 }
 
+function isCompletedOrder(item) {
+  const status = String(item?.status || '').trim().toLowerCase();
+  return ['completed', 'complete', 'delivered', 'fulfilled'].includes(status);
+}
+
 function renderOnlineCount() {
   if (!onlineCount) {
     return;
@@ -1067,6 +1072,7 @@ function renderPublicReviews(reviews) {
 function renderPublicProfile(user) {
   const listings = getSellerListings().filter((listing) => listing.sellerUsername === user?.username);
   const soldItems = getSellerSoldItems(user?.username, listings, user);
+  const completedSoldItems = soldItems.filter(isCompletedOrder);
   const reviews = getSellerReviews(user?.username);
   const averageRating = getAverageRating(reviews);
   const joinedDate = formatProfileDate(user?.createdAt);
@@ -1156,7 +1162,7 @@ function renderPublicProfile(user) {
   }
   if (publicProfileRegistered) publicProfileRegistered.textContent = formatProfileMonth(user.createdAt);
   if (publicProfileListed) publicProfileListed.textContent = formatCount(listings.length);
-  if (publicProfileSold) publicProfileSold.textContent = formatCount(soldItems.length);
+  if (publicProfileSold) publicProfileSold.textContent = formatCount(completedSoldItems.length);
   if (publicProfileReviewCount) publicProfileReviewCount.textContent = formatCount(reviews.length);
   if (publicProfileRating) publicProfileRating.textContent = averageRating === null ? '-' : formatRating(averageRating);
   if (publicProfileListingCount) publicProfileListingCount.textContent = formatCount(listings.length);
