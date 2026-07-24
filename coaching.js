@@ -15,6 +15,7 @@ const coachPagination = document.querySelector('.coach-pagination');
 const viewToggleButtons = document.querySelectorAll('.coach-view-toggle button');
 const cartKey = 'wavehub.cart';
 const localUsersKey = 'wavehub.users';
+const sellerReviewsKey = 'wavehub.sellerReviews';
 const coachesPerPage = 8;
 
 let activeGame = 'all';
@@ -54,6 +55,7 @@ function getCoachListingsFromSessions() {
     id: session.id || session.listingId,
     sourceListingId: session.listingId || '',
     sourceSessionId: session.id || '',
+    sellerUsername: session.buyerUsername || '',
     title: session.title || '',
     name: session.seller || 'Wave Coach',
     game: session.game || 'Coaching',
@@ -95,10 +97,24 @@ function getCoachListingsFromSessions() {
   });
 }
 
+function applyCoachReviews(coach) {
+  if (!coach.sellerUsername) return coach;
+  const ids = new Set([coach.id, coach.sourceListingId, coach.sourceSessionId].filter(Boolean).map(String));
+  const reviews = readJson(sellerReviewsKey, []);
+  const matching = (Array.isArray(reviews) ? reviews : []).filter((review) => (
+    review.sellerUsername === coach.sellerUsername
+    && (ids.has(String(review.listingId || '')) || review.reviewType === 'coaching')
+  ));
+  const rating = matching.length
+    ? matching.reduce((total, review) => total + (Number(review.rating) || 0), 0) / matching.length
+    : null;
+  return { ...coach, rating, reviews: matching.length };
+}
+
 const coaches = [
   ...(Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : []),
   ...getCoachListingsFromSessions(),
-];
+].map(applyCoachReviews);
 
 function getSelectedValues(name) {
   if (!coachFilters) {

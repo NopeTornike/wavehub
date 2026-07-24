@@ -5,6 +5,7 @@
   const purchasesKey = 'wavehub.purchases';
   const sellerReviewsKey = 'wavehub.sellerReviews';
   const localUsersKey = 'wavehub.users';
+  const sessionKey = 'wavehub.session';
   const wishlistKey = 'wavehub.coachWishlist';
   const params = new URLSearchParams(window.location.search);
   const requestedCoach = params.get('coach') || params.get('id') || '';
@@ -114,6 +115,16 @@
     return (Array.isArray(users) ? users : []).find((user) => (
       String(user?.username || '').trim().toLowerCase() === normalizedUsername
     ));
+  }
+
+  function getCurrentUser() {
+    const sessionUser = readJson(sessionKey, null)?.user;
+    const storedUser = getLocalUser(sessionUser?.username);
+    return sessionUser ? { ...sessionUser, ...storedUser } : null;
+  }
+
+  function getUserDisplayName(user) {
+    return [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.username || 'Verified buyer';
   }
 
   const coaches = [
@@ -813,6 +824,49 @@
       .join('');
   }
 
+  function getCoachPurchase(coach, buyerUsername) {
+    if (!coach?.sellerUsername || !buyerUsername || coach.sellerUsername === buyerUsername) return null;
+    const coachIds = new Set([coach.id, coach.sourceListingId, coach.sourceSessionId].filter(Boolean).map(String));
+    const purchases = readJson(purchasesKey, []);
+    return (Array.isArray(purchases) ? purchases : []).find((purchase) => (
+      purchase.buyerUsername === buyerUsername
+      && (Array.isArray(purchase.items) ? purchase.items : []).some((item) => (
+        (item.listingId && coachIds.has(String(item.listingId)))
+        || (item.productType === 'Coaching' && item.sellerUsername === coach.sellerUsername)
+      ))
+    )) || null;
+  }
+
+  function getExistingCoachReview(coach, buyerUsername) {
+    const reviews = readJson(sellerReviewsKey, []);
+    const coachIds = new Set([coach.id, coach.sourceListingId, coach.sourceSessionId].filter(Boolean).map(String));
+    return (Array.isArray(reviews) ? reviews : []).find((review) => (
+      review.buyerUsername === buyerUsername
+      && review.sellerUsername === coach.sellerUsername
+      && coachIds.has(String(review.listingId || ''))
+    )) || null;
+  }
+
+  function renderCoachFeedbackForm(coach) {
+    const user = getCurrentUser();
+    const purchase = getCoachPurchase(coach, user?.username);
+    if (!user?.username || !purchase) return '';
+    const existing = getExistingCoachReview(coach, user.username);
+    const rating = Math.max(1, Math.min(5, Number(existing?.rating) || 5));
+    const stars = [1, 2, 3, 4, 5].map((value) => (
+      `<button class="${value <= rating ? 'selected' : ''}" type="button" data-coach-rating="${value}" aria-label="${value} star${value === 1 ? '' : 's'}" aria-checked="${String(value === rating)}">★</button>`
+    )).join('');
+
+    return `<form class="coach-feedback-form" id="coachFeedbackForm">
+      <h3>${existing ? 'Update your feedback' : 'Rate this coaching session'}</h3>
+      <input id="coachFeedbackRating" type="hidden" value="${rating}" />
+      <span class="feedback-stars" role="radiogroup" aria-label="Choose coaching rating">${stars}</span>
+      <label><span>Feedback</span><textarea id="coachFeedbackComment" maxlength="240" placeholder="Share your coaching experience..." required>${escapeHtml(existing?.comment || '')}</textarea></label>
+      <button class="coach-book-primary" type="submit">${existing ? 'Update Feedback' : 'Publish Feedback'}</button>
+      <p class="coach-booking-status" id="coachFeedbackStatus" aria-live="polite"></p>
+    </form>`;
+  }
+
   function renderSimilar(coach) {
     return coaches
       .filter((item) => item.id !== coach.id && (!coach.isFixedSession || item.isFixedSession))
@@ -961,6 +1015,7 @@
 
       <section class="coach-profile-panel coach-reviews-panel ${reviewItems.length ? '' : 'is-empty'}" data-profile-panel="reviews" hidden>
         ${renderReviews(coach) || '<p class="coach-profile-empty">No reviews yet.</p>'}
+        ${renderCoachFeedbackForm(coach)}
       </section>
 
       <section class="coach-booking-panel" aria-label="Book coaching session">
@@ -1026,6 +1081,18 @@
     const timeButton = target?.closest('[data-session-time]');
     const gameButton = target?.closest('[data-session-game]');
     const calendarNav = target?.closest('[data-calendar-nav]');
+    const ratingButton = target?.closest('[data-coach-rating]');
+
+    if (ratingButton) {
+      const rating = Number(ratingButton.dataset.coachRating) || 5;
+      const input = document.getElementById('coachFeedbackRating');
+      if (input) input.value = String(rating);
+      root.querySelectorAll('[data-coach-rating]').forEach((button) => {
+        button.classList.toggle('selected', Number(button.dataset.coachRating) <= rating);
+        button.setAttribute('aria-checked', String(Number(button.dataset.coachRating) === rating));
+      });
+      return;
+    }
 
     if (tab) {
       setActiveTab(tab.dataset.profileTab || 'overview');
@@ -1088,6 +1155,65 @@
     }
   });
 
+  root.addEventListener('submit', (event) => {
+    if (event.target?.id !== 'coachFeedbackForm') return;
+    event.preventDefault();
+    const user = getCurrentUser();
+    const purchase = getCoachPurchase(activeCoach, user?.username);
+    const feedbackStatus = document.getElementById('coachFeedbackStatus');
+    const rating = Number(document.getElementById('coachFeedbackRating')?.value);
+    const comment = document.getElementById('coachFeedbackComment')?.value.trim() || '';
+    const setFeedbackStatus = (type, message) => {
+      if (!feedbackStatus) return;
+      feedbackStatus.className = `coach-booking-status ${type || ''}`.trim();
+      feedbackStatus.textContent = message;
+    };
+
+    if (!user?.username || !purchase) {
+      setFeedbackStatus('error', 'Feedback is available after purchasing this coaching session.');
+      return;
+    }
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5 || !comment) {
+      setFeedbackStatus('error', 'Choose 1–5 stars and write your feedback.');
+      return;
+    }
+
+    const existing = getExistingCoachReview(activeCoach, user.username);
+    const reviews = readJson(sellerReviewsKey, []);
+    const review = {
+      id: existing?.id || window.crypto?.randomUUID?.() || String(Date.now()),
+      sellerUsername: activeCoach.sellerUsername,
+      sellerName: activeCoach.name,
+      buyerUsername: user.username,
+      buyerName: getUserDisplayName(user),
+      listingId: activeCoach.id,
+      itemTitle: `${activeCoach.name} Coaching Session`,
+      purchaseId: purchase.id,
+      rating,
+      comment,
+      reviewType: 'coaching',
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const source = Array.isArray(reviews) ? reviews : [];
+    const isSameSessionReview = (item) => (
+      String(item.buyerUsername || '').toLowerCase() === String(review.buyerUsername || '').toLowerCase()
+      && String(item.sellerUsername || '').toLowerCase() === String(review.sellerUsername || '').toLowerCase()
+      && String(item.listingId || '') === String(review.listingId || '')
+    );
+    writeJson(sellerReviewsKey, [
+      review,
+      ...source.filter((item) => item.id !== review.id && !isSameSessionReview(item)),
+    ]);
+    renderCoachPage(applyRealCoachActivity(activeCoach));
+    setActiveTab('reviews');
+    const nextStatus = document.getElementById('coachFeedbackStatus');
+    if (nextStatus) {
+      nextStatus.className = 'coach-booking-status success';
+      nextStatus.textContent = existing ? 'Feedback updated.' : 'Feedback published.';
+    }
+  });
+
   profileSearch?.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') {
       return;
@@ -1100,8 +1226,8 @@
   });
 
   window.addEventListener('storage', (event) => {
-    if (event.key === purchasesKey) {
-      renderCoachPage(activeCoach);
+    if (event.key === purchasesKey || event.key === sellerReviewsKey || event.key === sessionKey) {
+      renderCoachPage(applyRealCoachActivity(activeCoach));
     }
   });
 }());

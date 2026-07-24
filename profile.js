@@ -241,11 +241,18 @@ function getSellerReviews(username) {
   }
 
   const reviews = readJson(sellerReviewsKey, []);
-  return Array.isArray(reviews)
+  const matching = Array.isArray(reviews)
     ? reviews
         .filter((review) => review.sellerUsername === username)
         .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     : [];
+  const seen = new Set();
+  return matching.filter((review) => {
+    const key = `${String(review.buyerUsername || '').toLowerCase()}:${String(review.listingId || '')}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function getAverageRating(reviews) {
@@ -858,8 +865,12 @@ function createPublicReviewCard(review) {
   const head = document.createElement('div');
   head.className = 'public-review-head';
 
-  const reviewerWrap = document.createElement('div');
+  const reviewerWrap = document.createElement(review.buyerUsername ? 'a' : 'div');
   reviewerWrap.className = 'public-review-reviewer';
+  if (reviewerWrap instanceof HTMLAnchorElement) {
+    reviewerWrap.href = getPublicProfileUrl(review.buyerUsername);
+    reviewerWrap.setAttribute('aria-label', `Open ${review.buyerName || review.buyerUsername} profile`);
+  }
 
   const reviewerAvatar = document.createElement('span');
   reviewerAvatar.className = 'message-avatar';
@@ -886,7 +897,8 @@ function createPublicReviewCard(review) {
   head.append(reviewerWrap, rating, date);
 
   const item = document.createElement('span');
-  item.textContent = review.itemTitle ? `Order: ${review.itemTitle}` : 'Marketplace order';
+  item.className = 'public-review-item';
+  item.textContent = review.itemTitle ? `About: ${review.itemTitle}` : 'About: Marketplace';
 
   const body = document.createElement('p');
   body.textContent = review.comment || 'No written comment.';

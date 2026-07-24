@@ -66,84 +66,241 @@
     <div class="scrim" id="scrim" hidden></div>
 
     <div class="seller-modal" id="sellerModal" role="dialog" aria-modal="true" aria-labelledby="sellerModalTitle" hidden>
-      <div class="seller-modal-panel">
+      <div class="seller-modal-panel listing-builder-panel">
         <div class="seller-modal-head">
           <div>
-            <p class="section-kicker">Seller offer</p>
-            <h2 id="sellerModalTitle">Sell Accounts or Skins</h2>
+            <p class="section-kicker">Create listing</p>
+            <h2 id="sellerModalTitle">Sell Your Game Account or Skin</h2>
           </div>
           <button class="seller-close-button" id="sellerCloseButton" type="button" aria-label="Close seller form">x</button>
         </div>
 
-        <form class="seller-form" id="sellerForm">
-          <label>
-            <span>Listing type</span>
-            <select id="sellerProductType" name="productType" required>
-              <option value="account">Account</option>
-              <option value="skin">Skin</option>
-            </select>
-          </label>
+        <form class="seller-form listing-builder-form" id="sellerForm">
+          <section class="listing-builder-section">
+            <header><b>1</b><div><h3>Basic Information</h3><p>Provide the core details about your game product.</p></div></header>
+            <div class="listing-builder-grid">
+              <label><span>Listing type *</span><select id="sellerProductType" name="productType" required><option value="account">Account</option><option value="skin">Skin</option></select></label>
+              <label><span>Game *</span><select id="sellerGame" name="game" required><option value="">Select game</option></select><small class="game-specific-hint" id="sellerGameHint">Game-specific details will appear after selecting a game.</small><button class="game-details-open" id="sellerGameDetailsButton" type="button" hidden>Add Call of Duty Details</button><button class="game-details-open" id="sellerClashDetailsButton" type="button" hidden>Add Clash of Clans Details</button><button class="game-details-open" id="sellerDotaDetailsButton" type="button" hidden>Add Dota 2 Details</button><button class="game-details-open" id="sellerFortniteDetailsButton" type="button" hidden>Add Fortnite Details</button><button class="game-details-open" id="sellerGtaDetailsButton" type="button" hidden>Add GTA 5 Details</button><button class="game-details-open" id="sellerLolDetailsButton" type="button" hidden>Add League of Legends Details</button><button class="game-details-open" id="sellerMlDetailsButton" type="button" hidden>Add Mobile Legends Details</button><button class="game-details-open" id="sellerPubgDetailsButton" type="button" hidden>Add PUBG Mobile Details</button><button class="game-details-open" id="sellerRobloxDetailsButton" type="button" hidden>Add Roblox Details</button></label>
+              <label><span id="sellerTitleLabel">Account title *</span><input id="sellerTitle" name="title" type="text" maxlength="70" placeholder="Enter a catchy, descriptive title" autocomplete="off" required /></label>
+              <label><span>Platform *</span><select id="sellerPlatform" required><option value="">Select platform</option><option>PC</option><option>PlayStation</option><option>Xbox</option><option>Mobile</option><option>Nintendo Switch</option><option>Other</option></select></label>
+              <label><span>Region / Server *</span><select id="sellerRegion" required><option value="">Select region / server</option><option>Europe</option><option>North America</option><option>South America</option><option>Asia</option><option>Middle East</option><option>Oceania</option><option>Global</option></select></label>
+              <label><span>Price (GEL) *</span><input id="sellerPrice" name="price" type="number" min="1" step="1" placeholder="Enter price" required /></label>
+              <label class="seller-account-field"><span>Account type *</span><select id="sellerAccountStatus" name="accountStatus"><option value="basic">Basic Account</option><option value="full-collection">Full Collection Account</option><option value="og">OG Account</option><option value="premium">Premium Account</option><option value="ranked">Ranked Account</option><option value="rare">Rare Account</option></select></label>
+              <label class="seller-account-field"><span>Account level *</span><input id="sellerAccountLevel" name="accountLevel" type="number" min="1" max="9999" step="1" placeholder="Enter real account level" required /></label>
+              <label class="seller-image-field">
+                <span>Product images *</span>
+                <span class="upload-control listing-image-dropzone"><span class="upload-icon" aria-hidden="true"></span><span class="upload-copy"><strong>Drag & drop images here or click to upload</strong><small>Upload up to 6 images. First image is the cover. Recommended cover ratio: 16:9.</small></span><input id="sellerImage" name="image" type="file" accept="image/*" multiple /></span>
+                <span class="seller-image-selection"><strong id="sellerImageCount">0 / 6 photos</strong><small>The first photo will be used as the cover.</small></span>
+                <span class="seller-image-previews" id="sellerImagePreviews" aria-live="polite"></span>
+              </label>
+              <label class="seller-description-field"><span>Description *</span><textarea id="sellerDescription" name="description" maxlength="2000" placeholder="Describe the account or skin in detail: rank, skins, level, items, progress..." required></textarea><small>Provide as much detail as possible to help buyers make the right decision.</small></label>
+            </div>
+          </section>
 
-          <label>
-            <span>Game</span>
-            <select id="sellerGame" name="game" required>
-              <option value="">Select game</option>
-            </select>
-          </label>
-
-          <label>
-            <span id="sellerTitleLabel">Account title</span>
-            <input id="sellerTitle" name="title" type="text" maxlength="44" placeholder="PUBG Mobile Ace account" autocomplete="off" />
-          </label>
-
-          <label class="seller-account-field">
-            <span>Account type</span>
-            <select id="sellerAccountStatus" name="accountStatus">
-              <option value="basic">Basic Account</option>
-              <option value="full-collection">Full Collection Account</option>
-              <option value="og">OG Account</option>
-              <option value="premium">Premium Account</option>
-              <option value="ranked">Ranked Account</option>
-              <option value="rare">Rare Account</option>
-            </select>
-          </label>
-
-          <label class="seller-account-field">
-            <span>Account level <strong aria-hidden="true">*</strong></span>
-            <input id="sellerAccountLevel" name="accountLevel" type="number" min="1" max="9999" step="1" placeholder="Enter real account level" required />
-          </label>
-
-          <label>
-            <span>Price (GEL)</span>
-            <input id="sellerPrice" name="price" type="number" min="1" step="1" placeholder="50" required />
-          </label>
-
-          <label class="seller-image-field">
-            <span>Product images</span>
-            <span class="upload-control">
-              <span class="upload-icon" aria-hidden="true"></span>
-              <span class="upload-copy">
-                <strong>Upload files</strong>
-                <small>Choose up to 6 photos. You can add them in multiple selections.</small>
-              </span>
-              <input id="sellerImage" name="image" type="file" accept="image/*" multiple />
-            </span>
-            <span class="seller-image-selection"><strong id="sellerImageCount">0 / 6 photos</strong><small>The first photo will be used as the cover.</small></span>
-            <span class="seller-image-previews" id="sellerImagePreviews" aria-live="polite"></span>
-          </label>
-
-          <label>
-            <span>Description</span>
-            <textarea id="sellerDescription" name="description" maxlength="160" placeholder="Rank, skins, level, delivery details..." required></textarea>
-          </label>
+          <section class="listing-builder-section seller-account-field">
+            <header><b>2</b><div><h3>Access & Delivery</h3><p>Tell buyers how they will receive and access the account.</p></div></header>
+            <div class="listing-builder-grid access-delivery-grid">
+              <label><span>Login method *</span><select id="sellerLoginMethod"><option value="">Select login method</option><option>Email & Password</option><option>Username & Password</option><option>Social Login</option><option>Platform Account</option></select></label>
+              <label><span>Email changeable? *</span><select id="sellerEmailChangeable"><option value="">Select option</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+              <label><span>Linked accounts <small>(optional)</small></span><input id="sellerLinkedAccounts" type="text" maxlength="120" placeholder="Steam, Facebook, Google..." /></label>
+              <label><span>Full access provided? *</span><select id="sellerFullAccess"><option value="">Select option</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+              <label><span>Original email available? *</span><select id="sellerOriginalEmail"><option value="">Select option</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+              <label><span>Two-factor authentication *</span><select id="sellerTwoFactor"><option value="">Select option</option><option value="enabled">Enabled</option><option value="disabled">Disabled</option><option value="removable">Enabled, removable</option></select></label>
+              <label><span>Delivery method *</span><select id="sellerDeliveryMethod"><option value="">Select delivery method</option><option>Automatic</option><option>Seller message</option><option>Email delivery</option><option>Account transfer</option></select></label>
+              <label><span>Delivery time *</span><select id="sellerDeliveryTime"><option value="">Select time</option><option>Instant</option><option>Within 1 hour</option><option>Within 6 hours</option><option>Within 24 hours</option><option>1–3 days</option></select></label>
+            </div>
+          </section>
 
           <p class="seller-status" id="sellerStatus" aria-live="polite"></p>
-
-          <div class="seller-modal-actions">
-            <button class="secondary-seller-action" id="sellerCancelButton" type="button">Cancel</button>
-            <button class="seller-submit-button" type="submit">Publish Listing</button>
-          </div>
+          <div class="seller-modal-actions listing-builder-actions"><button class="secondary-seller-action" id="sellerCancelButton" type="button">Cancel</button><button class="seller-submit-button" type="submit">Publish Listing</button></div>
         </form>
+      </div>
+
+      <div class="game-details-modal" id="codDetailsModal" role="dialog" aria-modal="true" aria-labelledby="codDetailsTitle" hidden>
+        <div class="game-details-panel">
+          <header>
+            <div><h2 id="codDetailsTitle">Add Call of Duty Details</h2><p>Fill only the details that apply to this account. Leave the rest empty.</p></div>
+            <button id="codDetailsClose" type="button" aria-label="Close Call of Duty details">×</button>
+          </header>
+          <div class="game-details-grid">
+            <label><span>Current MP Rank <small>(Optional)</small></span><input id="codMpRank" type="text" maxlength="60" placeholder="e.g. Grand Master V, Legendary" /></label>
+            <label><span>Current BR Rank <small>(Optional)</small></span><input id="codBrRank" type="text" maxlength="60" placeholder="e.g. Master III, Legendary" /></label>
+            <label><span>CP Balance <small>(Optional)</small></span><input id="codCpBalance" type="number" min="0" step="1" placeholder="e.g. 3,600 CP" /></label>
+            <label><span>Mythic Weapons <small>(Optional)</small></span><input id="codMythicWeapons" type="number" min="0" step="1" placeholder="e.g. 2" /></label>
+            <label><span>Legendary Weapons <small>(Optional)</small></span><input id="codLegendaryWeapons" type="number" min="0" step="1" placeholder="e.g. 8" /></label>
+            <label><span>Operator Skin Count <small>(Optional)</small></span><input id="codOperatorSkins" type="number" min="0" step="1" placeholder="e.g. 45" /></label>
+            <label><span>Completionist Camos <small>(Optional)</small></span><input id="codCamos" type="text" maxlength="140" placeholder="e.g. Gold, Damascus, Diamond" /></label>
+            <label class="game-details-wide"><span>Popular Weapon Blueprints <small>(Optional)</small></span><input id="codBlueprints" type="text" maxlength="220" placeholder="e.g. AK117 Meltdown, DL Q33 Holidays" /></label>
+            <label class="game-details-full"><span>Rare Items / Highlights <small>(Optional)</small></span><input id="codHighlights" type="text" maxlength="260" placeholder="e.g. Mythic M13, Legendary Ghost" /></label>
+          </div>
+          <div class="game-details-note"><strong>These Call of Duty details will be shown on the product details page.</strong><span>You can describe more weapons, operators and rare content in the main description.</span></div>
+          <footer><button class="secondary-seller-action" id="codDetailsCancel" type="button">Cancel</button><button class="seller-submit-button" id="codDetailsSave" type="button">Save Details</button></footer>
+        </div>
+      </div>
+
+      <div class="game-details-modal" id="clashDetailsModal" role="dialog" aria-modal="true" aria-labelledby="clashDetailsTitle" hidden>
+        <div class="game-details-panel">
+          <header>
+            <div><h2 id="clashDetailsTitle">Add Clash of Clans Details</h2><p>Fill only the Clash of Clans details that apply to this account. Leave the rest empty.</p></div>
+            <button id="clashDetailsClose" type="button" aria-label="Close Clash of Clans details">×</button>
+          </header>
+          <div class="game-details-grid clash-details-grid">
+            <label><span>Town Hall Level <small>(Optional)</small></span><select id="clashTownHall"><option value="">Select Town Hall</option><option>TH17</option><option>TH16</option><option>TH15</option><option>TH14</option><option>TH13</option><option>TH12</option><option>TH11</option><option>TH10</option><option>TH9</option><option>TH8</option><option>TH7</option><option>TH6</option><option>TH5</option><option>TH4</option><option>TH3</option><option>TH2</option><option>TH1</option></select></label>
+            <label><span>Hero Levels <small>(Optional)</small></span><input id="clashHeroLevels" type="text" maxlength="160" placeholder="e.g. BK 95 / AQ 95 / GW 65 / RC 40" /></label>
+            <label><span>Base Upgrade Status <small>(Optional)</small></span><select id="clashBaseStatus"><option value="">Select status</option><option>Maxed</option><option>Near Max</option><option>Balanced</option><option>Rushed</option></select></label>
+            <label><span>Laboratory Level <small>(Optional)</small></span><input id="clashLaboratoryLevel" type="text" maxlength="60" placeholder="e.g. Level 14" /></label>
+            <label><span>Hero Equipment <small>(Optional)</small></span><input id="clashHeroEquipment" type="text" maxlength="220" placeholder="e.g. Epic Equipment, Max-Level Equipment" /></label>
+            <label><span>Rare / Valuable Items <small>(Optional)</small></span><input id="clashRareItems" type="text" maxlength="260" placeholder="e.g. Hero Skins, Sceneries, Decorations, Exclusive Items" /></label>
+          </div>
+          <div class="game-details-note"><strong>These Clash of Clans details will be shown on the product details page.</strong><span>You can describe more troops, spells, defenses and other information in the main description.</span></div>
+          <footer><button class="secondary-seller-action" id="clashDetailsCancel" type="button">Cancel</button><button class="seller-submit-button" id="clashDetailsSave" type="button">Save Details</button></footer>
+        </div>
+      </div>
+
+      <div class="game-details-modal" id="dotaDetailsModal" role="dialog" aria-modal="true" aria-labelledby="dotaDetailsTitle" hidden>
+        <div class="game-details-panel">
+          <header>
+            <div><h2 id="dotaDetailsTitle">Add Dota 2 Details</h2><p>Fill only the Dota 2 details that apply to this account. Leave the rest empty.</p></div>
+            <button id="dotaDetailsClose" type="button" aria-label="Close Dota 2 details">×</button>
+          </header>
+          <div class="game-details-grid clash-details-grid">
+            <label><span>Main Rank <small>(Optional)</small></span><select id="dotaMainRank"><option value="">Select main rank</option><option>Immortal</option><option>Divine</option><option>Ancient</option><option>Legend</option><option>Archon</option><option>Crusader</option><option>Guardian</option><option>Herald</option><option>Unranked</option></select></label>
+            <label><span>MMR <small>(Optional)</small></span><input id="dotaMmr" type="number" min="0" step="1" placeholder="e.g. 5670" /></label>
+            <label><span>Arcana Count <small>(Optional)</small></span><input id="dotaArcanaCount" type="number" min="0" step="1" placeholder="e.g. 4" /></label>
+            <label><span>Immortal Items Count <small>(Optional)</small></span><input id="dotaImmortalCount" type="number" min="0" step="1" placeholder="e.g. 85" /></label>
+            <label><span>Rare / Prestige Items <small>(Optional)</small></span><input id="dotaRareItems" type="text" maxlength="240" placeholder="e.g. Golden Baby Roshan, Fractal Horns" /></label>
+            <label><span>Exclusive / Limited Items <small>(Optional)</small></span><input id="dotaExclusiveItems" type="text" maxlength="240" placeholder="e.g. Diretide, TI Collector's Cache" /></label>
+          </div>
+          <div class="game-details-note"><strong>These Dota 2 details will be shown on the product details page.</strong><span>You can describe more heroes, items and other information in the main description.</span></div>
+          <footer><button class="secondary-seller-action" id="dotaDetailsCancel" type="button">Cancel</button><button class="seller-submit-button" id="dotaDetailsSave" type="button">Save Details</button></footer>
+        </div>
+      </div>
+
+      <div class="game-details-modal" id="fortniteDetailsModal" role="dialog" aria-modal="true" aria-labelledby="fortniteDetailsTitle" hidden>
+        <div class="game-details-panel">
+          <header>
+            <div><h2 id="fortniteDetailsTitle">Add Fortnite Details</h2><p>Fill only the Fortnite details that apply to this account. Leave the rest empty.</p></div>
+            <button id="fortniteDetailsClose" type="button" aria-label="Close Fortnite details">×</button>
+          </header>
+          <div class="game-details-grid clash-details-grid">
+            <label><span>Total Skins <small>(Optional)</small></span><input id="fortniteTotalSkins" type="number" min="0" step="1" placeholder="e.g. 186" /></label>
+            <label><span>Exclusive / OG Skins <small>(Optional)</small></span><input id="fortniteOgSkins" type="number" min="0" step="1" placeholder="e.g. 6" /></label>
+            <label><span>Rare Skins <small>(Optional)</small></span><input id="fortniteRareSkins" type="text" maxlength="240" placeholder="e.g. Renegade Raider, Black Knight" /></label>
+            <label><span>Pickaxes <small>(Optional)</small></span><input id="fortnitePickaxes" type="number" min="0" step="1" placeholder="e.g. 74" /></label>
+            <label><span>Emotes <small>(Optional)</small></span><input id="fortniteEmotes" type="number" min="0" step="1" placeholder="e.g. 132" /></label>
+            <label><span>Gliders <small>(Optional)</small></span><input id="fortniteGliders" type="number" min="0" step="1" placeholder="e.g. 58" /></label>
+            <label><span>V-Bucks Balance <small>(Optional)</small></span><input id="fortniteVbucks" type="number" min="0" step="1" placeholder="e.g. 2,800" /></label>
+            <label class="game-details-full"><span>Rare Items / Highlights <small>(Optional)</small></span><input id="fortniteHighlights" type="text" maxlength="280" placeholder="e.g. Travis Scott, Ikonik, Minty Axe, Rare Emotes" /></label>
+          </div>
+          <div class="game-details-note"><strong>These Fortnite details will be shown on the product details page.</strong><span>You can describe more information in the main description.</span></div>
+          <footer><button class="secondary-seller-action" id="fortniteDetailsCancel" type="button">Cancel</button><button class="seller-submit-button" id="fortniteDetailsSave" type="button">Save Details</button></footer>
+        </div>
+      </div>
+
+      <div class="game-details-modal" id="gtaDetailsModal" role="dialog" aria-modal="true" aria-labelledby="gtaDetailsTitle" hidden>
+        <div class="game-details-panel">
+          <header>
+            <div><h2 id="gtaDetailsTitle">Add GTA 5 Details</h2><p>Fill only the GTA 5 details that apply to this account. Leave the rest empty.</p></div>
+            <button id="gtaDetailsClose" type="button" aria-label="Close GTA 5 details">×</button>
+          </header>
+          <div class="game-details-grid clash-details-grid">
+            <label><span>Rank <small>(Optional)</small></span><input id="gtaRank" type="number" min="0" step="1" placeholder="e.g. 1200" /></label>
+            <label><span>Total Money <small>(Optional)</small></span><input id="gtaTotalMoney" type="number" min="0" step="1" placeholder="e.g. 50,000,000" /></label>
+            <label><span>Total RP <small>(Optional)</small></span><input id="gtaTotalRp" type="number" min="0" step="1" placeholder="e.g. 25,000,000" /></label>
+            <label><span>Unlocked Level <small>(Optional)</small></span><input id="gtaUnlockedLevel" type="number" min="0" step="1" placeholder="e.g. 120" /></label>
+            <label><span>Properties Owned <small>(Optional)</small></span><input id="gtaProperties" type="number" min="0" step="1" placeholder="e.g. 15" /></label>
+            <label><span>Vehicles Owned <small>(Optional)</small></span><input id="gtaVehicles" type="number" min="0" step="1" placeholder="e.g. 25" /></label>
+            <label><span>Outfits Saved <small>(Optional)</small></span><input id="gtaOutfits" type="number" min="0" step="1" placeholder="e.g. 20" /></label>
+            <label><span>Weaponized Vehicles <small>(Optional)</small></span><input id="gtaWeaponizedVehicles" type="number" min="0" step="1" placeholder="e.g. 8" /></label>
+            <label class="game-details-full"><span>Rare / Special Items <small>(Optional)</small></span><input id="gtaRareItems" type="text" maxlength="280" placeholder="e.g. Rare Cars, Limited Livery, Secret T-Shirts, Event Items" /></label>
+          </div>
+          <div class="game-details-note"><strong>These GTA 5 details will be shown on the product details page.</strong><span>You can describe more information in the main description.</span></div>
+          <footer><button class="secondary-seller-action" id="gtaDetailsCancel" type="button">Cancel</button><button class="seller-submit-button" id="gtaDetailsSave" type="button">Save Details</button></footer>
+        </div>
+      </div>
+
+      <div class="game-details-modal" id="lolDetailsModal" role="dialog" aria-modal="true" aria-labelledby="lolDetailsTitle" hidden>
+        <div class="game-details-panel">
+          <header>
+            <div><h2 id="lolDetailsTitle">Add League of Legends Details</h2><p>Fill only the main details that apply to this account. Leave the rest empty.</p></div>
+            <button id="lolDetailsClose" type="button" aria-label="Close League of Legends details">×</button>
+          </header>
+          <div class="game-details-grid clash-details-grid">
+            <label><span>Rank (Solo/Duo) <small>(Optional)</small></span><select id="lolRank"><option value="">Select rank</option><option>Challenger</option><option>Grandmaster</option><option>Master</option><option>Diamond I</option><option>Diamond II</option><option>Diamond III</option><option>Diamond IV</option><option>Emerald I</option><option>Emerald II</option><option>Emerald III</option><option>Emerald IV</option><option>Platinum I</option><option>Platinum II</option><option>Platinum III</option><option>Platinum IV</option><option>Gold I</option><option>Gold II</option><option>Gold III</option><option>Gold IV</option><option>Silver I</option><option>Silver II</option><option>Silver III</option><option>Silver IV</option><option>Bronze I</option><option>Bronze II</option><option>Bronze III</option><option>Bronze IV</option><option>Iron I</option><option>Iron II</option><option>Iron III</option><option>Iron IV</option><option>Unranked</option></select></label>
+            <label><span>Peak Rank <small>(Optional)</small></span><input id="lolPeakRank" type="text" maxlength="80" placeholder="e.g. Master" /></label>
+            <label><span>Account Level <small>(Optional)</small></span><input id="lolAccountLevel" type="number" min="0" step="1" placeholder="e.g. 350" /></label>
+            <label><span>Blue Essence (BE) <small>(Optional)</small></span><input id="lolBlueEssence" type="number" min="0" step="1" placeholder="e.g. 125,000" /></label>
+            <label><span>Skins Owned <small>(Optional)</small></span><input id="lolSkinsOwned" type="number" min="0" step="1" placeholder="e.g. 85" /></label>
+            <label><span>Legendary Skins <small>(Optional)</small></span><input id="lolLegendarySkins" type="number" min="0" step="1" placeholder="e.g. 12" /></label>
+          </div>
+          <div class="game-details-note"><strong>These League of Legends details will be shown on the product details page.</strong><span>You can describe more champions, runes, icons and other information in the main description.</span></div>
+          <footer><button class="secondary-seller-action" id="lolDetailsCancel" type="button">Cancel</button><button class="seller-submit-button" id="lolDetailsSave" type="button">Save Details</button></footer>
+        </div>
+      </div>
+
+      <div class="game-details-modal" id="mlDetailsModal" role="dialog" aria-modal="true" aria-labelledby="mlDetailsTitle" hidden>
+        <div class="game-details-panel">
+          <header>
+            <div><h2 id="mlDetailsTitle">Add Mobile Legends Details</h2><p>Add only the most important account details that affect value.</p></div>
+            <button id="mlDetailsClose" type="button" aria-label="Close Mobile Legends details">×</button>
+          </header>
+          <div class="game-details-grid">
+            <label><span>Current Rank <small>(Optional)</small></span><input id="mlCurrentRank" type="text" maxlength="80" placeholder="e.g. Mythical Glory" /></label>
+            <label><span>Highest Rank Reached <small>(Optional)</small></span><input id="mlHighestRank" type="text" maxlength="80" placeholder="e.g. Mythical Immortal" /></label>
+            <label><span>Heroes Owned <small>(Optional)</small></span><input id="mlHeroesOwned" type="number" min="0" step="1" placeholder="e.g. 112" /></label>
+            <label><span>Total Skins <small>(Optional)</small></span><input id="mlTotalSkins" type="number" min="0" step="1" placeholder="e.g. 237" /></label>
+            <label><span>Legend Skins <small>(Optional)</small></span><input id="mlLegendSkins" type="number" min="0" step="1" placeholder="e.g. 12" /></label>
+            <label><span>Collector Skins <small>(Optional)</small></span><input id="mlCollectorSkins" type="number" min="0" step="1" placeholder="e.g. 8" /></label>
+            <label><span>Zodiac Skins <small>(Optional)</small></span><input id="mlZodiacSkins" type="number" min="0" step="1" placeholder="e.g. 6" /></label>
+            <label class="game-details-full"><span>Rare Items / Highlights <small>(Optional)</small></span><input id="mlHighlights" type="text" maxlength="280" placeholder="e.g. Limited Skins, Rare Effects, Titles" /></label>
+          </div>
+          <div class="game-details-note"><strong>These Mobile Legends details will be shown on the product details page.</strong><span>You can describe more heroes, skins and other information in the main description.</span></div>
+          <footer><button class="secondary-seller-action" id="mlDetailsCancel" type="button">Cancel</button><button class="seller-submit-button" id="mlDetailsSave" type="button">Save Details</button></footer>
+        </div>
+      </div>
+
+      <div class="game-details-modal" id="pubgDetailsModal" role="dialog" aria-modal="true" aria-labelledby="pubgDetailsTitle" hidden>
+        <div class="game-details-panel">
+          <header>
+            <div><h2 id="pubgDetailsTitle">Add PUBG Mobile Details</h2><p>Fill only the PUBG Mobile details that apply to this account. Leave the rest empty.</p></div>
+            <button id="pubgDetailsClose" type="button" aria-label="Close PUBG Mobile details">×</button>
+          </header>
+          <div class="game-details-grid">
+            <label><span>Current Tier <small>(Optional)</small></span><input id="pubgCurrentTier" type="text" maxlength="80" placeholder="e.g. Ace Master, Conqueror" /></label>
+            <label><span>Highest Tier Reached <small>(Optional)</small></span><input id="pubgHighestTier" type="text" maxlength="80" placeholder="e.g. Conqueror" /></label>
+            <label><span>Royale Pass <small>(Optional)</small></span><input id="pubgRoyalePass" type="text" maxlength="80" placeholder="e.g. A10 Max" /></label>
+            <label><span>UC Balance <small>(Optional)</small></span><input id="pubgUcBalance" type="number" min="0" step="1" placeholder="e.g. 12,500 UC" /></label>
+            <label><span>X-Suits <small>(Optional)</small></span><input id="pubgXSuits" type="number" min="0" step="1" placeholder="e.g. 3" /></label>
+            <label><span>Mythic Outfits <small>(Optional)</small></span><input id="pubgMythicOutfits" type="number" min="0" step="1" placeholder="e.g. 14" /></label>
+            <label><span>Gun Skins <small>(Optional)</small></span><input id="pubgGunSkins" type="number" min="0" step="1" placeholder="e.g. 65" /></label>
+            <label><span>Upgradable Gun Skins <small>(Optional)</small></span><input id="pubgUpgradableSkins" type="number" min="0" step="1" placeholder="e.g. 6" /></label>
+            <label><span>Vehicle Skins <small>(Optional)</small></span><input id="pubgVehicleSkins" type="number" min="0" step="1" placeholder="e.g. 12" /></label>
+            <label class="game-details-full"><span>Rare Items / Highlights <small>(Optional)</small></span><input id="pubgHighlights" type="text" maxlength="280" placeholder="e.g. Glacier M416, Pharaoh X-Suit" /></label>
+          </div>
+          <div class="game-details-note"><strong>These PUBG Mobile details will be shown on the product details page.</strong><span>You can describe more skins and rare content in the main description.</span></div>
+          <footer><button class="secondary-seller-action" id="pubgDetailsCancel" type="button">Cancel</button><button class="seller-submit-button" id="pubgDetailsSave" type="button">Save Details</button></footer>
+        </div>
+      </div>
+
+      <div class="game-details-modal" id="robloxDetailsModal" role="dialog" aria-modal="true" aria-labelledby="robloxDetailsTitle" hidden>
+        <div class="game-details-panel">
+          <header>
+            <div><h2 id="robloxDetailsTitle">Add Roblox Details</h2><p>Fill only the Roblox details that apply to this account. Leave the rest empty.</p></div>
+            <button id="robloxDetailsClose" type="button" aria-label="Close Roblox details">×</button>
+          </header>
+          <div class="game-details-grid">
+            <label><span>Robux Balance <small>(Optional)</small></span><input id="robloxRobux" type="number" min="0" step="1" placeholder="e.g. 25,000" /></label>
+            <label><span>Limiteds Count <small>(Optional)</small></span><input id="robloxLimitedsCount" type="number" min="0" step="1" placeholder="e.g. 12" /></label>
+            <label><span>Limiteds RAP Value <small>(Optional)</small></span><input id="robloxRapValue" type="number" min="0" step="1" placeholder="e.g. 125,000" /></label>
+            <label><span>Premium Membership <small>(Optional)</small></span><select id="robloxPremium"><option value="">Select membership</option><option>No Premium</option><option>Premium 450</option><option>Premium 1000</option><option>Premium 2200</option></select></label>
+            <label><span>Account Age <small>(Optional)</small></span><input id="robloxAccountAge" type="text" maxlength="60" placeholder="e.g. 3 Years" /></label>
+            <label><span>Total Spending <small>(Optional)</small></span><input id="robloxTotalSpending" type="number" min="0" step="0.01" placeholder="e.g. $2,450" /></label>
+            <label class="game-details-wide"><span>Top Game Items <small>(Optional)</small></span><input id="robloxTopItems" type="text" maxlength="280" placeholder="e.g. Adopt Me: Bat Dragon, Shadow Dragon" /></label>
+            <label><span>Rare / Valuable Items <small>(Optional)</small></span><input id="robloxRareItems" type="text" maxlength="280" placeholder="e.g. Korblox, Dominus, Headless Horseman" /></label>
+          </div>
+          <div class="game-details-note"><strong>These Roblox details will be shown on the product details page.</strong><span>You can describe more items, badges, games and other information in the main description.</span></div>
+          <footer><button class="secondary-seller-action" id="robloxDetailsCancel" type="button">Cancel</button><button class="seller-submit-button" id="robloxDetailsSave" type="button">Save Details</button></footer>
+        </div>
       </div>
     </div>
 
