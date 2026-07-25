@@ -50,10 +50,26 @@ const detailViews = document.getElementById('detailViews');
 const detailLoginMethod = document.getElementById('detailLoginMethod');
 const detailDeliveryTime = document.getElementById('detailDeliveryTime');
 const detailLongDescription = document.getElementById('detailLongDescription');
+const detailInfoTitle = document.getElementById('detailInfoTitle');
 const detailIncluded = document.getElementById('detailIncluded');
+const detailSummaryDetailsCard = document.getElementById('detailDetailsTitle')?.closest('.detail-summary-card');
+const detailIncludedCard = document.getElementById('detailIncludedTitle')?.closest('.detail-included-card');
+const detailScoreCard = document.querySelector('.detail-score-card');
 const detailGameSpecific = document.getElementById('detailGameSpecific');
 const detailGameSpecificGrid = document.getElementById('detailGameSpecificGrid');
 const detailGameSpecificTitle = document.getElementById('detailGameSpecificTitle');
+const detailAccessGrid = document.getElementById('detailAccessGrid');
+const detailAccessCard = document.getElementById('detailAccessCard');
+const detailLinkedCard = document.getElementById('detailLinkedCard');
+const detailLinkedGrid = document.getElementById('detailLinkedGrid');
+const detailCompletedOrders = document.getElementById('detailCompletedOrders');
+const detailResponseTime = document.getElementById('detailResponseTime');
+const detailSellerAvatar = document.getElementById('detailSellerAvatar');
+const detailSellerStripName = document.getElementById('detailSellerStripName');
+const detailSellerStripMeta = document.getElementById('detailSellerStripMeta');
+const detailSellerProfileButton = document.getElementById('detailSellerProfileButton');
+const detailSellerStrip = document.getElementById('detailSellerStrip');
+const detailSoldBy = document.getElementById('detailSoldBy');
 const detailReviews = document.getElementById('detailReviews');
 const detailReviewSummary = document.getElementById('detailReviewSummary');
 const detailReviewList = document.getElementById('detailReviewList');
@@ -86,6 +102,19 @@ const detailGameIcons = {
   'Mobile Legends': 'assets/mobile-legends-popular-games-photo.png',
   'Free Fire': 'assets/freefire-photo.jpeg',
   Roblox: 'assets/roblox-popular-games-photo.png',
+};
+const marketplaceGameCovers = {
+  'Call of Duty': 'assets/call-of-duty-marketplace-photo.png',
+  CS2: 'assets/cs2-marketplace-cover.png',
+  'PUBG Mobile': 'assets/pubg-mobile-marketplace-cover.png',
+  Roblox: 'assets/roblox-marketplace-cover.png',
+  'Clash of Clans': 'assets/clash-of-clans-marketplace-cover.png',
+  'League of Legends': 'assets/league-of-legends-marketplace-cover.png',
+  Fortnite: 'assets/fortnite-marketplace-cover.png',
+  Minecraft: 'assets/minecraft-marketplace-cover.png',
+  'GTA 5': 'assets/gta-5-marketplace-cover.png',
+  'Dota 2': 'assets/dota-2-marketplace-cover.png',
+  Valorant: 'assets/valorant-marketplace-cover.png',
 };
 const buyButton = document.getElementById('buyButton');
 const wishlistButton = document.getElementById('wishlistButton');
@@ -298,6 +327,23 @@ function getSellerReviews(username) {
     const key = `${String(review.buyerUsername || '').toLowerCase()}:${String(review.listingId || '')}`;
     if (seen.has(key)) return false;
     seen.add(key);
+    return true;
+  });
+}
+
+function getProductReviews(listingId) {
+  if (!listingId) return [];
+  const reviews = readJson(sellerReviewsKey, []);
+  const matching = Array.isArray(reviews)
+    ? reviews
+        .filter((review) => String(review.listingId || '') === String(listingId))
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    : [];
+  const seenBuyers = new Set();
+  return matching.filter((review) => {
+    const buyer = String(review.buyerUsername || '').toLowerCase();
+    if (!buyer || seenBuyers.has(buyer)) return false;
+    seenBuyers.add(buyer);
     return true;
   });
 }
@@ -592,6 +638,17 @@ function getProductDetail(id, { countView = true } = {}) {
   const favoriteCount = getFavoriteCount(`listing:${id}`);
   const sellerReviews = getSellerReviews(listing.sellerUsername || '');
   const sellerAverageRating = getAverageRating(sellerReviews);
+  const productReviews = getProductReviews(id);
+  const productAverageRating = getAverageRating(productReviews);
+  const sellerUser = getUserByUsername(listing.sellerUsername);
+  const sellerCompletedOrders = getPurchases().filter((purchase) => {
+    const status = String(purchase.status || '').toLowerCase();
+    const isCompleted = status.includes('completed') || status.includes('delivered');
+    return isCompleted && Array.isArray(purchase.items) && purchase.items.some(
+      (item) => String(item.sellerUsername || '').toLowerCase() === String(listing.sellerUsername || '').toLowerCase(),
+    );
+  }).length;
+  const marketplaceCover = marketplaceGameCovers[listing.game] || '';
   const galleryImages = Array.isArray(listing.galleryImages)
     ? listing.galleryImages.filter(Boolean)
     : [listing.imageData].filter(Boolean);
@@ -612,7 +669,7 @@ function getProductDetail(id, { countView = true } = {}) {
     tag: config.type === 'account' ? formatAccountStatus(accountStatus) : config.tagLabel,
     tagClass: config.tagClass,
     price: formatListingPrice(listing.price),
-    imageData: listing.imageData || '',
+    imageData: marketplaceCover || listing.imageData || '',
     galleryImages,
     imageName: listing.imageName || '',
     accountStatus,
@@ -625,6 +682,11 @@ function getProductDetail(id, { countView = true } = {}) {
     gameDetails: listing.gameDetails || {},
     sellerScore: sellerAverageRating === null ? '-' : formatRating(sellerAverageRating),
     sellerReviewCount: sellerReviews.length,
+    productRating: productAverageRating === null ? '-' : formatRating(productAverageRating),
+    productReviewCount: productReviews.length,
+    sellerCompletedOrders,
+    sellerResponseTime: sellerUser?.responseTime || sellerUser?.coachDetails?.responseTime || '',
+    sellerAvatar: sellerUser?.photoData || listing.sellerAvatar || '',
     productScore: listing.productScore || favoriteCount,
     popularity: formatNumber(accountViews),
     favoriteCount,
@@ -749,17 +811,16 @@ function getGalleryVisuals(offer) {
   }));
   const uploadedImages = Array.isArray(offer.galleryImages) ? offer.galleryImages : [offer.imageData].filter(Boolean);
 
-  const isCs2Product = offer.type === 'product' && offer.game === 'CS2';
-  const accountTypeImage = isCs2Product
-    ? 'assets/cs2-marketplace-cover.png'
-    : offer.productType === 'account' ? getAccountTypeImage(offer.accountStatus) : '';
+  const gameCover = offer.type === 'product' ? marketplaceGameCovers[offer.game] || '' : '';
+  const accountTypeImage = gameCover
+    || (offer.productType === 'account' ? getAccountTypeImage(offer.accountStatus) : '');
 
   if (accountTypeImage) {
     visuals[0] = {
-      label: isCs2Product ? 'CS2' : offer.accountStatusLabel || 'Account card',
-      coverClass: '',
+      label: gameCover ? offer.game : offer.accountStatusLabel || 'Account card',
+      coverClass: gameCover ? 'game-cover-contain' : '',
       src: accountTypeImage,
-      isBasicCard: !isCs2Product,
+      isBasicCard: !gameCover,
     };
 
     uploadedImages.slice(0, 5).forEach((src, index) => {
@@ -854,16 +915,23 @@ function renderOfferMetrics(offer) {
     return;
   }
 
-  const sellerRatingLabel = offer.sellerReviewCount
-    ? `${formatNumber(offer.sellerReviewCount)} ${offer.sellerReviewCount === 1 ? 'review' : 'reviews'}`
+  const useProductRating = offer.type === 'product';
+  const visibleRating = useProductRating ? offer.productRating : offer.sellerScore;
+  const visibleReviewCount = useProductRating ? offer.productReviewCount : offer.sellerReviewCount;
+  const sellerRatingLabel = visibleReviewCount
+    ? `${formatNumber(visibleReviewCount)} ${visibleReviewCount === 1 ? 'review' : 'reviews'}`
     : 'No rating';
 
-  if (detailSellerScore) detailSellerScore.textContent = offer.sellerScore || '-';
+  if (detailSellerScore) detailSellerScore.textContent = visibleRating || '-';
   if (detailSellerScoreLabel) detailSellerScoreLabel.textContent = sellerRatingLabel;
   if (detailQualityScore) detailQualityScore.textContent = formatNumber(offer.productScore);
   if (detailQualityScoreLabel) detailQualityScoreLabel.textContent = offer.productScore === 1 ? 'saved' : 'saves';
   if (detailPopularity) detailPopularity.textContent = offer.popularity || formatNumber(offer.accountViews);
-  if (detailSideSellerScore) detailSideSellerScore.textContent = offer.sellerScore || '-';
+  if (detailSideSellerScore) {
+    detailSideSellerScore.textContent = visibleRating || '-';
+    const metricName = detailSideSellerScore.parentElement?.querySelector('span');
+    if (metricName) metricName.textContent = useProductRating ? 'Product Rating' : 'Seller Rating';
+  }
   if (detailSideSellerScoreLabel) detailSideSellerScoreLabel.textContent = sellerRatingLabel;
   if (detailSideQualityScore) detailSideQualityScore.textContent = formatNumber(offer.productScore);
   if (detailSideQualityScoreLabel) detailSideQualityScoreLabel.textContent = offer.favoriteCount === 1 ? 'saved' : 'saves';
@@ -943,7 +1011,9 @@ function renderOfferReviews(offer) {
     return;
   }
 
-  const reviews = getSellerReviews(offer.sellerUsername || '');
+  const reviews = offer.type === 'product'
+    ? getProductReviews(offer.id)
+    : getSellerReviews(offer.sellerUsername || '');
   const averageRating = getAverageRating(reviews);
   const { user } = getCurrentAccount();
   const reviewablePurchase = offer.type === 'product'
@@ -954,7 +1024,7 @@ function renderOfferReviews(offer) {
   if (detailReviewSummary) {
     detailReviewSummary.textContent = reviews.length
       ? `${formatRating(averageRating)}/5 from ${formatNumber(reviews.length)} ${reviews.length === 1 ? 'review' : 'reviews'}`
-      : 'No seller reviews yet.';
+      : 'No reviews yet for this product.';
   }
 
   if (detailReviewList) {
@@ -1145,6 +1215,87 @@ function renderGameSpecificDetails(offer) {
   });
 }
 
+function renderAccessAndSellerDetails(offer) {
+  const isMarketplaceProduct = offer.type === 'product';
+  if (detailAccessCard) detailAccessCard.hidden = !isMarketplaceProduct;
+  if (detailSellerStrip) detailSellerStrip.hidden = !isMarketplaceProduct;
+  if (!isMarketplaceProduct) {
+    if (detailLinkedCard) detailLinkedCard.hidden = true;
+    return;
+  }
+
+  const access = offer.accessDelivery || {};
+  const displayOption = (value) => {
+    if (!value) return 'Not specified';
+    if (value === 'yes') return '✓ Yes';
+    if (value === 'no') return '✕ No';
+    if (value === 'enabled') return 'Enabled';
+    if (value === 'disabled') return 'Disabled';
+    if (value === 'removable') return 'Enabled, removable';
+    return String(value);
+  };
+  const accessFacts = [
+    ['Login Method', access.loginMethod],
+    ['Email Changeable', displayOption(access.emailChangeable)],
+    ['Original Email Available', displayOption(access.originalEmail)],
+    ['Full Access Provided', displayOption(access.fullAccess)],
+    ['Two-Factor Authentication', displayOption(access.twoFactor)],
+    ['Delivery Method', access.deliveryMethod],
+    ['Delivery Time', access.deliveryTime || offer.delivery],
+    ['Platform / Region', [offer.platform, offer.region].filter((value) => value && value !== '-').join(' / ')],
+  ];
+
+  if (detailAccessGrid) {
+    detailAccessGrid.replaceChildren();
+    accessFacts.forEach(([label, value]) => {
+      const row = document.createElement('div');
+      const name = document.createElement('span');
+      const content = document.createElement('strong');
+      name.textContent = label;
+      content.textContent = value || 'Not specified';
+      row.append(name, content);
+      detailAccessGrid.append(row);
+    });
+  }
+
+  const linkedAccounts = String(access.linkedAccounts || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (detailLinkedCard) detailLinkedCard.hidden = linkedAccounts.length === 0;
+  if (detailLinkedGrid) {
+    detailLinkedGrid.replaceChildren();
+    linkedAccounts.forEach((account) => {
+      const item = document.createElement('div');
+      const name = document.createElement('strong');
+      const state = document.createElement('span');
+      name.textContent = account;
+      state.textContent = 'Linked';
+      item.append(name, state);
+      detailLinkedGrid.append(item);
+    });
+  }
+
+  if (detailCompletedOrders) detailCompletedOrders.textContent = formatNumber(offer.sellerCompletedOrders);
+  if (detailResponseTime) detailResponseTime.textContent = offer.sellerResponseTime || 'Not specified';
+  if (detailSellerStripName) detailSellerStripName.textContent = offer.seller;
+  if (detailSoldBy) detailSoldBy.textContent = offer.seller;
+  if (detailSellerStripMeta) {
+    detailSellerStripMeta.textContent = offer.sellerReviewCount
+      ? `★ ${offer.sellerScore} · ${formatNumber(offer.sellerReviewCount)} reviews · ${formatNumber(offer.sellerCompletedOrders)} completed orders`
+      : `${formatNumber(offer.sellerCompletedOrders)} completed orders · No reviews yet`;
+  }
+  if (detailSellerAvatar) {
+    detailSellerAvatar.textContent = offer.sellerAvatar ? '' : String(offer.seller || '?').trim().charAt(0).toUpperCase();
+    detailSellerAvatar.classList.toggle('avatar-image', Boolean(offer.sellerAvatar));
+    detailSellerAvatar.style.backgroundImage = offer.sellerAvatar ? `url("${offer.sellerAvatar}")` : '';
+  }
+  if (detailSellerProfileButton) {
+    detailSellerProfileButton.href = offer.sellerUsername ? getPublicProfileUrl(offer.sellerUsername) : '#';
+    detailSellerProfileButton.hidden = !offer.sellerUsername;
+  }
+}
+
 function isCallOfDutyOffer(offer) {
   return offer.gameDetails?.type === 'call-of-duty'
     || ['call of duty', 'call of duty mobile', 'cod mobile'].includes(String(offer.game || '').trim().toLowerCase());
@@ -1162,6 +1313,10 @@ function renderDetail({ countView = true } = {}) {
   }
 
   activeOffer = offer;
+  const isMarketplaceProduct = offer.type === 'product';
+  if (detailScoreCard) detailScoreCard.hidden = isMarketplaceProduct;
+  if (detailSummaryDetailsCard) detailSummaryDetailsCard.hidden = isMarketplaceProduct;
+  if (detailIncludedCard) detailIncludedCard.hidden = isMarketplaceProduct;
   document.title = `${offer.title} - WaveHub`;
 
   if (detailLayout) detailLayout.hidden = false;
@@ -1208,7 +1363,11 @@ function renderDetail({ countView = true } = {}) {
   if (detailLoginMethod) detailLoginMethod.textContent = offer.accessDelivery?.loginMethod || '-';
   if (detailDeliveryTime) detailDeliveryTime.textContent = offer.accessDelivery?.deliveryTime || offer.delivery || '-';
   renderGameSpecificDetails(offer);
+  renderAccessAndSellerDetails(offer);
   if (detailLongDescription) detailLongDescription.textContent = offer.longDescription;
+  if (detailInfoTitle) {
+    detailInfoTitle.textContent = offer.productType === 'skin' ? 'About This Skin' : 'About This Account';
+  }
   if (detailTag) {
     detailTag.className = `service-tag ${offer.tagClass || 'account'}`;
     detailTag.textContent = offer.tag;

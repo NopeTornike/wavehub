@@ -674,9 +674,59 @@ function getCardScore(listing) {
   return getFavoriteCount(getFavoriteId(listing));
 }
 
+function getMarketplaceProductRating(listingId) {
+  if (!listingId) return null;
+  const reviews = readJson('wavehub.sellerReviews', []);
+  const matching = Array.isArray(reviews)
+    ? reviews.filter((review) => String(review.listingId || '') === String(listingId))
+    : [];
+  if (!matching.length) return null;
+  return matching.reduce((total, review) => total + (Number(review.rating) || 0), 0) / matching.length;
+}
+
 function getMarketplaceCardImage(listing, config) {
+  if (listing.game === 'Call of Duty') {
+    return 'assets/call-of-duty-marketplace-photo.png';
+  }
+
   if (listing.game === 'CS2') {
     return 'assets/cs2-marketplace-cover.png';
+  }
+
+  if (listing.game === 'Dota 2') {
+    return 'assets/dota-2-marketplace-cover.png';
+  }
+
+  if (listing.game === 'Fortnite') {
+    return 'assets/fortnite-marketplace-cover.png';
+  }
+
+  if (listing.game === 'Minecraft') {
+    return 'assets/minecraft-marketplace-cover.png';
+  }
+
+  if (listing.game === 'GTA 5') {
+    return 'assets/gta-5-marketplace-cover.png';
+  }
+
+  if (listing.game === 'Valorant') {
+    return 'assets/valorant-marketplace-cover.png';
+  }
+
+  if (listing.game === 'League of Legends') {
+    return 'assets/league-of-legends-marketplace-cover.png';
+  }
+
+  if (listing.game === 'Clash of Clans') {
+    return 'assets/clash-of-clans-marketplace-cover.png';
+  }
+
+  if (listing.game === 'Roblox') {
+    return 'assets/roblox-marketplace-cover.png';
+  }
+
+  if (listing.game === 'PUBG Mobile') {
+    return 'assets/pubg-mobile-marketplace-cover.png';
   }
 
   if (config.type === 'account') {
@@ -1346,6 +1396,7 @@ function createProductShowcaseCard(listing) {
   const favoriteCount = getCardScore(listing);
   const sellerName = getListingSellerName(listing);
   const image = getMarketplaceCardImage(listing, config);
+  const productRating = getMarketplaceProductRating(listing.id);
 
   card.className = `marketplace-card product-showcase-card ${config.type}-showcase-card`;
   card.dataset.listingId = listing.id;
@@ -1360,15 +1411,16 @@ function createProductShowcaseCard(listing) {
 
   if (image) {
     cover.classList.add('has-image');
-    cover.style.backgroundImage = `linear-gradient(180deg, rgba(5, 8, 19, 0.02), rgba(5, 8, 19, 0.72)), url("${image}")`;
+    cover.style.backgroundImage = `linear-gradient(180deg, rgba(5, 8, 19, 0.01), rgba(5, 8, 19, 0.18)), url("${image}")`;
   }
 
   const badges = document.createElement('div');
   badges.className = 'product-showcase-badges';
 
-  const instantBadge = document.createElement('span');
-  instantBadge.className = 'showcase-badge showcase-badge-green';
-  instantBadge.textContent = 'Instant';
+  const gameBadge = document.createElement('span');
+  gameBadge.className = 'showcase-badge showcase-game-badge';
+  gameBadge.textContent = listing.game || 'Marketplace';
+  badges.appendChild(gameBadge);
 
   if (config.type === 'skin') {
     const typeBadge = document.createElement('span');
@@ -1376,7 +1428,6 @@ function createProductShowcaseCard(listing) {
     typeBadge.textContent = 'Skin';
     badges.appendChild(typeBadge);
   }
-  badges.appendChild(instantBadge);
 
   const saveButton = document.createElement('button');
   saveButton.className = 'save-button product-showcase-save';
@@ -1389,27 +1440,17 @@ function createProductShowcaseCard(listing) {
   const coverInfo = document.createElement('div');
   coverInfo.className = 'product-showcase-cover-info';
 
-  const stats = document.createElement('div');
-  stats.className = 'product-showcase-stats';
+  const showcaseTitle = document.createElement('h3');
+  showcaseTitle.textContent = getListingTitle(listing);
 
-  getProductStats(listing, config).forEach((item) => {
-    const stat = document.createElement('span');
-    if (item.label === 'Views') {
-      stat.classList.add('is-views-stat');
-    }
-    const statTop = document.createElement('strong');
-    const statIcon = document.createElement('i');
-    const statLabel = document.createElement('small');
+  const showcaseLevel = document.createElement('span');
+  showcaseLevel.className = 'product-showcase-level';
+  showcaseLevel.textContent = getCardLevel(listing)
+    ? `✪ Level ${formatCount(getCardLevel(listing))}`
+    : config.label;
 
-    statIcon.textContent = item.symbol;
-    statTop.append(statIcon, document.createTextNode(String(item.value)));
-    statLabel.textContent = item.label;
-    stat.append(statTop, statLabel);
-    stats.appendChild(stat);
-  });
-
-  coverInfo.appendChild(stats);
-  cover.append(badges, coverInfo);
+  coverInfo.append(showcaseTitle, showcaseLevel);
+  cover.append(badges, saveButton, coverInfo);
 
   const body = document.createElement('div');
   body.className = 'product-showcase-body';
@@ -1436,7 +1477,11 @@ function createProductShowcaseCard(listing) {
   const sellerTitle = document.createElement('strong');
   sellerTitle.textContent = sellerName;
 
-  sellerCopy.appendChild(sellerTitle);
+  const sellerScore = document.createElement('small');
+  sellerScore.className = 'product-showcase-seller-rating';
+  sellerScore.textContent = productRating === null ? '★ No product reviews' : `★ ${productRating.toFixed(1)}`;
+
+  sellerCopy.append(sellerTitle, sellerScore);
   seller.append(sellerAvatar, sellerCopy);
 
   body.appendChild(seller);
@@ -1450,7 +1495,11 @@ function createProductShowcaseCard(listing) {
 
   const social = document.createElement('span');
   social.className = 'product-showcase-social';
-  social.textContent = `○ ${formatCount(getCardViews(listing))}  ♡ ${formatCount(getCardLikes(listing))}`;
+  social.textContent = `◉ ${formatCount(getCardViews(listing))}   ♡ ${formatCount(getCardLikes(listing))}`;
+
+  const delivery = document.createElement('span');
+  delivery.className = 'product-showcase-delivery';
+  delivery.textContent = `⚡ ${listing.accessDelivery?.deliveryTime || 'Instant Delivery'}`;
 
   const cartButton = document.createElement('button');
   cartButton.className = 'product-showcase-cart';
@@ -1473,7 +1522,7 @@ function createProductShowcaseCard(listing) {
 
   const iconActions = document.createElement('div');
   iconActions.className = 'product-showcase-icon-actions';
-  iconActions.append(saveButton, cartButton);
+  iconActions.append(cartButton);
 
   const detailButton = document.createElement('button');
   detailButton.className = 'product-showcase-details';
@@ -1485,7 +1534,7 @@ function createProductShowcaseCard(listing) {
     }
   });
 
-  footer.append(price, social, iconActions, detailButton);
+  footer.append(price, social, delivery, iconActions, detailButton);
   card.append(cover, body, footer);
 
   return card;

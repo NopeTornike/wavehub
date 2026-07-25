@@ -238,6 +238,16 @@
                   <h2 id="detailGameSpecificTitle">Call of Duty Details</h2>
                   <div class="detail-meta-grid detail-game-specific-grid" id="detailGameSpecificGrid" aria-label="Call of Duty account details"></div>
                 </section>
+
+                <section class="detail-section detail-access-card" id="detailAccessCard" aria-labelledby="detailAccessTitle">
+                  <h2 id="detailAccessTitle">Access &amp; Delivery</h2>
+                  <div class="detail-facts-grid" id="detailAccessGrid"></div>
+                </section>
+
+                <section class="detail-section detail-linked-card" id="detailLinkedCard" aria-labelledby="detailLinkedTitle" hidden>
+                  <h2 id="detailLinkedTitle">Linked Accounts</h2>
+                  <div class="detail-linked-grid" id="detailLinkedGrid"></div>
+                </section>
               </section>
 
               <section class="detail-tab-panel detail-combined-section" id="detailGallery">
@@ -311,6 +321,10 @@
               <strong id="detailPrice">0 GEL</strong>
               <button class="detail-share-button" type="button" aria-label="Share product">Share</button>
             </div>
+            <div class="detail-stock-lines">
+              <span><i></i> In Stock</span>
+              <span><i></i> Sold by <strong id="detailSoldBy">Seller</strong></span>
+            </div>
             <div class="detail-buy-tags">
               <span class="service-tag account" id="detailTag">Offer</span>
               <span class="detail-delivery-chip" id="detailSideDelivery">Instant delivery</span>
@@ -327,6 +341,16 @@
                 <strong id="detailSideQualityScore">-</strong>
                 <small id="detailSideQualityScoreLabel">No rating</small>
               </div>
+              <div>
+                <span>Completed Orders</span>
+                <strong id="detailCompletedOrders">0</strong>
+                <small>real orders</small>
+              </div>
+              <div>
+                <span>Avg. Response Time</span>
+                <strong id="detailResponseTime">-</strong>
+                <small>seller response</small>
+              </div>
             </div>
 
             <button class="detail-buy-button" id="buyButton" type="button">Buy now</button>
@@ -341,6 +365,15 @@
             </div>
 
           </aside>
+
+          <section class="detail-seller-strip" id="detailSellerStrip">
+            <span class="detail-seller-avatar" id="detailSellerAvatar">?</span>
+            <div>
+              <strong id="detailSellerStripName">Seller</strong>
+              <small id="detailSellerStripMeta">No reviews yet</small>
+            </div>
+            <a id="detailSellerProfileButton" href="#">View Seller Profile →</a>
+          </section>
         </article>
 
         <div class="marketplace-empty" id="detailEmpty" hidden>Offer not found.</div>
