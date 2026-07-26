@@ -107,6 +107,7 @@ const marketplaceGameCovers = {
   'Call of Duty': 'assets/call-of-duty-marketplace-photo.png',
   CS2: 'assets/cs2-marketplace-cover.png',
   'PUBG Mobile': 'assets/pubg-mobile-marketplace-cover.png',
+  'Mobile Legends': 'assets/mobile-legends-marketplace-cover.png',
   Roblox: 'assets/roblox-marketplace-cover.png',
   'Clash of Clans': 'assets/clash-of-clans-marketplace-cover.png',
   'League of Legends': 'assets/league-of-legends-marketplace-cover.png',

@@ -674,14 +674,68 @@ function getCardScore(listing) {
   return getFavoriteCount(getFavoriteId(listing));
 }
 
-function getMarketplaceProductRating(listingId) {
-  if (!listingId) return null;
+function getMarketplaceProductReviewStats(listingId) {
+  if (!listingId) return { rating: null, count: 0 };
   const reviews = readJson('wavehub.sellerReviews', []);
   const matching = Array.isArray(reviews)
     ? reviews.filter((review) => String(review.listingId || '') === String(listingId))
     : [];
-  if (!matching.length) return null;
-  return matching.reduce((total, review) => total + (Number(review.rating) || 0), 0) / matching.length;
+  if (!matching.length) return { rating: null, count: 0 };
+  return {
+    rating: matching.reduce((total, review) => total + (Number(review.rating) || 0), 0) / matching.length,
+    count: matching.length,
+  };
+}
+
+function getMarketplaceSellerWaveRank(username) {
+  if (!username) return null;
+
+  const users = readJson(localUsersKey, []);
+  const listings = getSellerListings();
+  const reviews = readJson('wavehub.sellerReviews', []);
+  const purchases = readJson('wavehub.purchases', []);
+  const soldItems = Array.isArray(purchases)
+    ? purchases.flatMap((purchase) => (Array.isArray(purchase.items) ? purchase.items : []))
+    : [];
+  const usernames = new Set([
+    ...(Array.isArray(users) ? users.map((user) => user.username) : []),
+    ...listings.map((listing) => listing.sellerUsername),
+  ].filter(Boolean));
+
+  const rankedSellers = [...usernames]
+    .map((sellerUsername) => {
+      const sellerListings = listings.filter((listing) => listing.sellerUsername === sellerUsername);
+      const listingIds = new Set(sellerListings.map((listing) => String(listing.id || '')));
+      const sellerReviews = Array.isArray(reviews)
+        ? reviews.filter((review) => review.sellerUsername === sellerUsername)
+        : [];
+      const orders = soldItems.filter((item) => (
+        item.sellerUsername === sellerUsername
+        || (item.listingId && listingIds.has(String(item.listingId)))
+      )).length;
+      const rating = sellerReviews.length
+        ? sellerReviews.reduce((total, review) => total + (Number(review.rating) || 0), 0) / sellerReviews.length
+        : 0;
+
+      return {
+        username: sellerUsername,
+        orders,
+        reviews: sellerReviews.length,
+        listings: sellerListings.length,
+        rating,
+      };
+    })
+    .filter((seller) => seller.orders || seller.reviews || seller.listings)
+    .sort((a, b) => (
+      b.orders - a.orders
+      || b.reviews - a.reviews
+      || b.listings - a.listings
+      || b.rating - a.rating
+      || a.username.localeCompare(b.username)
+    ));
+  const rankIndex = rankedSellers.findIndex((seller) => seller.username === username);
+
+  return rankIndex < 0 ? null : rankIndex + 1;
 }
 
 function getMarketplaceCardImage(listing, config) {
@@ -727,6 +781,10 @@ function getMarketplaceCardImage(listing, config) {
 
   if (listing.game === 'PUBG Mobile') {
     return 'assets/pubg-mobile-marketplace-cover.png';
+  }
+
+  if (listing.game === 'Mobile Legends') {
+    return 'assets/mobile-legends-marketplace-cover.png';
   }
 
   if (config.type === 'account') {
@@ -1396,7 +1454,8 @@ function createProductShowcaseCard(listing) {
   const favoriteCount = getCardScore(listing);
   const sellerName = getListingSellerName(listing);
   const image = getMarketplaceCardImage(listing, config);
-  const productRating = getMarketplaceProductRating(listing.id);
+  const productReviewStats = getMarketplaceProductReviewStats(listing.id);
+  const sellerWaveRank = getMarketplaceSellerWaveRank(listing.sellerUsername);
 
   card.className = `marketplace-card product-showcase-card ${config.type}-showcase-card`;
   card.dataset.listingId = listing.id;
@@ -1411,7 +1470,7 @@ function createProductShowcaseCard(listing) {
 
   if (image) {
     cover.classList.add('has-image');
-    cover.style.backgroundImage = `linear-gradient(180deg, rgba(5, 8, 19, 0.01), rgba(5, 8, 19, 0.18)), url("${image}")`;
+    cover.style.backgroundImage = `url("${image}")`;
   }
 
   const badges = document.createElement('div');
@@ -1422,7 +1481,12 @@ function createProductShowcaseCard(listing) {
   gameBadge.textContent = listing.game || 'Marketplace';
   badges.appendChild(gameBadge);
 
-  if (config.type === 'skin') {
+  if (config.type === 'account') {
+    const accountTypeBadge = document.createElement('span');
+    accountTypeBadge.className = 'showcase-badge showcase-badge-gold';
+    accountTypeBadge.textContent = formatAccountStatus(listing.accountStatus);
+    badges.appendChild(accountTypeBadge);
+  } else if (config.type === 'skin') {
     const typeBadge = document.createElement('span');
     typeBadge.className = 'showcase-badge showcase-badge-gold';
     typeBadge.textContent = 'Skin';
@@ -1477,11 +1541,17 @@ function createProductShowcaseCard(listing) {
   const sellerTitle = document.createElement('strong');
   sellerTitle.textContent = sellerName;
 
+  const sellerRank = document.createElement('small');
+  sellerRank.className = 'product-showcase-seller-rank';
+  sellerRank.textContent = sellerWaveRank ? `Wave Rank #${sellerWaveRank}` : 'Wave Rank: Unranked';
+
   const sellerScore = document.createElement('small');
   sellerScore.className = 'product-showcase-seller-rating';
-  sellerScore.textContent = productRating === null ? '★ No product reviews' : `★ ${productRating.toFixed(1)}`;
+  sellerScore.textContent = productReviewStats.rating === null
+    ? '★ No product reviews'
+    : `★ ${productReviewStats.rating.toFixed(1)} · ${formatCount(productReviewStats.count)} reviews`;
 
-  sellerCopy.append(sellerTitle, sellerScore);
+  sellerCopy.append(sellerTitle, sellerRank, sellerScore);
   seller.append(sellerAvatar, sellerCopy);
 
   body.appendChild(seller);
@@ -1495,11 +1565,15 @@ function createProductShowcaseCard(listing) {
 
   const social = document.createElement('span');
   social.className = 'product-showcase-social';
-  social.textContent = `◉ ${formatCount(getCardViews(listing))}   ♡ ${formatCount(getCardLikes(listing))}`;
+  const viewStat = document.createElement('span');
+  viewStat.textContent = `◉ ${formatCount(getCardViews(listing))}`;
+  const favoriteStat = document.createElement('span');
+  favoriteStat.textContent = `♡ ${formatCount(getCardLikes(listing))}`;
+  social.append(viewStat, favoriteStat);
 
   const delivery = document.createElement('span');
   delivery.className = 'product-showcase-delivery';
-  delivery.textContent = `⚡ ${listing.accessDelivery?.deliveryTime || 'Instant Delivery'}`;
+  delivery.textContent = `⚡ Delivery — ${listing.accessDelivery?.deliveryTime || 'Instant'}`;
 
   const cartButton = document.createElement('button');
   cartButton.className = 'product-showcase-cart';
