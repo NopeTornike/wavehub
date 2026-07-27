@@ -129,12 +129,19 @@ const listingGames = [
 const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
 const sessionTimeOptions = ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '18:30', '19:00', '19:30', '20:00', '21:00'];
 const publicProfileGameImages = {
-  'PUBG Mobile': 'assets/pubg-photo.jpeg',
+  'PUBG Mobile': 'assets/pubg-mobile-marketplace-cover.png',
   'Call of Duty': 'assets/call-of-duty-marketplace-photo.png',
-  CS2: 'assets/cs2-photo.jpeg',
-  'Mobile Legends': 'assets/mobile-legends-photo.jpeg',
+  CS2: 'assets/cs2-marketplace-cover.png',
+  'Mobile Legends': 'assets/mobile-legends-marketplace-cover.png',
   'Free Fire': 'assets/freefire-photo.jpeg',
-  Roblox: 'assets/roblox-photo.jpeg',
+  Roblox: 'assets/roblox-marketplace-cover.png',
+  'Clash of Clans': 'assets/clash-of-clans-marketplace-cover.png',
+  'League of Legends': 'assets/league-of-legends-marketplace-cover.png',
+  Fortnite: 'assets/fortnite-marketplace-cover.png',
+  Minecraft: 'assets/minecraft-marketplace-cover.png',
+  'GTA 5': 'assets/gta-5-marketplace-cover.png',
+  'Dota 2': 'assets/dota-2-marketplace-cover.png',
+  Valorant: 'assets/valorant-marketplace-cover.png',
 };
 
 function readJson(key, fallback) {
@@ -962,7 +969,7 @@ function renderPublicProfileGame(game, nameElement, metaElement, imageElement, f
       : fallbackMeta;
   }
   if (imageElement) {
-    const image = game?.imageData || publicProfileGameImages[game?.game] || '';
+    const image = publicProfileGameImages[game?.game] || game?.imageData || '';
     imageElement.style.backgroundImage = image
       ? `linear-gradient(180deg, rgba(4, 7, 17, 0.03), rgba(4, 7, 17, 0.5)), url("${image}")`
       : '';
