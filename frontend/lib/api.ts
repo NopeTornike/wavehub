@@ -35,6 +35,7 @@ import type {
   PublicCoachDetail,
   AdminCoachSummary,
   PublicContentPage,
+  PublicUserProfile,
   AdminContentPage,
   ContentPageStatus,
 } from '@wavehub/shared-types'
@@ -433,4 +434,7 @@ export const api = {
 
   adminUpsertContentPage: (payload: { slug: string; title: string; body?: string; status?: ContentPageStatus }) =>
     request<AdminContentPage>('/admin/content', { method: 'POST', body: JSON.stringify(payload) }),
+
+  // --- Public user profiles --- (backend/src/users/users.controller.ts)
+  getUserProfile: (username: string) => request<PublicUserProfile>(`/users/${username}`),
 }

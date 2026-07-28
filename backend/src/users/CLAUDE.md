@@ -70,6 +70,15 @@ alongside `admin-users.controller.ts`).
 - Suspending/banning a user takes effect on their **next guarded request**, not instantly — see
   `backend/src/auth/CLAUDE.md`'s note on `AuthGuard`'s per-request status check (added alongside
   this feature specifically so a ban isn't a no-op against an already-issued session cookie).
+- **`UsersModule` is deliberately a leaf module** — no other module imports, no controller of its
+  own besides `UsersService`. The public seller-profile route (`GET /users/:username`) needs both
+  `UsersService` and `ListingsService`, but `UsersModule` importing `ListingsModule` would be
+  circular (`AuthModule` already imports `UsersModule`, and `ListingsModule` imports `AuthModule`)
+  — same reasoning `AdminModule`'s own comment documents for why `AdminUsersController` lives
+  there instead of here. So `UsersController` is declared in `ListingsModule` instead
+  (`backend/src/listings/listings.module.ts`), even though the file itself lives in this
+  directory for discoverability. If you add a new cross-module public-facing route here, check
+  this constraint before picking where to register the controller.
 
 ## Related modules
 - `backend/src/auth/` — the primary consumer; also owns direct write access to this entity for
@@ -78,8 +87,10 @@ alongside `admin-users.controller.ts`).
 - `backend/src/reviews/` — the only module allowed to write `sellerRatingAvg`/`sellerRatingCount`.
 - `backend/src/admin/` — `AdminGuard` reads `adminRole` on every admin-guarded request; nothing
   else should read or write it outside a direct DB update today.
-- `packages/shared-types/` — `UserStatus`, `AdminRole`, and `PublicUser` come from here; keep them
-  in sync if this entity's shape changes.
+- `backend/src/listings/` — `UsersController` (public `GET /users/:username`, see gotcha below)
+  is declared in `ListingsModule`, not here, and calls `ListingsService.countActiveBySeller()`.
+- `packages/shared-types/` — `UserStatus`, `AdminRole`, `PublicUser`, and `PublicUserProfile` come
+  from here; keep them in sync if this entity's shape changes.
 
 ## Status
 Covers what registration/login/session/verification/wallet-balance/admin-role-checking/admin

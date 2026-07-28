@@ -688,3 +688,16 @@ export interface AdminContentPage {
   createdAt: string;
   updatedAt: string;
 }
+
+// What GET /users/:username returns — a public seller-profile view. Deliberately excludes
+// email/wavecoinBalance/adminRole/status (see AdminUserSummary for the admin-only superset) —
+// this is served to unauthenticated visitors.
+export interface PublicUserProfile {
+  username: string;
+  firstName: string;
+  lastName: string;
+  sellerRatingAvg: string | null;
+  sellerRatingCount: number;
+  activeListingCount: number;
+  createdAt: string;
+}

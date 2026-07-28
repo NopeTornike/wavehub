@@ -84,6 +84,12 @@ export class ListingsService {
     return this.listings.find({ where: { sellerId }, order: { createdAt: 'DESC' } });
   }
 
+  // Backs the public seller-profile page (backend/src/users/users.controller.ts) — only counts
+  // what's actually visible to a public visitor, same as browseActive's own status filter.
+  countActiveBySeller(sellerId: string): Promise<number> {
+    return this.listings.count({ where: { sellerId, status: ListingStatus.Active } });
+  }
+
   // Backs the admin `GET listings/pending-review` route — the "what needs my approval" queue.
   // Returns a purpose-built projection (AdminListingSummary), not the raw joined entity — a bare
   // Listing.seller relation would carry the seller's full User row (email, wavecoinBalance, etc.)

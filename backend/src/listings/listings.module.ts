@@ -12,6 +12,8 @@ import { ListingsController } from './listings.controller';
 import { StorageModule } from '../storage/storage.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
+import { UsersModule } from '../users/users.module';
+import { UsersController } from '../users/users.controller';
 
 @Module({
   imports: [
@@ -19,8 +21,12 @@ import { AdminModule } from '../admin/admin.module';
     StorageModule,
     AuthModule,
     AdminModule,
+    UsersModule,
   ],
-  controllers: [ListingsController],
+  // UsersController (public GET /users/:username) is declared here rather than in UsersModule
+  // itself — it needs both UsersService and ListingsService, and UsersModule must stay a leaf
+  // module (see users.module.ts's own comment) since AuthModule already imports it.
+  controllers: [ListingsController, UsersController],
   providers: [ListingsService],
   exports: [ListingsService],
 })

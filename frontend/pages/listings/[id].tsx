@@ -218,7 +218,7 @@ export default function ListingDetail() {
               {listing.game && <span className="detail-delivery-chip">{listing.game.name}</span>}
             </div>
 
-            <div className="seller-card">
+            <Link href={`/u/${listing.seller.username}`} className="seller-card">
               <div className="seller-avatar">{listing.seller.firstName[0]}</div>
               <div>
                 <div style={{ fontWeight: 700 }}>
@@ -233,7 +233,7 @@ export default function ListingDetail() {
                   </span>
                 )}
               </div>
-            </div>
+            </Link>
 
             {listing.type === ListingType.Service ? (
               <div className="package-list" style={{ marginTop: 16 }}>

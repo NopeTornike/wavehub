@@ -84,12 +84,17 @@ exists either, and it's a plain form with no strong design-system opinion to por
 (a) an own-account dashboard with listing/coaching-session edit modals, which has no equivalent
 anywhere in the real app yet (there's no seller "my listings" management UI at all — a gap
 predating this pivot, see `backend/src/listings/CLAUDE.md`), so porting it isn't a visual-port
-task, it's new seller-dashboard feature work; (b) a public seller-profile viewer
-(`.public-profile-hero`/`.public-profile-stats`/`.public-profile-overview`, reached via
-`profile.html?user=username`) that *is* portable but needs a public `GET /users/:username`-style
-backend endpoint that doesn't exist yet (only `/auth/me` and admin-only user routes do). Tracked
-as a separate task (see the build plan) rather than silently dropped or faked with placeholder
-data.
+task, it's new seller-dashboard feature work — still not built, no task tracks it yet; (b) the
+public seller-profile viewer half **is now built**: `pages/u/[username].tsx`, backed by the new
+`GET /users/:username` (`backend/src/users/users.controller.ts`, actually declared in
+`ListingsModule` — see that module's `CLAUDE.md`). Reuses `.public-profile-hero`/
+`.public-profile-stats` from `profile.html`, but only the 3 stat tiles this app can back with real
+data (Rating, Public listings, Member since) — the prototype's own version also shows "Orders
+received" and "Buyer reviews" tiles and a marketplace-activity rank panel, none of which this app
+computes; left out rather than faked. Wired from the two places a username was already shown as
+plain text: the listing-detail seller card and the coach-profile seller card (both now `Link`s to
+`/u/[username]`) — `orders/index.tsx`'s counterpart username and `listings/[id].tsx`'s review
+author aren't linked yet, low-value follow-ups if this page proves useful.
 `support/index.tsx` and `support/[id].tsx` (support ticketing) have no static-prototype reference
 at all — support ticketing was net-new backend+frontend work this project added, never part of
 Tornike's site — so they reuse the same `.detail-page`/`.detail-title-block`/`.detail-section`

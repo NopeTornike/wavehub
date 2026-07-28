@@ -110,7 +110,7 @@ export default function CoachProfile() {
               {coach.gameName && <span className="detail-delivery-chip">{coach.gameName}</span>}
             </div>
 
-            <div className="seller-card">
+            <Link href={`/u/${coach.username}`} className="seller-card">
               <div className="seller-avatar">{coach.firstName[0]}</div>
               <div>
                 <div style={{ fontWeight: 700 }}>
@@ -120,7 +120,7 @@ export default function CoachProfile() {
                   @{coach.username}
                 </div>
               </div>
-            </div>
+            </Link>
 
             <button className="detail-buy-button" type="button" disabled title="სესიის დაჯავშნა მალე დაემატება">
               სესიის დაჯავშნა (მალე)
