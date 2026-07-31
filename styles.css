@@ -4784,6 +4784,20 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
   padding: 4px 2px 0;
 }
 
+.detail-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.detail-title-game-icon {
+  width: clamp(42px, 5vw, 58px);
+  height: clamp(42px, 5vw, 58px);
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
 .detail-main h1 {
   margin: 0;
   max-width: 760px;
@@ -5325,6 +5339,28 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 
 .detail-buy-scores div small {
   grid-column: 1;
+}
+
+.detail-buy-scores .detail-icon-score {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+}
+
+.detail-icon-score .detail-score-icon {
+  width: 28px;
+  height: 28px;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+  object-fit: contain;
+}
+
+.detail-icon-score span,
+.detail-icon-score small {
+  grid-column: 2;
+}
+
+.detail-icon-score strong {
+  grid-column: 3;
 }
 
 .detail-buy-button {

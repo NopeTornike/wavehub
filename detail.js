@@ -36,6 +36,7 @@ const detailBasicViews = document.getElementById('detailBasicViews');
 const detailBasicSeller = document.getElementById('detailBasicSeller');
 const detailKicker = document.getElementById('detailKicker');
 const detailTitle = document.getElementById('detailTitle');
+const detailTitleGameIcon = document.getElementById('detailTitleGameIcon');
 const detailDescription = document.getElementById('detailDescription');
 const detailSeller = document.getElementById('detailSeller');
 const detailGame = document.getElementById('detailGame');
@@ -102,6 +103,23 @@ const detailGameIcons = {
   'Mobile Legends': 'assets/mobile-legends-popular-games-photo.png',
   'Free Fire': 'assets/freefire-photo.jpeg',
   Roblox: 'assets/roblox-popular-games-photo.png',
+};
+const detailTitleGameIcons = {
+  'Call of Duty': 'assets/call-of-duty-title-icon.png',
+  'Call of Duty Mobile': 'assets/call-of-duty-title-icon.png',
+  'COD Mobile': 'assets/call-of-duty-title-icon.png',
+  'Mobile Legends': 'assets/mobile-legends-title-icon.png',
+  'Mobile Legends: Bang Bang': 'assets/mobile-legends-title-icon.png',
+  'League of Legends': 'assets/league-of-legends-title-icon.png',
+  LOL: 'assets/league-of-legends-title-icon.png',
+  'Dota 2': 'assets/dota-2-title-icon.png',
+  DOTA2: 'assets/dota-2-title-icon.png',
+  'GTA 5': 'assets/gta-5-title-icon.png',
+  'Grand Theft Auto V': 'assets/gta-5-title-icon.png',
+  Valorant: 'assets/valorant-title-icon.png',
+  Fortnite: 'assets/fortnite-title-icon.png',
+  CS2: 'assets/cs2-title-icon.png',
+  'Counter-Strike 2': 'assets/cs2-title-icon.png',
 };
 const marketplaceGameCovers = {
   'Call of Duty': 'assets/call-of-duty-marketplace-photo.png',
@@ -1310,6 +1328,7 @@ function renderDetail({ countView = true } = {}) {
     if (detailLayout) detailLayout.hidden = true;
     if (detailEmpty) detailEmpty.hidden = false;
     if (detailTitle) detailTitle.textContent = 'Offer not found';
+    if (detailTitleGameIcon) detailTitleGameIcon.hidden = true;
     return;
   }
 
@@ -1340,6 +1359,12 @@ function renderDetail({ countView = true } = {}) {
     detailKicker.textContent = offer.type === 'product' ? `${offer.productLabel || 'Product'} detail` : 'Service detail';
   }
   if (detailTitle) detailTitle.textContent = offer.title;
+  if (detailTitleGameIcon) {
+    const titleGameIcon = detailTitleGameIcons[offer.game] || '';
+    detailTitleGameIcon.src = titleGameIcon;
+    detailTitleGameIcon.alt = titleGameIcon ? `${offer.game} icon` : '';
+    detailTitleGameIcon.hidden = !titleGameIcon;
+  }
   if (detailDescription) detailDescription.textContent = offer.description;
   if (detailSeller) {
     detailSeller.textContent = offer.seller;

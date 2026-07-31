@@ -149,7 +149,10 @@
 
             <div class="detail-title-block">
               <p class="section-kicker" id="detailKicker">Offer</p>
-              <h1 id="detailTitle">Loading...</h1>
+              <div class="detail-heading-row">
+                <img class="detail-title-game-icon" id="detailTitleGameIcon" src="" alt="" hidden />
+                <h1 id="detailTitle">Loading...</h1>
+              </div>
               <p class="detail-lead" id="detailDescription"></p>
             </div>
 
@@ -331,22 +334,26 @@
             </div>
 
             <div class="detail-buy-scores" aria-label="Marketplace scores">
-              <div>
+              <div class="detail-icon-score detail-rating-score">
+                <img class="detail-score-icon" src="assets/product-rating-icon.svg" alt="" aria-hidden="true">
                 <span>Seller Rating</span>
                 <strong id="detailSideSellerScore">-</strong>
                 <small id="detailSideSellerScoreLabel">No rating</small>
               </div>
-              <div>
+              <div class="detail-icon-score detail-favorites-score">
+                <img class="detail-score-icon" src="assets/favorites-score-icon.svg" alt="" aria-hidden="true">
                 <span>Favorites</span>
                 <strong id="detailSideQualityScore">-</strong>
                 <small id="detailSideQualityScoreLabel">No rating</small>
               </div>
-              <div>
+              <div class="detail-icon-score detail-completed-score">
+                <img class="detail-score-icon" src="assets/completed-orders-icon.svg" alt="" aria-hidden="true">
                 <span>Completed Orders</span>
                 <strong id="detailCompletedOrders">0</strong>
                 <small>real orders</small>
               </div>
-              <div>
+              <div class="detail-icon-score detail-response-score">
+                <img class="detail-score-icon" src="assets/avg-response-time-icon.svg" alt="" aria-hidden="true">
                 <span>Avg. Response Time</span>
                 <strong id="detailResponseTime">-</strong>
                 <small>seller response</small>
