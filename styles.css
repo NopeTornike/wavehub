@@ -7024,6 +7024,28 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
   background: linear-gradient(135deg, var(--cyan), var(--violet));
 }
 
+.service-tag-account-icon {
+  display: none;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+#detailHeroTag {
+  gap: 5px;
+}
+
+#detailHeroTag.service-tag.account.is-basic-account .service-tag-account-icon {
+  display: block;
+}
+
+#detailHeroTagText {
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+}
+
 .service-tag.skin {
   background: linear-gradient(135deg, var(--pink), #f59e0b);
 }

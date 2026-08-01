@@ -24,6 +24,7 @@ const detailBackLink = document.getElementById('detailBackLink');
 const detailBreadcrumb = document.getElementById('detailBreadcrumb');
 const detailHeroImage = document.getElementById('detailHeroImage');
 const detailHeroTag = document.getElementById('detailHeroTag');
+const detailHeroTagText = document.getElementById('detailHeroTagText');
 const detailHeroDelivery = document.getElementById('detailHeroDelivery');
 const detailGalleryCount = document.getElementById('detailGalleryCount');
 const detailThumbnails = document.getElementById('detailThumbnails');
@@ -110,6 +111,10 @@ const detailTitleGameIcons = {
   'COD Mobile': 'assets/call-of-duty-title-icon.png',
   'Mobile Legends': 'assets/mobile-legends-title-icon.png',
   'Mobile Legends: Bang Bang': 'assets/mobile-legends-title-icon.png',
+  'PUBG Mobile': 'assets/pubg-mobile-title-icon.png',
+  PUBG: 'assets/pubg-mobile-title-icon.png',
+  'Clash of Clans': 'assets/clash-of-clans-title-icon.png',
+  Roblox: 'assets/roblox-title-icon.png',
   'League of Legends': 'assets/league-of-legends-title-icon.png',
   LOL: 'assets/league-of-legends-title-icon.png',
   'Dota 2': 'assets/dota-2-title-icon.png',
@@ -118,6 +123,7 @@ const detailTitleGameIcons = {
   'Grand Theft Auto V': 'assets/gta-5-title-icon.png',
   Valorant: 'assets/valorant-title-icon.png',
   Fortnite: 'assets/fortnite-title-icon.png',
+  Minecraft: 'assets/minecraft-title-icon.png',
   CS2: 'assets/cs2-title-icon.png',
   'Counter-Strike 2': 'assets/cs2-title-icon.png',
 };
@@ -1400,7 +1406,15 @@ function renderDetail({ countView = true } = {}) {
   }
   if (detailHeroTag) {
     detailHeroTag.className = `service-tag ${offer.tagClass || 'account'}`;
-    detailHeroTag.textContent = offer.tag;
+    detailHeroTag.classList.toggle(
+      'is-basic-account',
+      offer.productType === 'account' && String(offer.accountStatus || 'basic').toLowerCase() === 'basic',
+    );
+    if (detailHeroTagText) {
+      detailHeroTagText.textContent = offer.tag;
+    } else {
+      detailHeroTag.textContent = offer.tag;
+    }
   }
   if (detailHeroDelivery) detailHeroDelivery.textContent = offer.delivery;
   if (detailSideDelivery) detailSideDelivery.textContent = offer.delivery;

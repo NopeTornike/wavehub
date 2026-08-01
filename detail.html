@@ -258,7 +258,13 @@
                 <section class="detail-gallery-card" aria-label="Product gallery">
                   <div class="detail-hero-image" id="detailHeroImage">
                     <div class="detail-hero-badges">
-                      <span class="service-tag account" id="detailHeroTag">Offer</span>
+                      <span class="service-tag account" id="detailHeroTag">
+                        <svg class="service-tag-account-icon" viewBox="0 0 16 16" aria-hidden="true">
+                          <circle cx="8" cy="5" r="3" fill="currentColor"></circle>
+                          <path d="M2 15a6 6 0 0 1 12 0H2Z" fill="currentColor"></path>
+                        </svg>
+                        <span id="detailHeroTagText">Offer</span>
+                      </span>
                       <span class="detail-delivery-chip" id="detailHeroDelivery">Instant delivery</span>
                     </div>
                     <button class="detail-hero-save" id="detailSaveButton" type="button" aria-label="Add to wishlist"></button>
@@ -335,7 +341,7 @@
 
             <div class="detail-buy-scores" aria-label="Marketplace scores">
               <div class="detail-icon-score detail-rating-score">
-                <img class="detail-score-icon" src="assets/product-rating-icon.svg" alt="" aria-hidden="true">
+                <img class="detail-score-icon" src="assets/seller-rating-star-icon.png" alt="" aria-hidden="true">
                 <span>Seller Rating</span>
                 <strong id="detailSideSellerScore">-</strong>
                 <small id="detailSideSellerScoreLabel">No rating</small>
