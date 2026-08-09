@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="ka">
 <head>
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png?v=4">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260720-mobile-1" />
+  <link rel="stylesheet" href="styles.css?v=20260810-home-sections-3" />
 </head>
 <body class="home-page">
   <div class="app-shell">
@@ -41,14 +42,6 @@
         <a class="side-link" href="about.html" data-section="About Us">
           <span class="nav-icon nav-icon-about" aria-hidden="true">i</span>
           <span>About Us</span>
-        </a>
-        <a class="side-link" href="faq.html" data-section="FAQ">
-          <span class="nav-icon nav-icon-faq" aria-hidden="true">?</span>
-          <span>FAQ</span>
-        </a>
-        <a class="side-link" href="how-it-works.html" data-section="How It Works">
-          <span class="nav-icon nav-icon-how" aria-hidden="true">›</span>
-          <span>How It Works</span>
         </a>
         <a class="side-link" href="orders.html" data-section="Orders">
           <span class="nav-icon nav-icon-orders" aria-hidden="true"><img src="assets/orders-icon.svg" alt="" /></span>
@@ -220,8 +213,8 @@
             <a class="primary-action" href="marketplace.html">Explore Marketplace</a>
             <a class="secondary-action" href="coaching.html">Browse Coaches</a>
             <a class="secondary-action" href="about.html">About Us</a>
-            <a class="secondary-action" href="faq.html">FAQ</a>
-            <a class="secondary-action" href="how-it-works.html">How It Works</a>
+            <a class="secondary-action" href="#faq">FAQ</a>
+            <a class="secondary-action" href="#how-it-works">How It Works</a>
           </div>
         </div>
 
@@ -427,11 +420,117 @@
           </div>
         </div>
       </section>
+
+      <section class="content-section home-how-section" id="how-it-works" aria-labelledby="howTitle">
+        <div class="how-page">
+          <header class="how-hero">
+            <p class="how-eyebrow"><span></span><b>◆</b> HOW IT WORKS <b>◆</b><span></span></p>
+            <h1 id="howTitle">See how <em>WaveHubX</em> works</h1>
+            <p>Tap an icon to learn more about each step.</p>
+          </header>
+
+          <div class="how-stepper" role="tablist" aria-label="How WaveHubX works">
+            <button class="how-step is-active" type="button" role="tab" aria-selected="true" data-step="0"><span class="how-step-icon"><img src="assets/how-explore-icon.png" alt="" /></span><strong><i>1</i> Explore</strong></button>
+            <button class="how-step" type="button" role="tab" aria-selected="false" data-step="1"><span class="how-step-icon"><img src="assets/how-compare-icon.png" alt="" /></span><strong><i>2</i> Compare &amp; Choose</strong></button>
+            <button class="how-step" type="button" role="tab" aria-selected="false" data-step="2"><span class="how-step-icon"><img src="assets/how-order-icon.png" alt="" /></span><strong><i>3</i> Order Securely</strong></button>
+            <button class="how-step" type="button" role="tab" aria-selected="false" data-step="3"><span class="how-step-icon"><img src="assets/how-receive-icon.png" alt="" /></span><strong><i>4</i> Receive &amp; Confirm</strong></button>
+          </div>
+
+          <div class="how-slider" id="howSlider" aria-live="polite">
+            <button class="how-arrow how-arrow-prev" type="button" aria-label="Previous step">‹</button>
+            <div class="how-slides">
+              <article class="how-slide is-active" data-slide="0">
+                <div class="how-detail-icon"><img src="assets/how-explore-icon.png" alt="Explore" /></div><div class="how-detail-copy"><h2>1. Explore</h2><p>Discover games, services, and trusted offers — all in one place.</p><ul><li>Browse top categories in seconds</li><li>Use smart filters to find your perfect match</li><li>Check details and save your favorites</li></ul></div>
+              </article>
+              <article class="how-slide" data-slide="1" hidden>
+                <div class="how-detail-icon"><img src="assets/how-compare-icon.png" alt="Compare and choose" /></div><div class="how-detail-copy"><h2>2. Compare &amp; Choose</h2><p>Compare verified listings, review details, and choose the best option for you.</p><ul><li>Compare prices, features &amp; delivery time</li><li>Check seller ratings &amp; reviews</li><li>Find the best match for your needs</li><li>Make a confident choice</li></ul></div>
+              </article>
+              <article class="how-slide" data-slide="2" hidden>
+                <div class="how-detail-icon"><img src="assets/how-order-icon.png" alt="Order securely" /></div><div class="how-detail-copy"><h2>3. Order Securely</h2><p>Your payment is protected with escrow. We keep your funds safe until the order is complete.</p><ul><li>Secure escrow protection</li><li>Real-time order tracking</li><li>24/7 support if you need help</li><li>Release payment after confirmation</li></ul></div>
+              </article>
+              <article class="how-slide" data-slide="3" hidden>
+                <div class="how-detail-icon"><img src="assets/how-receive-icon.png" alt="Receive and confirm" /></div><div class="how-detail-copy"><h2>4. Receive &amp; Confirm</h2><p>Receive your item or service, check everything, and confirm when you’re satisfied.</p><ul><li>Receive what you ordered</li><li>Check and test with confidence</li><li>Confirm and complete the order</li><li>Payment is released to the seller</li><li>Rate your experience and build trust</li></ul></div>
+              </article>
+            </div>
+            <button class="how-arrow how-arrow-next" type="button" aria-label="Next step">›</button>
+          </div>
+
+          <div class="how-dots" aria-label="Choose step">
+            <button class="is-active" type="button" data-step="0" aria-label="Step 1"></button><button type="button" data-step="1" aria-label="Step 2"></button><button type="button" data-step="2" aria-label="Step 3"></button><button type="button" data-step="3" aria-label="Step 4"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-section home-faq-section" id="faq" aria-labelledby="faqTitle">
+        <div class="faq-page">
+          <header class="faq-hero">
+            <p class="faq-eyebrow"><span></span><b>FAQ</b><span></span></p>
+            <h1 id="faqTitle">Frequently <em>Asked Questions</em></h1>
+            <p>Find answers to the most common questions.</p>
+          </header>
+
+          <div class="faq-grid">
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>What is WaveHubX?</strong><small>Learn what WaveHubX is and how it connects gamers worldwide.</small></span><i></i></summary>
+              <p>WaveHubX is an all-in-one gaming ecosystem where players can discover marketplace products, coaches, digital services and tournaments in one secure platform.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>How do I become a seller or coach?</strong><small>Start earning by offering your skills or items on WaveHubX.</small></span><i></i></summary>
+              <p>Create an account, complete your profile and use the seller or coach registration tools. Once the required information is verified, you can publish your offers.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>How does the escrow system work?</strong><small>We hold the payment securely until both sides are satisfied.</small></span><i></i></summary>
+              <p>The buyer's payment is held securely while the order is active. Funds are released to the seller after the agreed product or service has been delivered and completed.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>How long does delivery usually take?</strong><small>Delivery time depends on the type of service or product you choose.</small></span><i></i></summary>
+              <p>Each offer shows its expected delivery time. Instant products may arrive within minutes, while coaching sessions and custom services depend on scheduling.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>Is my payment protected?</strong><small>Yes. Your payment is safe with our escrow system until the order is completed.</small></span><i></i></summary>
+              <p>Yes. Payment remains protected during the transaction and is not released before the order reaches the required completion stage.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>Can I request a refund?</strong><small>Yes, you can request a refund if the terms are not met. We've got you covered.</small></span><i></i></summary>
+              <p>If an order does not meet the agreed terms, contact support with the order details. The case will be reviewed according to the platform's refund rules.</p>
+            </details>
+          </div>
+
+          <section class="faq-support-banner" aria-labelledby="faqSupportTitle">
+            <span class="faq-support-icon" aria-hidden="true">•••</span>
+            <div><h2 id="faqSupportTitle">Still have questions?</h2><p>Our support team is ready to help you.</p></div>
+            <a href="messages.html">Contact Support <strong aria-hidden="true">→</strong></a>
+          </section>
+        </div>
+      </section>
     </main>
   </div>
 
   <script src="script.js?v=20260719-2"></script>
   <script src="cart-nav.js"></script>
   <script src="profile-nav.js?v=20260720-mobile-1"></script>
+  <script>
+    (() => {
+      const section = document.getElementById('how-it-works');
+      if (!section) return;
+      const slides = [...section.querySelectorAll('.how-slide')];
+      const tabs = [...section.querySelectorAll('.how-step')];
+      const dots = [...section.querySelectorAll('.how-dots button')];
+      const slider = section.querySelector('#howSlider');
+      let current = 0;
+      let startX = 0;
+      const show = index => {
+        current = (index + slides.length) % slides.length;
+        slides.forEach((slide, i) => { slide.hidden = i !== current; slide.classList.toggle('is-active', i === current); });
+        tabs.forEach((tab, i) => { tab.classList.toggle('is-active', i === current); tab.setAttribute('aria-selected', String(i === current)); });
+        dots.forEach((dot, i) => dot.classList.toggle('is-active', i === current));
+      };
+      [...tabs, ...dots].forEach(control => control.addEventListener('click', () => show(Number(control.dataset.step))));
+      section.querySelector('.how-arrow-prev').addEventListener('click', () => show(current - 1));
+      section.querySelector('.how-arrow-next').addEventListener('click', () => show(current + 1));
+      slider.addEventListener('touchstart', event => { startX = event.touches[0].clientX; }, { passive: true });
+      slider.addEventListener('touchend', event => { const distance = event.changedTouches[0].clientX - startX; if (Math.abs(distance) > 45) show(current + (distance < 0 ? 1 : -1)); }, { passive: true });
+    })();
+  </script>
 </body>
 </html>
