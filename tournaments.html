@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHubX - Tournaments</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260813-tournaments-3" />
 </head>
 <body>
   <div class="app-shell">
@@ -40,9 +40,23 @@
 
       <section class="tournaments-page">
         <header class="tournaments-hero">
-          <div><p class="section-kicker">Compete. Win. Be remembered.</p><h1>Tournaments</h1><p>Join WaveHubX championships and compete for prizes across your favorite games.</p></div>
-          <button class="tournament-admin-toggle" id="tournamentAdminToggle" type="button" hidden>Add Tournament</button>
+          <span class="tournaments-hero-icon" aria-hidden="true"><img src="assets/tournaments-icon.svg" alt="" /></span>
+          <div><h1>All Tournaments</h1><p>Discover every active, upcoming, and completed tournament on WaveHubX.</p></div>
+          <button class="tournament-admin-toggle" id="tournamentAdminToggle" type="button" hidden>Create Tournament <span aria-hidden="true">＋</span></button>
         </header>
+
+        <section class="tournament-toolbar" aria-label="Tournament filters">
+          <label class="tournament-search"><span class="sr-only">Search tournaments</span><input id="tournamentSearch" type="search" placeholder="Search tournaments..." /><span aria-hidden="true">⌕</span></label>
+          <label><span class="sr-only">Filter by game</span><select id="tournamentGameFilter"><option value="all">All Games</option></select></label>
+          <label><span class="sr-only">Filter by status</span><select id="tournamentStatusFilter"><option value="all">Status</option><option value="open">Open</option><option value="upcoming">Upcoming</option><option value="completed">Completed</option></select></label>
+          <label><span class="sr-only">Sort tournaments</span><select id="tournamentSort"><option value="latest">Sort by: Latest</option><option value="oldest">Sort by: Oldest</option><option value="prize">Sort by: Prize</option></select></label>
+          <div class="tournament-status-tabs" id="tournamentStatusTabs" aria-label="Quick status filter">
+            <button class="active" type="button" data-tournament-status="all">All</button>
+            <button type="button" data-tournament-status="open"><i></i>Open</button>
+            <button type="button" data-tournament-status="upcoming"><i></i>Upcoming</button>
+            <button type="button" data-tournament-status="completed"><i></i>Completed</button>
+          </div>
+        </section>
 
         <section class="tournament-admin-panel" id="tournamentAdminPanel" hidden aria-labelledby="tournamentFormTitle">
           <div class="section-heading"><div><p class="section-kicker">Admin panel</p><h2 id="tournamentFormTitle">Create Tournament</h2></div></div>
@@ -51,6 +65,10 @@
             <label><span>ჩემპიონატის სახელი</span><input id="tournamentName" type="text" maxlength="70" placeholder="WaveHubX Summer Cup" required /></label>
             <label class="tournament-form-wide"><span>ჩემპიონატის აღწერა</span><textarea id="tournamentDescription" maxlength="500" placeholder="Format, rules, entry requirements and important information..." required></textarea></label>
             <label><span>პრიზი</span><input id="tournamentPrize" type="text" maxlength="60" placeholder="5,000 GEL" required /></label>
+            <label><span>სტატუსი</span><select id="tournamentStatus" required><option value="open">Registration Open</option><option value="upcoming">Upcoming</option><option value="completed">Completed</option></select></label>
+            <label><span>დაწყების თარიღი</span><input id="tournamentStartDate" type="date" required /></label>
+            <label><span>მონაწილეები</span><input id="tournamentPlayers" type="number" min="0" value="0" required /></label>
+            <label><span>მაქსიმალური მონაწილეები</span><input id="tournamentMaxPlayers" type="number" min="2" value="64" required /></label>
             <label class="tournament-cover-field"><span>გარეკანის ფოტო</span><span class="upload-control"><span class="upload-icon" aria-hidden="true"></span><span class="upload-copy"><strong>Choose cover image</strong><small>Recommended ratio: 16:9 — for example 1600 × 900 px. JPG, PNG or WEBP.</small></span><input id="tournamentCover" type="file" accept="image/png,image/jpeg,image/webp" required /></span><span class="tournament-image-ratio" id="tournamentImageRatio">No image selected</span></label>
             <p class="seller-status tournament-form-status" id="tournamentFormStatus" aria-live="polite"></p>
             <div class="tournament-form-actions"><button class="secondary-seller-action" id="tournamentFormCancel" type="button">Cancel</button><button class="seller-submit-button" type="submit">Publish Tournament</button></div>
@@ -58,15 +76,23 @@
         </section>
 
         <section class="tournaments-list-section" aria-labelledby="tournamentsListTitle">
-          <div class="section-heading"><div><p class="section-kicker">Current events</p><h2 id="tournamentsListTitle">Available Tournaments</h2></div><strong class="tournament-count" id="tournamentCount">0 tournaments</strong></div>
+          <div class="tournaments-list-heading"><h2 id="tournamentsListTitle">Available Tournaments</h2><strong class="tournament-count" id="tournamentCount">0 tournaments</strong></div>
           <div class="tournaments-grid" id="tournamentsGrid"></div>
           <div class="marketplace-empty tournaments-empty" id="tournamentsEmpty"><strong>No tournaments yet</strong><p>New championships added by the WaveHubX admin will appear here.</p></div>
         </section>
+
+        <footer class="tournament-benefits" aria-label="Tournament benefits">
+          <div><span aria-hidden="true">♢</span><p><strong>Secure &amp; Fair Play</strong><small>Advanced anti-cheat protection</small></p></div>
+          <div><span aria-hidden="true">♛</span><p><strong>Big Prizes</strong><small>Compete for real rewards</small></p></div>
+          <div><span aria-hidden="true">♙</span><p><strong>For Everyone</strong><small>All skill levels welcome</small></p></div>
+          <div><span aria-hidden="true">♧</span><p><strong>24/7 Support</strong><small>We're here to help</small></p></div>
+          <a href="#tournamentsListTitle">How Tournaments Work <span aria-hidden="true">→</span></a>
+        </footer>
       </section>
     </main>
   </div>
   <script src="cart-nav.js"></script>
   <script src="profile-nav.js"></script>
-  <script src="tournaments.js"></script>
+  <script src="tournaments.js?v=20260813-demo"></script>
 </body>
 </html>
