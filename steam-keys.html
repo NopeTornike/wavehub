@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png?v=4">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaveHubX - Steam Keys</title>
+  <link rel="stylesheet" href="styles.css?v=20260813-steam-keys-1" />
+</head>
+<body class="steam-keys-page">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
+      <a class="brand" href="index.html" aria-label="WaveHub home"><img src="assets/logo-wavehubx-main.png" alt="WaveHubX" /></a>
+      <nav class="side-nav" aria-label="Main pages">
+        <a class="side-link" href="index.html"><span class="nav-icon nav-icon-home" aria-hidden="true"><img src="assets/home-icon.svg" alt="" /></span><span>Home</span></a>
+        <a class="side-link" href="marketplace.html"><span class="nav-icon nav-icon-marketplace" aria-hidden="true"><img src="assets/marketplace-icon.svg" alt="" /></span><span>Marketplace</span></a>
+        <a class="side-link active" href="steam-keys.html"><span class="nav-icon steam-side-icon" aria-hidden="true">S</span><span>Steam Keys</span></a>
+        <a class="side-link" href="coaching.html"><span class="nav-icon nav-icon-coaching" aria-hidden="true"><img src="assets/sidebar-coaching-icon.svg" alt="" /></span><span>Coaching</span></a>
+        <a class="side-link" href="tournaments.html"><span class="nav-icon nav-icon-tournaments" aria-hidden="true"><img src="assets/tournaments-icon.svg" alt="" /></span><span>Tournaments</span></a>
+        <a class="side-link" href="orders.html"><span class="nav-icon nav-icon-orders" aria-hidden="true"><img src="assets/orders-icon.svg" alt="" /></span><span>Orders</span></a>
+        <a class="side-link" href="messages.html"><span class="nav-icon nav-icon-messages" aria-hidden="true"><img src="assets/sidebar-message-icon.svg" alt="" /></span><span>Messages</span><span class="nav-pill" id="messageCount">0</span></a>
+        <a class="side-link" href="wallet.html"><span class="nav-icon nav-icon-wallet" aria-hidden="true"><img src="assets/wallet-icon.svg" alt="" /></span><span>Wallet</span></a>
+        <a class="side-link" href="cart.html"><span class="nav-icon nav-icon-cart" aria-hidden="true"><img src="assets/sidebar-cart-icon.svg" alt="" /></span><span>Cart</span><span class="nav-pill" data-cart-count>0</span></a>
+        <a class="side-link" href="marketplace.html#favorites"><span class="nav-icon nav-icon-heart" aria-hidden="true"><img src="assets/favorites-icon.svg" alt="" /></span><span>Favorites</span></a>
+        <a class="side-link" href="profile.html"><span class="nav-icon nav-icon-settings" aria-hidden="true"><img src="assets/settings-icon.svg" alt="" /></span><span>Settings</span></a>
+      </nav>
+      <div class="sidebar-status"><span class="status-dot"></span><span>Keys available</span></div>
+    </aside>
+
+    <div class="scrim" id="scrim" hidden></div>
+    <main class="main-panel steam-main-panel">
+      <header class="steam-page-nav">
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false"><span></span><span></span><span></span></button>
+        <nav aria-label="Steam store sections">
+          <a class="active" href="#steamGames">Steam Games</a><a href="#steamGames">Categories</a><a href="#steamGames">New Releases</a><a href="#steamGames">Top Sellers</a><a href="#steamGames">Gift Cards</a>
+        </nav>
+        <div class="steam-nav-actions"><button type="button" aria-label="Search">⌕</button><a href="messages.html" aria-label="Notifications">♧</a><a href="profile.html" aria-label="Profile">W</a></div>
+      </header>
+
+      <section class="steam-store" id="steamGames">
+        <header class="steam-store-heading"><div><h1>Steam Games</h1><p>Discover games. Get your key. Start playing.</p></div><a href="#steamGrid">View All Games <span>→</span></a></header>
+        <div class="steam-games-grid" id="steamGrid"></div>
+      </section>
+
+      <footer class="steam-store-footer"><a href="index.html"><img src="assets/favicon.png?v=4" alt="" /><span><strong>WaveHub</strong><small>© 2026 WaveHub. All rights reserved.</small></span></a><p>Play more. Pay less.</p><div><span>Discord</span><span>Instagram</span><span>YouTube</span><span>X</span></div></footer>
+    </main>
+  </div>
+  <script src="cart-nav.js"></script>
+  <script src="profile-nav.js"></script>
+  <script src="steam-keys.js?v=20260813-1"></script>
+</body>
+</html>
