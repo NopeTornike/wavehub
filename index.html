@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260818-home-how-neon-6" />
+  <link rel="stylesheet" href="styles.css?v=20260818-home-dashboard-4" />
 </head>
 <body class="home-page">
   <div class="app-shell">
@@ -115,6 +115,7 @@
           <button class="icon-button has-alert" type="button" aria-label="Notifications" title="Notifications">
             <span aria-hidden="true">!</span>
           </button>
+          <a class="home-top-wallet" href="wallet.html" aria-label="Wallet balance"><span id="homeTopWalletBalance">0</span> WC</a>
           <div class="profile-menu" id="profileMenu">
             <button class="profile-chip" id="profileButton" type="button" aria-label="Profile" aria-haspopup="true" aria-expanded="false">
               <span class="avatar avatar-hot" id="profileAvatar">?</span>
@@ -254,6 +255,8 @@
         </div>
       </section> -->
 
+      <div class="home-dashboard-grid">
+        <div class="home-dashboard-main">
       <section class="content-section popular-games-section" aria-labelledby="popular-games-title">
         <div class="section-heading popular-games-heading">
           <div class="popular-games-heading-copy">
@@ -360,7 +363,7 @@
         </div>
       </section>
 
-      <section class="content-section" id="services" aria-labelledby="services-title">
+      <section class="content-section trusted-services-section" id="services" aria-labelledby="services-title">
         <div class="section-heading">
           <div>
             <p class="section-kicker">Verified offers</p>
@@ -421,6 +424,7 @@
                 <button type="button">Join</button>
               </div>
             </article>
+
           </div>
         </div>
       </section>
@@ -430,7 +434,7 @@
           <header class="how-hero">
             <p class="how-eyebrow">HOW IT WORKS</p>
             <h1 id="howTitle">See how <em>WaveHubX</em> works</h1>
-            <p>Tap an icon to learn more about each step.</p>
+            <p>Tap a step to learn more about each stage.</p>
           </header>
 
           <div class="how-stepper" role="tablist" aria-label="How WaveHubX works">
@@ -458,6 +462,39 @@
           </div>
         </div>
       </section>
+        </div>
+
+        <aside class="home-right-rail" aria-label="Account and community overview">
+          <section class="home-rail-card home-rail-profile">
+            <div class="home-rail-profile-head">
+              <span class="home-rail-avatar avatar avatar-hot" id="homeRailAvatar">?</span>
+              <div><h2><span id="homeRailUsername">Guest</span><i aria-label="Verified">✓</i></h2><p><span>◇</span> <b id="homeRailRank">Wave Rookie</b></p></div>
+            </div>
+            <div class="home-rail-level"><span></span></div>
+            <small>2,450 / 5,000 XP</small>
+            <div class="home-rail-wallet"><span aria-hidden="true">▢</span><div><strong><span id="homeRailWalletBalance">0</span> WC</strong><small>Wallet Balance</small></div></div>
+            <a href="profile.html">View Profile</a>
+          </section>
+
+          <section class="home-rail-card home-rail-messages">
+            <header><h2>Messages</h2><a href="messages.html">View all</a></header>
+            <a href="messages.html"><span class="rail-message-avatar support">?</span><span><strong>Support Team</strong><small>How can we help you?</small></span><time>2m ago</time></a>
+            <a href="messages.html"><span class="rail-message-avatar coach">CA</span><span><strong>Coach Alpha</strong><small>Session confirmed!</small></span><time>15m ago</time></a>
+            <a href="messages.html"><span class="rail-message-avatar system">◇</span><span><strong>System</strong><small>Your order has been placed.</small></span><time>1h ago</time></a>
+          </section>
+
+          <a class="home-rail-tournament" href="tournaments.html">
+            <span><strong>WaveHubX<br>Tournaments</strong><small>Compete. Win. Earn.</small><b>Join Now</b></span>
+            <i aria-hidden="true">♕</i>
+          </a>
+
+          <section class="home-rail-card home-rail-coaches">
+            <header><h2>Top Coaches</h2><a href="coaching.html">View all</a></header>
+            <ol id="homeTopCoaches"></ol>
+            <p class="home-rail-coaches-empty" id="homeTopCoachesEmpty" hidden>No coaching sessions uploaded yet.</p>
+          </section>
+        </aside>
+      </div>
 
       <section class="content-section home-faq-section" id="faq" aria-labelledby="faqTitle">
         <div class="faq-page">
@@ -528,6 +565,111 @@
       section.querySelector('.how-arrow-next')?.addEventListener('click', () => show(current + 1));
       slider.addEventListener('touchstart', event => { startX = event.touches[0].clientX; }, { passive: true });
       slider.addEventListener('touchend', event => { const distance = event.changedTouches[0].clientX - startX; if (Math.abs(distance) > 45) show(current + (distance < 0 ? 1 : -1)); }, { passive: true });
+
+      const profileSource = document.getElementById('profileUsername');
+      const avatarSource = document.getElementById('profileAvatar');
+      const rankSource = document.getElementById('mobileProfileRank');
+      const walletSource = document.getElementById('mobileWalletBalance');
+      const syncHomeRail = () => {
+        const railUsername = document.getElementById('homeRailUsername');
+        const railAvatar = document.getElementById('homeRailAvatar');
+        const railRank = document.getElementById('homeRailRank');
+        const railWallet = document.getElementById('homeRailWalletBalance');
+        const topWallet = document.getElementById('homeTopWalletBalance');
+        if (railUsername && profileSource) railUsername.textContent = profileSource.textContent;
+        if (railAvatar && avatarSource) {
+          railAvatar.textContent = avatarSource.textContent;
+          railAvatar.style.backgroundImage = getComputedStyle(avatarSource).backgroundImage;
+          railAvatar.style.backgroundSize = 'cover';
+          railAvatar.style.backgroundPosition = 'center';
+        }
+        if (railRank && rankSource) railRank.textContent = rankSource.textContent;
+        if (railWallet && walletSource) railWallet.textContent = walletSource.textContent;
+        if (topWallet && walletSource) topWallet.textContent = walletSource.textContent;
+      };
+      syncHomeRail();
+      [profileSource, avatarSource, rankSource, walletSource].filter(Boolean).forEach(source => new MutationObserver(syncHomeRail).observe(source, { childList: true, subtree: true, attributes: true }));
+
+      const readHomeData = (key, fallback = []) => {
+        try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+        catch { return fallback; }
+      };
+      const renderHomeTopCoaches = () => {
+        const list = document.getElementById('homeTopCoaches');
+        const empty = document.getElementById('homeTopCoachesEmpty');
+        if (!list || !empty) return;
+
+        const sessionSource = readHomeData('wavehub.cart');
+        const userSource = readHomeData('wavehub.users');
+        const reviewSource = readHomeData('wavehub.sellerReviews');
+        const sessions = (Array.isArray(sessionSource) ? sessionSource : []).filter(item => (
+          item?.productType === 'Coaching'
+          && (item.isCoachListing || (item.buyerUsername && item.detailUrl === 'coaching.html'))
+          && item.isActive !== false
+          && item.status !== 'inactive'
+        ));
+        const users = Array.isArray(userSource) ? userSource : [];
+        const reviews = Array.isArray(reviewSource) ? reviewSource : [];
+        const grouped = new Map();
+
+        sessions.forEach(session => {
+          const username = String(session.buyerUsername || '').trim();
+          const name = String(session.seller || username || 'Wave Coach').trim();
+          const key = (username || name).toLowerCase();
+          const timestamp = new Date(session.updatedAt || session.addedAt || 0).getTime() || 0;
+          const current = grouped.get(key) || { key, username, name, sessions: 0, latest: 0, image: '', sessionId: '' };
+          current.sessions += 1;
+          if (timestamp >= current.latest) {
+            current.latest = timestamp;
+            current.sessionId = session.id || session.listingId || '';
+            current.image = session.imageData || current.image;
+            current.name = name;
+          }
+          grouped.set(key, current);
+        });
+
+        const ranked = [...grouped.values()]
+          .map(coach => {
+            const user = users.find(item => String(item?.username || '').toLowerCase() === coach.username.toLowerCase());
+            const coachReviews = reviews.filter(review => review?.reviewType === 'coaching' && String(review.sellerUsername || '').toLowerCase() === coach.username.toLowerCase());
+            const rating = coachReviews.length ? coachReviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / coachReviews.length : 0;
+            return { ...coach, image: coach.image || user?.photoData || '', rating };
+          })
+          .sort((a, b) => b.sessions - a.sessions || b.latest - a.latest || a.name.localeCompare(b.name))
+          .slice(0, 5);
+
+        list.replaceChildren();
+        empty.hidden = ranked.length > 0;
+        ranked.forEach((coach, index) => {
+          const item = document.createElement('li');
+          const place = document.createElement('b');
+          const avatar = document.createElement('span');
+          const copy = document.createElement('span');
+          const name = document.createElement('strong');
+          const stats = document.createElement('small');
+          const link = document.createElement('a');
+          place.textContent = String(index + 1);
+          avatar.className = 'rail-coach-avatar';
+          avatar.textContent = coach.name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase() || '?';
+          if (coach.image) {
+            avatar.style.backgroundImage = `url("${coach.image.replace(/"/g, '%22')}")`;
+            avatar.style.backgroundSize = 'cover';
+            avatar.style.backgroundPosition = 'center';
+            avatar.textContent = '';
+          }
+          name.textContent = coach.name;
+          stats.textContent = `${coach.rating ? `★ ${coach.rating.toFixed(1)} · ` : ''}${coach.sessions} ${coach.sessions === 1 ? 'session' : 'sessions'}`;
+          link.href = coach.sessionId ? `coach-book-session.html?coach=${encodeURIComponent(coach.sessionId)}` : 'coaching.html';
+          link.textContent = 'Book';
+          copy.append(name, stats);
+          item.append(place, avatar, copy, link);
+          list.appendChild(item);
+        });
+      };
+      renderHomeTopCoaches();
+      window.addEventListener('storage', event => {
+        if (['wavehub.cart', 'wavehub.users', 'wavehub.sellerReviews'].includes(event.key)) renderHomeTopCoaches();
+      });
     })();
   </script>
 </body>

@@ -14186,3 +14186,105 @@ body.public-profile-view .main-panel {
 .steam-store-footer > a { display: flex; align-items: center; gap: 12px; color: white; text-decoration: none; }.steam-store-footer img { width: 52px; height: 40px; object-fit: contain; }.steam-store-footer a span { display: grid; }.steam-store-footer small { color: #8e8996; }.steam-store-footer > p { text-transform: uppercase; letter-spacing: .65em; }.steam-store-footer > div { display: flex; gap: 20px; font-size: 11px; }
 @media (max-width: 1200px) { .steam-games-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.steam-game-cover { aspect-ratio: 1.25/1; }.steam-page-nav > nav { gap: 20px; }.steam-page-nav > nav a:nth-last-child(-n+2) { display: none; } }
 @media (max-width: 720px) { .steam-page-nav { min-height: 62px; padding-inline: 14px; }.steam-page-nav > nav { overflow-x: auto; gap: 22px; }.steam-page-nav > nav a { white-space: nowrap; font-size: 12px; }.steam-nav-actions { display: none; }.steam-store { padding: 26px 14px 110px; }.steam-store-heading { align-items: flex-start; flex-direction: column; }.steam-store-heading h1 { font-size: 42px; }.steam-store-heading > a { min-height: 44px; padding-inline: 18px; }.steam-games-grid { grid-template-columns: 1fr; }.steam-game-cover { aspect-ratio: 1.2/1; }.steam-store-footer { display: none; } }
+
+/* Home dashboard layout based on the compact three-column reference. */
+.home-page .hero-panel { display: none; }
+.home-page .main-panel { gap: 12px; padding: 14px 18px 32px; }
+.home-page .topbar { min-height: 52px; grid-template-columns: minmax(280px, 580px) minmax(0, 1fr); }
+.home-top-wallet {
+  min-width: 86px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 38, 140, .45);
+  border-radius: 10px;
+  color: #ff59a9;
+  background: rgba(255, 27, 132, .045);
+  font-size: 12px;
+  font-weight: 850;
+  box-shadow: inset 0 0 16px rgba(255, 27, 132, .055), 0 0 16px rgba(255, 27, 132, .07);
+}
+
+.home-dashboard-grid { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 272px; align-items: start; gap: 12px; }
+.home-dashboard-main { min-width: 0; display: grid; gap: 12px; }
+.home-dashboard-main .popular-games-section { order: 1; }
+.home-dashboard-main .home-how-section { order: 2; }
+.home-dashboard-main .trusted-services-section { order: 3; }
+.home-dashboard-main .home-how-section .how-hero { padding-inline: 20px; }
+.home-dashboard-main .home-how-section .how-hero h1 { max-width: 150px; font-size: clamp(25px, 2vw, 29px); }
+
+.home-right-rail { min-width: 0; display: grid; gap: 10px; }
+.home-rail-card,
+.home-rail-tournament { border: 1px solid rgba(60, 83, 130, .16); border-radius: 9px; background: rgba(5, 11, 23, .94); box-shadow: 0 14px 35px rgba(0, 0, 0, .19); }
+.home-rail-card { padding: 13px; }
+.home-rail-profile-head { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 11px; }
+.home-rail-avatar { width: 62px; height: 62px; border: 1px solid #ff2b93; font-size: 22px; box-shadow: 0 0 18px rgba(255, 32, 142, .32), inset 0 0 16px rgba(255, 32, 142, .18); }
+.home-rail-profile h2 { display: flex; align-items: center; gap: 5px; margin: 0 0 6px; font-size: 14px; }
+.home-rail-profile h2 i { color: #39afff; font-size: 11px; font-style: normal; }
+.home-rail-profile-head p { margin: 0; color: #ba4dff; font-size: 10px; }
+.home-rail-level { height: 5px; overflow: hidden; margin: 12px 0 5px 73px; border-radius: 999px; background: #1d2434; }
+.home-rail-level span { width: 44%; height: 100%; display: block; background: linear-gradient(90deg, #ff1885, #d70bd3); box-shadow: 0 0 10px rgba(255, 24, 133, .6); }
+.home-rail-profile > small { display: block; color: #9098aa; font-size: 8px; text-align: right; }
+.home-rail-wallet { display: flex; align-items: center; gap: 10px; margin: 12px -5px 10px; padding: 10px; border-radius: 7px; background: rgba(255, 255, 255, .025); }
+.home-rail-wallet > span { color: #e5a427; font-size: 19px; }
+.home-rail-wallet div { display: grid; gap: 2px; }
+.home-rail-wallet strong { font-size: 11px; }
+.home-rail-wallet small { color: #777f92; font-size: 8px; }
+.home-rail-profile > a { min-height: 31px; display: grid; place-items: center; border-radius: 7px; color: white; background: linear-gradient(90deg, #c60b65, #f10a79); font-size: 10px; font-weight: 850; box-shadow: 0 0 18px rgba(255, 16, 121, .16); }
+
+.home-rail-card > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.home-rail-card > header h2 { margin: 0; color: #cbd1de; font-size: 10px; text-transform: uppercase; }
+.home-rail-card > header a { color: #ff398f; font-size: 9px; }
+.home-rail-messages > a { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.home-rail-messages > a:last-child { border-bottom: 0; }
+.rail-message-avatar { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.15); border-radius: 50%; color: white; background: #151d32; font-size: 9px; }
+.rail-message-avatar.support { border-color: #2885ff; background: #1f61cc; }
+.rail-message-avatar.coach { border-color: #ffb03e; background: #382613; }
+.home-rail-messages a > span:nth-child(2) { min-width: 0; display: grid; gap: 3px; }
+.home-rail-messages strong,
+.home-rail-messages small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-rail-messages strong { font-size: 9px; }
+.home-rail-messages small { color: #81899a; font-size: 8px; }
+.home-rail-messages time { align-self: start; color: #697185; font-size: 7px; }
+
+.home-rail-tournament { min-height: 112px; display: flex; align-items: center; justify-content: space-between; overflow: hidden; padding: 15px; background: radial-gradient(circle at 85% 45%, rgba(255, 34, 146, .42), transparent 33%), linear-gradient(115deg, #250424, #810449 65%, #15041b); }
+.home-rail-tournament > span { display: grid; gap: 6px; }
+.home-rail-tournament strong { color: #ff64b2; font-size: 16px; line-height: 1; text-transform: uppercase; }
+.home-rail-tournament small { color: white; font-size: 9px; }
+.home-rail-tournament b { width: 78px; min-height: 27px; display: grid; place-items: center; margin-top: 4px; border-radius: 5px; color: white; background: #e81270; font-size: 9px; }
+.home-rail-tournament i { color: #ff70bf; font-family: Georgia, serif; font-size: 58px; font-style: normal; text-shadow: 0 0 20px #ff1685; transform: rotate(8deg); }
+
+.home-rail-coaches ol { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.home-rail-coaches li { min-width: 0; display: grid; grid-template-columns: 18px 30px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 5px 0; }
+.home-rail-coaches li > b { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #5b3540; font-size: 8px; }
+.home-rail-coaches li:first-child > b { background: #c67810; }
+.rail-coach-avatar { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid rgba(255, 71, 158, .32); border-radius: 50%; color: #f3d3e4; background: linear-gradient(145deg, #34202d, #0b1221); font-size: 8px; }
+.home-rail-coaches li > span:nth-child(3) { min-width: 0; display: grid; gap: 2px; }
+.home-rail-coaches li strong { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.home-rail-coaches li small { color: #d89931; font-size: 7px; }
+.home-rail-coaches li > a { min-width: 44px; min-height: 25px; display: grid; place-items: center; border: 1px solid rgba(255, 37, 137, .4); border-radius: 5px; color: #ff4199; font-size: 8px; }
+.home-rail-coaches-empty { margin: 13px 0 4px; color: #747e91; font-size: 9px; line-height: 1.5; text-align: center; }
+
+@media (min-width: 1251px) {
+  .home-page .app-shell { grid-template-columns: 190px minmax(0, 1fr); }
+  .home-page .sidebar { gap: 12px; padding: 12px 10px; }
+  .home-page .brand { min-height: 82px; }
+  .home-page .brand img { width: 165px; }
+  .home-page .side-nav { gap: 3px; }
+  .home-page .side-link { min-height: 35px; padding: 7px 9px; font-size: 12px; }
+}
+
+@media (max-width: 1250px) {
+  .home-dashboard-grid { grid-template-columns: 1fr; }
+  .home-right-rail { display: none; }
+}
+
+@media (max-width: 920px) {
+  .home-page .main-panel { padding: 14px; }
+  .home-top-wallet { display: none; }
+}
+
+@media (max-width: 620px) {
+  .home-dashboard-main { gap: 10px; }
+}
