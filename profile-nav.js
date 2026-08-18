@@ -60,6 +60,124 @@
     element.textContent = user?.username ? getInitials(user) : '?';
   }
 
+  function createHeaderAction(tagName, className, label, href = '') {
+    const element = document.createElement(tagName);
+    element.className = className;
+    element.setAttribute('aria-label', label);
+    element.setAttribute('title', label);
+    if (href && element instanceof HTMLAnchorElement) element.href = href;
+    return element;
+  }
+
+  function standardizeTopbars() {
+    document.querySelectorAll('.coach-topbar, .steam-page-nav').forEach((topbar) => {
+      const existingSearch = topbar.querySelector('input[type="search"]');
+      const existingMenu = topbar.querySelector('.menu-toggle');
+      const existingBrand = topbar.querySelector('.coach-brand');
+      topbar.className = 'topbar global-topbar';
+      topbar.replaceChildren();
+      const search = document.createElement('label');
+      search.className = 'search-box';
+      search.setAttribute('aria-label', 'Search');
+      search.innerHTML = '<span class="search-icon" aria-hidden="true">/</span>';
+      const input = existingSearch || document.createElement('input');
+      input.type = 'search';
+      if (!input.placeholder) input.placeholder = 'Search for games, services or players...';
+      input.autocomplete = 'off';
+      search.appendChild(input);
+      const actions = document.createElement('div');
+      actions.className = 'top-actions';
+      if (existingMenu) topbar.appendChild(existingMenu);
+      if (existingBrand) {
+        existingBrand.classList.add('global-header-brand');
+        topbar.classList.add('has-header-brand');
+        topbar.appendChild(existingBrand);
+      }
+      topbar.append(search, actions);
+    });
+
+    if (!document.querySelector('.topbar')) {
+      const host = document.querySelector('.main-panel');
+      if (host) {
+        const topbar = document.createElement('header');
+        topbar.className = 'topbar global-topbar';
+        topbar.innerHTML = '<label class="search-box" aria-label="Search"><span class="search-icon" aria-hidden="true">/</span><input type="search" placeholder="Search for games, services or players..." autocomplete="off"></label><div class="top-actions"></div>';
+        host.prepend(topbar);
+      }
+    }
+
+    document.querySelectorAll('.topbar').forEach((topbar) => {
+      topbar.classList.add('global-topbar');
+      const actions = topbar.querySelector('.top-actions');
+      if (!actions) return;
+
+      if (!topbar.querySelector('.menu-toggle') && document.getElementById('sidebar')) {
+        const menu = document.createElement('button');
+        menu.className = 'menu-toggle';
+        menu.id = 'menuToggle';
+        menu.type = 'button';
+        menu.setAttribute('aria-label', 'Open menu');
+        menu.setAttribute('aria-controls', 'sidebar');
+        menu.setAttribute('aria-expanded', 'false');
+        menu.innerHTML = '<span></span><span></span><span></span>';
+        topbar.prepend(menu);
+      }
+      topbar.classList.toggle('no-menu-toggle', !topbar.querySelector('.menu-toggle'));
+
+      if (!topbar.querySelector('.search-box')) {
+        const search = document.createElement('label');
+        search.className = 'search-box';
+        search.setAttribute('aria-label', 'Search');
+        search.innerHTML = '<span class="search-icon" aria-hidden="true">/</span><input type="search" placeholder="Search for games, services or players..." autocomplete="off">';
+        topbar.insertBefore(search, actions);
+        Array.from(topbar.children).forEach((child) => {
+          if (!child.matches('.menu-toggle, .search-box, .top-actions')) child.remove();
+        });
+      }
+
+      let messages = actions.querySelector('.icon-button[href="messages.html"]');
+      if (!messages) {
+        messages = createHeaderAction('a', 'icon-button', 'Messages', 'messages.html');
+        messages.innerHTML = '<img class="message-icon-image" src="assets/message-icon.svg" alt="" aria-hidden="true">';
+      }
+
+      let cart = actions.querySelector('.cart-top-button');
+      if (!cart) {
+        cart = createHeaderAction('a', 'icon-button cart-top-button', 'Cart', 'cart.html');
+        cart.innerHTML = '<img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true"><strong class="cart-badge" data-cart-count>0</strong>';
+      }
+
+      let notifications = actions.querySelector('.icon-button.has-alert');
+      if (!notifications) {
+        notifications = createHeaderAction('button', 'icon-button has-alert', 'Notifications');
+        notifications.type = 'button';
+        notifications.innerHTML = '<span aria-hidden="true">!</span>';
+      }
+
+      let wallet = actions.querySelector('.home-top-wallet');
+      if (!wallet) {
+        wallet = createHeaderAction('a', 'home-top-wallet', 'Wallet balance', 'wallet.html');
+        wallet.innerHTML = '<span data-global-wallet-balance>0</span> WC';
+      }
+
+      let profileMenu = actions.querySelector('.profile-menu');
+      if (!profileMenu) {
+        profileMenu = document.createElement('div');
+        profileMenu.className = 'profile-menu';
+        profileMenu.innerHTML = '<a class="profile-chip" href="profile.html" aria-label="Profile"><span class="avatar avatar-hot">?</span></a>';
+      }
+
+      profileMenu.querySelector('.profile-chip > span:not(.avatar)')?.remove();
+      const contextualAction = actions.querySelector('#sellerButton');
+      actions.querySelectorAll('.seller-button:not(#sellerButton)').forEach((button) => button.remove());
+      actions.replaceChildren(messages, cart, notifications, wallet);
+      if (contextualAction) actions.appendChild(contextualAction);
+      actions.appendChild(profileMenu);
+    });
+
+    window.renderGlobalCartCount?.();
+  }
+
   function renderProfileSurfaces() {
     const { user } = getCurrentAccount();
     const isSignedIn = Boolean(user?.username);
@@ -71,6 +189,7 @@
     ['profileAvatar', 'profilePanelAvatar', 'mobileProfileAvatar'].forEach((id) => {
       applyAvatar(document.getElementById(id), user);
     });
+    document.querySelectorAll('.global-topbar .profile-chip .avatar').forEach((element) => applyAvatar(element, user));
 
     document.querySelectorAll('.coach-profile-avatar').forEach((element) => applyAvatar(element, user));
     document.querySelectorAll('[data-section="Settings"]').forEach((link) => {
@@ -83,6 +202,13 @@
     const profileMeta = document.getElementById('profileMeta');
     const profileFullName = document.getElementById('profileFullName');
     const profileHandle = document.getElementById('profileHandle');
+    const profileDropdownRank = document.getElementById('profileDropdownRank');
+    const profileTierName = document.getElementById('profileTierName');
+    const profileDropdownLevel = document.getElementById('profileDropdownLevel');
+    const profileDropdownXp = document.getElementById('profileDropdownXp');
+    const profileDropdownXpGoal = document.getElementById('profileDropdownXpGoal');
+    const profileDropdownProgress = document.getElementById('profileDropdownProgress');
+    const profilePublicLink = document.getElementById('profilePublicLink');
     const mobileProfileUsername = document.getElementById('mobileProfileUsername');
     const mobileProfileRank = document.getElementById('mobileProfileRank');
     const mobileProfileLevel = document.getElementById('mobileProfileLevel');
@@ -99,6 +225,21 @@
     if (profileMeta) profileMeta.textContent = isSignedIn ? 'Manage profile' : 'Not signed in';
     if (profileFullName) profileFullName.textContent = isSignedIn ? getDisplayName(user) : 'Guest account';
     if (profileHandle) profileHandle.textContent = isSignedIn ? `@${username}` : '@guest';
+    const profileRank = user?.rank || user?.role || (isSignedIn ? 'Wave Master' : 'Wave Rookie');
+    const profileLevel = Math.max(1, Number(user?.level) || 1);
+    const profileXpGoal = Math.max(100, Number(user?.xpGoal) || 500);
+    const profileXp = Math.max(0, Math.min(profileXpGoal, Number(user?.xp) || (isSignedIn ? 120 : 0)));
+    if (profileDropdownRank) profileDropdownRank.textContent = profileRank;
+    if (profileTierName) profileTierName.textContent = profileRank;
+    if (profileDropdownLevel) profileDropdownLevel.textContent = String(profileLevel);
+    if (profileDropdownXp) profileDropdownXp.textContent = String(profileXp);
+    if (profileDropdownXpGoal) profileDropdownXpGoal.textContent = String(profileXpGoal);
+    if (profileDropdownProgress) profileDropdownProgress.style.width = `${Math.round((profileXp / profileXpGoal) * 100)}%`;
+    if (profilePublicLink instanceof HTMLAnchorElement) {
+      profilePublicLink.href = isSignedIn
+        ? `profile.html?user=${encodeURIComponent(username)}`
+        : 'auth.html?mode=login';
+    }
     if (mobileProfileUsername) mobileProfileUsername.textContent = username;
     if (mobileProfileRank) mobileProfileRank.textContent = user?.rank || user?.role || (isSignedIn ? 'Wave Master' : 'Wave Rookie');
     if (mobileProfileLevel) mobileProfileLevel.textContent = String(Math.max(1, Number(user?.level) || 1));
@@ -107,6 +248,11 @@
       const balance = isSignedIn ? Math.max(0, Number(wallets?.[username]?.balance) || 0) : 0;
       mobileWalletBalance.textContent = balance.toLocaleString(undefined, { maximumFractionDigits: 2 });
     }
+    const wallets = readJson(walletsKey, {});
+    const globalWalletBalance = isSignedIn ? Math.max(0, Number(wallets?.[username]?.balance) || 0) : 0;
+    document.querySelectorAll('[data-global-wallet-balance]').forEach((element) => {
+      element.textContent = globalWalletBalance.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    });
     if (accountUsername) accountUsername.textContent = username;
     if (accountName) accountName.textContent = displayName;
     if (authEntryActions) authEntryActions.hidden = isSignedIn;
@@ -330,9 +476,19 @@
   }
 
   function bindProfileRoutes() {
-    document.getElementById('profileButton')?.addEventListener('click', routeToProfile, true);
+    const profileButton = document.getElementById('profileButton');
+    if (profileButton && !document.getElementById('profileDropdown')) {
+      profileButton.addEventListener('click', routeToProfile, true);
+    }
+
     document.querySelectorAll('.coach-profile').forEach((button) => {
       button.addEventListener('click', routeToProfile, true);
+    });
+
+    document.getElementById('profileFavoritesLink')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      const favoritesLink = document.querySelector('.side-nav [data-section="Favorites"]');
+      if (favoritesLink instanceof HTMLElement) favoritesLink.click();
     });
   }
 
@@ -458,6 +614,7 @@
     document.body.appendChild(navigation);
   }
 
+  standardizeTopbars();
   renderProfileSurfaces();
   renderMessageNotifications();
   bindProfileRoutes();

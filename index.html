@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260818-home-dashboard-4" />
+  <link rel="stylesheet" href="styles.css?v=20260818-global-header-1" />
 </head>
 <body class="home-page">
   <div class="app-shell">
@@ -92,7 +92,7 @@
     <div class="scrim" id="scrim" hidden></div>
 
     <main class="main-panel">
-      <header class="topbar">
+      <header class="topbar global-topbar">
         <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
           <span></span>
           <span></span>
@@ -119,46 +119,49 @@
           <div class="profile-menu" id="profileMenu">
             <button class="profile-chip" id="profileButton" type="button" aria-label="Profile" aria-haspopup="true" aria-expanded="false">
               <span class="avatar avatar-hot" id="profileAvatar">?</span>
-              <span>
-                <strong id="profileUsername">Guest</strong>
-                <small id="profileMeta">Not signed in</small>
-              </span>
             </button>
 
             <div class="profile-dropdown" id="profileDropdown" hidden>
               <div class="profile-dropdown-head">
-                <span class="avatar avatar-hot" id="profilePanelAvatar">?</span>
-                <div>
-                  <strong id="profileFullName">Guest account</strong>
-                  <small id="profileHandle">@guest</small>
+                <span class="profile-panel-avatar-wrap">
+                  <span class="avatar avatar-hot" id="profilePanelAvatar">?</span>
+                  <i aria-label="Online"></i>
+                </span>
+                <div class="profile-dropdown-identity">
+                  <div class="profile-dropdown-name-row">
+                    <strong id="profileFullName">Guest account</strong>
+                    <span class="profile-verified-mark" aria-label="Verified">&#10003;</span>
+                  </div>
+                  <small><span class="profile-rank-gem" aria-hidden="true"></span><span id="profileDropdownRank">Wave Rookie</span></small>
+                  <span class="profile-tier"><span aria-hidden="true">♔</span><b id="profileTierName">Wave Rookie</b><i aria-hidden="true">→</i><strong>Prime</strong></span>
                 </div>
               </div>
 
-              <div class="account-details" aria-label="Account details">
-                <div>
-                  <span>Username</span>
-                  <strong id="accountUsername">Guest</strong>
-                </div>
-                <div>
-                  <span>Name</span>
-                  <strong id="accountName">Not signed in</strong>
-                </div>
-                <div>
-                  <span>Account ID</span>
-                  <strong id="accountId">-</strong>
-                </div>
-                <div>
-                  <span>Logged in</span>
-                  <strong id="accountLoggedIn">-</strong>
-                </div>
+              <div class="profile-level-row" aria-label="Account level">
+                <span>Lv. <strong id="profileDropdownLevel">1</strong></span>
+                <i><b id="profileDropdownProgress"></b></i>
+                <small><span id="profileDropdownXp">120</span> / <span id="profileDropdownXpGoal">500</span> XP</small>
               </div>
+
+              <nav class="profile-dropdown-links" aria-label="Profile shortcuts">
+                <div class="profile-dropdown-group">
+                  <a href="orders.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></svg></span><span>My Orders</span><i aria-hidden="true">›</i></a>
+                  <a id="profileFavoritesLink" href="#favorites"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.5 5.5 0 0 0 0-7.8Z"/></svg></span><span>Favorites</span><i aria-hidden="true">›</i></a>
+                  <a href="messages.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 13v-2a8 8 0 0 1 16 0v2"/><path d="M4 12H2v5a2 2 0 0 0 2 2h2v-7H4Zm16 0h2v5a2 2 0 0 1-2 2h-2v-7h2ZM18 19c0 2-2 2-4 2"/></svg></span><span>Support</span><i aria-hidden="true">›</i></a>
+                  <a href="profile.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Settings</span><i aria-hidden="true">›</i></a>
+                </div>
+                <div class="profile-dropdown-group">
+                  <a id="profilePublicLink" href="profile.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span><span>View Profile</span></a>
+                  <a href="profile.html#verification"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 7 3v5c0 4.6-2.9 8.2-7 10-4.1-1.8-7-5.4-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><span>Verified Status</span></a>
+                </div>
+              </nav>
 
               <div class="auth-entry-actions" id="authEntryActions">
                 <a class="auth-open-button" href="auth.html?mode=login">Log in</a>
                 <a class="auth-open-button primary" href="auth.html?mode=register">Create account</a>
               </div>
 
-              <button class="logout-button" id="logoutButton" type="button">Log out</button>
+              <button class="logout-button" id="logoutButton" type="button">Log Out</button>
             </div>
           </div>
         </div>
@@ -541,9 +544,9 @@
     </main>
   </div>
 
-  <script src="script.js?v=20260719-2"></script>
+  <script src="script.js?v=20260818-services-carousel-1"></script>
   <script src="cart-nav.js"></script>
-  <script src="profile-nav.js?v=20260720-mobile-1"></script>
+  <script src="profile-nav.js?v=20260818-global-header-1"></script>
   <script>
     (() => {
       const section = document.getElementById('how-it-works');
