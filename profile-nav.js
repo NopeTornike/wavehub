@@ -69,6 +69,67 @@
     return element;
   }
 
+  function standardizeSidebars() {
+    const sidebar = document.getElementById('sidebar');
+    const navigation = sidebar?.querySelector('.side-nav');
+    if (!navigation) return;
+
+    const path = window.location.pathname.split('/').pop() || 'index.html';
+    const isFavoritesPage = path === 'marketplace.html' && window.location.hash === '#favorites';
+    const activePage = isFavoritesPage
+      ? 'favorites'
+      : path === 'detail.html'
+        ? 'marketplace'
+        : path === 'tournament-detail.html'
+          ? 'tournaments'
+          : path.replace(/\.html$/, '');
+    const pages = [
+      { id: 'index', label: 'Home', href: 'index.html', icon: '<img src="assets/home-icon.svg" alt="" />', iconClass: 'nav-icon-home' },
+      { id: 'marketplace', label: 'Marketplace', href: 'marketplace.html', icon: '<img src="assets/marketplace-icon.svg" alt="" />', iconClass: 'nav-icon-marketplace' },
+      { id: 'steam-keys', label: 'Steam Keys', href: 'steam-keys.html', icon: 'S', iconClass: 'steam-side-icon' },
+      { id: 'coaching', label: 'Coaching', href: 'coaching.html', icon: '<img src="assets/sidebar-coaching-icon.svg" alt="" />', iconClass: 'nav-icon-coaching' },
+      { id: 'tournaments', label: 'Tournaments', href: 'tournaments.html', icon: '<img src="assets/tournaments-icon.svg" alt="" />', iconClass: 'nav-icon-tournaments' },
+      { id: 'about', label: 'About Us', href: 'about.html', icon: 'i', iconClass: 'nav-icon-about' },
+      { id: 'orders', label: 'Orders', href: 'orders.html', icon: '<img src="assets/orders-icon.svg" alt="" />', iconClass: 'nav-icon-orders' },
+      { id: 'messages', label: 'Messages', href: 'messages.html', icon: '<img src="assets/sidebar-message-icon.svg" alt="" />', iconClass: 'nav-icon-messages', count: 'message' },
+      { id: 'wallet', label: 'Wallet', href: 'wallet.html', icon: '<img src="assets/wallet-icon.svg" alt="" />', iconClass: 'nav-icon-wallet' },
+      { id: 'cart', label: 'Cart', href: 'cart.html', icon: '<img src="assets/sidebar-cart-icon.svg" alt="" />', iconClass: 'nav-icon-cart', count: 'cart' },
+      { id: 'favorites', label: 'Favorites', href: 'marketplace.html#favorites', icon: '<img src="assets/favorites-icon.svg" alt="" />', iconClass: 'nav-icon-heart' },
+      { id: 'profile', label: 'Settings', href: 'profile.html', icon: '<img src="assets/settings-icon.svg" alt="" />', iconClass: 'nav-icon-settings' },
+    ];
+
+    const existingLinks = Array.from(navigation.querySelectorAll('.side-link'));
+    navigation.replaceChildren(...pages.map((page) => {
+      const link = existingLinks.find((item) => (
+        item.dataset.section === page.label
+        || item.querySelector(':scope > span:not(.nav-icon):not(.nav-pill)')?.textContent.trim() === page.label
+      )) || document.createElement('a');
+      link.classList.add('side-link');
+      link.classList.toggle('active', page.id === activePage);
+      link.href = page.id === 'favorites' && path === 'marketplace.html' ? '#' : page.href;
+      link.dataset.section = page.label;
+
+      if (!link.querySelector('.nav-icon')) {
+        link.innerHTML = `<span class="nav-icon ${page.iconClass}" aria-hidden="true">${page.icon}</span><span>${page.label}</span>`;
+      }
+
+      if (page.count) {
+        const count = link.querySelector('.nav-pill') || document.createElement('span');
+        count.classList.add('nav-pill');
+        if (!count.isConnected) {
+          count.textContent = '0';
+          link.appendChild(count);
+        }
+        if (page.count === 'message') count.id = 'messageCount';
+        if (page.count === 'cart') count.dataset.cartCount = '';
+      }
+
+      return link;
+    }));
+
+    window.renderGlobalCartCount?.();
+  }
+
   function standardizeTopbars() {
     document.querySelectorAll('.coach-topbar, .steam-page-nav').forEach((topbar) => {
       const existingSearch = topbar.querySelector('input[type="search"]');
@@ -614,6 +675,7 @@
     document.body.appendChild(navigation);
   }
 
+  standardizeSidebars();
   standardizeTopbars();
   renderProfileSurfaces();
   renderMessageNotifications();

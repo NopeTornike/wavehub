@@ -959,6 +959,8 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
