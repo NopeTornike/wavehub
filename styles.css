@@ -14423,3 +14423,112 @@ body.public-profile-view .main-panel {
 @media (max-width: 620px) {
   .home-dashboard-main { gap: 10px; }
 }
+
+/* Public seller quick profile */
+.seller-profile-trigger { padding: 0; border: 0; color: inherit; font: inherit; cursor: pointer; transition: color .18s ease, transform .18s ease, box-shadow .18s ease; }
+.seller-profile-trigger.avatar:hover { transform: scale(1.08); box-shadow: 0 0 20px rgba(255, 39, 151, .38); }
+.seller-profile-name { background: none; text-align: left; }
+.seller-profile-name:hover { color: #ff3d9a; }
+.seller-profile-name:focus-visible,
+.seller-profile-trigger.avatar:focus-visible { outline: 2px solid #ff3d9a; outline-offset: 3px; }
+body.seller-profile-open { overflow: hidden; }
+.seller-profile-modal { position: fixed; z-index: 10000; inset: 0; display: grid; place-items: center; padding: 22px; opacity: 0; transition: opacity .18s ease; }
+.seller-profile-modal[hidden] { display: none; }
+.seller-profile-modal.is-open { opacity: 1; }
+.seller-profile-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 8, .82); backdrop-filter: blur(8px); }
+.seller-profile-dialog { position: relative; width: min(1020px, 96vw); max-height: min(920px, 94vh); overflow: auto; padding: 40px; border: 1px solid rgba(126, 72, 166, .28); border-radius: 22px; color: #f8f5fb; background: radial-gradient(circle at 18% 4%, rgba(91, 18, 106, .13), transparent 28%), #050611; box-shadow: 0 30px 100px rgba(0,0,0,.7), 0 0 50px rgba(156, 22, 140, .09); transform: translateY(14px) scale(.985); transition: transform .2s ease; }
+.seller-profile-modal.is-open .seller-profile-dialog { transform: none; }
+.seller-profile-close { position: absolute; z-index: 2; top: 14px; right: 14px; width: 38px; height: 38px; border: 1px solid rgba(255,255,255,.09); border-radius: 50%; color: #ddd; background: rgba(5,6,17,.8); font-size: 28px; line-height: 1; cursor: pointer; }
+.seller-profile-header { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .8fr); align-items: center; gap: 28px; }
+.seller-profile-person { min-width: 0; display: flex; align-items: center; gap: 26px; }
+.seller-profile-photo { position: relative; flex: 0 0 156px; width: 156px; height: 156px; display: grid; place-items: center; border: 2px solid #fb2ba5; border-radius: 50%; color: #fff; background: radial-gradient(circle at 35% 30%, #50214c, #121327 55%, #05050d); box-shadow: 0 0 24px rgba(247, 35, 171, .45), inset 0 0 28px rgba(224, 32, 167, .18); font-size: 42px; font-weight: 900; }
+.seller-profile-photo > b { font: inherit; }
+.seller-profile-photo i { position: absolute; right: 5px; bottom: 12px; width: 22px; height: 22px; border: 4px solid #080913; border-radius: 50%; background: #00d76c; box-shadow: 0 0 10px rgba(0,215,108,.6); }
+.seller-profile-identity h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: clamp(25px, 3vw, 38px); text-transform: uppercase; }
+.seller-profile-identity h2 b { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: white; background: linear-gradient(145deg, #ab3ae8, #5b25a9); font-size: 14px; }
+.seller-profile-identity > div { display: flex; align-items: center; gap: 14px; }
+.seller-profile-identity > div strong { color: #ff2b91; font-size: 16px; }
+.seller-profile-identity > div span { padding: 6px 10px; border: 1px solid rgba(203, 60, 181, .18); border-radius: 6px; color: #d7cbd9; font-size: 12px; }
+.seller-profile-identity p { margin: 17px 0; color: #ddd8e3; font-size: 14px; }
+.seller-profile-identity > small { display: flex; flex-wrap: wrap; gap: 14px 22px; color: #aaa6b3; }
+.seller-profile-identity > small span { white-space: nowrap; }
+.seller-profile-identity > small b { color: inherit; font-weight: 500; }
+.seller-profile-identity .seller-online { color: #bbb; }
+.seller-online::first-letter { color: #00dc72; }
+.seller-rank-card { display: grid; grid-template-columns: 78px 1fr; gap: 15px; padding: 24px; border: 1px solid rgba(120, 73, 155, .2); border-radius: 15px; background: rgba(12, 11, 25, .72); }
+.seller-rank-emblem { grid-row: span 2; width: 74px; height: 82px; display: grid; place-items: center; color: #ff35c0; border: 3px solid #f32aae; clip-path: polygon(50% 0, 93% 21%, 88% 78%, 50% 100%, 12% 78%, 7% 21%); font-size: 32px; text-shadow: 0 0 12px #ff2dad; }
+.seller-rank-card div { display: grid; gap: 4px; }
+.seller-rank-card div small, .seller-rank-card div span { color: #96909e; font-size: 12px; }
+.seller-rank-card div strong { font-size: 21px; }
+.seller-rank-card > p { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; margin: 0; }
+.seller-rank-card > p > span { height: 8px; border-radius: 99px; background: linear-gradient(90deg, #ed0b72 38%, #7d1ccc 55%, #21104e 55%); }
+.seller-rank-card > p small { color: #df438e; }
+.seller-profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 22px 0 14px; padding: 22px 0; border: 1px solid rgba(111, 77, 139, .19); border-radius: 15px; background: rgba(8,9,21,.7); }
+.seller-profile-stats > div { display: grid; place-items: center; gap: 5px; border-right: 1px solid rgba(255,255,255,.1); }
+.seller-profile-stats > div:last-child { border: 0; }
+.seller-profile-stats strong { font-size: 28px; }
+.seller-profile-stats strong small { color: #ac9bb4; font-size: 14px; font-weight: 500; }
+.seller-profile-stats div > small { color: #b795bd; font-size: 10px; }
+.seller-profile-stats div > span { color: #f21b73; font-size: 16px; letter-spacing: 3px; }
+.seller-profile-reviews { overflow: hidden; border: 1px solid rgba(111, 77, 139, .19); border-radius: 15px; background: rgba(8,9,21,.72); }
+.seller-profile-reviews > header { min-height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.seller-profile-reviews h3 { margin: 0; font-size: 16px; }
+.seller-profile-reviews h3, .seller-profile-reviews a, .seller-profile-reviews article b { color: #fb2b81; }
+.seller-profile-reviews h3 small { color: #9f99a8; font-weight: 400; }
+.seller-profile-reviews article { display: grid; grid-template-columns: 58px 1fr auto; gap: 14px; margin: 0 16px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,.055); }
+.seller-profile-reviews article:last-child { border: 0; }
+.seller-profile-reviews-empty { margin: 0; padding: 28px 18px; color: #888291; font-size: 13px; text-align: center; }
+.seller-review-avatar { width: 54px; height: 54px; display: grid; place-items: center; border: 1px solid #b82ea7; border-radius: 50%; background: linear-gradient(140deg, #46213f, #11162c); font-size: 13px; }
+.seller-review-avatar.alt { background: linear-gradient(140deg, #26194b, #11162c); }
+.seller-review-avatar.warm { background: linear-gradient(140deg, #56321d, #11162c); }
+.seller-profile-reviews article h4 { margin: 0 0 4px; font-size: 15px; }
+.seller-profile-reviews article h4 small { margin-left: 8px; padding: 4px 7px; border: 1px solid rgba(180, 48, 162, .16); color: #c58abb; font-size: 9px; font-weight: 500; }
+.seller-profile-reviews article p { margin: 5px 0 0; color: #c8c3cf; font-size: 13px; line-height: 1.5; }
+.seller-profile-reviews time { color: #aaa5af; font-size: 11px; }
+.seller-profile-actions { display: grid; grid-template-columns: .9fr 1.1fr; gap: 18px; margin-top: 18px; }
+.seller-profile-actions > a { min-height: 76px; display: flex; align-items: center; padding: 0 26px; border-radius: 13px; color: white; }
+.seller-message-action { gap: 16px; border: 1px solid rgba(111, 77, 139, .19); background: rgba(8,9,21,.8); }
+.seller-message-action > span { font-size: 26px; color: #ff45a3; }
+.seller-message-action b { display: grid; gap: 3px; font-size: 17px; }
+.seller-message-action small { color: #9f99a8; font-size: 11px; font-weight: 400; }
+.seller-message-action i { margin-left: auto; font-size: 24px; font-style: normal; }
+.seller-view-action { justify-content: center; gap: 26px; background: linear-gradient(115deg, #d50869, #5f17c8); font-size: 21px; box-shadow: 0 0 28px rgba(198, 16, 132, .2); }
+
+@media (max-width: 700px) {
+  .seller-profile-modal { align-items: end; padding: 0; }
+  .seller-profile-dialog { width: 100%; max-height: 94dvh; padding: 24px 16px 18px; border-radius: 22px 22px 0 0; }
+  .seller-profile-close { top: 10px; right: 10px; }
+  .seller-profile-header { display: block; }
+  .seller-profile-person { align-items: flex-start; gap: 13px; padding-right: 28px; }
+  .seller-profile-photo { flex-basis: 76px; width: 76px; height: 76px; font-size: 20px; }
+  .seller-profile-photo i { right: -1px; bottom: 3px; width: 13px; height: 13px; border-width: 3px; }
+  .seller-profile-identity { min-width: 0; }
+  .seller-profile-identity h2 { margin-bottom: 5px; font-size: 20px; }
+  .seller-profile-identity h2 b { width: 18px; height: 18px; font-size: 10px; }
+  .seller-profile-identity > div { gap: 7px; }
+  .seller-profile-identity > div strong { font-size: 12px; }
+  .seller-profile-identity > div span { padding: 4px 6px; font-size: 9px; }
+  .seller-profile-identity p { margin: 8px 0; font-size: 11px; }
+  .seller-profile-identity > small { gap: 5px 12px; font-size: 9px; }
+  .seller-rank-card { grid-template-columns: 52px 1fr; margin-top: 18px; padding: 13px; }
+  .seller-rank-emblem { width: 49px; height: 55px; font-size: 20px; }
+  .seller-rank-card div strong { font-size: 15px; }
+  .seller-rank-card div small, .seller-rank-card div span, .seller-rank-card > p small { font-size: 9px; }
+  .seller-profile-stats { margin: 10px 0; padding: 13px 0; }
+  .seller-profile-stats strong { font-size: 20px; }
+  .seller-profile-stats div > span { font-size: 11px; letter-spacing: 1px; }
+  .seller-profile-stats div > small, .seller-profile-stats strong small { font-size: 8px; }
+  .seller-profile-reviews > header { min-height: 44px; padding: 0 12px; }
+  .seller-profile-reviews h3 { font-size: 13px; }
+  .seller-profile-reviews a { font-size: 11px; }
+  .seller-profile-reviews article { grid-template-columns: 43px 1fr auto; gap: 8px; margin: 0 10px; padding: 10px 0; }
+  .seller-review-avatar { width: 41px; height: 41px; font-size: 10px; }
+  .seller-profile-reviews article h4 { font-size: 12px; }
+  .seller-profile-reviews article h4 small { display: inline-block; margin-left: 3px; padding: 2px 4px; font-size: 7px; }
+  .seller-profile-reviews article p { font-size: 10px; }
+  .seller-profile-reviews time { font-size: 8px; }
+  .seller-profile-actions { grid-template-columns: 1fr; gap: 9px; margin-top: 10px; }
+  .seller-profile-actions > a { min-height: 58px; }
+  .seller-message-action { display: none !important; }
+  .seller-view-action { font-size: 17px; }
+}

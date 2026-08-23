@@ -687,6 +687,40 @@ function getMarketplaceProductReviewStats(listingId) {
   };
 }
 
+function getMarketplaceSellerPreviewData(username) {
+  const reviewsSource = readJson('wavehub.sellerReviews', []);
+  const reviews = (Array.isArray(reviewsSource) ? reviewsSource : [])
+    .filter((review) => String(review.sellerUsername || '').toLowerCase() === String(username || '').toLowerCase())
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  const purchases = readJson('wavehub.purchases', []);
+  const completedSales = (Array.isArray(purchases) ? purchases : []).filter((purchase) => {
+    const status = String(purchase?.status || '').toLowerCase();
+    return ['completed', 'complete', 'delivered', 'fulfilled'].includes(status)
+      && Array.isArray(purchase.items)
+      && purchase.items.some((item) => String(item.sellerUsername || '').toLowerCase() === String(username || '').toLowerCase());
+  }).length;
+  const average = reviews.length
+    ? reviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / reviews.length
+    : null;
+  return {
+    reviews: reviews.map((review) => {
+      const buyer = getUserByUsername(review.buyerUsername);
+      const name = review.buyerName || (buyer ? getDisplayName(buyer) : '') || review.buyerUsername || 'WaveHub member';
+      return {
+        name,
+        username: review.buyerUsername || '',
+        initials: buyer ? getInitials(buyer) : getGameInitials(name),
+        photo: buyer?.photoData || '',
+        rating: review.rating,
+        comment: review.comment || '',
+        createdAt: review.createdAt || '',
+      };
+    }),
+    average,
+    completedSales,
+  };
+}
+
 function getMarketplaceSellerWaveRank(username) {
   if (!username) return null;
 
@@ -1523,7 +1557,34 @@ function createProductShowcaseCard(listing) {
   seller.className = 'product-showcase-seller';
   if (seller instanceof HTMLAnchorElement) {
     seller.href = getPublicProfileUrl(listing.sellerUsername);
-    seller.setAttribute('aria-label', `Open ${sellerName} public profile`);
+    seller.setAttribute('aria-label', `Preview ${sellerName} public profile`);
+    seller.addEventListener('click', event => {
+      event.preventDefault();
+      const sellerData = getMarketplaceSellerPreviewData(listing.sellerUsername);
+      const joined = sellerUser?.createdAt || sellerUser?.joinedAt || '';
+      const joinedDate = joined ? new Date(joined) : null;
+      const member = joinedDate && !Number.isNaN(joinedDate.getTime())
+        ? joinedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        : '';
+      window.openSellerProfilePreview?.({
+        initials: getGameInitials(sellerName),
+        photo: sellerPhoto,
+        name: sellerName,
+        username: listing.sellerUsername,
+        bio: sellerUser?.bio || '',
+        location: sellerUser?.location || sellerUser?.city || sellerUser?.country || '',
+        member,
+        verified: Boolean(sellerUser?.verified || sellerUser?.isVerified || sellerUser?.verificationStatus === 'verified'),
+        role: getSellerListings().some((item) => item.sellerUsername === listing.sellerUsername) ? 'Marketplace seller' : 'WaveHub member',
+        rank: sellerWaveRank ? `WAVE RANK #${sellerWaveRank}` : 'UNRANKED',
+        rating: sellerData.average === null ? '—' : sellerData.average.toFixed(1),
+        reviewCount: sellerData.reviews.length,
+        reviews: sellerData.reviews,
+        sales: formatCount(sellerData.completedSales),
+        score: sellerData.average === null ? null : Math.round(sellerData.average * 20),
+        url: getPublicProfileUrl(listing.sellerUsername),
+      }, seller);
+    });
   }
   const sellerUser = getUserByUsername(listing.sellerUsername);
   const sellerPhoto = sellerUser?.photoData || listing.sellerAvatar || '';
