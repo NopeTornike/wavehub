@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260827-marketplace-arrow-6" />
+  <link rel="stylesheet" href="styles.css?v=20260827-mobile-reference-1" />
 </head>
 <body class="home-page">
   <div class="app-shell">
@@ -99,6 +99,10 @@
           <span></span>
         </button>
 
+        <a class="mobile-header-brand" href="index.html" aria-label="WaveHubX home">
+          <img src="assets/logo-wavehubx-main.png" alt="WaveHubX" />
+        </a>
+
         <label class="search-box" aria-label="Search">
           <span class="search-icon" aria-hidden="true">/</span>
           <input id="marketSearch" type="search" placeholder="Search for games, services or players..." autocomplete="off" />
@@ -164,6 +168,11 @@
               <button class="logout-button" id="logoutButton" type="button">Log Out</button>
             </div>
           </div>
+        </div>
+
+        <div class="mobile-header-auth" aria-label="Account actions">
+          <a href="auth.html?mode=login">Sign In</a>
+          <a class="join" href="auth.html?mode=register">Join</a>
         </div>
       </header>
 
@@ -263,10 +272,29 @@
       <section class="content-section home-marketplace-showcase" aria-labelledby="home-marketplace-title">
         <a class="home-marketplace-cover" href="marketplace.html" aria-label="Explore the WaveHubX marketplace">
           <img src="assets/home-marketplace-cover.png" alt="WaveHubX neon gaming marketplace" />
+          <span class="mobile-cover-cta">Explore Now <b aria-hidden="true">&rarr;</b></span>
         </a>
 
+        <section class="mobile-home-services" aria-labelledby="mobile-services-title">
+          <header>
+            <h2 id="mobile-services-title"><span aria-hidden="true">&#9734;</span> Services</h2>
+            <a href="marketplace.html">View all <span aria-hidden="true">&rsaquo;</span></a>
+          </header>
+          <div class="mobile-service-grid">
+            <a href="coaching.html"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 20v-5a7 7 0 0 1 14 0v5M9 17H6v7h4v-7H9Zm14 0h3v7h-4v-7h1ZM22 25c0 2-2 3-5 3"/></svg><span>Coaching</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m6 17 10-10 10 10M11 15v11h10V15M7 22h4M21 22h4"/></svg><span>Rank Up</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="8" width="19" height="17" rx="2"/><path d="m24 13 5-3v13l-5-3M13 13l6 4-6 4v-8Z"/></svg><span>VOD Review</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16Z"/><circle cx="16" cy="16" r="4"/></svg><span>Live Spectate</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="6"/><path d="M16 3v4M16 25v4M3 16h4M25 16h4M7 7l3 3M22 22l3 3M25 7l-3 3M10 22l-3 3"/></svg><span>Settings<br>Optimization</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 3 10 4v8c0 7-4 11-10 14C10 26 6 22 6 15V7l10-4Z"/><path d="m11 16 3 3 7-7"/></svg><span>Account Audit</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="10" r="4"/><circle cx="7" cy="13" r="3"/><circle cx="25" cy="13" r="3"/><path d="M9 27v-3a7 7 0 0 1 14 0v3M2 26v-2a5 5 0 0 1 7-5M30 26v-2a5 5 0 0 0-7-5"/></svg><span>Team Finder</span></a>
+            <a href="steam-keys.html"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="21" cy="10" r="6"/><circle cx="21" cy="10" r="2"/><path d="m16 15-6 6-5-2-3 3 8 4 9-10M5 19l5 2"/></svg><span>Steam Games</span></a>
+          </div>
+        </section>
+
         <div class="home-marketplace-heading">
-          <h2 id="home-marketplace-title"><img src="assets/marketplace-icon.svg" alt="" /> Marketplace</h2>
+          <h2 id="home-marketplace-title"><img src="assets/marketplace-icon.svg" alt="" /><span class="desktop-marketplace-title">Marketplace</span><span class="mobile-marketplace-title">Popular Games</span></h2>
+          <a class="home-marketplace-heading-link" href="marketplace.html">View all <span aria-hidden="true">&rsaquo;</span></a>
         </div>
 
         <div class="home-marketplace-game-grid" aria-label="Marketplace games">
@@ -530,7 +558,7 @@
 
   <script src="script.js?v=20260818-services-carousel-1"></script>
   <script src="cart-nav.js"></script>
-  <script src="profile-nav.js?v=20260819-full-sidebar"></script>
+  <script src="profile-nav.js?v=20260827-mobile-reference-1"></script>
   <script>
     (() => {
       const modal = document.getElementById('sellerProfileModal');

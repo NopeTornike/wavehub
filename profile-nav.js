@@ -636,35 +636,35 @@
     }
 
     const path = window.location.pathname.split('/').pop() || 'index.html';
-    const activeItem = path === 'marketplace.html' || path === 'detail.html' || path === 'cart.html'
+    const activeItem = path === 'marketplace.html' || path === 'detail.html' || path === 'cart.html' || path === 'steam-keys.html'
       ? 'marketplace'
-      : path === 'coaching.html' || path === 'coach-book-session.html'
-        ? 'coaching'
-        : path === 'profile.html'
+      : path === 'orders.html'
+        ? 'orders'
+        : path === 'wallet.html'
+          ? 'wallet'
+      : path === 'profile.html'
           ? 'profile'
-          : path === 'index.html' && window.location.hash === '#services'
-            ? 'services'
-            : 'home';
+          : 'home';
 
     const navigation = document.createElement('nav');
     navigation.className = 'mobile-bottom-nav';
     navigation.setAttribute('aria-label', 'Mobile navigation');
     navigation.innerHTML = `
-      <a href="marketplace.html" data-mobile-route="marketplace">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l1 13H5L6 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>
-        <span>Marketplace</span>
-      </a>
-      <a href="coaching.html" data-mobile-route="coaching">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5.5 21v-2a6.5 6.5 0 0 1 13 0v2"/><path d="M4 10.5a3 3 0 0 0 0 6M20 10.5a3 3 0 0 1 0 6"/></svg>
-        <span>Find Coach</span>
-      </a>
       <a class="mobile-home-link" href="index.html" data-mobile-route="home">
         <span class="mobile-home-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4v-9Z"/></svg></span>
         <span>Home</span>
       </a>
-      <a href="index.html#services" data-mobile-route="services">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4M7 13h2M15 13h2"/></svg>
-        <span>Digital Services</span>
+      <a href="marketplace.html" data-mobile-route="marketplace">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l1 13H5L6 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>
+        <span>Marketplace</span>
+      </a>
+      <a href="orders.html" data-mobile-route="orders">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2M8 9h8M8 13h8M8 17h5"/></svg>
+        <span>Orders</span>
+      </a>
+      <a href="wallet.html" data-mobile-route="wallet">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h15a2 2 0 0 1 2 2v10H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h12v4"/><path d="M16 12h5v4h-5a2 2 0 0 1 0-4Z"/></svg>
+        <span>Wallet</span>
       </a>
       <a href="profile.html" data-mobile-route="profile">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>

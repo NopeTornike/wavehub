@@ -14492,6 +14492,20 @@ body.public-profile-view .main-panel {
 .home-page .trusted-services-section .service-carousel { width: 100%; }
 .home-dashboard-main .home-how-section .how-hero { padding-inline: 20px; }
 .home-dashboard-main .home-how-section .how-hero h1 { max-width: 150px; font-size: clamp(25px, 2vw, 29px); }
+.mobile-header-brand,
+.mobile-header-auth,
+.mobile-cover-cta,
+.mobile-home-services,
+.mobile-marketplace-title,
+.home-marketplace-heading-link { display: none; }
+.home-marketplace-game-card:nth-child(1) .home-marketplace-game-image { background: url("assets/cs2-popular-games-photo.png") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(2) .home-marketplace-game-image { background: url("assets/dota-2-marketplace-cover.png") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(3) .home-marketplace-game-image { background: url("assets/pubg-mobile-marketplace-cover.png") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(4) .home-marketplace-game-image { background: url("assets/mobile-legends-popular-games-photo.png") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(5) .home-marketplace-game-image { background: url("assets/call-of-duty-popular-games-photo.png") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(6) .home-marketplace-game-image { background: url("assets/freefire-photo.jpeg") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(7) .home-marketplace-game-image { background: url("assets/roblox-popular-games-photo.png") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(8) .home-marketplace-game-image { background: url("assets/valorant-marketplace-cover.png") center / cover no-repeat; }
 
 .home-right-rail { min-width: 0; display: grid; gap: 10px; }
 .home-rail-card,
@@ -14567,9 +14581,191 @@ body.public-profile-view .main-panel {
 }
 
 @media (max-width: 620px) {
-  .home-dashboard-main { gap: 10px; }
-  .home-marketplace-showcase { padding: 8px; }
-  .home-marketplace-heading { padding-inline: 3px; }
+  .home-page { padding-bottom: calc(92px + env(safe-area-inset-bottom)); background: #020207; }
+  .home-page .main-panel { gap: 12px; padding: 10px 8px 22px; }
+  .home-page .topbar {
+    min-height: 54px;
+    grid-template-columns: 34px minmax(96px, 1fr) 40px auto;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px;
+  }
+  .home-page .menu-toggle {
+    width: 34px;
+    height: 42px;
+    gap: 5px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .home-page .menu-toggle span { width: 23px; height: 2px; background: #d4d1d8; }
+  .mobile-header-brand { min-width: 0; display: block; }
+  .mobile-header-brand img { width: min(100%, 148px); height: 43px; display: block; object-fit: contain; object-position: left center; }
+  .home-page .search-box {
+    width: 40px;
+    height: 40px;
+    display: block;
+    border-color: rgba(125, 99, 151, .2);
+    border-radius: 8px;
+    background: rgba(8, 8, 14, .9);
+  }
+  .home-page .search-box input { display: none; }
+  .home-page .search-icon { width: 40px; height: 40px; display: block; }
+  .home-page .search-icon::before { top: 10px; left: 11px; }
+  .home-page .search-icon::after { top: 24px; left: 23px; }
+  .home-page .top-actions { display: none; }
+  .mobile-header-auth { display: flex; align-items: center; gap: 6px; }
+  .mobile-header-auth a {
+    min-width: 52px;
+    min-height: 40px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(125, 99, 151, .16);
+    border-radius: 8px;
+    color: #f2eff5;
+    background: #0a0a10;
+    padding: 0 9px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .mobile-header-auth .join { min-width: 48px; border-color: rgba(255, 45, 174, .4); background: linear-gradient(105deg, #ff1893, #702dff); box-shadow: 0 0 14px rgba(255, 25, 147, .2); }
+  .home-page .mobile-account-overview,
+  .home-page .trusted-services-section,
+  .home-page .home-how-section,
+  .home-page .home-right-rail,
+  .home-page .home-faq-section { display: none; }
+  .home-dashboard-grid,
+  .home-dashboard-main { display: block; }
+  .home-marketplace-showcase {
+    overflow: visible;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .home-marketplace-cover { aspect-ratio: 1.64 / 1; border-radius: 13px; }
+  .home-marketplace-cover img { object-position: center; }
+  .mobile-cover-cta {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    bottom: 25px;
+    min-width: 128px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: 7px;
+    color: white;
+    background: linear-gradient(100deg, #f51488, #6e35ff);
+    font-size: 12px;
+    font-weight: 700;
+    transform: translateX(-50%);
+    box-shadow: 0 0 20px rgba(222, 28, 187, .35);
+  }
+  .mobile-cover-cta b { font-size: 18px; font-weight: 400; }
+  .mobile-home-services {
+    display: block;
+    margin-top: 12px;
+    padding: 14px 8px 10px;
+    border: 1px solid rgba(94, 62, 122, .14);
+    border-radius: 13px;
+    background: rgba(3, 3, 9, .92);
+  }
+  .mobile-home-services header,
+  .home-marketplace-heading { min-height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 4px 10px; }
+  .mobile-home-services h2,
+  .home-marketplace-heading h2 { margin: 0; color: #f5f1f7; font-size: 13px; letter-spacing: .02em; text-transform: uppercase; }
+  .mobile-home-services h2 span { margin-right: 5px; color: #e63aff; font-size: 22px; text-shadow: 0 0 10px rgba(232, 52, 255, .55); }
+  .mobile-home-services header > a,
+  .home-marketplace-heading-link { display: flex; align-items: center; gap: 7px; color: #ff2e9a; font-size: 10px; }
+  .mobile-home-services header > a span,
+  .home-marketplace-heading-link span { font-size: 22px; line-height: .7; }
+  .mobile-service-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+  .mobile-service-grid a {
+    min-width: 0;
+    aspect-ratio: 1 / 1.05;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid rgba(105, 73, 132, .22);
+    border-radius: 9px;
+    color: #f0edf3;
+    background: linear-gradient(155deg, rgba(13, 7, 18, .8), rgba(3, 4, 9, .94));
+    padding: 6px 3px;
+    font-size: clamp(8px, 2.45vw, 11px);
+    line-height: 1.05;
+    text-align: center;
+  }
+  .mobile-service-grid svg { width: clamp(27px, 9vw, 42px); height: clamp(27px, 9vw, 42px); fill: none; stroke: #ee51f8; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgba(231, 69, 255, .38)); }
+  .mobile-service-grid a:last-child svg { stroke: #f5f2f5; }
+  .home-marketplace-heading { margin-top: 12px; padding: 14px 10px 10px; border: 1px solid rgba(94, 62, 122, .14); border-bottom: 0; border-radius: 13px 13px 0 0; background: rgba(3, 3, 9, .92); }
+  .home-marketplace-heading h2 { gap: 7px; }
+  .home-marketplace-heading h2 img { width: 18px; height: 18px; }
+  .desktop-marketplace-title { display: none; }
+  .mobile-marketplace-title { display: inline; }
+  .home-marketplace-game-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 0 8px 10px;
+    border-inline: 1px solid rgba(94, 62, 122, .14);
+    background: rgba(3, 3, 9, .92);
+  }
+  .home-marketplace-game-card:nth-child(n + 5) { display: none; }
+  .home-marketplace-game-card { border-radius: 8px; }
+  .home-marketplace-game-card:hover,
+  .home-marketplace-game-card:focus-visible { transform: none; }
+  .home-marketplace-game-image { aspect-ratio: .67 / 1; }
+  .home-marketplace-game-info { min-height: 58px; gap: 4px; padding: 8px 25px 7px 6px; }
+  .home-marketplace-game-info strong { font-size: clamp(7px, 2.25vw, 10px); }
+  .home-marketplace-game-info small { font-size: clamp(7px, 2.15vw, 9px); white-space: nowrap; }
+  .home-marketplace-game-info i { right: 4px; bottom: 7px; width: 19px; height: 19px; }
+  .home-marketplace-game-info i::before { width: 5px; height: 5px; transform: translate(-1px, 1px) rotate(45deg); }
+  .home-marketplace-view-all {
+    width: auto;
+    min-height: 43px;
+    margin: 0;
+    border-color: rgba(226, 32, 173, .34);
+    border-radius: 0 0 13px 13px;
+    background: rgba(3, 3, 9, .92);
+    font-size: 11px;
+  }
+  .mobile-bottom-nav .mobile-home-link { overflow: hidden; color: #8991a7; }
+  .mobile-home-icon { width: auto; height: auto; margin: 0; border: 0; border-radius: 0; color: inherit; background: transparent; box-shadow: none; }
+  .mobile-home-link > span:last-child { margin-top: 0; }
+  .home-page .mobile-bottom-nav {
+    right: 8px;
+    bottom: max(6px, env(safe-area-inset-bottom));
+    left: 8px;
+    height: 76px;
+    padding: 6px 3px 5px;
+    border-color: rgba(91, 61, 119, .22);
+    border-radius: 24px;
+    background: rgba(4, 4, 10, .97);
+  }
+  .home-page .mobile-bottom-nav a { gap: 5px; color: #aaa4ad; font-size: clamp(8px, 2.5vw, 11px); }
+  .home-page .mobile-bottom-nav a > svg,
+  .home-page .mobile-home-icon svg { width: 27px; height: 27px; }
+  .home-page .mobile-bottom-nav .mobile-home-link { overflow: hidden; color: #aaa4ad; }
+  .home-page .mobile-home-icon { width: auto; height: auto; margin: 0; border: 0; border-radius: 0; color: inherit; background: transparent; box-shadow: none; }
+  .home-page .mobile-bottom-nav a.active { color: #ff3ba2; text-shadow: 0 0 9px rgba(255, 59, 162, .35); }
+  .home-page .mobile-home-link > span:last-child { margin-top: 0; }
+}
+
+@media (max-width: 370px) {
+  .home-page .topbar { grid-template-columns: 30px minmax(82px, 1fr) 36px auto; gap: 4px; padding-inline: 0; }
+  .home-page .menu-toggle { width: 30px; }
+  .mobile-header-brand img { height: 38px; }
+  .home-page .search-box,
+  .home-page .search-icon { width: 36px; }
+  .mobile-header-auth { gap: 4px; }
+  .mobile-header-auth a { min-width: 43px; min-height: 36px; padding-inline: 6px; font-size: 9px; }
+  .mobile-service-grid { gap: 5px; }
+  .home-marketplace-game-grid { gap: 4px; padding-inline: 6px; }
 }
 
 /* Public seller quick profile */
