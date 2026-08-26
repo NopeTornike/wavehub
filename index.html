@@ -326,8 +326,8 @@
               <h3>PUBG Ace Booster</h3>
               <p>Fast rank push with verified delivery and progress updates.</p>
               <div class="seller-row">
-                <span class="avatar">AK</span>
-                <span>Top 100 Player</span>
+                <button class="avatar seller-profile-trigger" type="button" data-profile="top-player" aria-label="Open Top 100 Player profile">AK</button>
+                <button class="seller-profile-name seller-profile-trigger" type="button" data-profile="top-player">Top 100 Player</button>
               </div>
               <div class="price-row">
                 <strong>18 GEL</strong>
@@ -343,8 +343,8 @@
               <h3>MLBB Mythic Duo</h3>
               <p>Play with a verified carry and climb safely in duo queue.</p>
               <div class="seller-row">
-                <span class="avatar avatar-gold">MX</span>
-                <span>MythX</span>
+                <button class="avatar avatar-gold seller-profile-trigger" type="button" data-profile="mythx" aria-label="Open MythX profile">MX</button>
+                <button class="seller-profile-name seller-profile-trigger" type="button" data-profile="mythx">MythX</button>
               </div>
               <div class="price-row">
                 <strong>12 GEL/game</strong>
@@ -360,8 +360,8 @@
               <h3>Free Fire Cup Slot</h3>
               <p>Weekly tournament entry for squads with prize tracking.</p>
               <div class="seller-row">
-                <span class="avatar avatar-green">WH</span>
-                <span>WaveHub Events</span>
+                <button class="avatar avatar-green seller-profile-trigger" type="button" data-profile="wavehub-events" aria-label="Open WaveHub Events profile">WH</button>
+                <button class="seller-profile-name seller-profile-trigger" type="button" data-profile="wavehub-events">WaveHub Events</button>
               </div>
               <div class="price-row">
                 <strong>9 GEL</strong>
@@ -485,10 +485,82 @@
     </main>
   </div>
 
+  <div class="seller-profile-modal" id="sellerProfileModal" hidden>
+    <div class="seller-profile-backdrop" data-profile-close></div>
+    <section class="seller-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="sellerProfileName">
+      <button class="seller-profile-close" type="button" data-profile-close aria-label="Close profile">×</button>
+
+      <header class="seller-profile-header">
+        <div class="seller-profile-person">
+          <span class="seller-profile-photo" id="sellerProfilePhoto">AK<i aria-label="Online"></i></span>
+          <div class="seller-profile-identity">
+            <h2><span id="sellerProfileName">Top 100 Player</span><b aria-label="Verified">✓</b></h2>
+            <div><strong id="sellerProfileHandle">@top100player</strong><span>♢ Verified Seller</span></div>
+            <p id="sellerProfileBio">Professional rank booster and competitive player</p>
+            <small><span>⌖ <b id="sellerProfileLocation">Tbilisi, Georgia</b></span><span>▣ Member since <b id="sellerProfileMember">Jan 2023</b></span><span class="seller-online">● Online Now</span></small>
+          </div>
+        </div>
+
+        <div class="seller-rank-card">
+          <span class="seller-rank-emblem">W</span>
+          <div><small>RANK</small><strong id="sellerProfileRank">WAVE MASTER</strong><span>WaveHubX Rank</span></div>
+          <p><span></span><small>Next: <b>PRIME</b></small></p>
+        </div>
+      </header>
+
+      <div class="seller-profile-stats">
+        <div><strong id="sellerProfileRating">4.9</strong><small>RATING</small><span>★★★★★</span></div>
+        <div><strong id="sellerProfileSales">237+</strong><small>TOTAL SALES</small><span>Completed Orders</span></div>
+        <div><strong><span id="sellerProfileScore">96</span><small>/100</small></strong><small>WV SCORE</small><span>Top 12% of sellers</span></div>
+      </div>
+
+      <section class="seller-profile-reviews">
+        <header><h3>☵ &nbsp; REVIEWS <small>(48)</small></h3><a href="profile.html#reviews">View all reviews →</a></header>
+        <article><span class="seller-review-avatar">GH</span><div><h4>GioHunter <small>♢ Verified Buyer</small></h4><b>★★★★★</b><p>Amazing service! Fast, professional and very reliable. Highly recommended! 🔥</p></div><time>2d ago</time></article>
+        <article><span class="seller-review-avatar alt">GM</span><div><h4>GameMaster <small>♢ Verified Buyer</small></h4><b>★★★★★</b><p>Great communication and reliable service. Will order again!</p></div><time>5d ago</time></article>
+        <article><span class="seller-review-avatar warm">RP</span><div><h4>RankUpPro <small>♢ Verified Buyer</small></h4><b>★★★★★</b><p>Fast, safe and legit. Got exactly what I needed. Thanks a lot!</p></div><time>1w ago</time></article>
+      </section>
+
+      <footer class="seller-profile-actions">
+        <a class="seller-message-action" href="messages.html"><span>▣</span><b>Message<small>Chat with seller</small></b><i>→</i></a>
+        <a class="seller-view-action" href="profile.html">View Full Profile <span>→</span></a>
+      </footer>
+    </section>
+  </div>
+
   <script src="script.js?v=20260818-services-carousel-1"></script>
   <script src="cart-nav.js"></script>
   <script src="profile-nav.js?v=20260819-full-sidebar"></script>
   <script>
+    (() => {
+      const modal = document.getElementById('sellerProfileModal');
+      if (!modal) return;
+      const profiles = {
+        'top-player': { initials: 'AK', name: 'Top 100 Player', handle: '@top100player', bio: 'Professional rank booster and competitive player', location: 'Tbilisi, Georgia', member: 'Jan 2023', rank: 'WAVE MASTER', rating: '4.9', sales: '237+', score: '96' },
+        mythx: { initials: 'MX', name: 'MythX', handle: '@mythx', bio: 'Mobile Legends coach and Mythic rank specialist', location: 'Batumi, Georgia', member: 'Mar 2024', rank: 'WAVE ELITE', rating: '4.8', sales: '184+', score: '92' },
+        'wavehub-events': { initials: 'WH', name: 'WaveHub Events', handle: '@wavehubevents', bio: 'Official tournaments, cups and community events', location: 'Tbilisi, Georgia', member: 'Jan 2023', rank: 'WAVE PRIME', rating: '5.0', sales: '320+', score: '99' }
+      };
+      const fields = { name: 'sellerProfileName', handle: 'sellerProfileHandle', bio: 'sellerProfileBio', location: 'sellerProfileLocation', member: 'sellerProfileMember', rank: 'sellerProfileRank', rating: 'sellerProfileRating', sales: 'sellerProfileSales', score: 'sellerProfileScore' };
+      let lastTrigger = null;
+      const close = () => {
+        modal.classList.remove('is-open');
+        document.body.classList.remove('seller-profile-open');
+        window.setTimeout(() => { modal.hidden = true; lastTrigger?.focus(); }, 180);
+      };
+      document.querySelectorAll('.seller-profile-trigger').forEach(trigger => trigger.addEventListener('click', () => {
+        const profile = profiles[trigger.dataset.profile];
+        if (!profile) return;
+        lastTrigger = trigger;
+        Object.entries(fields).forEach(([key, id]) => document.getElementById(id).textContent = profile[key]);
+        document.getElementById('sellerProfilePhoto').firstChild.textContent = profile.initials;
+        modal.hidden = false;
+        document.body.classList.add('seller-profile-open');
+        requestAnimationFrame(() => { modal.classList.add('is-open'); modal.querySelector('.seller-profile-close').focus(); });
+      }));
+      modal.querySelectorAll('[data-profile-close]').forEach(control => control.addEventListener('click', close));
+      document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) close(); });
+    })();
+
     (() => {
       const section = document.getElementById('how-it-works');
       if (!section) return;
