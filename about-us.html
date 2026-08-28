@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png?v=4">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaveHubX — ჩვენს შესახებ</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="policy-page-body">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
+      <a class="brand" href="index.html" aria-label="WaveHub home"><img src="assets/logo-wavehubx-main.png" alt="WaveHubX" /></a>
+      <nav class="side-nav" aria-label="Main pages"></nav>
+      <div class="sidebar-status"><span class="status-dot"></span><span>WaveHubX ecosystem</span></div>
+    </aside>
+    <div class="scrim" id="scrim" hidden></div>
+    <main class="main-panel policy-main-panel">
+      <article class="policy-page" aria-labelledby="aboutUsTitle">
+        <header class="policy-hero">
+          <p><span></span><b>About WaveHubX</b><span></span></p>
+          <h1 id="aboutUsTitle">WaveHubX — ჩვენს შესახებ</h1>
+          <p>WaveHubX არის საქართველოში პირველი ციფრული გეიმინგ პლატფორმა, რომელიც აერთიანებს გეიმერებისთვის საჭირო სერვისებს, ციფრულ პროდუქტებსა და სხვადასხვა გეიმინგ შესაძლებლობას ერთ სივრცეში.</p>
+          <p>ჩვენი მიზანია შევქმნათ უსაფრთხო, გამჭვირვალე და მომხმარებელზე ორიენტირებული პლატფორმა, სადაც მომხმარებლებს შეუძლიათ მარტივად მოიძიონ და შეიძინონ მათთვის საჭირო გეიმინგ მომსახურებები და ციფრული პროდუქტები.</p>
+        </header>
+        <div class="policy-content">
+          <section><h2><span>1</span> პლატფორმის მიმართულებები</h2><p>WaveHubX-ზე მომხმარებლებს ეტაპობრივად ექნებათ წვდომა სხვადასხვა მიმართულებაზე, მათ შორის:</p><ul><li>გეიმინგ ქოუჩინგზე;</li><li>ციფრულ პროდუქტებსა და სერვისებზე;</li><li>Marketplace-ზე;</li><li>Steam Games მიმართულებაზე;</li><li>ტურნირებსა და სხვა გეიმინგ აქტივობებზე.</li></ul></section>
+          <section><h2><span>2</span> უსაფრთხო შეკვეთები</h2><p>პლატფორმის მუშაობის ერთ-ერთი მთავარი პრინციპია უსაფრთხო და გამჭვირვალე შეკვეთის პროცესი.</p><p>WaveHubX-ის ფარგლებში განხორციელებული შეკვეთების გადახდა ხდება მხოლოდ პლატფორმის ოფიციალური გადახდის არხების მეშვეობით. სელერებსა და სერვისის მიმწოდებლებს ეკრძალებათ მომხმარებლებისთვის პლატფორმის გარეთ პირდაპირი გადახდის შეთავაზება.</p></section>
+          <section><h2><span>3</span> მომხმარებლის დაცვა</h2><p>WaveHubX განსაკუთრებულ ყურადღებას უთმობს მომხმარებლის უფლებების დაცვას, მომსახურების ხარისხს, მონაცემების კონფიდენციალურობასა და თაღლითობის პრევენციას.</p><p>პლატფორმაზე მოქმედებს მომხმარებლების, სელერებისა და ქოუჩების ქცევის წესები, ასევე თანხის დაბრუნების, შეკვეთის გაუქმების, დავების გადაწყვეტისა და კონფიდენციალურობის პოლიტიკები.</p></section>
+          <section><h2><span>4</span> განვითარება და მიზანი</h2><p>WaveHubX ვითარდება ეტაპობრივად და ახალი ფუნქციები და სერვისები ემატება პლატფორმის განვითარების შესაბამისად.</p><p>ჩვენი მიზანია საქართველოში ჩამოვაყალიბოთ სანდო და თანამედროვე გეიმინგ ეკოსისტემა, რომელიც მომხმარებლებს მისცემს შესაძლებლობას ისარგებლონ სხვადასხვა გეიმინგ სერვისით ერთიან და ორგანიზებულ სივრცეში.</p></section>
+        </div>
+        <footer class="policy-document-footer">© 2026 WaveHubX. ყველა უფლება დაცულია.</footer>
+      </article>
+    </main>
+  </div>
+  <script src="cart-nav.js"></script>
+  <script src="profile-nav.js?v=20260827-mobile-reference-1"></script>
+  <script>
+    const aboutUsToggle = document.getElementById('menuToggle');
+    const aboutUsScrim = document.getElementById('scrim');
+    const closeAboutUsMenu = () => { document.body.classList.remove('sidebar-open'); if (aboutUsScrim) aboutUsScrim.hidden = true; aboutUsToggle?.setAttribute('aria-expanded', 'false'); };
+    aboutUsToggle?.addEventListener('click', () => { const isOpen = document.body.classList.toggle('sidebar-open'); if (aboutUsScrim) aboutUsScrim.hidden = !isOpen; aboutUsToggle.setAttribute('aria-expanded', String(Boolean(isOpen))); });
+    aboutUsScrim?.addEventListener('click', closeAboutUsMenu);
+  </script>
+  <script src="site-footer.js"></script>
+</body>
+</html>

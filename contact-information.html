@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png?v=4">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaveHubX — საკონტაქტო ინფორმაცია</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="policy-page-body">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
+      <a class="brand" href="index.html" aria-label="WaveHub home"><img src="assets/logo-wavehubx-main.png" alt="WaveHubX" /></a>
+      <nav class="side-nav" aria-label="Main pages"></nav>
+      <div class="sidebar-status"><span class="status-dot"></span><span>WaveHubX ecosystem</span></div>
+    </aside>
+    <div class="scrim" id="scrim" hidden></div>
+
+    <main class="main-panel policy-main-panel">
+      <article class="policy-page contact-page" aria-labelledby="contactTitle">
+        <header class="policy-hero">
+          <p><span></span><b>Contact Information</b><span></span></p>
+          <h1 id="contactTitle">WaveHubX — საკონტაქტო ინფორმაცია</h1>
+          <p>WaveHubX-ის მომხმარებლებს შეუძლიათ დაგვიკავშირდნენ პლატფორმასთან, შეკვეთებთან, გადახდებთან, მომსახურებებთან, ანგარიშთან ან სხვა საკითხებთან დაკავშირებით.</p>
+        </header>
+
+        <section class="contact-details" aria-labelledby="contactDetailsTitle">
+          <h2 id="contactDetailsTitle">საკონტაქტო მონაცემები</h2>
+          <div class="contact-details-grid">
+            <article><span aria-hidden="true">W</span><small>ბიზნესის/მერჩანტის დასახელება</small><strong>WaveHubX - ვეივჰაბი</strong></article>
+            <a href="tel:+995593464601"><span aria-hidden="true">☎</span><small>ტელეფონი</small><strong>+995 593 46 46 01</strong></a>
+            <a href="mailto:wavehubx@gmail.com"><span aria-hidden="true">✉</span><small>ელექტრონული ფოსტა</small><strong>wavehubx@gmail.com</strong></a>
+            <article><span aria-hidden="true">⌖</span><small>მისამართი</small><strong>ბათუმი, ბათუმგორის ქუჩა N31</strong></article>
+          </div>
+        </section>
+
+        <section class="policy-content contact-support" aria-labelledby="supportTitle">
+          <section>
+            <h2 id="supportTitle"><span>?</span> მომხმარებელთა მხარდაჭერა</h2>
+            <p>WaveHubX-ის მხარდაჭერის გუნდი მომხმარებლებს ეხმარება შემდეგ საკითხებში:</p>
+            <ul><li>შეკვეთებთან დაკავშირებული კითხვები;</li><li>გადახდებთან დაკავშირებული საკითხები;</li><li>თანხის დაბრუნება და შეკვეთის გაუქმება;</li><li>მიწოდების საკითხები;</li><li>Marketplace-თან დაკავშირებული პრობლემები;</li><li>ქოუჩინგის სერვისებთან დაკავშირებული კითხვები;</li><li>ანგარიშისა და უსაფრთხოების საკითხები;</li><li>დავების განხილვა;</li><li>სხვა ტექნიკური ან სერვისთან დაკავშირებული საკითხები.</li></ul>
+            <p>მომხმარებელს შეუძლია მოგვმართოს ზემოთ მითითებული ოფიციალური საკონტაქტო არხების საშუალებით.</p>
+            <p>WaveHubX ცდილობს მომხმარებლის მოთხოვნებს უპასუხოს გონივრულ ვადაში და თითოეული საკითხი განიხილოს შესაბამისი გარემოებებისა და მოქმედი პოლიტიკების მიხედვით.</p>
+          </section>
+        </section>
+      </article>
+    </main>
+  </div>
+
+  <script src="cart-nav.js"></script>
+  <script src="profile-nav.js?v=20260827-mobile-reference-1"></script>
+  <script>
+    const contactMenuToggle = document.getElementById('menuToggle');
+    const contactScrim = document.getElementById('scrim');
+    const closeContactMenu = () => {
+      document.body.classList.remove('sidebar-open');
+      if (contactScrim) contactScrim.hidden = true;
+      contactMenuToggle?.setAttribute('aria-expanded', 'false');
+    };
+    contactMenuToggle?.addEventListener('click', () => {
+      const isOpen = document.body.classList.toggle('sidebar-open');
+      if (contactScrim) contactScrim.hidden = !isOpen;
+      contactMenuToggle.setAttribute('aria-expanded', String(Boolean(isOpen)));
+    });
+    contactScrim?.addEventListener('click', closeContactMenu);
+  </script>
+  <script src="site-footer.js"></script>
+</body>
+</html>
