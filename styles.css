@@ -14139,6 +14139,7 @@ body.public-profile-view .main-panel {
 .tournament-copy dl > div { min-width: 0; display: grid; gap: 7px; padding: 0 8px; border-right: 1px solid rgba(133, 105, 149, .16); text-align: center; }
 .tournament-copy dl > div:last-child { border: 0; }
 .tournament-copy dt { display: grid; gap: 5px; color: #ff38a3; font-size: 23px; }
+.tournament-copy dt svg { width: 36px; height: 36px; justify-self: center; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgba(255, 56, 163, .28)); }
 .tournament-copy dt span { color: #9f99a5; font-size: 9px; font-weight: 500; text-transform: uppercase; }
 .tournament-copy dd { margin: 0; color: #eeeaf0; font-size: 14px; }
 .tournament-copy dl > div:first-child dd { color: #ff42a7; }
@@ -14200,6 +14201,7 @@ body.public-profile-view .main-panel {
   .tournament-copy h4 { font-size: 23px; }
   .tournament-copy > p { gap: 7px; font-size: 10px; }
   .tournament-copy dt { font-size: 19px; }
+  .tournament-copy dt svg { width: 29px; height: 29px; }
   .tournament-copy dt span { font-size: 7px; }
   .tournament-copy dd { font-size: 11px; }
 }
