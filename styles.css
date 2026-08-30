@@ -14067,6 +14067,143 @@ body.public-profile-view .main-panel {
 /* Embedded FAQ section on the Home page. */
 .home-faq-section { scroll-margin-top: 24px; }
 
+/* Coaching and tournaments showcase on the Home page. */
+.home-competition-section { position: relative; padding-top: clamp(42px, 5vw, 72px); padding-bottom: clamp(28px, 4vw, 58px); }
+.competition-heading { margin-bottom: 24px; text-align: center; }
+.competition-heading h2 { display: flex; align-items: center; justify-content: center; gap: clamp(18px, 2.4vw, 34px); margin: 0; color: #f8f6fb; font-size: clamp(34px, 4.4vw, 62px); line-height: 1.06; letter-spacing: .035em; text-transform: uppercase; }
+.competition-heading h2 em { color: #ff3eae; font-style: normal; }
+.competition-heading h2 > span { color: #ff35aa; font-size: .55em; filter: drop-shadow(0 0 7px rgba(255, 53, 170, .65)); }
+.competition-heading > span { display: block; margin-top: 9px; color: #b7b2be; font-size: clamp(15px, 1.45vw, 20px); }
+
+.competition-showcase { display: grid; grid-template-columns: minmax(0, 1fr) clamp(176px, 14vw, 224px) minmax(0, 1.02fr); align-items: stretch; }
+.competition-panel { min-width: 0; padding: clamp(22px, 2.2vw, 32px); border: 1px solid rgba(230, 41, 149, .33); border-radius: 22px; background: radial-gradient(circle at 14% 8%, rgba(109, 23, 131, .14), transparent 32%), linear-gradient(145deg, rgba(9, 5, 18, .98), rgba(3, 5, 13, .98)); box-shadow: inset 0 0 42px rgba(105, 25, 141, .06), 0 28px 70px rgba(0, 0, 0, .3); }
+.competition-panel-title { display: flex; align-items: center; gap: 15px; margin-bottom: 18px; }
+.competition-title-icon { width: 44px; height: 44px; flex: 0 0 44px; display: grid; place-items: center; color: #ff39a1; filter: drop-shadow(0 0 8px rgba(255, 48, 160, .34)); }
+.competition-title-icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.competition-panel-title h3 { margin: 0 0 3px; color: #f7f4f9; font-size: clamp(19px, 1.7vw, 26px); letter-spacing: .02em; text-transform: uppercase; }
+.competition-panel-title p { margin: 0; color: #aaa5b0; font-size: 14px; }
+
+.featured-coaches { position: relative; display: grid; gap: 14px; }
+.featured-coach { min-width: 0; min-height: 182px; display: grid; grid-template-columns: minmax(140px, 40%) minmax(0, 1fr); overflow: hidden; border: 1px solid rgba(227, 42, 151, .28); border-radius: 13px; color: inherit; background: rgba(4, 5, 14, .92); box-shadow: inset 0 0 24px rgba(111, 31, 162, .06); }
+.featured-coach:hover, .featured-coach:focus-visible { border-color: rgba(255, 48, 163, .62); color: inherit; transform: translateY(-2px); }
+.featured-coach-photo { position: relative; min-height: 182px; background-position: center; background-size: cover; }
+.featured-coach-photo::after { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13, 4, 28, .02), rgba(5, 4, 15, .48)); content: ''; }
+.featured-coach-photo.luna { background-image: linear-gradient(rgba(76, 13, 119, .2), rgba(10, 1, 20, .36)), url('assets/valorant-marketplace-cover.png'); background-position: 15% center; }
+.featured-coach-photo.zephyr { background-image: linear-gradient(rgba(72, 8, 116, .2), rgba(7, 2, 17, .42)), url('assets/cs2-marketplace-cover.png'); background-position: 16% center; }
+.featured-coach-photo > span { position: absolute; z-index: 1; top: 12px; left: 12px; padding: 7px 10px; border-radius: 5px; color: #f8edff; background: linear-gradient(105deg, #6b18c9, #40118f); box-shadow: 0 0 14px rgba(107, 24, 201, .35); font-size: 10px; font-weight: 850; letter-spacing: .02em; text-transform: uppercase; }
+.featured-coach-copy { min-width: 0; display: flex; flex-direction: column; padding: 17px 16px 12px; }
+.featured-coach-name { display: flex; align-items: center; gap: 8px; }
+.featured-coach-name h4 { margin: 0; color: #fbf9fc; font-size: clamp(21px, 2vw, 30px); }
+.featured-coach-name > b { width: 19px; height: 19px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #1f8cff; font-size: 11px; }
+.featured-coach-name > span { display: grid; grid-template-columns: auto auto; gap: 1px 5px; margin-left: auto; color: #dad5df; font-size: 15px; }
+.featured-coach-name > span i { color: #ffbd28; font-style: normal; }
+.featured-coach-name > span small { grid-column: 1 / -1; color: #98939f; font-size: 10px; text-align: right; }
+.featured-coach-copy > p { margin: 2px 0 10px; color: #a9a4af; font-size: 15px; }
+.featured-coach-copy ul { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.featured-coach-copy li { padding: 5px 8px; border: 1px solid rgba(230, 43, 151, .25); border-radius: 5px; color: #c8c3ce; font-size: 10px; }
+.featured-coach-copy footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(133, 105, 149, .16); }
+.featured-coach-copy footer strong { color: #ff35a4; font-size: 21px; }
+.featured-coach-copy footer strong small { color: #a5a0aa; font-size: 10px; font-weight: 500; }
+.featured-coach-copy footer > span { color: #27b9eb; font-size: 11px; white-space: nowrap; }
+
+.competition-button { min-height: 60px; display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 17px; border: 1px solid rgba(231, 44, 157, .46); border-radius: 9px; color: #f5f1f6; background: linear-gradient(110deg, rgba(49, 7, 53, .78), rgba(15, 6, 35, .88)); font-size: 16px; font-weight: 750; }
+.competition-button > span { font-size: 27px; }
+.competition-button > b { margin-left: 8px; color: #ff43a9; font-size: 26px; }
+.competition-button:hover, .competition-button:focus-visible { border-color: #f342a4; color: #fff; box-shadow: 0 0 24px rgba(229, 42, 151, .15); transform: translateY(-2px); }
+
+.competition-bridge { --bridge-trophy-size: 136px; position: relative; isolation: isolate; display: grid; grid-template-rows: 1fr var(--bridge-trophy-size) 1fr auto; justify-items: center; min-height: 100%; padding: 12px 0 54px; color: #bc4cff; }
+.coach-connection-lines { position: absolute; z-index: 0; top: 0; bottom: 0; left: calc(clamp(22px, 2.2vw, 32px) * -1); width: calc(100% + clamp(22px, 2.2vw, 32px)); height: 100%; overflow: visible; fill: none; stroke: #d956ff; stroke-width: 2; stroke-dasharray: 7 9; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgba(196, 55, 255, .9)); pointer-events: none; vector-effect: non-scaling-stroke; }
+.coach-connection-lines path { vector-effect: non-scaling-stroke; }
+.bridge-line { width: 2px; height: 100%; background: rgba(202, 75, 255, .92); filter: drop-shadow(0 0 6px #9e25ef); }
+.bridge-line, .bridge-trophy { position: relative; z-index: 1; }
+.bridge-bottom { height: calc(100% - 52px); }
+.bridge-line::after { position: absolute; left: 50%; width: 14px; height: 14px; border-color: #d956ff; border-style: solid; filter: drop-shadow(0 0 5px #a92fea); content: ''; }
+.bridge-top::after { bottom: 8px; border-width: 2px 0 0 2px; transform: translateX(-50%) rotate(45deg); }
+.bridge-bottom::after { top: 8px; border-width: 0 2px 2px 0; transform: translateX(-50%) rotate(45deg); }
+.bridge-trophy { width: var(--bridge-trophy-size); height: var(--bridge-trophy-size); display: grid; place-items: center; border: 2px solid #e45cff; border-radius: 50%; color: #ee42ff; background: radial-gradient(circle, rgba(104, 16, 147, .35), rgba(7, 3, 20, .95) 66%); box-shadow: 0 0 18px #932bdf, inset 0 0 22px rgba(219, 42, 255, .28); }
+.bridge-trophy svg { width: 68px; height: 68px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.competition-bridge p { position: absolute; bottom: 3px; margin: 0; color: #bd5cf4; font-size: 15px; font-weight: 850; line-height: 1.55; letter-spacing: .04em; text-align: center; text-transform: uppercase; text-shadow: 0 0 12px rgba(177, 46, 242, .35); }
+
+.featured-tournament { overflow: hidden; border: 1px solid rgba(231, 43, 150, .31); border-radius: 13px; background: rgba(4, 5, 13, .95); }
+.tournament-cover { position: relative; min-height: 248px; display: grid; place-items: center; overflow: hidden; background: linear-gradient(0deg, rgba(9, 1, 18, .62), rgba(9, 4, 25, .08)), url('assets/cs2-marketplace-cover.png') center / cover; }
+.tournament-cover::after { position: absolute; inset: 0; background: radial-gradient(circle at 50% 54%, rgba(222, 37, 255, .18), transparent 30%), linear-gradient(90deg, rgba(18, 0, 37, .34), transparent 40%, transparent 60%, rgba(18, 0, 37, .34)); content: ''; }
+.tournament-cover > span, .tournament-cover > b { position: absolute; z-index: 2; top: 14px; padding: 8px 11px; border-radius: 5px; font-size: 10px; letter-spacing: .025em; text-transform: uppercase; }
+.tournament-cover > span { left: 14px; color: #fff; background: linear-gradient(110deg, #e2238a, #a615a7); }
+.tournament-cover > b { right: 14px; border: 1px solid #16b76f; color: #54e69a; background: rgba(2, 36, 24, .72); }
+.tournament-cover > svg { position: relative; z-index: 1; width: 150px; height: 150px; fill: rgba(24, 2, 37, .72); stroke: #f02dff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 13px #891fd0) drop-shadow(0 0 26px rgba(225, 30, 255, .75)); }
+.tournament-copy { padding: 20px 18px 16px; }
+.tournament-copy h4 { margin: 0; color: #fbf9fc; font-size: clamp(24px, 2.5vw, 37px); letter-spacing: .035em; text-align: center; text-transform: uppercase; }
+.tournament-copy > p { display: flex; align-items: center; justify-content: center; gap: 11px; margin: 5px 0 18px; color: #b4afb9; font-size: 13px; }
+.tournament-copy > p i { width: 6px; height: 6px; border-radius: 50%; background: #f52b9a; box-shadow: 0 0 7px #f52b9a; }
+.tournament-copy dl { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; }
+.tournament-copy dl > div { min-width: 0; display: grid; gap: 7px; padding: 0 8px; border-right: 1px solid rgba(133, 105, 149, .16); text-align: center; }
+.tournament-copy dl > div:last-child { border: 0; }
+.tournament-copy dt { display: grid; gap: 5px; color: #ff38a3; font-size: 23px; }
+.tournament-copy dt span { color: #9f99a5; font-size: 9px; font-weight: 500; text-transform: uppercase; }
+.tournament-copy dd { margin: 0; color: #eeeaf0; font-size: 14px; }
+.tournament-copy dl > div:first-child dd { color: #ff42a7; }
+.tournament-copy .competition-button { min-height: 54px; margin-top: 20px; color: #f052a8; }
+
+@media (max-width: 1250px) {
+  .competition-showcase { grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1.02fr); }
+  .competition-panel { padding: 20px; }
+  .featured-coach { grid-template-columns: 125px minmax(0, 1fr); }
+  .competition-bridge { --bridge-trophy-size: 110px; }
+  .bridge-trophy svg { width: 52px; height: 52px; }
+  .competition-bridge { grid-template-rows: 1fr var(--bridge-trophy-size) 1fr auto; }
+  .featured-coach-copy footer > span { display: none; }
+}
+
+@media (max-width: 920px) {
+  .competition-showcase { grid-template-columns: 1fr; gap: 18px; }
+  .coach-connection-lines { display: none; }
+  .competition-bridge { min-height: 100px; grid-template: 1fr / 1fr 92px 1fr; align-items: center; padding: 0 72px 0 0; }
+  .bridge-line { width: 100%; height: 2px; background: rgba(202, 75, 255, .92); }
+  .competition-bridge { --bridge-trophy-size: 92px; }
+  .competition-bridge p { right: 0; bottom: auto; font-size: 12px; text-align: left; }
+  .featured-coach { grid-template-columns: minmax(170px, 36%) minmax(0, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .home-competition-section { padding-top: 32px; }
+  .competition-heading { margin-bottom: 18px; }
+  .competition-heading h2 { gap: 9px; font-size: 29px; letter-spacing: .01em; }
+  .competition-heading > span { font-size: 13px; }
+  .competition-panel { padding: 15px 11px; border-radius: 16px; }
+  .competition-panel-title { padding: 0 5px; }
+  .competition-panel-title h3 { font-size: 18px; }
+  .competition-panel-title p { font-size: 12px; }
+  .featured-coach { min-height: 154px; grid-template-columns: 104px minmax(0, 1fr); }
+  .featured-coach-photo { min-height: 154px; }
+  .featured-coach-photo > span { top: 8px; left: 7px; padding: 5px 6px; font-size: 7px; }
+  .featured-coach-copy { padding: 12px 9px 9px; }
+  .featured-coach-name { gap: 5px; }
+  .featured-coach-name h4 { font-size: 19px; }
+  .featured-coach-name > b { width: 15px; height: 15px; font-size: 8px; }
+  .featured-coach-name > span { font-size: 12px; }
+  .featured-coach-copy > p { margin-bottom: 7px; font-size: 12px; }
+  .featured-coach-copy ul { gap: 4px; }
+  .featured-coach-copy li { padding: 4px; font-size: 8px; }
+  .featured-coach-copy footer { padding-top: 7px; }
+  .featured-coach-copy footer strong { font-size: 17px; }
+  .competition-button { min-height: 54px; font-size: 14px; }
+  .competition-bridge { min-height: 82px; grid-template-columns: 1fr 72px 1fr; padding-right: 58px; }
+  .competition-bridge { --bridge-trophy-size: 72px; }
+  .bridge-trophy svg { width: 45px; height: 45px; }
+  .competition-bridge p { font-size: 9px; }
+  .tournament-cover { min-height: 200px; }
+  .tournament-cover > span, .tournament-cover > b { top: 10px; padding: 6px 7px; font-size: 7px; }
+  .tournament-cover > span { left: 8px; }
+  .tournament-cover > b { right: 8px; }
+  .tournament-cover > svg { width: 120px; height: 120px; }
+  .tournament-copy { padding: 16px 9px 10px; }
+  .tournament-copy h4 { font-size: 23px; }
+  .tournament-copy > p { gap: 7px; font-size: 10px; }
+  .tournament-copy dt { font-size: 19px; }
+  .tournament-copy dt span { font-size: 7px; }
+  .tournament-copy dd { font-size: 11px; }
+}
+
 @media (min-width: 1041px) {
   .home-faq-section .faq-page {
     width: 100%;
