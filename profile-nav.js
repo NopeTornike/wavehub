@@ -69,6 +69,51 @@
     return element;
   }
 
+  function getProfileMenuMarkup() {
+    return `
+      <button class="profile-chip" id="profileButton" type="button" aria-label="Profile menu" aria-haspopup="true" aria-expanded="false">
+        <span class="avatar avatar-hot" id="profileAvatar">?</span>
+      </button>
+      <div class="profile-dropdown profile-dropdown-rich" id="profileDropdown" hidden>
+        <div class="profile-dropdown-head">
+          <span class="profile-panel-avatar-wrap">
+            <span class="avatar avatar-hot" id="profilePanelAvatar">?</span>
+            <i aria-label="Online"></i>
+          </span>
+          <div class="profile-dropdown-identity">
+            <div class="profile-dropdown-name-row">
+              <strong id="profileFullName">Guest account</strong>
+              <span class="profile-verified-mark" aria-label="Verified">&#10003;</span>
+            </div>
+            <small><span class="profile-rank-gem" aria-hidden="true"></span><span id="profileDropdownRank">Wave Rookie</span></small>
+            <span class="profile-tier"><span aria-hidden="true">&#9812;</span><b id="profileTierName">Wave Rookie</b><i aria-hidden="true">&#8594;</i><strong>Prime</strong></span>
+          </div>
+        </div>
+        <div class="profile-level-row" aria-label="Account level">
+          <span>Lv. <strong id="profileDropdownLevel">1</strong></span>
+          <i><b id="profileDropdownProgress"></b></i>
+          <small><span id="profileDropdownXp">0</span> / <span id="profileDropdownXpGoal">500</span> XP</small>
+        </div>
+        <nav class="profile-dropdown-links" aria-label="Profile shortcuts">
+          <div class="profile-dropdown-group">
+            <a href="orders.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></svg></span><span>My Orders</span><i aria-hidden="true">&#8250;</i></a>
+            <a id="profileFavoritesLink" href="marketplace.html#favorites"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.5 5.5 0 0 0 0-7.8Z"/></svg></span><span>Favorites</span><i aria-hidden="true">&#8250;</i></a>
+            <a href="messages.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 13v-2a8 8 0 0 1 16 0v2"/><path d="M4 12H2v5a2 2 0 0 0 2 2h2v-7H4Zm16 0h2v5a2 2 0 0 1-2 2h-2v-7h2ZM18 19c0 2-2 2-4 2"/></svg></span><span>Support</span><i aria-hidden="true">&#8250;</i></a>
+            <a href="profile.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Settings</span><i aria-hidden="true">&#8250;</i></a>
+          </div>
+          <div class="profile-dropdown-group">
+            <a id="profilePublicLink" href="profile.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span><span>View Profile</span></a>
+            <a href="profile.html#verification"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 7 3v5c0 4.6-2.9 8.2-7 10-4.1-1.8-7-5.4-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><span>Verified Status</span></a>
+          </div>
+        </nav>
+        <div class="auth-entry-actions" id="authEntryActions">
+          <a class="auth-open-button" href="auth.html?mode=login">Log in</a>
+          <a class="auth-open-button primary" href="auth.html?mode=register">Create account</a>
+        </div>
+        <button class="logout-button" id="logoutButton" type="button">Log Out</button>
+      </div>`;
+  }
+
   function standardizeSidebars() {
     const sidebar = document.getElementById('sidebar');
     const navigation = sidebar?.querySelector('.side-nav');
@@ -225,10 +270,9 @@
       if (!profileMenu) {
         profileMenu = document.createElement('div');
         profileMenu.className = 'profile-menu';
-        profileMenu.innerHTML = '<a class="profile-chip" href="profile.html" aria-label="Profile"><span class="avatar avatar-hot">?</span></a>';
       }
-
-      profileMenu.querySelector('.profile-chip > span:not(.avatar)')?.remove();
+      profileMenu.id = 'profileMenu';
+      profileMenu.innerHTML = getProfileMenuMarkup();
       const contextualAction = actions.querySelector('#sellerButton');
       actions.querySelectorAll('.seller-button:not(#sellerButton)').forEach((button) => button.remove());
       actions.replaceChildren(messages, cart, notifications, wallet);
@@ -247,7 +291,7 @@
     const username = user?.username || 'Guest';
     const displayName = isSignedIn ? getDisplayName(user) : 'Not signed in';
 
-    ['profileAvatar', 'profilePanelAvatar', 'mobileProfileAvatar'].forEach((id) => {
+    ['profileAvatar', 'profilePanelAvatar', 'mobileProfileAvatar', 'mobileHeaderAvatar'].forEach((id) => {
       applyAvatar(document.getElementById(id), user);
     });
     document.querySelectorAll('.global-topbar .profile-chip .avatar').forEach((element) => applyAvatar(element, user));
@@ -274,6 +318,7 @@
     const mobileProfileRank = document.getElementById('mobileProfileRank');
     const mobileProfileLevel = document.getElementById('mobileProfileLevel');
     const mobileWalletBalance = document.getElementById('mobileWalletBalance');
+    const mobileHeaderAuth = document.querySelector('.mobile-header-auth');
     const accountUsername = document.getElementById('accountUsername');
     const accountName = document.getElementById('accountName');
     const authEntryActions = document.getElementById('authEntryActions');
@@ -304,6 +349,7 @@
     if (mobileProfileUsername) mobileProfileUsername.textContent = username;
     if (mobileProfileRank) mobileProfileRank.textContent = user?.rank || user?.role || (isSignedIn ? 'Wave Master' : 'Wave Rookie');
     if (mobileProfileLevel) mobileProfileLevel.textContent = String(Math.max(1, Number(user?.level) || 1));
+    if (mobileHeaderAuth) mobileHeaderAuth.classList.toggle('is-signed-in', isSignedIn);
     if (mobileWalletBalance) {
       const wallets = readJson(walletsKey, {});
       const balance = isSignedIn ? Math.max(0, Number(wallets?.[username]?.balance) || 0) : 0;
@@ -538,18 +584,53 @@
 
   function bindProfileRoutes() {
     const profileButton = document.getElementById('profileButton');
-    if (profileButton && !document.getElementById('profileDropdown')) {
-      profileButton.addEventListener('click', routeToProfile, true);
-    }
+    const profileDropdown = document.getElementById('profileDropdown');
+    const profileMenu = document.getElementById('profileMenu');
+
+    const setProfileOpen = (isOpen) => {
+      if (!profileButton || !profileDropdown) return;
+      profileDropdown.hidden = !isOpen;
+      profileButton.setAttribute('aria-expanded', String(isOpen));
+    };
+
+    profileButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setNotificationCenterOpen(false);
+      setProfileOpen(profileDropdown?.hidden ?? true);
+    }, true);
+
+    profileDropdown?.addEventListener('click', (event) => event.stopPropagation());
+
+    document.addEventListener('click', (event) => {
+      if (profileMenu?.contains(event.target)) return;
+      setProfileOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || profileDropdown?.hidden) return;
+      setProfileOpen(false);
+      profileButton?.focus();
+    });
 
     document.querySelectorAll('.coach-profile').forEach((button) => {
       button.addEventListener('click', routeToProfile, true);
     });
 
     document.getElementById('profileFavoritesLink')?.addEventListener('click', (event) => {
-      event.preventDefault();
       const favoritesLink = document.querySelector('.side-nav [data-section="Favorites"]');
-      if (favoritesLink instanceof HTMLElement) favoritesLink.click();
+      if (!(favoritesLink instanceof HTMLElement)) return;
+      event.preventDefault();
+      favoritesLink.click();
+    });
+
+    document.getElementById('logoutButton')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      localStorage.removeItem(sessionKey);
+      setProfileOpen(false);
+      renderProfileSurfaces();
+      renderMessageNotifications();
+      renderNotificationCenter();
     });
   }
 

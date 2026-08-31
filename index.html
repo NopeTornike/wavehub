@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260830-coaching-tournaments" />
+  <link rel="stylesheet" href="styles.css?v=20260831-mobile-auth-state" />
 </head>
 <body class="home-page">
   <div class="app-shell">
@@ -173,6 +173,9 @@
         <div class="mobile-header-auth" aria-label="Account actions">
           <a href="auth.html?mode=login">Sign In</a>
           <a class="join" href="auth.html?mode=register">Join</a>
+          <a class="mobile-user-profile" id="mobileUserProfile" href="profile.html" aria-label="Open profile">
+            <span class="avatar avatar-hot" id="mobileHeaderAvatar">?</span>
+          </a>
         </div>
       </header>
 
@@ -335,6 +338,7 @@
         <a class="home-marketplace-view-all" href="marketplace.html">View all games <span aria-hidden="true">›</span></a>
       </section>
 
+      <!-- Popular Services
       <section class="content-section trusted-services-section" id="services" aria-labelledby="services-title">
         <div class="section-heading">
           <div>
@@ -400,6 +404,7 @@
           </div>
         </div>
       </section>
+      -->
 
       <section class="content-section home-how-section" id="how-it-works" aria-labelledby="howTitle">
         <div class="how-page">
@@ -639,7 +644,7 @@
 
   <script src="script.js?v=20260818-services-carousel-1"></script>
   <script src="cart-nav.js"></script>
-  <script src="profile-nav.js?v=20260827-mobile-reference-1"></script>
+  <script src="profile-nav.js?v=20260831-mobile-auth-state"></script>
   <script>
     (() => {
       const modal = document.getElementById('sellerProfileModal');

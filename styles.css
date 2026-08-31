@@ -14065,10 +14065,10 @@ body.public-profile-view .main-panel {
 }
 
 /* Embedded FAQ section on the Home page. */
-.home-faq-section { scroll-margin-top: 24px; }
+.home-faq-section { order: 2; scroll-margin-top: 24px; }
 
 /* Coaching and tournaments showcase on the Home page. */
-.home-competition-section { position: relative; padding-top: clamp(42px, 5vw, 72px); padding-bottom: clamp(28px, 4vw, 58px); }
+.home-competition-section { position: relative; order: 1; padding-top: clamp(42px, 5vw, 72px); padding-bottom: clamp(28px, 4vw, 58px); }
 .competition-heading { margin-bottom: 24px; text-align: center; }
 .competition-heading h2 { display: flex; align-items: center; justify-content: center; gap: clamp(18px, 2.4vw, 34px); margin: 0; color: #f8f6fb; font-size: clamp(34px, 4.4vw, 62px); line-height: 1.06; letter-spacing: .035em; text-transform: uppercase; }
 .competition-heading h2 em { color: #ff3eae; font-style: normal; }
@@ -14338,6 +14338,7 @@ body.public-profile-view .main-panel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   border: 1px solid rgba(255, 38, 140, .45);
   border-radius: 10px;
   color: #ff59a9;
@@ -14410,7 +14411,7 @@ body.public-profile-view .main-panel {
 }
 
 /* Compact neon account menu shown from the top-right avatar. */
-.home-page .profile-dropdown {
+.profile-dropdown.profile-dropdown-rich {
   top: calc(100% + 12px);
   right: -4px;
   width: min(386px, calc(100vw - 28px));
@@ -14424,7 +14425,7 @@ body.public-profile-view .main-panel {
   box-shadow: 0 0 0 1px rgba(255, 52, 198, .08), 0 0 24px rgba(244, 39, 199, .35), 0 28px 70px rgba(0, 0, 0, .62);
 }
 
-.home-page .profile-dropdown::before {
+.profile-dropdown.profile-dropdown-rich::before {
   position: absolute;
   top: -7px;
   right: 26px;
@@ -14437,20 +14438,20 @@ body.public-profile-view .main-panel {
   transform: rotate(45deg);
 }
 
-.home-page .profile-dropdown-head {
+.profile-dropdown-rich .profile-dropdown-head {
   gap: 14px;
   padding: 0 2px 15px;
   border: 0;
 }
 
 .profile-panel-avatar-wrap { position: relative; flex: 0 0 auto; }
-.home-page .profile-panel-avatar-wrap .avatar { width: 72px; height: 72px; border: 1px solid #ff38ca; font-size: 22px; box-shadow: 0 0 20px rgba(255, 43, 194, .34), inset 0 0 18px rgba(255, 43, 194, .16); }
+.profile-dropdown-rich .profile-panel-avatar-wrap .avatar { width: 72px; height: 72px; border: 1px solid #ff38ca; font-size: 22px; box-shadow: 0 0 20px rgba(255, 43, 194, .34), inset 0 0 18px rgba(255, 43, 194, .16); }
 .profile-panel-avatar-wrap > i { position: absolute; right: 1px; bottom: 3px; width: 13px; height: 13px; border: 3px solid #0a0b19; border-radius: 50%; background: #00e968; box-sizing: content-box; }
 .profile-dropdown-identity { min-width: 0; flex: 1; }
 .profile-dropdown-name-row { display: flex; align-items: center; gap: 8px; }
-.home-page .profile-dropdown-name-row strong { max-width: 190px; overflow: hidden; font-size: 19px; text-overflow: ellipsis; white-space: nowrap; }
+.profile-dropdown-rich .profile-dropdown-name-row strong { max-width: 190px; overflow: hidden; font-size: 19px; text-overflow: ellipsis; white-space: nowrap; }
 .profile-verified-mark { width: 19px; height: 19px; display: grid; place-items: center; border-radius: 6px; color: white; background: #ff2f8f; font-size: 12px; font-weight: 900; box-shadow: 0 0 12px rgba(255, 47, 143, .45); }
-.home-page .profile-dropdown-identity > small { display: flex; align-items: center; gap: 8px; margin-top: 5px; color: #d44fff; font-size: 12px; }
+.profile-dropdown-rich .profile-dropdown-identity > small { display: flex; align-items: center; gap: 8px; margin-top: 5px; color: #d44fff; font-size: 12px; }
 .profile-rank-gem { width: 13px; height: 13px; display: inline-block; border: 2px solid #d73cff; border-radius: 4px; transform: rotate(45deg); }
 .profile-tier { width: max-content; max-width: 100%; min-height: 26px; display: flex; align-items: center; gap: 7px; margin-top: 8px; padding: 3px 10px; border: 1px solid rgba(255, 56, 206, .38); border-radius: 999px; color: #dd6cff; background: rgba(255, 38, 188, .06); font-size: 11px; }
 .profile-tier b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -14468,11 +14469,11 @@ body.public-profile-view .main-panel {
 .profile-menu-icon { width: 25px; height: 25px; color: #dc3eff; }
 .profile-menu-icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .profile-dropdown-group a > i { color: #9299a9; font-size: 28px; font-style: normal; font-weight: 300; line-height: 1; }
-.home-page .auth-entry-actions { margin-top: 14px; }
-.home-page .logout-button { min-height: 50px; display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 0 18px; border-color: rgba(121, 131, 165, .25); border-radius: 14px; color: #8d93a2; background: rgba(12, 15, 29, .72); text-align: left; font-size: 14px; }
-.home-page .logout-button::before { content: '↪'; font-size: 24px; font-weight: 400; }
-.home-page .logout-button:hover { color: #ff6d9f; background: rgba(255, 77, 109, .09); }
-.home-page .logout-button[hidden] { display: none; }
+.profile-dropdown-rich .auth-entry-actions { margin-top: 14px; }
+.profile-dropdown-rich .logout-button { min-height: 50px; display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 0 18px; border-color: rgba(121, 131, 165, .25); border-radius: 14px; color: #8d93a2; background: rgba(12, 15, 29, .72); text-align: left; font-size: 14px; }
+.profile-dropdown-rich .logout-button::before { content: '\21AA'; font-size: 24px; font-weight: 400; }
+.profile-dropdown-rich .logout-button:hover { color: #ff6d9f; background: rgba(255, 77, 109, .09); }
+.profile-dropdown-rich .logout-button[hidden] { display: none; }
 
 .home-dashboard-grid { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 272px; align-items: start; gap: 12px; }
 .home-dashboard-main { min-width: 0; display: grid; gap: 12px; }
@@ -14517,12 +14518,15 @@ body.public-profile-view .main-panel {
 /* Collapsible desktop navigation. The existing sidebar-open state is shared
    with the mobile drawer, so the same three-line button works at every size. */
 @media (min-width: 921px) {
-  .home-page .app-shell {
-    grid-template-columns: 0 minmax(0, 1fr);
-    transition: grid-template-columns 220ms ease;
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .home-page .sidebar {
+  .app-shell > .sidebar {
+    position: fixed;
+    z-index: 20;
+    top: 0;
+    left: 0;
     width: 236px;
     transform: translateX(-100%);
     opacity: 0;
@@ -14530,25 +14534,29 @@ body.public-profile-view .main-panel {
     transition: transform 220ms ease, opacity 160ms ease;
   }
 
-  .home-page.sidebar-open .app-shell {
-    grid-template-columns: 236px minmax(0, 1fr);
-  }
-
-  .home-page.sidebar-open .sidebar {
+  body.sidebar-open .app-shell > .sidebar {
     transform: translateX(0);
     opacity: 1;
     pointer-events: auto;
   }
 
-  .home-page:not(.sidebar-open) .content-section {
-    margin-left: -18px;
+  .app-shell > .scrim {
+    position: fixed;
+    z-index: 19;
+    inset: 0;
+    display: block;
+    background: rgba(0, 0, 0, .58);
   }
 
-  .home-page .global-topbar {
+  .app-shell > .scrim[hidden] {
+    display: none;
+  }
+
+  .app-shell > .main-panel > .global-topbar {
     grid-template-columns: 42px minmax(280px, 580px) minmax(0, 1fr);
   }
 
-  .home-page .menu-toggle {
+  .app-shell .menu-toggle {
     width: 42px;
     height: 42px;
     display: grid;
@@ -14559,7 +14567,7 @@ body.public-profile-view .main-panel {
     background: rgba(255, 255, 255, .035);
   }
 
-  .home-page .menu-toggle span {
+  .app-shell .menu-toggle span {
     width: 20px;
     height: 2px;
     border-radius: 999px;
@@ -14771,8 +14779,7 @@ body.public-profile-view .main-panel {
 .home-rail-coaches-empty { margin: 13px 0 4px; color: #747e91; font-size: 9px; line-height: 1.5; text-align: center; }
 
 @media (min-width: 1251px) {
-  .home-page.sidebar-open .app-shell { grid-template-columns: 190px minmax(0, 1fr); }
-  .home-page .sidebar { width: 190px; gap: 12px; padding: 12px 10px; }
+  .home-page .sidebar { gap: 12px; padding: 12px 10px; }
   .home-page .brand { min-height: 82px; }
   .home-page .brand img { width: 165px; }
   .home-page .side-nav { gap: 3px; }
@@ -14826,6 +14833,19 @@ body.public-profile-view .main-panel {
   .home-page .search-icon::after { top: 24px; left: 23px; }
   .home-page .top-actions { display: none; }
   .mobile-header-auth { display: flex; align-items: center; gap: 6px; }
+  .mobile-header-auth .mobile-user-profile { display: none; }
+  .mobile-header-auth.is-signed-in > a:not(.mobile-user-profile) { display: none; }
+  .mobile-header-auth.is-signed-in .mobile-user-profile {
+    min-width: 40px;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+  }
+  .mobile-header-auth .mobile-user-profile .avatar { width: 40px; height: 40px; }
   .mobile-header-auth a {
     min-width: 52px;
     min-height: 40px;
