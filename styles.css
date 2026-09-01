@@ -13919,6 +13919,88 @@ body.public-profile-view .main-panel {
 .faq-support-banner a strong { font-size: 32px; }
 
 /* Keep the complete FAQ layout inside one desktop viewport. */
+.home-steam-section {
+  position: relative;
+  order: 2;
+  overflow: hidden;
+  padding: clamp(24px, 2.7vw, 38px);
+  border: 1px solid rgba(111, 34, 136, .38);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 82% 0, rgba(118, 20, 152, .12), transparent 34%),
+    linear-gradient(145deg, rgba(5, 3, 13, .99), rgba(2, 3, 10, .99));
+  box-shadow: 0 0 28px rgba(89, 20, 128, .11), inset 0 0 0 1px rgba(255, 255, 255, .012);
+}
+.home-steam-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.home-steam-title-wrap { min-width: 0; display: flex; align-items: center; gap: 18px; }
+.home-steam-logo { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; border: 1px solid rgba(221, 56, 255, .45); border-radius: 50%; color: white; background: radial-gradient(circle, rgba(179, 34, 208, .22), rgba(32, 5, 47, .5)); box-shadow: 0 0 18px rgba(194, 40, 227, .2); }
+.home-steam-logo svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.home-steam-title-wrap h2 { margin: 0; color: #f7f4f8; font-size: clamp(22px, 2vw, 31px); letter-spacing: .025em; text-transform: uppercase; }
+.home-steam-title-wrap p { margin: 5px 0 0; color: #aaa4af; font-size: clamp(11px, 1.05vw, 15px); }
+.home-steam-heading > a { display: inline-flex; align-items: center; gap: 14px; color: #ff3ba0; font-size: 13px; white-space: nowrap; }
+.home-steam-heading > a span { font-size: 24px; line-height: 1; }
+.home-steam-carousel { position: relative; }
+.home-steam-track { display: flex; gap: 12px; overflow-x: auto; padding: 1px; scroll-behavior: smooth; scrollbar-width: none; scroll-snap-type: x mandatory; }
+.home-steam-track::-webkit-scrollbar { display: none; }
+.home-steam-card { min-width: calc((100% - 48px) / 5); flex: 0 0 calc((100% - 48px) / 5); overflow: hidden; display: grid; grid-template-rows: minmax(225px, 1fr) auto auto; border: 1px solid rgba(117, 39, 137, .45); border-radius: 12px; color: #f5f1f7; background: #06050d; scroll-snap-align: start; transition: border-color 180ms ease, transform 180ms ease; }
+.home-steam-card:hover,
+.home-steam-card:focus-visible { border-color: rgba(255, 42, 155, .68); color: white; transform: translateY(-3px); }
+.home-steam-cover { min-height: 225px; display: block; background-position: center; background-size: cover; }
+.home-steam-cover.cs2 { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/cs2-marketplace-cover.png'); }
+.home-steam-cover.dota { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/dota-2-marketplace-cover.png'); }
+.home-steam-cover.fortnite { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/fortnite-marketplace-cover.png'); }
+.home-steam-cover.elden-ring { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/gta-5-marketplace-cover.png'); }
+.home-steam-cover.cod { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/call-of-duty-marketplace-photo.png'); }
+.home-steam-cover.gta { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/gta-5-marketplace-cover.png'); }
+.home-steam-cover.valorant { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/valorant-marketplace-cover.png'); }
+.home-steam-cover.minecraft { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/minecraft-marketplace-cover.png'); }
+.home-steam-cover.league { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/league-of-legends-marketplace-cover.png'); }
+.home-steam-cover.pubg { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/pubg-mobile-marketplace-cover.png'); }
+.home-steam-cover.roblox { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/roblox-marketplace-cover.png'); }
+.home-steam-cover.mobile-legends { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/mobile-legends-marketplace-cover.png'); }
+.home-steam-cover.clash { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/clash-of-clans-marketplace-cover.png'); }
+.home-steam-cover.standoff { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/home-game-standoff2.png'); }
+.home-steam-cover.rdr2 { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/clash-of-clans-marketplace-cover.png'); }
+.home-steam-cover.cyberpunk { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('assets/valorant-marketplace-cover.png'); }
+.home-steam-platform { min-height: 58px; display: flex; align-items: center; gap: 11px; padding: 0 15px; border-bottom: 1px solid rgba(255, 255, 255, .07); color: #c3bdc8; font-size: 11px; text-transform: uppercase; }
+.home-steam-platform b { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; font-size: 11px; font-weight: 900; }
+.home-steam-platform .steam-mark { color: #17121e; background: #f2d9ef; }
+.home-steam-platform .origin-mark { color: #ff671f; border: 3px solid currentColor; background: transparent; }
+.home-steam-platform .battle-mark { color: #22a6ff; border: 1px solid currentColor; background: rgba(34, 166, 255, .06); }
+.home-steam-card > strong { min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 15px; color: #f7f3f9; font-size: clamp(16px, 1.45vw, 22px); }
+.home-steam-cart { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #d94cff; border-radius: 5px; color: #ff4fa8; background: rgba(190, 45, 255, .08); font-size: 14px; box-shadow: 0 0 10px rgba(217, 76, 255, .16); }
+.home-steam-arrow { position: absolute; z-index: 3; top: 50%; width: 43px; height: 43px; display: grid; place-items: center; border: 1px solid rgba(236, 43, 255, .48); border-radius: 50%; color: #ff79ef; background: rgba(22, 4, 31, .94); font-size: 33px; line-height: 1; box-shadow: 0 0 17px rgba(211, 36, 250, .2); transform: translateY(-50%); }
+.home-steam-arrow:hover { border-color: #ff45c8; color: white; }
+.home-steam-arrow:disabled { opacity: .3; cursor: default; box-shadow: none; }
+.home-steam-prev { left: -22px; }
+.home-steam-arrow.home-steam-prev { font-size: 0; }
+.home-steam-prev::before { width: 11px; height: 11px; display: block; border-top: 2px solid currentColor; border-right: 2px solid currentColor; content: ''; transform: translate(2px, 5px) rotate(-135deg); }
+.home-steam-next { right: -22px; }
+.home-steam-arrow.home-steam-next { font-size: 0; }
+.home-steam-next::before { width: 11px; height: 11px; display: block; border-top: 2px solid currentColor; border-right: 2px solid currentColor; content: ''; transform: translate(-2px, 5px) rotate(45deg); }
+.home-steam-dots { display: flex; justify-content: center; gap: 12px; margin-top: 25px; }
+.home-steam-dots i { width: 22px; height: 5px; border-radius: 99px; background: #25232d; }
+.home-steam-dots i.active { background: #ff1493; box-shadow: 0 0 8px rgba(255, 20, 147, .55); }
+
+@media (max-width: 1200px) {
+  .home-steam-card { min-width: calc((100% - 24px) / 3); flex-basis: calc((100% - 24px) / 3); }
+}
+
+@media (max-width: 700px) {
+  .home-steam-section { padding: 20px 12px; border-radius: 13px; }
+  .home-steam-heading { align-items: flex-start; margin-bottom: 18px; }
+  .home-steam-logo { width: 40px; height: 40px; flex-basis: 40px; }
+  .home-steam-title-wrap { gap: 11px; }
+  .home-steam-title-wrap h2 { font-size: 19px; }
+  .home-steam-title-wrap p { max-width: 230px; font-size: 9px; line-height: 1.45; }
+  .home-steam-heading > a { font-size: 10px; }
+  .home-steam-card { min-width: 76%; flex-basis: 76%; grid-template-rows: 190px auto auto; }
+  .home-steam-cover { min-height: 190px; }
+  .home-steam-arrow { width: 36px; height: 36px; font-size: 27px; }
+  .home-steam-prev { left: -7px; }
+  .home-steam-next { right: -7px; }
+}
+
 @media (min-width: 1041px) {
   body.faq-page-body {
     overflow: hidden;
@@ -14065,7 +14147,8 @@ body.public-profile-view .main-panel {
 }
 
 /* Embedded FAQ section on the Home page. */
-.home-faq-section { order: 2; scroll-margin-top: 24px; }
+.home-how-section { order: 3; }
+.home-faq-section { order: 4; scroll-margin-top: 24px; }
 
 /* Coaching and tournaments showcase on the Home page. */
 .home-competition-section { position: relative; order: 1; padding-top: clamp(42px, 5vw, 72px); padding-bottom: clamp(28px, 4vw, 58px); }
@@ -14726,57 +14809,35 @@ body.public-profile-view .main-panel {
 .home-marketplace-game-card:nth-child(7) .home-marketplace-game-image { background: url("assets/home-game-roblox.png") center / cover no-repeat; }
 .home-marketplace-game-card:nth-child(8) .home-marketplace-game-image { background: url("assets/home-game-standoff2.png") center / cover no-repeat; }
 
-.home-right-rail { min-width: 0; display: grid; gap: 10px; }
-.home-rail-card,
-.home-rail-tournament { border: 1px solid rgba(60, 83, 130, .16); border-radius: 9px; background: rgba(5, 11, 23, .94); box-shadow: 0 14px 35px rgba(0, 0, 0, .19); }
-.home-rail-card { padding: 13px; }
-.home-rail-profile-head { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 11px; }
-.home-rail-avatar { width: 62px; height: 62px; border: 1px solid #ff2b93; font-size: 22px; box-shadow: 0 0 18px rgba(255, 32, 142, .32), inset 0 0 16px rgba(255, 32, 142, .18); }
-.home-rail-profile h2 { display: flex; align-items: center; gap: 5px; margin: 0 0 6px; font-size: 14px; }
-.home-rail-profile h2 i { color: #39afff; font-size: 11px; font-style: normal; }
-.home-rail-profile-head p { margin: 0; color: #ba4dff; font-size: 10px; }
-.home-rail-level { height: 5px; overflow: hidden; margin: 12px 0 5px 73px; border-radius: 999px; background: #1d2434; }
-.home-rail-level span { width: 44%; height: 100%; display: block; background: linear-gradient(90deg, #ff1885, #d70bd3); box-shadow: 0 0 10px rgba(255, 24, 133, .6); }
-.home-rail-profile > small { display: block; color: #9098aa; font-size: 8px; text-align: right; }
-.home-rail-wallet { display: flex; align-items: center; gap: 10px; margin: 12px -5px 10px; padding: 10px; border-radius: 7px; background: rgba(255, 255, 255, .025); }
-.home-rail-wallet > span { color: #e5a427; font-size: 19px; }
-.home-rail-wallet div { display: grid; gap: 2px; }
-.home-rail-wallet strong { font-size: 11px; }
-.home-rail-wallet small { color: #777f92; font-size: 8px; }
-.home-rail-profile > a { min-height: 31px; display: grid; place-items: center; border-radius: 7px; color: white; background: linear-gradient(90deg, #c60b65, #f10a79); font-size: 10px; font-weight: 850; box-shadow: 0 0 18px rgba(255, 16, 121, .16); }
-
-.home-rail-card > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.home-rail-card > header h2 { margin: 0; color: #cbd1de; font-size: 10px; text-transform: uppercase; }
-.home-rail-card > header a { color: #ff398f; font-size: 9px; }
-.home-rail-messages > a { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, .05); }
-.home-rail-messages > a:last-child { border-bottom: 0; }
-.rail-message-avatar { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.15); border-radius: 50%; color: white; background: #151d32; font-size: 9px; }
-.rail-message-avatar.support { border-color: #2885ff; background: #1f61cc; }
-.rail-message-avatar.coach { border-color: #ffb03e; background: #382613; }
-.home-rail-messages a > span:nth-child(2) { min-width: 0; display: grid; gap: 3px; }
-.home-rail-messages strong,
-.home-rail-messages small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.home-rail-messages strong { font-size: 9px; }
-.home-rail-messages small { color: #81899a; font-size: 8px; }
-.home-rail-messages time { align-self: start; color: #697185; font-size: 7px; }
-
-.home-rail-tournament { min-height: 112px; display: flex; align-items: center; justify-content: space-between; overflow: hidden; padding: 15px; background: radial-gradient(circle at 85% 45%, rgba(255, 34, 146, .42), transparent 33%), linear-gradient(115deg, #250424, #810449 65%, #15041b); }
-.home-rail-tournament > span { display: grid; gap: 6px; }
-.home-rail-tournament strong { color: #ff64b2; font-size: 16px; line-height: 1; text-transform: uppercase; }
-.home-rail-tournament small { color: white; font-size: 9px; }
-.home-rail-tournament b { width: 78px; min-height: 27px; display: grid; place-items: center; margin-top: 4px; border-radius: 5px; color: white; background: #e81270; font-size: 9px; }
-.home-rail-tournament i { color: #ff70bf; font-family: Georgia, serif; font-size: 58px; font-style: normal; text-shadow: 0 0 20px #ff1685; transform: rotate(8deg); }
-
-.home-rail-coaches ol { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
-.home-rail-coaches li { min-width: 0; display: grid; grid-template-columns: 18px 30px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 5px 0; }
-.home-rail-coaches li > b { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #5b3540; font-size: 8px; }
-.home-rail-coaches li:first-child > b { background: #c67810; }
-.rail-coach-avatar { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid rgba(255, 71, 158, .32); border-radius: 50%; color: #f3d3e4; background: linear-gradient(145deg, #34202d, #0b1221); font-size: 8px; }
-.home-rail-coaches li > span:nth-child(3) { min-width: 0; display: grid; gap: 2px; }
-.home-rail-coaches li strong { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.home-rail-coaches li small { color: #d89931; font-size: 7px; }
-.home-rail-coaches li > a { min-width: 44px; min-height: 25px; display: grid; place-items: center; border: 1px solid rgba(255, 37, 137, .4); border-radius: 5px; color: #ff4199; font-size: 8px; }
-.home-rail-coaches-empty { margin: 13px 0 4px; color: #747e91; font-size: 9px; line-height: 1.5; text-align: center; }
+.home-right-rail { min-width: 0; }
+.home-featured-items { overflow: hidden; border: 1px solid rgba(72, 54, 90, .28); border-radius: 10px; background: linear-gradient(180deg, rgba(13, 9, 19, .98), rgba(6, 5, 11, .98)); box-shadow: 0 18px 38px rgba(0, 0, 0, .25); }
+.home-featured-heading { display: flex; align-items: center; gap: 10px; padding: 16px 15px 14px; }
+.home-featured-heading > span { position: relative; width: 16px; height: 16px; flex: 0 0 16px; filter: drop-shadow(0 0 7px rgba(255, 38, 133, .72)); }
+.home-featured-heading > span::before,
+.home-featured-heading > span::after { position: absolute; inset: 0; margin: auto; border-radius: 1px; background: linear-gradient(180deg, #ff65ad, #ff177f); content: ''; }
+.home-featured-heading > span::before { width: 4px; height: 16px; }
+.home-featured-heading > span::after { width: 16px; height: 4px; }
+.home-featured-heading h2 { margin: 0; color: #f2edf5; font-size: 13px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.home-featured-list { display: grid; gap: 10px; padding: 0 10px; }
+.home-featured-card { overflow: hidden; border: 1px solid rgba(111, 88, 128, .24); border-radius: 8px; background: #0a0810; transition: border-color 160ms ease, transform 160ms ease; }
+.home-featured-card:hover { border-color: rgba(255, 45, 143, .45); transform: translateY(-2px); }
+.home-featured-image { position: relative; min-height: 150px; display: grid; place-items: center; overflow: hidden; color: rgba(255, 255, 255, .28); background-color: #0e0a15; background-position: center; background-size: cover; font-size: 33px; font-weight: 900; letter-spacing: .08em; }
+.home-featured-image::after { position: absolute; inset: auto 0 0; height: 45%; background: linear-gradient(transparent, rgba(8, 6, 12, .8)); content: ''; }
+.home-featured-heart { position: absolute; z-index: 1; top: 10px; right: 11px; color: #f7f3f8; font-size: 24px; font-weight: 400; line-height: 1; text-shadow: 0 2px 9px #000; }
+.home-featured-copy { padding: 11px 12px 12px; }
+.home-featured-copy h3 { overflow: hidden; margin: 0; color: #f2eff4; font-size: 13px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.home-featured-copy h3 a { color: inherit; }
+.home-featured-copy > p { margin: 5px 0 13px; color: #817987; font-size: 9px; }
+.home-featured-copy footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.home-featured-copy footer strong { color: #ff2b8d; font-size: 17px; text-shadow: 0 0 12px rgba(255, 43, 141, .24); }
+.home-featured-copy footer a { min-width: 82px; min-height: 30px; display: grid; place-items: center; border: 1px solid rgba(116, 91, 133, .27); border-radius: 6px; color: #eee9f0; background: #0d0a12; font-size: 9px; font-weight: 750; }
+.home-featured-copy footer a:hover,
+.home-featured-copy footer a:focus-visible { border-color: rgba(255, 43, 141, .5); color: white; }
+.home-featured-empty { margin: 0 10px; padding: 40px 18px; border: 1px dashed rgba(112, 91, 126, .28); border-radius: 8px; color: #7f7787; font-size: 10px; line-height: 1.6; text-align: center; }
+.home-featured-view-all { min-height: 49px; display: flex; align-items: center; justify-content: center; gap: 13px; margin-top: 10px; border-top: 1px solid rgba(111, 88, 128, .18); color: #e9e4ec; font-size: 11px; font-weight: 800; }
+.home-featured-view-all span { color: #ff2b8d; font-size: 22px; line-height: 1; }
+.home-featured-view-all:hover,
+.home-featured-view-all:focus-visible { color: #ff5cab; }
 
 @media (min-width: 1251px) {
   .home-page .sidebar { gap: 12px; padding: 12px 10px; }
@@ -15178,9 +15239,10 @@ body.seller-profile-open { overflow: hidden; }
 .site-footer-socials svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .site-footer-socials .discord { color: #7f82ff; }
 .site-footer-socials .instagram { color: #ef31a4; }
+.site-footer-socials .facebook { color: #4d8dff; }
+.site-footer-socials .facebook svg { fill: currentColor; stroke: none; }
 .site-footer-socials .youtube { color: #ff283e; }
-.site-footer-socials .youtube svg, .site-footer-socials .twitter svg { fill: currentColor; stroke: none; }
-.site-footer-socials .twitter { color: #55aeea; }
+.site-footer-socials .youtube svg { fill: currentColor; stroke: none; }
 .site-footer-socials .tiktok { color: #f4f4f6; }
 .site-footer-language { width: 136px; height: 44px; justify-self: end; display: grid; grid-template-columns: 42px 1fr; align-items: center; border: 1px solid rgba(137,149,177,.23); border-radius: 7px; background: #070b15; }
 .site-footer-language svg { width: 23px; height: 23px; justify-self: end; fill: none; stroke: #a340f2; stroke-width: 1.7; }

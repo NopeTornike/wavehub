@@ -441,34 +441,15 @@
       </section>
         </div>
 
-        <aside class="home-right-rail" aria-label="Account and community overview">
-          <section class="home-rail-card home-rail-profile">
-            <div class="home-rail-profile-head">
-              <span class="home-rail-avatar avatar avatar-hot" id="homeRailAvatar">?</span>
-              <div><h2><span id="homeRailUsername">Guest</span><i aria-label="Verified">✓</i></h2><p><span>◇</span> <b id="homeRailRank">Wave Rookie</b></p></div>
-            </div>
-            <div class="home-rail-level"><span></span></div>
-            <small>2,450 / 5,000 XP</small>
-            <div class="home-rail-wallet"><span aria-hidden="true">▢</span><div><strong><span id="homeRailWalletBalance">0</span> WC</strong><small>Wallet Balance</small></div></div>
-            <a href="profile.html">View Profile</a>
-          </section>
-
-          <section class="home-rail-card home-rail-messages">
-            <header><h2>Messages</h2><a href="messages.html">View all</a></header>
-            <a href="messages.html"><span class="rail-message-avatar support">?</span><span><strong>Support Team</strong><small>How can we help you?</small></span><time>2m ago</time></a>
-            <a href="messages.html"><span class="rail-message-avatar coach">CA</span><span><strong>Coach Alpha</strong><small>Session confirmed!</small></span><time>15m ago</time></a>
-            <a href="messages.html"><span class="rail-message-avatar system">◇</span><span><strong>System</strong><small>Your order has been placed.</small></span><time>1h ago</time></a>
-          </section>
-
-          <a class="home-rail-tournament" href="tournaments.html">
-            <span><strong>WaveHubX<br>Tournaments</strong><small>Compete. Win. Earn.</small><b>Join Now</b></span>
-            <i aria-hidden="true">♕</i>
-          </a>
-
-          <section class="home-rail-card home-rail-coaches">
-            <header><h2>Top Coaches</h2><a href="coaching.html">View all</a></header>
-            <ol id="homeTopCoaches"></ol>
-            <p class="home-rail-coaches-empty" id="homeTopCoachesEmpty" hidden>No coaching sessions uploaded yet.</p>
+        <aside class="home-right-rail" aria-label="Featured marketplace items">
+          <section class="home-featured-items" aria-labelledby="homeFeaturedTitle">
+            <header class="home-featured-heading">
+              <span aria-hidden="true"></span>
+              <h2 id="homeFeaturedTitle">Featured Items</h2>
+            </header>
+            <div class="home-featured-list" id="homeFeaturedItems"></div>
+            <p class="home-featured-empty" id="homeFeaturedEmpty" hidden>Featured marketplace items will appear here.</p>
+            <a class="home-featured-view-all" href="marketplace.html">View all items <span aria-hidden="true">&rsaquo;</span></a>
           </section>
         </aside>
       </div>
@@ -596,6 +577,106 @@
           </article>
         </div>
       </section>
+
+      <section class="content-section home-steam-section" id="homeSteamGames" aria-labelledby="homeSteamTitle">
+        <header class="home-steam-heading">
+          <div class="home-steam-title-wrap">
+            <span class="home-steam-logo" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><circle cx="21.5" cy="10.5" r="4"/><circle cx="10.5" cy="21.5" r="3.5"/><path d="m13.5 20 5.5-5.5m-5.5 9.3 5.2 2.2a4.5 4.5 0 0 0 5.8-2.5l1.3-3.2"/></svg>
+            </span>
+            <div><h2 id="homeSteamTitle">Steam Games</h2><p>Buy your favorite games at the best prices. Instant delivery, 100% secure.</p></div>
+          </div>
+          <a href="steam-keys.html">View all <span aria-hidden="true">&rarr;</span></a>
+        </header>
+
+        <div class="home-steam-carousel">
+          <button class="home-steam-arrow home-steam-prev" type="button" data-home-steam-direction="-1" aria-label="Previous Steam games">&lsaquo;</button>
+          <div class="home-steam-track" id="homeSteamTrack">
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover cs2" aria-label="Counter-Strike 2"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 14.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover dota" aria-label="Dota 2"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 9.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover fortnite" aria-label="Fortnite"></span>
+              <span class="home-steam-platform"><b class="origin-mark" aria-hidden="true">O</b> Epic Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 4.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover elden-ring" aria-label="Elden Ring"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 29.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover cod" aria-label="Call of Duty"></span>
+              <span class="home-steam-platform"><b class="battle-mark" aria-hidden="true">B</b> Battle.net</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 19.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover gta" aria-label="GTA V"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 24.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover valorant" aria-label="Valorant"></span>
+              <span class="home-steam-platform"><b class="battle-mark" aria-hidden="true">R</b> Riot Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 12.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover minecraft" aria-label="Minecraft"></span>
+              <span class="home-steam-platform"><b class="origin-mark" aria-hidden="true">M</b> Game Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 26.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover league" aria-label="League of Legends"></span>
+              <span class="home-steam-platform"><b class="battle-mark" aria-hidden="true">R</b> Riot Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 8.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover pubg" aria-label="PUBG Mobile"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 11.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover roblox" aria-label="Roblox"></span>
+              <span class="home-steam-platform"><b class="origin-mark" aria-hidden="true">R</b> Game Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 7.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover mobile-legends" aria-label="Mobile Legends"></span>
+              <span class="home-steam-platform"><b class="origin-mark" aria-hidden="true">M</b> Game Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 6.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover clash" aria-label="Clash of Clans"></span>
+              <span class="home-steam-platform"><b class="origin-mark" aria-hidden="true">C</b> Game Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 9.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover standoff" aria-label="Standoff 2"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Game Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 5.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover rdr2" aria-label="Red Dead Redemption 2"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 34.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover cyberpunk" aria-label="Cyberpunk 2077"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 27.99 GEL</strong>
+            </a>
+          </div>
+          <button class="home-steam-arrow home-steam-next" type="button" data-home-steam-direction="1" aria-label="Next Steam games">&rsaquo;</button>
+        </div>
+        <div class="home-steam-dots" aria-hidden="true"><i class="active"></i><i></i><i></i></div>
+      </section>
     </main>
   </div>
 
@@ -678,6 +759,39 @@
     (() => {
       const section = document.getElementById('how-it-works');
       if (!section) return;
+      const faqSection = document.getElementById('faq');
+      const competitionSection = document.getElementById('competition');
+      const steamSection = document.getElementById('homeSteamGames');
+      if (faqSection && competitionSection && steamSection) {
+        faqSection.insertAdjacentElement('beforebegin', competitionSection);
+        faqSection.insertAdjacentElement('beforebegin', steamSection);
+        faqSection.insertAdjacentElement('beforebegin', section);
+      }
+      const steamTrack = document.getElementById('homeSteamTrack');
+      const steamButtons = [...document.querySelectorAll('[data-home-steam-direction]')];
+      const steamDots = [...steamSection.querySelectorAll('.home-steam-dots i')];
+      const updateSteamCarousel = () => {
+        if (!steamTrack) return;
+        const maxScroll = Math.max(0, steamTrack.scrollWidth - steamTrack.clientWidth);
+        const progress = maxScroll ? steamTrack.scrollLeft / maxScroll : 0;
+        const activeDot = Math.round(progress * Math.max(0, steamDots.length - 1));
+        steamDots.forEach((dot, index) => dot.classList.toggle('active', index === activeDot));
+        steamButtons.forEach(button => {
+          const direction = Number(button.dataset.homeSteamDirection);
+          button.disabled = direction < 0 ? steamTrack.scrollLeft <= 2 : steamTrack.scrollLeft >= maxScroll - 2;
+        });
+      };
+      steamButtons.forEach(button => button.addEventListener('click', () => {
+        const direction = Number(button.dataset.homeSteamDirection) || 1;
+        const card = steamTrack?.querySelector('.home-steam-card');
+        const gap = steamTrack ? parseFloat(getComputedStyle(steamTrack).columnGap) || 12 : 12;
+        const cardStep = card ? card.getBoundingClientRect().width + gap : steamTrack?.clientWidth || 0;
+        const visibleCards = cardStep && steamTrack ? Math.max(1, Math.floor((steamTrack.clientWidth + gap) / cardStep)) : 1;
+        steamTrack?.scrollBy({ left: direction * cardStep * visibleCards, behavior: 'smooth' });
+      }));
+      steamTrack?.addEventListener('scroll', () => requestAnimationFrame(updateSteamCarousel), { passive: true });
+      window.addEventListener('resize', updateSteamCarousel);
+      updateSteamCarousel();
       const slides = [...section.querySelectorAll('.how-slide')];
       const tabs = [...section.querySelectorAll('.how-step')];
       const dots = [...section.querySelectorAll('.how-dots button')];
@@ -696,109 +810,107 @@
       slider.addEventListener('touchstart', event => { startX = event.touches[0].clientX; }, { passive: true });
       slider.addEventListener('touchend', event => { const distance = event.changedTouches[0].clientX - startX; if (Math.abs(distance) > 45) show(current + (distance < 0 ? 1 : -1)); }, { passive: true });
 
-      const profileSource = document.getElementById('profileUsername');
-      const avatarSource = document.getElementById('profileAvatar');
-      const rankSource = document.getElementById('mobileProfileRank');
       const walletSource = document.getElementById('mobileWalletBalance');
-      const syncHomeRail = () => {
-        const railUsername = document.getElementById('homeRailUsername');
-        const railAvatar = document.getElementById('homeRailAvatar');
-        const railRank = document.getElementById('homeRailRank');
-        const railWallet = document.getElementById('homeRailWalletBalance');
+      const syncHomeTopWallet = () => {
         const topWallet = document.getElementById('homeTopWalletBalance');
-        if (railUsername && profileSource) railUsername.textContent = profileSource.textContent;
-        if (railAvatar && avatarSource) {
-          railAvatar.textContent = avatarSource.textContent;
-          railAvatar.style.backgroundImage = getComputedStyle(avatarSource).backgroundImage;
-          railAvatar.style.backgroundSize = 'cover';
-          railAvatar.style.backgroundPosition = 'center';
-        }
-        if (railRank && rankSource) railRank.textContent = rankSource.textContent;
-        if (railWallet && walletSource) railWallet.textContent = walletSource.textContent;
         if (topWallet && walletSource) topWallet.textContent = walletSource.textContent;
       };
-      syncHomeRail();
-      [profileSource, avatarSource, rankSource, walletSource].filter(Boolean).forEach(source => new MutationObserver(syncHomeRail).observe(source, { childList: true, subtree: true, attributes: true }));
+      syncHomeTopWallet();
+      if (walletSource) new MutationObserver(syncHomeTopWallet).observe(walletSource, { childList: true, subtree: true });
 
       const readHomeData = (key, fallback = []) => {
         try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
         catch { return fallback; }
       };
-      const renderHomeTopCoaches = () => {
-        const list = document.getElementById('homeTopCoaches');
-        const empty = document.getElementById('homeTopCoachesEmpty');
+      const featuredImageByGame = {
+        'Call of Duty': 'assets/call-of-duty-marketplace-photo.png',
+        'Clash of Clans': 'assets/clash-of-clans-marketplace-cover.png',
+        'CS2': 'assets/cs2-marketplace-cover.png',
+        'Dota 2': 'assets/dota-2-marketplace-cover.png',
+        'Fortnite': 'assets/fortnite-marketplace-cover.png',
+        'GTA 5': 'assets/gta-5-marketplace-cover.png',
+        'League of Legends': 'assets/league-of-legends-marketplace-cover.png',
+        'Minecraft': 'assets/minecraft-marketplace-cover.png',
+        'Mobile Legends': 'assets/mobile-legends-marketplace-cover.png',
+        'PUBG Mobile': 'assets/pubg-mobile-marketplace-cover.png',
+        'Roblox': 'assets/roblox-marketplace-cover.png',
+        'Valorant': 'assets/valorant-marketplace-cover.png'
+      };
+      const featuredAccountImage = {
+        basic: 'assets/basic-account.png',
+        'full-collection': 'assets/full-collection-account.png',
+        fullcollection: 'assets/full-collection-account.png',
+        og: 'assets/og-account.png',
+        premium: 'assets/premium-account.png',
+        ranked: 'assets/ranked-account.png',
+        rare: 'assets/rare-account.png'
+      };
+      const getFeaturedImage = listing => (
+        listing.imageData
+        || listing.galleryImages?.[0]
+        || (listing.listingType === 'account' ? featuredAccountImage[String(listing.accountStatus || '').toLowerCase()] : '')
+        || featuredImageByGame[listing.game]
+        || ''
+      );
+      const getFeaturedInitials = game => String(game || 'WH').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+      const formatFeaturedPrice = value => {
+        const price = Number(value);
+        return `${Number.isFinite(price) ? (Number.isInteger(price) ? price : price.toFixed(2)) : 0} GEL`;
+      };
+      const renderHomeFeaturedItems = () => {
+        const list = document.getElementById('homeFeaturedItems');
+        const empty = document.getElementById('homeFeaturedEmpty');
         if (!list || !empty) return;
 
-        const sessionSource = readHomeData('wavehub.cart');
-        const userSource = readHomeData('wavehub.users');
-        const reviewSource = readHomeData('wavehub.sellerReviews');
-        const sessions = (Array.isArray(sessionSource) ? sessionSource : []).filter(item => (
-          item?.productType === 'Coaching'
-          && (item.isCoachListing || (item.buyerUsername && item.detailUrl === 'coaching.html'))
-          && item.isActive !== false
-          && item.status !== 'inactive'
-        ));
-        const users = Array.isArray(userSource) ? userSource : [];
-        const reviews = Array.isArray(reviewSource) ? reviewSource : [];
-        const grouped = new Map();
-
-        sessions.forEach(session => {
-          const username = String(session.buyerUsername || '').trim();
-          const name = String(session.seller || username || 'Wave Coach').trim();
-          const key = (username || name).toLowerCase();
-          const timestamp = new Date(session.updatedAt || session.addedAt || 0).getTime() || 0;
-          const current = grouped.get(key) || { key, username, name, sessions: 0, latest: 0, image: '', sessionId: '' };
-          current.sessions += 1;
-          if (timestamp >= current.latest) {
-            current.latest = timestamp;
-            current.sessionId = session.id || session.listingId || '';
-            current.image = session.imageData || current.image;
-            current.name = name;
-          }
-          grouped.set(key, current);
-        });
-
-        const ranked = [...grouped.values()]
-          .map(coach => {
-            const user = users.find(item => String(item?.username || '').toLowerCase() === coach.username.toLowerCase());
-            const coachReviews = reviews.filter(review => review?.reviewType === 'coaching' && String(review.sellerUsername || '').toLowerCase() === coach.username.toLowerCase());
-            const rating = coachReviews.length ? coachReviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / coachReviews.length : 0;
-            return { ...coach, image: coach.image || user?.photoData || '', rating };
-          })
-          .sort((a, b) => b.sessions - a.sessions || b.latest - a.latest || a.name.localeCompare(b.name))
-          .slice(0, 5);
-
+        const source = readHomeData('wavehub.sellerListings');
+        const featured = (Array.isArray(source) ? source : [])
+          .filter(item => item && item.isActive !== false && item.status !== 'inactive')
+          .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
+          .slice(0, 2);
         list.replaceChildren();
-        empty.hidden = ranked.length > 0;
-        ranked.forEach((coach, index) => {
-          const item = document.createElement('li');
-          const place = document.createElement('b');
-          const avatar = document.createElement('span');
-          const copy = document.createElement('span');
-          const name = document.createElement('strong');
-          const stats = document.createElement('small');
-          const link = document.createElement('a');
-          place.textContent = String(index + 1);
-          avatar.className = 'rail-coach-avatar';
-          avatar.textContent = coach.name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase() || '?';
-          if (coach.image) {
-            avatar.style.backgroundImage = `url("${coach.image.replace(/"/g, '%22')}")`;
-            avatar.style.backgroundSize = 'cover';
-            avatar.style.backgroundPosition = 'center';
-            avatar.textContent = '';
-          }
-          name.textContent = coach.name;
-          stats.textContent = `${coach.rating ? `★ ${coach.rating.toFixed(1)} · ` : ''}${coach.sessions} ${coach.sessions === 1 ? 'session' : 'sessions'}`;
-          link.href = coach.sessionId ? `coach-book-session.html?coach=${encodeURIComponent(coach.sessionId)}` : 'coaching.html';
-          link.textContent = 'Book';
-          copy.append(name, stats);
-          item.append(place, avatar, copy, link);
-          list.appendChild(item);
+        empty.hidden = featured.length > 0;
+        featured.forEach(listing => {
+          const card = document.createElement('article');
+          const imageLink = document.createElement('a');
+          const heart = document.createElement('span');
+          const copy = document.createElement('div');
+          const title = document.createElement('h3');
+          const titleLink = document.createElement('a');
+          const meta = document.createElement('p');
+          const footer = document.createElement('footer');
+          const price = document.createElement('strong');
+          const details = document.createElement('a');
+          const detailUrl = listing.id ? `detail.html?type=product&id=${encodeURIComponent(listing.id)}` : 'marketplace.html';
+          const image = getFeaturedImage(listing);
+
+          card.className = 'home-featured-card';
+          imageLink.className = 'home-featured-image';
+          imageLink.href = detailUrl;
+          imageLink.setAttribute('aria-label', `View ${listing.title || `${listing.game || 'Marketplace'} item`}`);
+          imageLink.textContent = image ? '' : getFeaturedInitials(listing.game);
+          if (image) imageLink.style.backgroundImage = `linear-gradient(180deg, rgba(8, 5, 14, .02), rgba(8, 5, 14, .18)), url("${String(image).replace(/"/g, '%22')}")`;
+          heart.className = 'home-featured-heart';
+          heart.setAttribute('aria-hidden', 'true');
+          heart.textContent = '♡';
+          imageLink.appendChild(heart);
+
+          copy.className = 'home-featured-copy';
+          titleLink.href = detailUrl;
+          titleLink.textContent = listing.title || `${listing.game || 'Marketplace'} ${listing.listingType === 'skin' ? 'Skin' : 'Account'}`;
+          title.appendChild(titleLink);
+          meta.textContent = `${listing.game || 'Marketplace'} / ${listing.listingType === 'skin' ? 'Skin' : 'Account'}`;
+          price.textContent = formatFeaturedPrice(listing.price);
+          details.href = detailUrl;
+          details.textContent = 'View details';
+          footer.append(price, details);
+          copy.append(title, meta, footer);
+          card.append(imageLink, copy);
+          list.appendChild(card);
         });
       };
-      renderHomeTopCoaches();
+      renderHomeFeaturedItems();
       window.addEventListener('storage', event => {
-        if (['wavehub.cart', 'wavehub.users', 'wavehub.sellerReviews'].includes(event.key)) renderHomeTopCoaches();
+        if (event.key === 'wavehub.sellerListings') renderHomeFeaturedItems();
       });
     })();
   </script>
