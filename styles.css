@@ -15480,7 +15480,10 @@ body.seller-profile-open { overflow: hidden; }
 .site-footer-socials > span { width: 1px; height: 26px; margin: 0 4px; background: rgba(137,148,174,.22); }
 .site-footer-socials a { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(134,145,170,.16); border-radius: 7px; background: #0b101c; box-shadow: inset 0 0 12px rgba(255,255,255,.025); }
 .site-footer-socials svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.site-footer-socials .discord { color: #7f82ff; }
+.site-footer-socials .discord { color: #5865f2; }
+.site-footer-socials .discord svg { width: 23px; height: 23px; fill: currentColor; stroke: none; filter: drop-shadow(0 0 5px rgba(88,101,242,.28)); }
+.site-footer-socials .discord .discord-eye { fill: #0b101c; }
+.site-footer-socials .discord:hover, .site-footer-socials .discord:focus-visible { border-color: rgba(88,101,242,.52); background: rgba(88,101,242,.11); box-shadow: inset 0 0 12px rgba(88,101,242,.08), 0 0 18px rgba(88,101,242,.14); }
 .site-footer-socials .instagram { color: #ef31a4; }
 .site-footer-socials .facebook { color: #4d8dff; }
 .site-footer-socials .facebook svg { fill: currentColor; stroke: none; }
