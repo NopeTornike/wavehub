@@ -1,0 +1,7 @@
+**
+!*.html
+!*.js
+!*.css
+!assets/
+!assets/**
+!frontend-static.Dockerfile

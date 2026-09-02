@@ -234,28 +234,6 @@ function updateTransaction(username, transactionId, updates) {
   saveWallet(username, { ...wallet, transactions });
 }
 
-function completeTransaction(username, transactionId) {
-  const wallet = getWallet(username);
-  let credited = 0;
-  const transactions = wallet.transactions.map((transaction) => {
-    if (transaction.id !== transactionId || transaction.status === 'completed') {
-      return transaction;
-    }
-
-    credited = Number(transaction.wavecoins) || 0;
-    return {
-      ...transaction,
-      status: 'completed',
-      completedAt: new Date().toISOString(),
-    };
-  });
-
-  saveWallet(username, {
-    balance: wallet.balance + credited,
-    transactions,
-  });
-}
-
 async function fetchWithTimeout(url, options) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 3500);
@@ -294,19 +272,16 @@ function handlePaymentReturn() {
   const params = new URLSearchParams(window.location.search);
   const status = params.get('payment') || params.get('status');
   const transactionId = params.get('transaction_id') || params.get('external_order_id');
-  const { user } = getCurrentAccount();
 
-  if (!status || !transactionId || !user?.username) {
+  if (!status || !transactionId) {
     return;
   }
 
   if (status === 'success') {
-    completeTransaction(user.username, transactionId);
-    setStatus('success', 'WaveCoin balance updated.');
+    setStatus('', 'Payment returned successfully. WaveCoin will be added after server verification.');
   }
 
   if (status === 'fail' || status === 'failed') {
-    updateTransaction(user.username, transactionId, { status: 'failed' });
     setStatus('error', 'Payment was not completed.');
   }
 

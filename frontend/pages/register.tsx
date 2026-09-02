@@ -4,77 +4,12 @@ const apiUrls = [
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
   'http://127.0.0.1:4000',
 ]
-const localUsersKey = 'wavehub.users'
 
 type RegistrationPayload = {
   username: string
   firstName: string
   lastName: string
   password: string
-}
-
-type LocalUser = {
-  id: string
-  username: string
-  firstName: string
-  lastName: string
-  passwordHash: string
-  createdAt: string
-}
-
-async function hashPassword(password: string) {
-  if (globalThis.crypto?.subtle) {
-    const bytes = new TextEncoder().encode(password)
-    const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('')
-  }
-
-  return `plain:${password}`
-}
-
-function getLocalUsers() {
-  if (typeof window === 'undefined') {
-    return []
-  }
-
-  try {
-    return JSON.parse(window.localStorage.getItem(localUsersKey) || '[]') as LocalUser[]
-  } catch {
-    return []
-  }
-}
-
-async function registerLocally(payload: RegistrationPayload) {
-  const users = getLocalUsers()
-  const existingIndex = users.findIndex((user) => user.username === payload.username)
-
-  if (existingIndex >= 0 && users[existingIndex].passwordHash) {
-    return { ok: false, error: 'Username უკვე გამოყენებულია' }
-  }
-
-  if (existingIndex >= 0) {
-    users[existingIndex] = {
-      ...users[existingIndex],
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      passwordHash: await hashPassword(payload.password),
-    }
-    window.localStorage.setItem(localUsersKey, JSON.stringify(users))
-    return { ok: true }
-  }
-
-  users.push({
-    id: globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : String(Date.now()),
-    username: payload.username,
-    firstName: payload.firstName,
-    lastName: payload.lastName,
-    passwordHash: await hashPassword(payload.password),
-    createdAt: new Date().toISOString(),
-  })
-  window.localStorage.setItem(localUsersKey, JSON.stringify(users))
-  return { ok: true }
 }
 
 async function fetchWithTimeout(url: string, options: RequestInit) {
@@ -94,6 +29,7 @@ async function registerOnServer(payload: RegistrationPayload) {
       const res = await fetchWithTimeout(`${apiUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       })
       const data = await res.json().catch(() => ({}))
@@ -109,7 +45,7 @@ async function registerOnServer(payload: RegistrationPayload) {
     }
   }
 
-  return { ok: true, local: true }
+  return { ok: false, offline: true }
 }
 
 export default function Register() {
@@ -185,11 +121,10 @@ export default function Register() {
         setUsernameError('')
       }
     } catch (err) {
-      console.warn('Username API is unavailable, checking local storage:', err)
+      console.warn('Username API is unavailable:', err)
       if (latestUsername.current === username) {
-        const takenLocally = getLocalUsers().some((user) => user.username === username)
-        setUsernameAvailable(!takenLocally)
-        setUsernameError(takenLocally ? 'Username უკვე გამოყენებულია' : '')
+        setUsernameAvailable(null)
+        setUsernameError('Username-ის შემოწმების სერვერი მიუწვდომელია')
       }
     } finally {
       if (latestUsername.current === username) {
@@ -226,14 +161,6 @@ export default function Register() {
       return
     }
 
-    if (usernameAvailable === null) {
-      const takenLocally = getLocalUsers().some((user) => user.username === form.username)
-      if (takenLocally) {
-        setError('ეს Username უკვე გამოყენებულია')
-        return
-      }
-    }
-
     if (!form.firstName || !form.lastName || !form.password || !form.confirmPassword) {
       setError('გთხოვთ შეავსოთ ყველა ველი.')
       return
@@ -256,10 +183,10 @@ export default function Register() {
       password: form.password,
     }
     const serverResult = await registerOnServer(payload)
-    const result = serverResult.local ? await registerLocally(payload) : serverResult
+    const result = serverResult
 
     if (!result.ok) {
-      setError(result.error || 'შეცდომა რეგისტრაციისას')
+      setError(result.offline ? 'რეგისტრაციის სერვერი მიუწვდომელია. სცადეთ მოგვიანებით.' : result.error || 'შეცდომა რეგისტრაციისას')
       return
     }
 

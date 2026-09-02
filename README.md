@@ -14,7 +14,9 @@ docker compose up
 ```
 
 Backend runs on `http://localhost:4000`.
-Frontend runs on `http://localhost:3000/register`.
+The complete WaveHub site runs on `http://localhost:3000/`.
+
+Copy `.env.example` to `.env` and replace `AUTH_TOKEN_SECRET` with a unique random value of at least 32 characters before starting Docker. Authentication uses a signed, HttpOnly session cookie; browser storage contains public display data only.
 
 ## Local Development
 

@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/user.entity';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 
@@ -19,6 +19,7 @@ type StoredUser = {
 @Injectable()
 export class AuthService {
   private readonly usersFile = join(process.cwd(), 'data', 'users.json');
+  private readonly sessionDurationSeconds = 60 * 60 * 24 * 7;
 
   constructor(@Optional() @InjectRepository(User) private repo?: Repository<User>) {}
 
@@ -109,6 +110,70 @@ export class AuthService {
     return this.toPublicUser(user);
   }
 
+  createSession(user: StoredUser | User) {
+    const now = Math.floor(Date.now() / 1000);
+    const header = this.encodeTokenPart({ alg: 'HS256', typ: 'JWT' });
+    const payload = this.encodeTokenPart({
+      sub: user.id,
+      username: user.username,
+      iat: now,
+      exp: now + this.sessionDurationSeconds,
+    });
+    const signature = this.sign(`${header}.${payload}`);
+
+    return {
+      token: `${header}.${payload}.${signature}`,
+      maxAgeMs: this.sessionDurationSeconds * 1000,
+      user: this.toPublicUser(user),
+    };
+  }
+
+  async authenticate(token: string) {
+    try {
+      const [header, payload, signature] = token.split('.');
+      if (!header || !payload || !signature) return null;
+
+      const expected = Buffer.from(this.sign(`${header}.${payload}`));
+      const received = Buffer.from(signature);
+      if (expected.length !== received.length || !timingSafeEqual(expected, received)) return null;
+
+      const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+        sub?: string;
+        exp?: number;
+      };
+      if (!claims.sub || !claims.exp || claims.exp <= Math.floor(Date.now() / 1000)) return null;
+
+      return this.findPublicUserById(claims.sub);
+    } catch {
+      return null;
+    }
+  }
+
+  async findPublicUserById(id: string) {
+    if (!this.repo) {
+      const users = await this.readStoredUsers();
+      const user = users.find((storedUser) => storedUser.id === id);
+      return user ? this.toPublicUser(user) : null;
+    }
+
+    const user = await this.repo.findOne({ where: { id } });
+    return user ? this.toPublicUser(user) : null;
+  }
+
+  private encodeTokenPart(value: object) {
+    return Buffer.from(JSON.stringify(value)).toString('base64url');
+  }
+
+  private sign(value: string) {
+    const secret = process.env.AUTH_TOKEN_SECRET
+      || (process.env.NODE_ENV !== 'production' ? 'wavehub-local-development-secret-key' : '');
+    if (!secret || secret.length < 32) {
+      throw new Error('AUTH_TOKEN_SECRET must contain at least 32 characters');
+    }
+
+    return createHmac('sha256', secret).update(value).digest('base64url');
+  }
+
   private async readStoredUsers(): Promise<StoredUser[]> {
     try {
       const content = await readFile(this.usersFile, 'utf8');
@@ -133,7 +198,7 @@ export class AuthService {
     return user;
   }
 
-  private toPublicUser(user: StoredUser | User) {
+  toPublicUser(user: StoredUser | User) {
     return {
       id: user.id,
       username: user.username,

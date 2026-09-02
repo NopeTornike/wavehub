@@ -1,7 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 import { AuthService } from './auth.service';
+import { AUTH_COOKIE_NAME, AuthGuard } from './auth.guard';
 
 class RegisterDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
@@ -43,10 +45,12 @@ export class AuthController {
   constructor(private auth: AuthService) {}
 
   @Post('register')
-  async register(@Body() body: RegisterDto) {
+  async register(@Body() body: RegisterDto, @Res({ passthrough: true }) response: Response) {
     try {
       const created = await this.auth.register(body);
-      return { ok: true, id: created.id };
+      const session = this.auth.createSession(created);
+      this.setSessionCookie(response, session.token, session.maxAgeMs);
+      return { ok: true, user: session.user };
     } catch (err: any) {
       if (err.message === 'USERNAME_TAKEN') {
         throw new HttpException({ ok: false, error: 'Username already taken' }, HttpStatus.CONFLICT);
@@ -57,16 +61,36 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() body: LoginDto) {
+  async login(@Body() body: LoginDto, @Res({ passthrough: true }) response: Response) {
     try {
       const user = await this.auth.login(body);
-      return { ok: true, user };
+      const session = this.auth.createSession(user as any);
+      this.setSessionCookie(response, session.token, session.maxAgeMs);
+      return { ok: true, user: session.user };
     } catch (err: any) {
       if (err.message === 'INVALID_CREDENTIALS') {
         throw new HttpException({ ok: false, error: 'Invalid username or password' }, HttpStatus.UNAUTHORIZED);
       }
       throw new HttpException({ ok: false, error: 'Server error' }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard)
+  me(@Req() request: Request) {
+    return { ok: true, user: (request as any).user };
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  logout(@Res({ passthrough: true }) response: Response) {
+    response.clearCookie(AUTH_COOKIE_NAME, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.COOKIE_SECURE === 'true',
+      path: '/',
+    });
+    return { ok: true };
   }
 
   @Get('check-username')
@@ -83,5 +107,15 @@ export class AuthController {
 
     const available = !(await this.auth.usernameExists(normalizedUsername));
     return { ok: true, available };
+  }
+
+  private setSessionCookie(response: Response, token: string, maxAge: number) {
+    response.cookie(AUTH_COOKIE_NAME, token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.COOKIE_SECURE === 'true',
+      path: '/',
+      maxAge,
+    });
   }
 }

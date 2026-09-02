@@ -1,11 +1,12 @@
 (function () {
   const localUsersKey = 'wavehub.users';
   const sessionKey = 'wavehub.session';
-  const directMessagesKey = 'wavehub.directMessages';
   const purchasesKey = 'wavehub.purchases';
   const walletsKey = 'wavehub.wallets';
   const notificationSeenKey = 'wavehub.notificationSeen';
+  const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
   let notificationPanel = null;
+  let serverMessages = [];
 
   function readJson(key, fallback) {
     try {
@@ -58,6 +59,13 @@
 
     element.style.backgroundImage = '';
     element.textContent = user?.username ? getInitials(user) : '?';
+  }
+
+  function purgeLocalCredentials() {
+    const users = readJson(localUsersKey, []);
+    if (!Array.isArray(users)) return;
+    const sanitized = users.map(({ password, passwordHash, ...publicUser }) => publicUser);
+    localStorage.setItem(localUsersKey, JSON.stringify(sanitized));
   }
 
   function createHeaderAction(tagName, className, label, href = '') {
@@ -383,9 +391,8 @@
 
   function renderMessageNotifications() {
     const { user } = getCurrentAccount();
-    const messages = readJson(directMessagesKey, []);
-    const unread = user?.username && Array.isArray(messages)
-      ? messages.filter((message) => message.toUsername === user.username && !message.readAt).length
+    const unread = user?.username
+      ? serverMessages.filter((message) => message.toUsername === user.username && !message.readAt).length
       : 0;
 
     document.querySelectorAll('.icon-button[href="messages.html"], .coach-message-button').forEach((button) => {
@@ -413,12 +420,11 @@
   function getNotifications(user) {
     if (!user?.username) return [];
     const username = user.username;
-    const messages = readJson(directMessagesKey, []);
     const purchases = readJson(purchasesKey, []);
     const items = [];
 
-    if (Array.isArray(messages)) {
-      messages.filter((message) => message.toUsername === username).forEach((message) => {
+    if (Array.isArray(serverMessages)) {
+      serverMessages.filter((message) => message.toUsername === username).forEach((message) => {
         items.push({
           id: `message:${message.id}`,
           type: 'message',
@@ -624,14 +630,42 @@
       favoritesLink.click();
     });
 
-    document.getElementById('logoutButton')?.addEventListener('click', (event) => {
+    document.getElementById('logoutButton')?.addEventListener('click', async (event) => {
       event.preventDefault();
+      for (const apiUrl of apiUrls) {
+        try {
+          await fetch(`${apiUrl}/auth/logout`, { method: 'POST', credentials: 'include' });
+          break;
+        } catch {}
+      }
       localStorage.removeItem(sessionKey);
+      serverMessages = [];
       setProfileOpen(false);
       renderProfileSurfaces();
       renderMessageNotifications();
       renderNotificationCenter();
     });
+  }
+
+  async function refreshServerMessages() {
+    const { user } = getCurrentAccount();
+    if (!user?.username) {
+      serverMessages = [];
+      renderMessageNotifications();
+      return;
+    }
+
+    for (const apiUrl of apiUrls) {
+      try {
+        const response = await fetch(`${apiUrl}/messages`, { credentials: 'include' });
+        if (!response.ok) continue;
+        const data = await response.json();
+        serverMessages = Array.isArray(data.messages) ? data.messages : [];
+        renderMessageNotifications();
+        renderNotificationCenter();
+        return;
+      } catch {}
+    }
   }
 
   function renderMarketplaceGameMenu() {
@@ -756,6 +790,7 @@
     document.body.appendChild(navigation);
   }
 
+  purgeLocalCredentials();
   standardizeSidebars();
   standardizeTopbars();
   renderProfileSurfaces();
@@ -765,6 +800,7 @@
   bindNotificationCenter();
   renderNotificationCenter();
   renderMobileNavigation();
+  refreshServerMessages();
 
   window.addEventListener('resize', () => {
     if (!notificationPanel || notificationPanel.hidden) return;
@@ -778,7 +814,7 @@
       renderMessageNotifications();
     }
 
-    if ([directMessagesKey, purchasesKey, notificationSeenKey].includes(event.key)) {
+    if ([purchasesKey, notificationSeenKey].includes(event.key)) {
       renderMessageNotifications();
       renderNotificationCenter();
     }
@@ -786,5 +822,6 @@
 
   window.wavehubRenderProfileSurfaces = renderProfileSurfaces;
   window.wavehubRenderMessageNotifications = renderMessageNotifications;
+  window.wavehubRefreshMessageNotifications = refreshServerMessages;
   window.wavehubRenderNotificationCenter = renderNotificationCenter;
 }());

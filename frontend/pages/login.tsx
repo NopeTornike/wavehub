@@ -4,44 +4,11 @@ const apiUrls = [
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
   'http://127.0.0.1:4000',
 ]
-const localUsersKey = 'wavehub.users'
 const sessionKey = 'wavehub.session'
 
 type LoginPayload = {
   username: string
   password: string
-}
-
-type LocalUser = {
-  id: string
-  username: string
-  firstName: string
-  lastName: string
-  passwordHash?: string
-}
-
-function getLocalUsers() {
-  if (typeof window === 'undefined') {
-    return []
-  }
-
-  try {
-    return JSON.parse(window.localStorage.getItem(localUsersKey) || '[]') as LocalUser[]
-  } catch {
-    return []
-  }
-}
-
-async function hashPassword(password: string) {
-  if (globalThis.crypto?.subtle) {
-    const bytes = new TextEncoder().encode(password)
-    const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('')
-  }
-
-  return `plain:${password}`
 }
 
 async function fetchWithTimeout(url: string, options: RequestInit) {
@@ -61,6 +28,7 @@ async function loginOnServer(payload: LoginPayload) {
       const res = await fetchWithTimeout(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       })
       const data = await res.json().catch(() => ({}))
@@ -77,27 +45,6 @@ async function loginOnServer(payload: LoginPayload) {
   }
 
   return { ok: false, offline: true }
-}
-
-async function loginLocally(payload: LoginPayload) {
-  const passwordHash = await hashPassword(payload.password)
-  const user = getLocalUsers().find(
-    (localUser) => localUser.username === payload.username && localUser.passwordHash === passwordHash,
-  )
-
-  if (!user) {
-    return { ok: false, error: 'Username ან პაროლი არასწორია' }
-  }
-
-  return {
-    ok: true,
-    user: {
-      id: user.id,
-      username: user.username,
-      firstName: user.firstName,
-      lastName: user.lastName,
-    },
-  }
 }
 
 export default function Login() {
@@ -122,10 +69,10 @@ export default function Login() {
     }
 
     const serverResult = await loginOnServer(payload)
-    const result = serverResult.offline ? await loginLocally(payload) : serverResult
+    const result = serverResult
 
     if (!result.ok) {
-      setError(result.error || 'Username ან პაროლი არასწორია')
+      setError(result.offline ? 'ავტორიზაციის სერვერი მიუწვდომელია. სცადეთ მოგვიანებით.' : result.error || 'Username ან პაროლი არასწორია')
       return
     }
 
