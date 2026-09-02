@@ -64,5 +64,11 @@
   const toggle = byId('menuToggle'); const scrim = byId('scrim');
   function sidebar(open) { document.body.classList.toggle('sidebar-open', open); toggle?.setAttribute('aria-expanded', String(open)); if (scrim) scrim.hidden = !open; }
   toggle?.addEventListener('click', () => sidebar(!document.body.classList.contains('sidebar-open'))); scrim?.addEventListener('click', () => sidebar(false));
+  window.addEventListener('storage', (event) => {
+    if (event.key !== key) return;
+    const nextItems = read(key, []);
+    tournament = Array.isArray(nextItems) ? nextItems.find((item) => String(item.id) === String(id)) : null;
+    render();
+  });
   render();
 }());

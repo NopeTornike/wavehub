@@ -18,6 +18,10 @@ The complete WaveHub site runs on `http://localhost:3000/`.
 
 Copy `.env.example` to `.env` and replace `AUTH_TOKEN_SECRET` with a unique random value of at least 32 characters before starting Docker. Authentication uses a signed, HttpOnly session cookie; browser storage contains public display data only.
 
+Set `CORS_ORIGIN` to the exact frontend origin. Production cookies are secure by default. For a frontend and API hosted on different sites, both must use HTTPS and `COOKIE_SAME_SITE=none`; plain HTTP local development can explicitly use `COOKIE_SECURE=false`.
+
+Marketplace listings, profiles, reviews, orders, carts, favorites, tournaments, coaching data, and wallet records are persisted by the backend. Browser storage is now a synchronized display cache; wallet values and record ownership are enforced server-side.
+
 ## Local Development
 
 Requires Node.js 20.9+.

@@ -18,5 +18,5 @@ export class User {
   passwordHash: string;
 
   @Column({ default: 'buyer' })
-  role: 'buyer' | 'seller';
+  role: 'buyer' | 'seller' | 'admin';
 }

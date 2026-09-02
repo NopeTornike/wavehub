@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { CookieOptions, Request, Response } from 'express';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 import { AuthService } from './auth.service';
@@ -86,8 +86,8 @@ export class AuthController {
   logout(@Res({ passthrough: true }) response: Response) {
     response.clearCookie(AUTH_COOKIE_NAME, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.COOKIE_SECURE === 'true',
+      sameSite: this.getCookieOptions().sameSite,
+      secure: this.getCookieOptions().secure,
       path: '/',
     });
     return { ok: true };
@@ -112,10 +112,29 @@ export class AuthController {
   private setSessionCookie(response: Response, token: string, maxAge: number) {
     response.cookie(AUTH_COOKIE_NAME, token, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.COOKIE_SECURE === 'true',
+      ...this.getCookieOptions(),
       path: '/',
       maxAge,
     });
+  }
+
+  private getCookieOptions(): Pick<CookieOptions, 'sameSite' | 'secure'> {
+    const configuredSameSite = (process.env.COOKIE_SAME_SITE || 'lax').toLowerCase();
+    if (!['lax', 'strict', 'none'].includes(configuredSameSite)) {
+      throw new Error('COOKIE_SAME_SITE must be lax, strict, or none');
+    }
+
+    const configuredSecure = process.env.COOKIE_SECURE?.toLowerCase();
+    if (configuredSecure && !['true', 'false'].includes(configuredSecure)) {
+      throw new Error('COOKIE_SECURE must be true or false');
+    }
+    const secure = configuredSecure
+      ? configuredSecure === 'true'
+      : process.env.NODE_ENV === 'production';
+    if (configuredSameSite === 'none' && !secure) {
+      throw new Error('COOKIE_SECURE must be true when COOKIE_SAME_SITE is none');
+    }
+
+    return { sameSite: configuredSameSite as CookieOptions['sameSite'], secure };
   }
 }

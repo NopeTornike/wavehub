@@ -2871,9 +2871,86 @@ button {
 
 .profile-login-panel {
   display: grid;
-  gap: 12px;
-  justify-items: start;
-  padding: 24px;
+  grid-template-columns: auto minmax(220px, 1fr) minmax(250px, 420px);
+  align-items: center;
+  gap: clamp(18px, 3vw, 38px);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 230px;
+  padding: clamp(24px, 4vw, 44px);
+  border-color: rgba(219, 59, 255, 0.34);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 8% 10%, rgba(255, 49, 151, 0.2), transparent 30%),
+    radial-gradient(circle at 92% 95%, rgba(113, 55, 255, 0.2), transparent 34%),
+    linear-gradient(135deg, rgba(16, 20, 40, 0.97), rgba(7, 10, 23, 0.98));
+  box-shadow: 0 26px 75px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.profile-login-panel::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 260px;
+  height: 260px;
+  right: -110px;
+  top: -150px;
+  border: 1px solid rgba(210, 69, 255, 0.22);
+  border-radius: 50%;
+  box-shadow: 0 0 80px rgba(177, 45, 255, 0.14);
+}
+
+.profile-login-visual {
+  width: clamp(84px, 10vw, 112px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: 1px solid rgba(237, 78, 255, 0.38);
+  border-radius: 28px;
+  color: #f4c8ff;
+  background: linear-gradient(145deg, rgba(227, 58, 255, 0.2), rgba(87, 54, 255, 0.12));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.09), 0 18px 42px rgba(106, 31, 184, 0.24);
+  transform: rotate(-4deg);
+}
+
+.profile-login-visual svg {
+  width: 53%;
+  position: relative;
+  z-index: 1;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: rotate(4deg);
+}
+
+.profile-login-orbit {
+  position: absolute;
+  inset: -9px;
+  border: 1px dashed rgba(255, 102, 198, 0.3);
+  border-radius: 32px;
+}
+
+.profile-login-copy {
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+}
+
+.profile-login-kicker {
+  width: max-content;
+  padding: 5px 9px;
+  border: 1px solid rgba(255, 77, 174, 0.28);
+  border-radius: 999px;
+  color: #ff92cf;
+  background: rgba(255, 47, 143, 0.08);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .profile-login-panel[hidden],
@@ -2889,19 +2966,167 @@ button {
 
 .profile-login-panel h2 {
   color: white;
-  font-size: 24px;
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
 }
 
-.profile-login-panel p {
+.profile-login-panel .profile-login-copy > p {
+  max-width: 620px;
   color: var(--muted);
   font-size: 14px;
-  font-weight: 750;
+  font-weight: 650;
+  line-height: 1.65;
 }
 
-.profile-login-panel div {
+.profile-login-benefits {
   display: flex;
   flex-wrap: wrap;
+  gap: 7px 15px;
+  margin-top: 4px;
+}
+
+.profile-login-benefits span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #bbc0d0;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.profile-login-benefits span::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: #dd4cff;
+  box-shadow: 0 0 9px rgba(221, 76, 255, 0.8);
+}
+
+.profile-login-actions {
+  min-width: 0;
+  display: grid;
   gap: 10px;
+}
+
+.profile-login-actions .auth-open-button {
+  width: 100%;
+  min-width: 0;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  justify-content: stretch;
+  gap: 12px;
+  padding: 10px 16px;
+  border-color: rgba(145, 153, 188, 0.25);
+  border-radius: 14px;
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.profile-login-actions .auth-open-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(229, 81, 255, 0.52);
+  background: rgba(224, 59, 255, 0.1);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+}
+
+.profile-login-actions .auth-open-button.primary {
+  border-color: rgba(255, 93, 190, 0.5);
+  background: linear-gradient(100deg, #e52c91, #a43bdf);
+  box-shadow: 0 12px 30px rgba(198, 38, 154, 0.22);
+}
+
+.profile-login-actions .auth-open-button.primary:hover {
+  background: linear-gradient(100deg, #f0399f, #b448ec);
+}
+
+.profile-login-action-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 19px;
+  line-height: 1;
+}
+
+.profile-login-action-copy {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+}
+
+.profile-login-action-copy strong,
+.profile-login-action-copy small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-login-action-copy strong {
+  color: white;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.profile-login-action-copy small {
+  color: rgba(231, 232, 241, 0.72);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.profile-login-actions .auth-open-button.primary .profile-login-action-copy small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+@media (max-width: 980px) {
+  .profile-login-panel {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .profile-login-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-login-panel {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    min-height: 0;
+    padding: 24px 18px;
+    border-radius: 18px;
+  }
+
+  .profile-login-visual {
+    width: 76px;
+    border-radius: 22px;
+  }
+
+  .profile-login-orbit {
+    border-radius: 26px;
+  }
+
+  .profile-login-actions {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .profile-login-actions .auth-open-button {
+    min-height: 62px;
+  }
 }
 
 .profile-control-layout {

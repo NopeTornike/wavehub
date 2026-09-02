@@ -1,14 +1,21 @@
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.useBodyParser('json', { limit: '25mb' });
+  const configuredOrigins = process.env.CORS_ORIGIN
+    || (process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : '');
+  const allowedOrigins = configuredOrigins
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+  if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+    throw new Error('CORS_ORIGIN is required in production');
+  }
   const localOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
 
   app.enableCors({

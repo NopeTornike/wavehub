@@ -5,6 +5,8 @@ import { PaymentsModule } from './payments/payments.module';
 import { User } from './users/user.entity';
 import { MessagesModule } from './messages/messages.module';
 import { DirectMessage } from './messages/direct-message.entity';
+import { StateModule } from './state/state.module';
+import { UserState } from './state/user-state.entity';
 
 const useDatabase = Boolean(process.env.DATABASE_HOST) && process.env.USE_FILE_STORE !== 'true';
 
@@ -19,7 +21,7 @@ const useDatabase = Boolean(process.env.DATABASE_HOST) && process.env.USE_FILE_S
             username: process.env.DATABASE_USER || 'wavehub',
             password: process.env.DATABASE_PASSWORD || 'wavehubpass',
             database: process.env.DATABASE_NAME || 'wavehubdb',
-            entities: [User, DirectMessage],
+            entities: [User, DirectMessage, UserState],
             synchronize: process.env.TYPEORM_SYNC === 'true',
           }),
         ]
@@ -27,6 +29,7 @@ const useDatabase = Boolean(process.env.DATABASE_HOST) && process.env.USE_FILE_S
     AuthModule,
     PaymentsModule,
     MessagesModule,
+    StateModule,
   ],
 })
 export class AppModule {}

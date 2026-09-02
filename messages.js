@@ -35,6 +35,7 @@ const minOnlineCount = 2;
 const maxOnlineCount = 23;
 let activeDirectParticipant = '';
 let directMessages = [];
+let messagesRefreshInFlight = null;
 
 function readJson(key, fallback) {
   try {
@@ -491,3 +492,39 @@ async function initializeMessages() {
 }
 
 initializeMessages();
+
+async function refreshMessages() {
+  if (messagesRefreshInFlight || document.hidden) return messagesRefreshInFlight;
+  const { user } = getCurrentAccount();
+  if (!user?.username) return null;
+
+  messagesRefreshInFlight = requestMessagesApi()
+    .then(async (result) => {
+      if (!result.ok) {
+        if (result.status === 401) {
+          localStorage.removeItem(sessionKey);
+          directMessages = [];
+          renderProfile();
+          renderMessages();
+        }
+        return;
+      }
+
+      directMessages = Array.isArray(result.data.messages) ? result.data.messages : [];
+      renderMessages();
+      if (activeDirectParticipant) {
+        await markConversationRead(user.username, activeDirectParticipant);
+        renderMessages();
+      }
+      window.wavehubRefreshMessageNotifications?.();
+    })
+    .finally(() => {
+      messagesRefreshInFlight = null;
+    });
+  return messagesRefreshInFlight;
+}
+
+window.setInterval(refreshMessages, 10000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refreshMessages();
+});

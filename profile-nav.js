@@ -7,6 +7,7 @@
   const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
   let notificationPanel = null;
   let serverMessages = [];
+  let messagesRefreshInFlight = null;
 
   function readJson(key, fallback) {
     try {
@@ -23,10 +24,69 @@
     const storedUser = Array.isArray(users)
       ? users.find((user) => user.username === sessionUser?.username)
       : null;
-    const user = sessionUser ? { ...sessionUser, ...storedUser } : null;
+    const user = sessionUser ? { ...storedUser, ...sessionUser } : null;
 
     return { session, user };
   }
+
+  function cacheAuthoritativeUser(serverUser) {
+    const users = readJson(localUsersKey, []);
+    const currentUsers = Array.isArray(users) ? users : [];
+    const localUser = currentUsers.find((user) => user.username === serverUser.username) || {};
+    const { role: _role, isAdmin: _isAdmin, accountType: _accountType, ...safeLocalProfile } = localUser;
+    const authoritativeUser = {
+      ...safeLocalProfile,
+      id: serverUser.id,
+      username: serverUser.username,
+      firstName: serverUser.firstName,
+      lastName: serverUser.lastName,
+      role: serverUser.role,
+    };
+    const nextUsers = currentUsers.some((user) => user.username === authoritativeUser.username)
+      ? currentUsers.map((user) => (user.username === authoritativeUser.username ? authoritativeUser : user))
+      : [...currentUsers, authoritativeUser];
+    localStorage.setItem(localUsersKey, JSON.stringify(nextUsers));
+    const previousSession = readJson(sessionKey, {});
+    localStorage.setItem(sessionKey, JSON.stringify({
+      loggedInAt: previousSession?.loggedInAt || new Date().toISOString(),
+      user: {
+        id: authoritativeUser.id,
+        username: authoritativeUser.username,
+        firstName: authoritativeUser.firstName,
+        lastName: authoritativeUser.lastName,
+        role: authoritativeUser.role,
+      },
+    }));
+    return authoritativeUser;
+  }
+
+  async function validateServerSession() {
+    if (!readJson(sessionKey, null)?.user?.username) return null;
+
+    for (const apiUrl of apiUrls) {
+      try {
+        const response = await fetch(`${apiUrl}/auth/me`, { credentials: 'include' });
+        if (!response.ok) continue;
+        const data = await response.json();
+        if (data?.user?.username) return cacheAuthoritativeUser(data.user);
+      } catch {}
+    }
+
+    localStorage.removeItem(sessionKey);
+    return null;
+  }
+
+  const authReady = validateServerSession().finally(() => {
+    renderProfileSurfaces();
+    window.dispatchEvent(new StorageEvent('storage', { key: sessionKey }));
+    window.dispatchEvent(new CustomEvent('wavehub:auth-changed'));
+  });
+  window.wavehubAuthReady = authReady;
+  window.wavehubGetAuthenticatedUser = async () => authReady;
+  window.wavehubRequireAuthenticatedUser = async () => {
+    const user = await authReady;
+    return user || null;
+  };
 
   function getInitials(user) {
     const source = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || 'G';
@@ -648,6 +708,15 @@
   }
 
   async function refreshServerMessages() {
+    if (messagesRefreshInFlight) return messagesRefreshInFlight;
+    messagesRefreshInFlight = refreshServerMessagesNow().finally(() => {
+      messagesRefreshInFlight = null;
+    });
+    return messagesRefreshInFlight;
+  }
+
+  async function refreshServerMessagesNow() {
+    await authReady;
     const { user } = getCurrentAccount();
     if (!user?.username) {
       serverMessages = [];
@@ -801,6 +870,13 @@
   renderNotificationCenter();
   renderMobileNavigation();
   refreshServerMessages();
+  window.setInterval(() => {
+    if (!document.hidden) refreshServerMessages();
+  }, 15000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshServerMessages();
+  });
 
   window.addEventListener('resize', () => {
     if (!notificationPanel || notificationPanel.hidden) return;

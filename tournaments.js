@@ -45,11 +45,16 @@
     const sessionUser = readJson(sessionKey, null)?.user;
     const users = readJson(localUsersKey, []);
     const stored = (Array.isArray(users) ? users : []).find((user) => user.username === sessionUser?.username);
-    return sessionUser ? { ...sessionUser, ...stored } : null;
+    return sessionUser ? { ...stored, ...sessionUser } : null;
   }
 
   function isAdmin(user) {
-    return Boolean(user && (user.isAdmin === true || String(user.role || user.accountType || '').toLowerCase() === 'admin' || String(user.username || '').toLowerCase() === 'admin'));
+    return Boolean(user && String(user.role || '').toLowerCase() === 'admin');
+  }
+
+  async function getAuthoritativeAdmin() {
+    const user = await window.wavehubRequireAuthenticatedUser?.();
+    return isAdmin(user) ? user : null;
   }
 
   function getTournaments() {
@@ -151,10 +156,10 @@
     image.src = url;
   });
 
-  form?.addEventListener('submit', (event) => {
+  form?.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const user = getUser();
-    if (!isAdmin(user)) { setStatus('error', 'Only an administrator can publish tournaments.'); return; }
+    const user = await getAuthoritativeAdmin();
+    if (!user) { setStatus('error', 'Only an authenticated administrator can publish tournaments.'); return; }
     if (!selectedCover) { setStatus('error', 'Please choose a tournament cover image.'); return; }
     if (selectedCover.size > 2.5 * 1024 * 1024) { setStatus('error', 'Cover image must be smaller than 2.5 MB.'); return; }
     const reader = new FileReader();
@@ -169,9 +174,9 @@
     reader.readAsDataURL(selectedCover);
   });
 
-  grid?.addEventListener('click', (event) => {
+  grid?.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-delete-tournament]');
-    if (!button || !isAdmin(getUser())) return;
+    if (!button || !(await getAuthoritativeAdmin())) return;
     writeJson(tournamentsKey, getTournaments().filter((item) => item.id !== button.dataset.deleteTournament));
     render();
   });
@@ -180,6 +185,7 @@
   menuToggle?.addEventListener('click', () => setSidebar(!document.body.classList.contains('sidebar-open')));
   scrim?.addEventListener('click', () => setSidebar(false));
   window.addEventListener('storage', (event) => { if ([tournamentsKey, sessionKey, localUsersKey].includes(event.key)) render(); });
+  window.addEventListener('wavehub:auth-changed', render);
   seedDemoTournament();
   render();
 }());

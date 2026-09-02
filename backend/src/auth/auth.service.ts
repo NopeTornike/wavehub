@@ -13,7 +13,7 @@ type StoredUser = {
   firstName: string;
   lastName: string;
   passwordHash: string;
-  role: 'buyer' | 'seller';
+  role: 'buyer' | 'seller' | 'admin';
 };
 
 @Injectable()

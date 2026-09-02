@@ -111,10 +111,16 @@ function applyCoachReviews(coach) {
   return { ...coach, rating, reviews: matching.length };
 }
 
-const coaches = [
-  ...(Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : []),
-  ...getCoachListingsFromSessions(),
-].map(applyCoachReviews);
+let coaches = [];
+
+function refreshCoachData() {
+  coaches = [
+    ...(Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : []),
+    ...getCoachListingsFromSessions(),
+  ].map(applyCoachReviews);
+}
+
+refreshCoachData();
 
 function getSelectedValues(name) {
   if (!coachFilters) {
@@ -547,3 +553,10 @@ applyServiceParam();
 applySearchParam();
 updatePriceLabel();
 renderCoaches();
+
+window.addEventListener('storage', (event) => {
+  if ([cartKey, localUsersKey, sellerReviewsKey].includes(event.key)) {
+    refreshCoachData();
+    renderCoaches();
+  }
+});

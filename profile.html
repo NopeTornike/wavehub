@@ -313,11 +313,29 @@
       </section>
 
       <section class="profile-login-panel" id="profileLoginPanel" hidden>
-        <h2>Sign in required</h2>
-        <p>Log in or create an account to manage your profile.</p>
-        <div>
-          <a class="auth-open-button primary" href="auth.html?mode=login">Log in</a>
-          <a class="auth-open-button" href="auth.html?mode=register">Create account</a>
+        <div class="profile-login-visual" aria-hidden="true">
+          <span class="profile-login-orbit"></span>
+          <svg viewBox="0 0 48 48"><path d="M24 25c6.1 0 11-4.9 11-11S30.1 3 24 3 13 7.9 13 14s4.9 11 11 11Z"/><path d="M5 45c1.5-10.2 8-15.3 19-15.3S41.5 34.8 43 45"/><path d="m36.5 25.5 3 3 5.5-6"/></svg>
+        </div>
+        <div class="profile-login-copy">
+          <span class="profile-login-kicker">Member access</span>
+          <h2>Make this profile yours</h2>
+          <p>Sign in to manage your account, publish listings, track orders and keep everything synced across your devices.</p>
+          <div class="profile-login-benefits" aria-label="Account benefits">
+            <span>Secure session</span>
+            <span>Synced activity</span>
+            <span>Saved progress</span>
+          </div>
+        </div>
+        <div class="profile-login-actions">
+          <a class="auth-open-button primary" href="auth.html?mode=login">
+            <span class="profile-login-action-icon" aria-hidden="true">&#8594;</span>
+            <span class="profile-login-action-copy"><strong>Log in</strong><small>Continue to your account</small></span>
+          </a>
+          <a class="auth-open-button" href="auth.html?mode=register">
+            <span class="profile-login-action-icon" aria-hidden="true">+</span>
+            <span class="profile-login-action-copy"><strong>Create account</strong><small>Join WaveHub for free</small></span>
+          </a>
         </div>
       </section>
 
@@ -546,6 +564,7 @@
   <script src="profile.js?v=20260902-standoff-marketplace"></script>
   <script src="cart-nav.js"></script>
 <script src="profile-nav.js?v=20260902-secure-session-messages-1"></script>
+  <script src="state-sync.js?v=20260902-server-state-1"></script>
   <script src="site-footer.js"></script>
 </body>
 </html>
