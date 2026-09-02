@@ -8164,9 +8164,23 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
   height: 30px;
   display: grid;
   place-items: center;
+  border: 1px solid rgba(150, 159, 188, 0.22);
+  border-radius: 50%;
   color: var(--muted);
+  background: rgba(7, 11, 24, 0.62);
   font-size: 0;
   line-height: 1;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.save-button:hover,
+.save-button:focus-visible {
+  border-color: rgba(255, 89, 169, 0.54);
+  color: #ff77b8;
+  background: rgba(255, 47, 143, 0.13);
+  transform: translateY(-1px);
+  outline: none;
 }
 
 .save-button::before {
@@ -8177,13 +8191,24 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 }
 
 .save-button.saved {
-  color: var(--red);
-  border-color: rgba(255, 77, 109, 0.5);
-  background: rgba(255, 77, 109, 0.13);
+  color: #ff4f9e;
+  border-color: rgba(255, 79, 158, 0.68);
+  background: rgba(255, 47, 143, 0.2);
+  box-shadow: 0 0 18px rgba(255, 47, 143, 0.24), inset 0 0 12px rgba(255, 47, 143, 0.08);
 }
 
 .save-button.saved::before {
   content: "\2665";
+}
+
+.save-button.favorite-pop::before {
+  animation: favorite-heart-pop 280ms ease;
+}
+
+@keyframes favorite-heart-pop {
+  0% { transform: scale(0.65); }
+  55% { transform: scale(1.28); }
+  100% { transform: scale(1); }
 }
 
 .service-card p {

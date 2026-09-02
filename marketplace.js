@@ -484,6 +484,47 @@ function setSaveButtonState(button, isSaved) {
   button.title = isSaved ? 'Remove from favorites' : 'Save product';
 }
 
+async function handleFavoriteButtonClick(event, listing, button) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const authenticatedUser = window.wavehubAuthReady
+    ? await window.wavehubAuthReady
+    : getCurrentAccount().user;
+  const username = authenticatedUser?.username || '';
+
+  if (!username) {
+    setProfileOpen(true);
+    profileButton?.focus();
+    return;
+  }
+
+  const isSaved = toggleProductFavorite(listing, username);
+  const favoriteId = getFavoriteId(listing);
+  document.querySelectorAll('.save-button[data-favorite-id]').forEach((favoriteButton) => {
+    if (favoriteButton.dataset.favoriteId === favoriteId) {
+      setSaveButtonState(favoriteButton, isSaved);
+    }
+  });
+
+  button.classList.remove('favorite-pop');
+  void button.offsetWidth;
+  button.classList.add('favorite-pop');
+  window.setTimeout(() => button.classList.remove('favorite-pop'), 300);
+
+  if (getActiveSection() === 'Favorites' && !isSaved) {
+    renderMarketplace();
+    return;
+  }
+
+  const favoriteStat = button.closest('.marketplace-card')?.querySelector('.product-showcase-social > span:last-child');
+  if (favoriteStat) favoriteStat.textContent = `♡ ${formatCount(getCardLikes(listing))}`;
+}
+
+function bindFavoriteButton(button, listing) {
+  button.addEventListener('click', (event) => handleFavoriteButtonClick(event, listing, button));
+}
+
 function toggleProductFavorite(listing, username) {
   const favorite = getProductFavorite(listing);
   const favorites = getUserFavorites(username);
@@ -1527,6 +1568,7 @@ function createProductShowcaseCard(listing) {
   saveButton.setAttribute('aria-label', 'Save product');
   saveButton.setAttribute('aria-pressed', 'false');
   saveButton.title = 'Save product';
+  bindFavoriteButton(saveButton, listing);
 
   const coverInfo = document.createElement('div');
   coverInfo.className = 'product-showcase-cover-info';
@@ -1715,6 +1757,7 @@ function createMarketplaceCard(listing) {
   saveButton.setAttribute('aria-label', 'Save product');
   saveButton.setAttribute('aria-pressed', 'false');
   saveButton.title = 'Save product';
+  bindFavoriteButton(saveButton, listing);
 
   const actions = document.createElement('div');
   actions.className = 'marketplace-card-actions';
@@ -2134,36 +2177,6 @@ sellerModal?.addEventListener('click', (event) => {
   if (event.target === sellerModal) {
     closeSellerModal({ resetForm: true });
   }
-});
-
-document.addEventListener('click', (event) => {
-  const button = event.target instanceof Element ? event.target.closest('.save-button') : null;
-
-  if (!button) {
-    return;
-  }
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  const card = button.closest('.marketplace-card');
-  const listingId = card?.dataset.listingId || '';
-  const listing = getSellerListings().find((item) => item.id === listingId);
-
-  if (!listing) {
-    return;
-  }
-
-  const { user } = getCurrentAccount();
-
-  if (!user?.username) {
-    setProfileOpen(true);
-    profileButton?.focus();
-    return;
-  }
-
-  setSaveButtonState(button, toggleProductFavorite(listing, user.username));
-  renderMarketplace();
 });
 
 sellerForm?.addEventListener('submit', async (event) => {
