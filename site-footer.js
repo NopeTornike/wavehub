@@ -53,11 +53,10 @@
       <div class="site-footer-socials" aria-label="Social media">
         <b>Follow us</b>
         <span aria-hidden="true"></span>
-        <a class="discord" href="https://discord.gg/4nqVTBA4d" target="_blank" rel="noopener" aria-label="Discord">${icon('<path d="M7 7c3-1.5 7-1.5 10 0 1.5 2 2.2 4.2 2.4 7-2 1.5-3.4 2-4.8 2.3l-1.1-1.4M17 7l-1-2M7 7 8 5M9 13h.1M15 13h.1M9 17c2 .8 4 .8 6 0"/>')}</a>
-        <a class="instagram" href="https://www.instagram.com/wavehubx/" target="_blank" rel="noopener" aria-label="Instagram">${icon('<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/>')}</a>
         <a class="facebook" href="https://www.facebook.com/profile.php?id=61592006158520" target="_blank" rel="noopener" aria-label="Facebook">${icon('<path d="M14 8h3V4h-3c-3 0-5 2-5 5v3H6v4h3v5h4v-5h3l1-4h-4V9c0-.7.3-1 1-1Z"/>')}</a>
-        <a class="youtube" href="https://youtube.com" target="_blank" rel="noopener" aria-label="YouTube">${icon('<path d="M21 8.2a3 3 0 0 0-2.1-2.1C17.1 5.6 12 5.6 12 5.6s-5.1 0-6.9.5A3 3 0 0 0 3 8.2 31 31 0 0 0 2.6 12 31 31 0 0 0 3 15.8a3 3 0 0 0 2.1 2.1c1.8.5 6.9.5 6.9.5s5.1 0 6.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .4-3.8 31 31 0 0 0-.4-3.8Z"/><path d="m10 9 5 3-5 3V9Z"/>')}</a>
+        <a class="instagram" href="https://www.instagram.com/wavehubx/" target="_blank" rel="noopener" aria-label="Instagram">${icon('<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/>')}</a>
         <a class="tiktok" href="https://www.tiktok.com/@wavehubx" target="_blank" rel="noopener" aria-label="TikTok">${icon('<path d="M14 4v11.2a4.2 4.2 0 1 1-3.6-4.2M14 4c.5 3 2.2 4.5 5 4.8"/>')}</a>
+        <a class="discord" href="https://discord.gg/4nqVTBA4d" target="_blank" rel="noopener" aria-label="Discord">${icon('<path d="M7 7c3-1.5 7-1.5 10 0 1.5 2 2.2 4.2 2.4 7-2 1.5-3.4 2-4.8 2.3l-1.1-1.4M17 7l-1-2M7 7 8 5M9 13h.1M15 13h.1M9 17c2 .8 4 .8 6 0"/>')}</a>
       </div>
       <label class="site-footer-language">
         ${icon('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>')}

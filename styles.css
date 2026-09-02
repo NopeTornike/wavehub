@@ -15259,8 +15259,6 @@ body.seller-profile-open { overflow: hidden; }
 .site-footer-socials .instagram { color: #ef31a4; }
 .site-footer-socials .facebook { color: #4d8dff; }
 .site-footer-socials .facebook svg { fill: currentColor; stroke: none; }
-.site-footer-socials .youtube { color: #ff283e; }
-.site-footer-socials .youtube svg { fill: currentColor; stroke: none; }
 .site-footer-socials .tiktok { color: #f4f4f6; }
 .site-footer-language { width: 136px; height: 44px; justify-self: end; display: grid; grid-template-columns: 42px 1fr; align-items: center; border: 1px solid rgba(137,149,177,.23); border-radius: 7px; background: #070b15; }
 .site-footer-language svg { width: 23px; height: 23px; justify-self: end; fill: none; stroke: #a340f2; stroke-width: 1.7; }
