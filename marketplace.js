@@ -205,18 +205,6 @@ const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const favoritesKey = 'wavehub.favorites';
 const cartKey = 'wavehub.cart';
-const marketplaceCleanupKey = 'wavehub.marketplaceCleared.v1';
-
-function clearExistingMarketplaceProducts() {
-  if (localStorage.getItem(marketplaceCleanupKey) === 'true') {
-    return;
-  }
-
-  localStorage.removeItem(sellerListingsKey);
-  localStorage.setItem(marketplaceCleanupKey, 'true');
-}
-
-clearExistingMarketplaceProducts();
 
 const games = [
   'Call of Duty',
@@ -231,6 +219,7 @@ const games = [
   'GTA 5',
   'Dota 2',
   'Valorant',
+  'Standoff 2',
 ];
 const accountTypeImages = {
   basic: 'assets/basic-account.png',
@@ -819,6 +808,10 @@ function getMarketplaceCardImage(listing, config) {
 
   if (listing.game === 'Mobile Legends') {
     return 'assets/mobile-legends-marketplace-cover.png';
+  }
+
+  if (listing.game === 'Standoff 2') {
+    return 'assets/home-game-standoff2.png';
   }
 
   if (config.type === 'account') {

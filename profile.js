@@ -125,6 +125,7 @@ const listingGames = [
   'GTA 5',
   'Dota 2',
   'Valorant',
+  'Standoff 2',
 ];
 const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
 const sessionTimeOptions = ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '18:30', '19:00', '19:30', '20:00', '21:00'];
@@ -142,6 +143,7 @@ const publicProfileGameImages = {
   'GTA 5': 'assets/gta-5-marketplace-cover.png',
   'Dota 2': 'assets/dota-2-marketplace-cover.png',
   Valorant: 'assets/valorant-marketplace-cover.png',
+  'Standoff 2': 'assets/home-game-standoff2.png',
 };
 
 function readJson(key, fallback) {

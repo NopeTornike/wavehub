@@ -140,6 +140,7 @@ const marketplaceGameCovers = {
   'GTA 5': 'assets/gta-5-marketplace-cover.png',
   'Dota 2': 'assets/dota-2-marketplace-cover.png',
   Valorant: 'assets/valorant-marketplace-cover.png',
+  'Standoff 2': 'assets/home-game-standoff2.png',
 };
 const buyButton = document.getElementById('buyButton');
 const wishlistButton = document.getElementById('wishlistButton');

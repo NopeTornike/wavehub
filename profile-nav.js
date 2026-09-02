@@ -131,10 +131,10 @@
     const pages = [
       { id: 'index', label: 'Home', href: 'index.html', icon: '<img src="assets/home-icon.svg" alt="" />', iconClass: 'nav-icon-home' },
       { id: 'marketplace', label: 'Marketplace', href: 'marketplace.html', icon: '<img src="assets/marketplace-icon.svg" alt="" />', iconClass: 'nav-icon-marketplace' },
-      { id: 'steam-keys', label: 'Steam Keys', href: 'steam-keys.html', icon: 'S', iconClass: 'steam-side-icon' },
+      { id: 'steam-keys', label: 'Steam Keys', href: 'steam-keys.html', icon: '<img src="assets/steam-logo.png?v=1" alt="" />', iconClass: 'steam-side-icon' },
       { id: 'coaching', label: 'Coaching', href: 'coaching.html', icon: '<img src="assets/sidebar-coaching-icon.svg" alt="" />', iconClass: 'nav-icon-coaching' },
       { id: 'tournaments', label: 'Tournaments', href: 'tournaments.html', icon: '<img src="assets/tournaments-icon.svg" alt="" />', iconClass: 'nav-icon-tournaments' },
-      { id: 'about', label: 'About Us', href: 'about.html', icon: 'i', iconClass: 'nav-icon-about' },
+      { id: 'about', label: 'About Us', href: 'about.html', icon: '<img src="assets/about-icon.svg?v=2" alt="" />', iconClass: 'nav-icon-about' },
       { id: 'orders', label: 'Orders', href: 'orders.html', icon: '<img src="assets/orders-icon.svg" alt="" />', iconClass: 'nav-icon-orders' },
       { id: 'messages', label: 'Messages', href: 'messages.html', icon: '<img src="assets/sidebar-message-icon.svg" alt="" />', iconClass: 'nav-icon-messages', count: 'message' },
       { id: 'wallet', label: 'Wallet', href: 'wallet.html', icon: '<img src="assets/wallet-icon.svg" alt="" />', iconClass: 'nav-icon-wallet' },
