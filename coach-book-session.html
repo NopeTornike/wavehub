@@ -5,53 +5,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Book Session</title>
-  <link rel="stylesheet" href="styles.css?v=20260827-mobile-reference-1" />
+  <link rel="stylesheet" href="styles.css?v=20260905-real-coach-slots-5" />
 </head>
-<body class="coaching-body">
-  <div class="coach-page">
-    <header class="coach-topbar" aria-label="WaveHub coaching navigation">
-      <a class="coach-brand" href="index.html" aria-label="WaveHub home">
-        <img src="assets/logo-wavehubx-main.png" alt="WaveHubX" />
-      </a>
-
-      <nav class="coach-nav" aria-label="Coaching sections">
-        <a class="active" href="coaching.html">Browse Coaches</a>
-        <a href="cart.html">Cart</a>
-      </nav>
-
-      <div class="coach-top-actions">
-        <label class="coach-search" aria-label="Search coaches">
-          <input id="coachProfileSearch" type="search" placeholder="Search coaches..." autocomplete="off" />
-          <span aria-hidden="true"></span>
-        </label>
-        <a class="coach-icon-button coach-message-button" href="messages.html" aria-label="Messages" title="Messages">
-          <img class="message-icon-image" src="assets/message-icon.svg" alt="" aria-hidden="true" />
-        </a>
-        <a class="coach-icon-button coach-cart-button" href="cart.html" aria-label="Cart" title="Cart">
-          <img class="cart-icon-image" src="assets/cart-icon.png" alt="" aria-hidden="true" />
-          <strong class="cart-badge" data-cart-count>0</strong>
-        </a>
-        <button class="coach-icon-button has-badge" type="button" aria-label="Notifications" title="Notifications">
-          <span aria-hidden="true">N</span>
-        </button>
-        <button class="coach-profile" type="button" aria-label="Profile menu">
-          <span class="coach-profile-avatar">W</span>
-          <span>
-            <strong>WaveRider</strong>
-            <small>320.50 GEL</small>
-          </span>
-        </button>
-      </div>
-    </header>
-
-    <main class="coach-profile-shell" id="coachBookingRoot" aria-live="polite"></main>
-  </div>
+<body class="booking-flow-body">
+  <main class="booking-flow" id="coachBookingRoot" aria-live="polite"></main>
 
   <script src="coaches-data.js"></script>
-  <script src="cart-nav.js"></script>
-  <script src="coach-book-session.js"></script>
-<script src="profile-nav.js?v=20260902-secure-session-messages-1"></script>
   <script src="state-sync.js?v=20260902-server-state-1"></script>
-  <script src="site-footer.js"></script>
+  <script src="coach-booking-flow.js?v=20260905-real-coach-slots-5"></script>
 </body>
 </html>

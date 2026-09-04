@@ -32,10 +32,40 @@ export class StateService {
     const profiles = records.find((item) => item.key === PROFILE_KEY)?.value;
     values[PROFILE_KEY] = Array.isArray(profiles) ? profiles : [];
     const cartRecords = await this.findByKey('wavehub.cart');
+    const purchaseRecords = await this.findByKey('wavehub.purchases');
+    const bookedSlots = new Set<string>();
+    purchaseRecords
+      .filter((record) => Array.isArray(record.value))
+      .flatMap((record) => record.value)
+      .filter((purchase: any) => !/cancel|refund|failed/i.test(String(purchase?.status || '')))
+      .forEach((purchase: any) => {
+        (Array.isArray(purchase?.items) ? purchase.items : []).forEach((item: any) => {
+          if (item?.productType !== 'Coaching') return;
+          const seller = String(item.sellerUsername || '').toLowerCase();
+          const listingIds = [item.listingId, item.sourceCoachId].filter(Boolean).map(String);
+          const sessions = Array.isArray(item.sessions)
+            ? item.sessions
+            : item.sessionDate
+              ? (Array.isArray(item.sessionTimes) ? item.sessionTimes : [item.sessionTime]).map((time: string) => ({ date: item.sessionDate, time }))
+              : [];
+          sessions.forEach((session: any) => {
+            if (!session?.date || !session?.time) return;
+            listingIds.forEach((listingId) => bookedSlots.add(`${seller}|${listingId}|${session.date}|${session.time}`));
+            bookedSlots.add(`${seller}||${session.date}|${session.time}`);
+          });
+        });
+      });
     values['wavehub.publicCoachingListings'] = cartRecords
       .filter((record) => Array.isArray(record.value))
       .flatMap((record) => record.value)
-      .filter((item: any) => item?.productType === 'Coaching' && item?.isCoachListing);
+      .filter((item: any) => item?.productType === 'Coaching' && item?.isCoachListing)
+      .filter((item: any) => {
+        if (!item.sessionDate || !item.sessionTime) return false;
+        const seller = String(item.buyerUsername || item.sellerUsername || '').toLowerCase();
+        const ids = [item.listingId, item.id].filter(Boolean).map(String);
+        return !ids.some((id) => bookedSlots.has(`${seller}|${id}|${item.sessionDate}|${item.sessionTime}`))
+          && !bookedSlots.has(`${seller}||${item.sessionDate}|${item.sessionTime}`);
+      });
     return values;
   }
 
