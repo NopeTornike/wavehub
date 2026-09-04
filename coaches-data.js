@@ -34,7 +34,7 @@
       rating: 4.9,
       reviews: 127,
       price: 15,
-      priceText: '$15 /hour',
+      priceText: '₾15 /hour',
       availability: 'now',
       language: 'EN',
       languages: ['English', 'ქართული'],

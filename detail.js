@@ -1137,7 +1137,7 @@ function renderGameSpecificDetails(offer) {
     : isGta5
       ? [
           ['Rank', details.rank],
-          ['Total Money', details.totalMoney ? `$${formatNumber(details.totalMoney)}` : ''],
+          ['Total Money', details.totalMoney ? `₾${formatNumber(details.totalMoney)}` : ''],
           ['Total RP', details.totalRp ? formatNumber(details.totalRp) : ''],
           ['Unlocked Level', details.unlockedLevel],
           ['Properties Owned', details.properties],
@@ -1186,7 +1186,7 @@ function renderGameSpecificDetails(offer) {
           ['Limiteds RAP Value', details.rapValue ? formatNumber(details.rapValue) : ''],
           ['Premium Membership', details.premium],
           ['Account Age', details.accountAge],
-          ['Total Spending', details.totalSpending ? `$${formatNumber(details.totalSpending)}` : ''],
+          ['Total Spending', details.totalSpending ? `₾${formatNumber(details.totalSpending)}` : ''],
           ['Top Game Items', details.topItems],
           ['Rare / Valuable Items', details.rareItems],
         ]
