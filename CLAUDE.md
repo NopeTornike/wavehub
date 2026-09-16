@@ -46,7 +46,7 @@ order before starting any of these.
 | `backend/src/notifications/` | In-app notification center + the order/dispute/review/withdrawal/chat hook points that populate it | `backend/src/notifications/CLAUDE.md` |
 | `backend/src/settings/` | Platform-wide configurable numbers (fee %, min withdrawal, maintenance flag) — a singleton table | `backend/src/settings/CLAUDE.md` |
 | `backend/src/support/` | Support ticketing — user tickets, staff replies, internal notes, Saved Replies | `backend/src/support/CLAUDE.md` |
-| `backend/src/coaching/` | Coach profiles, public directory, admin verification/suspension — no session booking yet | `backend/src/coaching/CLAUDE.md` |
+| `backend/src/coaching/` | Coach profiles, public directory, admin verification/suspension, session booking + escrow payment | `backend/src/coaching/CLAUDE.md` |
 | `backend/src/content/` | Static/legal page CMS (10 pages: About/Contact/Terms/Privacy/Refund/Delivery/Disputes/Community/Coach & Seller Standards) — admin-edited, publicly rendered, real copy | `backend/src/content/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
@@ -181,11 +181,13 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   see `backend/src/admin/CLAUDE.md` and `frontend/CLAUDE.md`. **Phase 11d (Support ticketing) has
   also landed** — see `backend/src/support/CLAUDE.md`. **Phase 11f is partially done** (platform
   fee % and minimum withdrawal are admin-configurable — `backend/src/settings/CLAUDE.md` — but
-  promo codes, banners, and Maintenance Mode enforcement are not). **Phase 11b (Coaching) has a
-  first slice landed too** — coach profiles, the public directory, and admin verification/
-  suspension exist (`backend/src/coaching/CLAUDE.md`), but session booking and payment don't yet;
-  that's a deliberately separate follow-up (see that module's Status section for why). Trust &
-  Safety/Analytics (11e, 11g) are still fully ahead.
+  promo codes, banners, and Maintenance Mode enforcement are not). **Phase 11b (Coaching) is now
+  functionally complete for a first version** — coach profiles, the public directory, admin
+  verification/suspension, and session booking + escrow payment (with the same 7-day withdrawal
+  hold as an order) all exist and are verified against the real Postgres instance
+  (`backend/src/coaching/CLAUDE.md`). No dispute path for sessions yet — a deliberate scope
+  decision, not an oversight, see that module's Status section. Trust & Safety/Analytics (11e,
+  11g) are still fully ahead.
 
 ## Real-database verification (2026-07-22) — read this before trusting older "unverified" caveats
 

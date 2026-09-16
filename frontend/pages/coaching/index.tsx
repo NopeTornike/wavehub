@@ -54,7 +54,8 @@ export default function CoachingDirectory() {
             <div>
               <h1 id="coachBrowseTitle">მწვრთნელების ძებნა</h1>
               <p>
-                ვერიფიცირებული მწვრთნელები — <Link href="/coaching/apply">გახდი მწვრთნელი</Link>
+                ვერიფიცირებული მწვრთნელები — <Link href="/coaching/apply">გახდი მწვრთნელი</Link> ·{' '}
+                <Link href="/coaching-sessions">ჩემი სესიები</Link>
               </p>
             </div>
           </div>

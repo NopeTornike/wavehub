@@ -351,9 +351,14 @@ Carried forward from before this analysis (unaffected by any of the above):
    `seller-standards`), all wired into `Footer.tsx`. Verified against the live Postgres instance
    and in a real browser (`GET /content/coach-standards` and `/pages/coach-standards` both render
    the real Georgian copy). See `backend/src/content/CLAUDE.md`.
-2. **Finish coaching session booking** (§5) — closest to done, already has real backend code
-   sitting uncommitted. Migrate, test, verify against live Postgres, build the frontend booking
-   form + sessions list. Decide the dispute-path question (§5, point 5) while doing this.
+2. **Finish coaching session booking** (§5) — **done (2026-09-16)**. Migrated, 16 new unit tests,
+   verified end to end against live Postgres and through the real UI (book → complete → escrow
+   release + 7-day hold; book → cancel → full refund). Built the booking form on `coaching/[id].tsx`
+   and a real sessions list + detail page. Dispute-path question resolved: no dispute machinery for
+   a first version, cancel-for-full-refund is the accepted substitute — see `backend/src/coaching/
+   CLAUDE.md`. Also found and fixed a real bug this surfaced: `WalletService.getBalanceSummary()`
+   was only summing `OrderRelease` earnings, silently excluding `SessionRelease` — see
+   `backend/src/wallet/CLAUDE.md`.
 3. **Tournaments** (§2b) — confirmed scope, clean new module following the existing `Coach`/
    `ContentPage` pattern exactly.
 4. **Direct messaging** (§4) — confirmed scope, builds on existing `chat/` conventions.

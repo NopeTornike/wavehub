@@ -215,6 +215,31 @@ describe('WalletService', () => {
       // top-up money that isn't withdrawable) — available should be capped at 150, not 500.
       expect(summary.availableToWithdraw).toBe(150);
     });
+
+    // Real bug found while verifying coaching-session escrow against a live Postgres instance
+    // (2026-09-16): this method originally summed only WalletLedgerType.OrderRelease, so a coach's
+    // SessionRelease earnings were silently excluded from totalEarned/availableToWithdraw even
+    // though the money really was credited to their wavecoinBalance. Locks in the fix.
+    it('counts SessionRelease earnings toward totalEarned, not just OrderRelease', async () => {
+      let capturedTypes: string[] | undefined;
+      const qb = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn((clause: string, params: any) => {
+          if (clause.includes('e.type')) capturedTypes = params.types;
+          return qb;
+        }),
+        getRawOne: jest.fn(async () => ({ sum: '18' })),
+      };
+      const repo = { createQueryBuilder: jest.fn(() => qb), findOne: jest.fn(async () => ({ id: userId, wavecoinBalance: 63 })) };
+      const dataSource = { getRepository: jest.fn(() => repo) } as any;
+      const wallet = new WalletService(dataSource);
+
+      const summary = await wallet.getBalanceSummary(userId);
+
+      expect(capturedTypes).toEqual([WalletLedgerType.OrderRelease, WalletLedgerType.SessionRelease]);
+      expect(summary.totalEarned).toBe(18);
+    });
   });
 
   describe('composed transactions (manager param)', () => {

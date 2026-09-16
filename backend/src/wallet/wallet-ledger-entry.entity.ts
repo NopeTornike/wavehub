@@ -23,6 +23,11 @@ export class WalletLedgerEntry {
   @Column({ type: 'uuid', nullable: true })
   orderId: string | null;
 
+  // Set instead of `orderId` for Session* entries (coaching session escrow) — mutually exclusive
+  // with `orderId`, never both set on the same row. Same "no FK yet" caveat as above.
+  @Column({ type: 'uuid', nullable: true })
+  sessionId: string | null;
+
   @Column({ type: 'varchar' })
   type: WalletLedgerType;
 

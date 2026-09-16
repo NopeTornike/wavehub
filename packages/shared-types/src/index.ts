@@ -72,6 +72,13 @@ export enum WalletLedgerType {
   OrderEscrowHold = 'order_escrow_hold',
   OrderRelease = 'order_release',
   OrderRefund = 'order_refund',
+  // Coaching-session equivalents of the three Order* types above — kept structurally identical
+  // but distinctly named so a seller/buyer's transaction history can tell an order charge from a
+  // session charge apart, rather than sessions silently reusing the Order* types. See
+  // backend/src/wallet/CLAUDE.md and backend/src/coaching/CLAUDE.md.
+  SessionEscrowHold = 'session_escrow_hold',
+  SessionRelease = 'session_release',
+  SessionRefund = 'session_refund',
   Withdrawal = 'withdrawal',
   AdminAdjustment = 'admin_adjustment',
   PlatformFee = 'platform_fee',
@@ -153,6 +160,9 @@ export enum NotificationType {
   WithdrawalStatusChanged = 'withdrawal_status_changed',
   NewMessage = 'new_message',
   TicketReplied = 'ticket_replied',
+  SessionBooked = 'session_booked',
+  SessionCompleted = 'session_completed',
+  SessionCancelled = 'session_cancelled',
 }
 
 // Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
@@ -699,5 +709,35 @@ export interface PublicUserProfile {
   sellerRatingAvg: string | null;
   sellerRatingCount: number;
   activeListingCount: number;
+  createdAt: string;
+}
+
+// Coaching session booking + escrow payment (build-plan Phase 11b follow-up — see
+// backend/src/coaching/CLAUDE.md's Status section for why this was cut from the original
+// profile+directory+verification slice). Deliberately simple compared to the static prototype's
+// coach-book-session.js mock: a buyer requests a session at a specific date/time and pays
+// immediately (same "debit at request time" pattern as an order purchase) — no coach
+// accept/decline step, no availability calendar. The coach marks it Completed after the session
+// happens (releases escrow, same 7-day hold as an order) or either party can Cancel while still
+// Scheduled (refunds the buyer).
+export enum CoachingSessionStatus {
+  Scheduled = 'scheduled',
+  Completed = 'completed',
+  Cancelled = 'cancelled',
+}
+
+export interface PublicCoachingSession {
+  id: string;
+  coachId: string;
+  coachUsername: string;
+  coachFirstName: string;
+  coachLastName: string;
+  buyerId: string;
+  buyerUsername: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  priceWaveCoin: number;
+  buyerMessage: string | null;
+  status: CoachingSessionStatus;
   createdAt: string;
 }

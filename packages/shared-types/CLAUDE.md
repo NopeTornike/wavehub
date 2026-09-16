@@ -72,11 +72,12 @@ this file), since notifications weren't anticipated with a placeholder the way o
 concepts were. Every enum in this file now has both a backing table and at least one `Public*`
 consumer.
 
-`CoachingSessionStatus`/`PublicCoachingSession` (2026-09-16, uncommitted — see
-`backend/src/coaching/CLAUDE.md` and `LAUNCH_PLAN.md` §5) were added alongside
-`backend/src/coaching/coaching-session.entity.ts` — the migration creating the table these back
-hasn't been run yet, so treat this pairing as **not yet real** until that lands.
-`WalletLedgerType` also gained three new values in the same change (`SessionEscrowHold`/
-`SessionRelease`/`SessionRefund`) — structurally identical to the existing `Order*` trio, kept
-distinct so a ledger listing can tell an order charge from a session charge apart. `NotificationType`
-gained `SessionBooked`/`SessionCompleted`/`SessionCancelled` for the same feature.
+`CoachingSessionStatus`/`PublicCoachingSession` (2026-09-16, shipped and verified against a real
+Postgres instance — see `backend/src/coaching/CLAUDE.md`) were added alongside
+`backend/src/coaching/coaching-session.entity.ts`. `WalletLedgerType` also gained three new values
+in the same change (`SessionEscrowHold`/`SessionRelease`/`SessionRefund`) — structurally identical
+to the existing `Order*` trio, kept distinct so a ledger listing can tell an order charge from a
+session charge apart (`backend/src/wallet/WalletService.getBalanceSummary()` sums both together
+when computing a user's earnings — see that module's `CLAUDE.md` for a real bug this asymmetry
+caused and how it was fixed). `NotificationType` gained `SessionBooked`/`SessionCompleted`/
+`SessionCancelled` for the same feature.

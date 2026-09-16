@@ -80,6 +80,18 @@ have yet, not a profile page) are also done. Two things worth knowing:
   filter) instead of trying to fake the rest.
 `coaching/apply.tsx` (the coach-application form) is untouched — no static-prototype page for it
 exists either, and it's a plain form with no strong design-system opinion to port.
+`coaching/[id].tsx`'s "book a session" button is no longer a disabled placeholder (2026-09-16) —
+it's a real form (date/time/duration/optional message) wired to the new
+`backend/src/coaching/` session-booking endpoints, and `pages/coaching-sessions/{index,[id]}.tsx`
+(new) give buyers/coaches a real session list and detail page — same `.orders-page-head`/
+`.order-card` design as `orders/index.tsx`/`orders/[id].tsx`, since sessions have no
+static-prototype reference of their own either (`coach-book-session.html`'s 6-step wizard is UI
+inspiration for a future richer flow, not something ported directly — see
+`backend/src/coaching/CLAUDE.md` for the real scope shipped). Every action that moves WaveCoin
+(booking, complete, cancel) calls `useAuth()`'s `refresh()` before/after so the topbar balance
+doesn't go stale — a real bug was caught and fixed here during verification (the balance stayed
+wrong until a hard reload before this was added; see the git history for this file if you need the
+exact before/after).
 **Deliberately deferred**: `profile.html` (560 lines) is two different things bolted together —
 (a) an own-account dashboard with listing/coaching-session edit modals, which has no equivalent
 anywhere in the real app yet (there's no seller "my listings" management UI at all — a gap
@@ -218,12 +230,13 @@ the UI pivot. Revisit only if direct messaging or bulk purchase becomes a real p
   open a new ticket (subject/category/description), list your own tickets, and a thread view that
   reuses the same `.chat-panel` CSS as order chat/disputes. Linked from `Header` as "დახმარება" for
   any logged-in user.
-- `pages/coaching/index.tsx` (verified-coach directory, `.listing-grid`/`.listing-card` reused from
-  the marketplace), `pages/coaching/[id].tsx` (profile detail — the "book a session" button is a
-  visible, disabled placeholder since `backend/src/coaching/` has no session-booking model yet),
-  `pages/coaching/apply.tsx` (become-a-coach application form) — linked from `Header` as
-  "კოუჩინგი". `pages/admin/coaches.tsx` is the staff side: a pending-verification queue
-  (approve/reject) plus a full coach list with suspend/restore for already-verified ones.
+- `pages/coaching/index.tsx` (verified-coach directory, `.coach-grid`/`.coach-card` from
+  `coaching.html` — see the design-pivot note above), `pages/coaching/[id].tsx` (profile detail +
+  a real session-booking form), `pages/coaching-sessions/{index,[id]}.tsx` (a buyer/coach's booked
+  sessions, complete/cancel actions), `pages/coaching/apply.tsx` (become-a-coach application form)
+  — linked from `Header` as "კოუჩინგი". `pages/admin/coaches.tsx` is the staff side: a
+  pending-verification queue (approve/reject) plus a full coach list with suspend/restore for
+  already-verified ones.
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the

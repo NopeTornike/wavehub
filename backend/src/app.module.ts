@@ -47,6 +47,7 @@ import { TicketMessage } from './support/ticket-message.entity';
 import { SavedReply } from './support/saved-reply.entity';
 import { CoachingModule } from './coaching/coaching.module';
 import { Coach } from './coaching/coach.entity';
+import { CoachingSession } from './coaching/coaching-session.entity';
 import { ContentModule } from './content/content.module';
 import { ContentPage } from './content/content-page.entity';
 
@@ -101,6 +102,7 @@ import { ContentPage } from './content/content-page.entity';
         TicketMessage,
         SavedReply,
         Coach,
+        CoachingSession,
         ContentPage,
       ],
       synchronize: process.env.TYPEORM_SYNC === 'true',

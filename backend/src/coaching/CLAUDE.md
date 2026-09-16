@@ -123,22 +123,43 @@ for its "buy" button before Orders existed), `frontend/pages/coaching/apply.tsx`
 form), `frontend/pages/admin/coaches.tsx` (pending-verification queue with approve/reject, plus a
 full coach list with suspend/restore for verified coaches).
 
-**Session booking + escrow payment (2026-09-16) — backend code written, nothing else done yet.**
-The entity/lifecycle/service/controller/migration/wallet-methods described in Key files above all
-exist and the backend builds clean, but:
-- The migration (`CreateCoachingSessions`) has **not been run** against the live Postgres instance.
-- **No tests** — neither unit tests (following `orders.service.spec.ts`'s pattern: guard clauses,
-  the transition matrix, the insufficient-balance path) nor a real end-to-end verification (book →
-  complete → confirm escrow release and the 7-day hold, same bar every other money-moving feature
-  here was held to) have been done.
-- **No frontend at all** — `coaching/[id].tsx`'s "book a session" button is still the disabled
-  placeholder mentioned above; there's no sessions list/detail page (the `orders/index.tsx`/
-  `orders/[id].tsx` pair is the template to follow).
-- **No dispute path** — `coaching-session-lifecycle.ts`'s only transitions out of `Scheduled` are
-  `Completed`/`Cancelled`; there's no `Disputed` state or any of `backend/src/disputes/`'s 3-party
-  chat/evidence/admin-resolution machinery. Whether a session needs that or whether "either party
-  can cancel for a full refund" is an acceptable substitute is an open product question.
-- See `/Users/sarvat/Desktop/wavehub/LAUNCH_PLAN.md` §5 for the full next-steps list.
+**Session booking + escrow payment — shipped and fully verified (2026-09-16).**
+`apply`/`request`/`complete`/`cancel`/`findMineAsBuyer`/`findMineAsCoach`/`getForParticipant` are
+all implemented and unit-tested (16 new tests: every guard clause, the fee-split math, the
+INSUFFICIENT_BALANCE translation, both cancel-initiator paths) — 216 backend tests total. Verified
+end to end against the real, running Postgres instance, not just unit-tested: applied as a coach,
+approved via the real admin flow, booked a real session as a buyer (60 min × 20 WC/hr → exactly 20
+WC debited), completed it as the coach (exactly 18 WC released after the 10% platform fee, `pending`
+status with a real 7-day `availableAt` hold), booked and cancelled a second session (buyer refunded
+in full), and confirmed both through the real Next.js UI, not just curl — including watching the
+topbar balance update live after a booking/cancel with no page reload.
+
+**Real bug found and fixed by that verification**: `WalletService.getBalanceSummary()` — the method
+`GET /wallet/balance` calls — summed only `WalletLedgerType.OrderRelease` when computing
+`totalEarned`/`pendingClearance`/`availableToWithdraw`, so a coach's `SessionRelease` earnings were
+silently excluded from their own balance summary even though the WaveCoin really was credited to
+`wavecoinBalance`. Fixed by having `sumEntries()` accept multiple ledger types and summing
+`[OrderRelease, SessionRelease]` together — see `backend/src/wallet/CLAUDE.md`. Exactly the kind of
+bug this repo's real-database verification passes exist to catch; a fake-repo unit test would never
+have exercised the real query.
+
+Frontend: `coaching/[id].tsx`'s booking form (date/time/duration/optional message, duration select
+shows the live computed price per option) replaces the old disabled placeholder button, and calls
+`refresh()` on the cached session before navigating away so the topbar balance doesn't go stale.
+`frontend/pages/coaching-sessions/{index,[id]}.tsx` (new — mirrors `orders/index.tsx`/
+`orders/[id].tsx`'s `.orders-page-head`/`.order-card` design exactly, no static-prototype reference
+of its own) give buyers and coaches a real session list (buyer/coach tabs) and a detail page with
+complete/cancel actions, same `refresh()`-after-action treatment.
+
+**Deliberate scope decision, not left open**: no dispute path.
+`coaching-session-lifecycle.ts`'s only transitions out of `Scheduled` are `Completed`/`Cancelled` —
+there's no `Disputed` state and none of `backend/src/disputes/`'s 3-party chat/evidence/
+admin-resolution machinery applies to sessions. For this first version, "either party can cancel
+for a full refund while still `Scheduled`" is the accepted substitute — a real dispute system would
+need its own evidence/chat/admin-resolution build-out comparable in size to `backend/src/disputes/`
+itself, which wasn't justified for a first pass with no real usage data yet. Revisit if session
+disputes (e.g. "the coach didn't show up but marked it complete anyway") turn out to be a real
+problem in practice.
 
 **Not built — the rest of Phase 11b**, deliberately deferred:
 - **Coach quality-score tracking**, session history/upcoming-sessions views (both user- and

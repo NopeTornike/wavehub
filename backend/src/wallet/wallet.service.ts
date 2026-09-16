@@ -177,6 +177,115 @@ export class WalletService {
     return manager ? run(manager) : this.dataSource.transaction(run);
   }
 
+  // Session escrow trio — structurally identical to debitForOrder/releaseSellerEarnings/
+  // refundBuyer above, just writing `sessionId` instead of `orderId` and using the Session* ledger
+  // types so a transaction-history listing can tell the two apart. Kept as separate methods rather
+  // than generalizing the Order* ones to take a discriminated reference, to avoid touching the
+  // public signature every existing Order/Dispute caller and test already depends on.
+  async debitForSession(
+    userId: string,
+    sessionId: string,
+    amountWaveCoin: number,
+    manager?: EntityManager,
+  ): Promise<WalletLedgerEntry> {
+    if (amountWaveCoin <= 0) {
+      throw new Error('amountWaveCoin must be positive');
+    }
+
+    const run = async (m: EntityManager) => {
+      const user = await m.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
+      if (!user) {
+        throw new Error('USER_NOT_FOUND');
+      }
+      if (user.wavecoinBalance < amountWaveCoin) {
+        throw new Error('INSUFFICIENT_BALANCE');
+      }
+
+      const balanceAfter = user.wavecoinBalance - amountWaveCoin;
+      await m.update(User, userId, { wavecoinBalance: balanceAfter });
+
+      const entry = m.create(WalletLedgerEntry, {
+        userId,
+        sessionId,
+        type: WalletLedgerType.SessionEscrowHold,
+        amountWaveCoin: -amountWaveCoin,
+        balanceAfter,
+        status: WalletLedgerStatus.Held,
+      });
+      return m.save(entry);
+    };
+
+    return manager ? run(manager) : this.dataSource.transaction(run);
+  }
+
+  async releaseCoachEarnings(
+    coachUserId: string,
+    sessionId: string,
+    coachReceivesWaveCoin: number,
+    holdDays: number = DEFAULT_HOLD_DAYS,
+    manager?: EntityManager,
+  ): Promise<WalletLedgerEntry> {
+    if (coachReceivesWaveCoin <= 0) {
+      throw new Error('coachReceivesWaveCoin must be positive');
+    }
+
+    const run = async (m: EntityManager) => {
+      const coach = await m.findOne(User, { where: { id: coachUserId }, lock: { mode: 'pessimistic_write' } });
+      if (!coach) {
+        throw new Error('USER_NOT_FOUND');
+      }
+
+      const balanceAfter = coach.wavecoinBalance + coachReceivesWaveCoin;
+      await m.update(User, coachUserId, { wavecoinBalance: balanceAfter });
+
+      const entry = m.create(WalletLedgerEntry, {
+        userId: coachUserId,
+        sessionId,
+        type: WalletLedgerType.SessionRelease,
+        amountWaveCoin: coachReceivesWaveCoin,
+        balanceAfter,
+        status: WalletLedgerStatus.Pending,
+        availableAt: new Date(Date.now() + holdDays * 24 * 60 * 60 * 1000),
+      });
+      return m.save(entry);
+    };
+
+    return manager ? run(manager) : this.dataSource.transaction(run);
+  }
+
+  async refundBuyerForSession(
+    buyerId: string,
+    sessionId: string,
+    amountWaveCoin: number,
+    manager?: EntityManager,
+  ): Promise<WalletLedgerEntry> {
+    if (amountWaveCoin <= 0) {
+      throw new Error('amountWaveCoin must be positive');
+    }
+
+    const run = async (m: EntityManager) => {
+      const buyer = await m.findOne(User, { where: { id: buyerId }, lock: { mode: 'pessimistic_write' } });
+      if (!buyer) {
+        throw new Error('USER_NOT_FOUND');
+      }
+
+      const balanceAfter = buyer.wavecoinBalance + amountWaveCoin;
+      await m.update(User, buyerId, { wavecoinBalance: balanceAfter });
+
+      const entry = m.create(WalletLedgerEntry, {
+        userId: buyerId,
+        sessionId,
+        type: WalletLedgerType.SessionRefund,
+        amountWaveCoin,
+        balanceAfter,
+        status: WalletLedgerStatus.Available,
+      });
+      return m.save(entry);
+    };
+
+    return manager ? run(manager) : this.dataSource.transaction(run);
+  }
+
   // Reserves funds for a withdrawal request at the moment it's created — debits `wavecoinBalance`
   // immediately (same "debit now, not on admin approval" principle as `debitForOrder`), so a
   // seller can't request a withdrawal and then also spend the same coins on a purchase before an
@@ -289,8 +398,13 @@ export class WalletService {
     const repo = this.dataSource.getRepository(WalletLedgerEntry);
     const now = new Date();
 
-    const totalEarned = await this.sumEntries(repo, userId, WalletLedgerType.OrderRelease);
-    const pendingClearance = await this.sumEntries(repo, userId, WalletLedgerType.OrderRelease, (qb) =>
+    // Order and coaching-session earnings are counted together here — both are "money the user
+    // earned by delivering something," just recorded under distinct ledger types (see
+    // wallet-ledger-entry.entity.ts's sessionId/orderId comment) so a transaction-history listing
+    // can still tell them apart. A withdrawal-eligible balance doesn't care which one it was.
+    const earningTypes = [WalletLedgerType.OrderRelease, WalletLedgerType.SessionRelease];
+    const totalEarned = await this.sumEntries(repo, userId, earningTypes);
+    const pendingClearance = await this.sumEntries(repo, userId, earningTypes, (qb) =>
       qb.andWhere('e.availableAt > :now', { now }),
     );
     const clearedEarnings = totalEarned - pendingClearance;
@@ -320,14 +434,15 @@ export class WalletService {
   private async sumEntries(
     repo: import('typeorm').Repository<WalletLedgerEntry>,
     userId: string,
-    type: WalletLedgerType,
+    type: WalletLedgerType | WalletLedgerType[],
     extra?: (qb: import('typeorm').SelectQueryBuilder<WalletLedgerEntry>) => void,
   ): Promise<number> {
+    const types = Array.isArray(type) ? type : [type];
     const qb = repo
       .createQueryBuilder('e')
       .select('COALESCE(SUM(e.amountWaveCoin), 0)', 'sum')
       .where('e.userId = :userId', { userId })
-      .andWhere('e.type = :type', { type });
+      .andWhere('e.type IN (:...types)', { types });
     if (extra) {
       extra(qb);
     }

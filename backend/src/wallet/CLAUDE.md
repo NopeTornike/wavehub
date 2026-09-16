@@ -79,6 +79,14 @@ both.
   spent. Capping by the actual current balance is what prevents a seller who already spent earned
   coins on a purchase from requesting a withdrawal against money they no longer have — see
   `wallet.service.spec.ts`'s two `getBalanceSummary` tests for both directions of this cap.
+- **`totalEarned`/`pendingClearance` sum BOTH `OrderRelease` and `SessionRelease` together** —
+  `sumEntries()`'s `type` param takes a single type or an array (`WHERE type IN (...)`), not just a
+  single type. This is a real bug fix (2026-09-16): `getBalanceSummary` originally summed only
+  `OrderRelease`, found while verifying the new coaching-session escrow against a live Postgres
+  instance — a coach's `SessionRelease` earnings were silently excluded from their own balance
+  summary even though the WaveCoin really was credited to `wavecoinBalance`. If a third earning
+  type is ever added (e.g. a future Tournament prize payout), add it to the `earningTypes` array in
+  `getBalanceSummary` too — it won't be picked up automatically.
 - **`getBalanceSummary` deliberately does NOT include `pendingWithdrawal`/`totalWithdrawn`** —
   this module has no access to `WithdrawRequest` (owned by `backend/src/withdrawals/`, which
   depends on this module, not the other way around). `WithdrawalsService#getBalanceSummary`
@@ -112,11 +120,14 @@ both.
   `PublicWalletTransaction` response shape.
 
 ## Status
-`recordTopup`, `debitForOrder`, `releaseSellerEarnings`, `refundBuyer`, `holdForWithdrawal`, and
-`reverseWithdrawal` are all fully wired to real callers now (`backend/src/payments/`,
-`backend/src/orders/`, `backend/src/disputes/`, and `backend/src/withdrawals/`) and exercised by
-unit tests — no more "built ahead of its caller" primitives left in this module.
-`getBalanceSummary`/`listTransactions` are the read-side counterpart, also real and tested.
+`recordTopup`, `debitForOrder`, `releaseSellerEarnings`, `refundBuyer`, `holdForWithdrawal`,
+`reverseWithdrawal`, and (2026-09-16) `debitForSession`/`releaseCoachEarnings`/
+`refundBuyerForSession` are all fully wired to real callers now (`backend/src/payments/`,
+`backend/src/orders/`, `backend/src/disputes/`, `backend/src/withdrawals/`, and
+`backend/src/coaching/`) and exercised by unit tests — no more "built ahead of its caller"
+primitives left in this module. `getBalanceSummary`/`listTransactions` are the read-side
+counterpart, also real, tested, and (as of the same date) correctly aggregating both order and
+session earnings — see the `sumEntries` gotcha above.
 There's still no `WalletController` in this directory — see `backend/src/withdrawals/CLAUDE.md`
 for where those routes actually live and why. `status: Held` on a ledger entry is finally used
 too, by `holdForWithdrawal` — the one prediction from an earlier version of this doc (that

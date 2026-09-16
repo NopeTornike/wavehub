@@ -34,6 +34,7 @@ import type {
   PublicCoachSummary,
   PublicCoachDetail,
   AdminCoachSummary,
+  PublicCoachingSession,
   PublicContentPage,
   PublicUserProfile,
   AdminContentPage,
@@ -437,4 +438,18 @@ export const api = {
 
   // --- Public user profiles --- (backend/src/users/users.controller.ts)
   getUserProfile: (username: string) => request<PublicUserProfile>(`/users/${username}`),
+
+  // --- Coaching sessions --- (backend/src/coaching/coaching-sessions.controller.ts)
+  requestCoachingSession: (coachId: string, payload: { scheduledAt: string; durationMinutes: number; buyerMessage?: string }) =>
+    request<PublicCoachingSession>(`/coaches/${coachId}/sessions`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  listMySessionsAsBuyer: () => request<PublicCoachingSession[]>('/coaching-sessions/mine-as-buyer'),
+
+  listMySessionsAsCoach: () => request<PublicCoachingSession[]>('/coaching-sessions/mine-as-coach'),
+
+  getCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}`),
+
+  completeCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/complete`, { method: 'POST' }),
+
+  cancelCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/cancel`, { method: 'POST' }),
 }
