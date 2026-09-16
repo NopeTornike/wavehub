@@ -16,6 +16,14 @@ The full build plan (phased architecture, schema, decisions) lives at
 `/Users/sarvat/.claude/plans/mighty-mapping-robin.md` on the machine this was planned on — if that path
 isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable record.
 
+**Read `LAUNCH_PLAN.md` before starting any new feature work right now** — it documents a critical
+finding (as of 2026-09-16): `origin/main` has diverged into a parallel, simpler backend (a
+localStorage-mirroring blob store instead of this branch's real Postgres schema, plus a
+static-only nginx Docker target that drops the real Next.js app). It also has the current workplan
+for BOG subscriptions, Tournaments, Direct Messaging, Steam Keys, and finishing the in-progress
+Coaching session-booking feature, plus open product questions that need an answer before that work
+starts. Don't merge `origin/main`'s backend/Docker changes without reading it first.
+
 ## Module doc index
 
 | Module | Purpose | Doc |

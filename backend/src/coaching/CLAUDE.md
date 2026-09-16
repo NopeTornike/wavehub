@@ -8,11 +8,13 @@ session-based (not order-based) delivery, own quality-score tracking. The origin
 "Coaching" as one service *category* under Listings; this module is that parallel concept.
 
 **Deliberately sliced down from the full Phase 11b scope** — this covers profile creation,
-verification, the public directory, and admin suspend/restore only. Session booking and payment
-are a separate, not-yet-built follow-up; see Status below for exactly why and what it would need.
-This mirrors how Listings (Phase 3) shipped before Orders (Phase 4) — profile/catalog first,
-money-moving transactions as their own later phase, not bolted on quickly alongside the profile
-work.
+verification, the public directory, and admin suspend/restore only. This mirrors how Listings
+(Phase 3) shipped before Orders (Phase 4) — profile/catalog first, money-moving transactions as
+their own later phase, not bolted on quickly alongside the profile work.
+
+**Session booking + escrow payment (2026-09-16) — code written, not yet migrated/tested/wired to
+the frontend.** See Status below for exactly what exists and what's still needed before this is
+real. See `/Users/sarvat/Desktop/wavehub/LAUNCH_PLAN.md` §5 for the full writeup and next steps.
 
 ## Key files
 - `coach.entity.ts` — `Coach`: 1:1 with `User` (`userId` unique), `gameId` (nullable FK to the
@@ -32,11 +34,34 @@ work.
 - `coaches.controller.ts` — `CoachesController`. `GET coaches/pending-verification` and
   `GET coaches/all` **must stay registered before** `GET coaches/:id` — same Express
   registration-order gotcha documented in `backend/src/listings/CLAUDE.md`'s `pending-review` note.
+- `coaching-session.entity.ts` — `CoachingSession`: coach/buyer FKs, `scheduledAt`,
+  `durationMinutes`, `priceWaveCoin`/`platformFeePercentSnapshot`/`platformFeeWaveCoin`/
+  `coachPayoutWaveCoin` (snapshots, same "never re-derive from a live rate" principle as `Order`),
+  `status` (`CoachingSessionStatus`). **New, uncommitted as of 2026-09-16 — see Status.**
+- `coaching-session-lifecycle.ts` — `assertValidSessionTransition`: `Scheduled → Completed`,
+  `Scheduled → Cancelled`, both terminal. Much smaller than `order-lifecycle.ts`'s graph — a
+  session is a single point-in-time event, no InProgress/Delivered split.
+- `coaching-sessions.service.ts` — `CoachingSessionsService.request()` (validates the coach is
+  `Verified`+`Active`, computes `priceWaveCoin = round(hourlyRateWaveCoin × durationMinutes / 60)`,
+  atomically inserts the session and debits the buyer via `WalletService.debitForSession` — same
+  one-transaction principle as `OrdersService#purchase`), `complete()` (coach-only, releases
+  escrow via `WalletService.releaseCoachEarnings`, same 7-day hold as an order), `cancel()` (either
+  participant, refunds the buyer via `WalletService.refundBuyerForSession`),
+  `findMineAsBuyer`/`findMineAsCoach`/`getForParticipant`.
+- `coaching-sessions.controller.ts` — `POST coaches/:id/sessions`,
+  `GET coaching-sessions/mine-as-{buyer,coach}` (**must stay registered before**
+  `GET coaching-sessions/:id`, same Express ordering gotcha as above),
+  `POST coaching-sessions/:id/{complete,cancel}`.
 
 ## Data model
 `coaches` (migration: `CreateCoaches`). `userId` is `UNIQUE` — one Coach row per user, reused
 across reject→reapply cycles rather than creating a new row each time (see `apply()`'s gotcha
 below).
+
+`coaching_sessions` (migration: `CreateCoachingSessions`, **not yet run** — see Status) — FKs to
+`coaches`/`users`, `ON DELETE CASCADE` on both. Also adds a `sessionId` column to
+`wallet_ledger_entries`, parallel to and mutually exclusive with the existing `orderId` column —
+see `backend/src/wallet/CLAUDE.md`.
 
 ## Conventions & gotchas
 - **`apply()` reuses the same row on reapplication after rejection** rather than inserting a new
@@ -72,36 +97,50 @@ below).
   `users/CLAUDE.md` — being a coach is orthogonal to that).
 - `backend/src/admin/` — `AdminGuard`/`@RequireAdminRole`/`AdminAuditService`, used by every admin
   route here.
+- `backend/src/wallet/` — `WalletService.debitForSession`/`releaseCoachEarnings`/
+  `refundBuyerForSession`, the session-escrow trio `coaching-sessions.service.ts` calls.
+- `backend/src/settings/` — `PlatformSettingsService.getPlatformFeePercent()`, read at booking time
+  and snapshotted onto the session, same as `OrdersService#purchase`.
+- `backend/src/notifications/` — best-effort `SessionBooked`/`SessionCompleted`/`SessionCancelled`
+  notifications, same try/catch-and-log pattern as every other module's `notify()` helper.
 - `packages/shared-types/` — `CoachStatus` (new), reuses the existing `VerificationStatus` enum
-  rather than duplicating it. `PublicCoachSummary`/`PublicCoachDetail`/`AdminCoachSummary`
-  response shapes.
+  rather than duplicating it. `PublicCoachSummary`/`PublicCoachDetail`/`AdminCoachSummary`/
+  `PublicCoachingSession` response shapes. `CoachingSessionStatus` and the three `Session*`
+  `WalletLedgerType` values are also new here.
 - `frontend/pages/coaching/*.tsx` (public directory/profile/apply) and
-  `frontend/pages/admin/coaches.tsx` (staff verification queue) — see `frontend/CLAUDE.md`.
+  `frontend/pages/admin/coaches.tsx` (staff verification queue) — see `frontend/CLAUDE.md`. No
+  frontend yet for the new session-booking backend — see Status.
 
 ## Status
 `apply`/`findMine`/`browseVerified`/`findPublicById`/`listPendingVerification`/`listAll`/
 `approve`/`reject`/`suspend`/`restore` are all implemented and unit-tested (the reapply-reuses-row
 behavior, both verification-transition guard clauses, both suspend/restore guard clauses) — 199
-backend tests total as of the last update. Not verified against a live Postgres transaction (no DB
-available in the sandbox this was built in). Frontend: `frontend/pages/coaching/index.tsx`
+backend tests total as of the last update, verified against a real Postgres instance (see root
+`CLAUDE.md`'s "Real-database verification" section). Frontend: `frontend/pages/coaching/index.tsx`
 (verified-coach directory, filterable by game), `frontend/pages/coaching/[id].tsx` (profile detail
 — the "book a session" button is a **visible, disabled placeholder**, same pattern Listings used
 for its "buy" button before Orders existed), `frontend/pages/coaching/apply.tsx` (application
 form), `frontend/pages/admin/coaches.tsx` (pending-verification queue with approve/reject, plus a
 full coach list with suspend/restore for verified coaches).
 
-**Not built — the rest of Phase 11b**, deliberately deferred as its own follow-up chunk rather than
-rushed alongside the profile work above:
-- **Session booking and scheduling** — no availability/calendar model, no way for a buyer to
-  actually request a session with a coach. The static prototype's `coach-book-session.js` (a large
-  mock UI) is the closest existing reference for what a real booking flow's shape should look
-  like, but nothing there is backed by a real data model yet.
-- **Payment** — sessions have no `WalletService` integration at all. `WalletLedgerEntry.orderId`
-  is a real FK to `orders(id)`, so wiring session payments in will need either a schema change
-  (a nullable `sessionId` column alongside `orderId`, or a shared "chargeable thing" abstraction)
-  or routing coaching payments through the existing Order machinery after all — this is a real
-  design decision that shouldn't be guessed at inside an unrelated chunk, which is the main reason
-  booking/payment was cut from this pass rather than rushed.
+**Session booking + escrow payment (2026-09-16) — backend code written, nothing else done yet.**
+The entity/lifecycle/service/controller/migration/wallet-methods described in Key files above all
+exist and the backend builds clean, but:
+- The migration (`CreateCoachingSessions`) has **not been run** against the live Postgres instance.
+- **No tests** — neither unit tests (following `orders.service.spec.ts`'s pattern: guard clauses,
+  the transition matrix, the insufficient-balance path) nor a real end-to-end verification (book →
+  complete → confirm escrow release and the 7-day hold, same bar every other money-moving feature
+  here was held to) have been done.
+- **No frontend at all** — `coaching/[id].tsx`'s "book a session" button is still the disabled
+  placeholder mentioned above; there's no sessions list/detail page (the `orders/index.tsx`/
+  `orders/[id].tsx` pair is the template to follow).
+- **No dispute path** — `coaching-session-lifecycle.ts`'s only transitions out of `Scheduled` are
+  `Completed`/`Cancelled`; there's no `Disputed` state or any of `backend/src/disputes/`'s 3-party
+  chat/evidence/admin-resolution machinery. Whether a session needs that or whether "either party
+  can cancel for a full refund" is an acceptable substitute is an open product question.
+- See `/Users/sarvat/Desktop/wavehub/LAUNCH_PLAN.md` §5 for the full next-steps list.
+
+**Not built — the rest of Phase 11b**, deliberately deferred:
 - **Coach quality-score tracking**, session history/upcoming-sessions views (both user- and
   admin-facing), and the "reassign session to a different coach" admin action — all depend on
   sessions existing first.

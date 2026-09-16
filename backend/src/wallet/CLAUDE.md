@@ -11,12 +11,16 @@ that records every change to it. Nothing outside this module should ever write t
   an optional `reference` (unique — used for idempotency, e.g. a BOG transactionId)
 - `wallet.service.ts` — `WalletService`, the only thing allowed to change a balance:
   `recordTopup`, `debitForOrder`, `releaseSellerEarnings`, `refundBuyer`, `holdForWithdrawal`,
-  `reverseWithdrawal`. Every balance-changing method takes an optional trailing
-  `manager: EntityManager` param — pass one when the call must be atomic with other writes in the
-  caller's own transaction (e.g. `OrdersService.purchase` creating the `Order` row and debiting the
-  buyer together); omit it to let the method open its own transaction. Also has two read-only
-  methods with no `manager` param since they never write: `getBalanceSummary` (derived
-  available/pending/earned numbers) and `listTransactions` (paginated raw ledger history).
+  `reverseWithdrawal`, and — new as of 2026-09-16, see `backend/src/coaching/CLAUDE.md` §5 of
+  `LAUNCH_PLAN.md` for the full context — `debitForSession`/`releaseCoachEarnings`/
+  `refundBuyerForSession`, a structurally identical trio for coaching-session escrow, kept as
+  **separate methods** (not a generalized `debitForOrder(ref: {orderId} | {sessionId})`) so no
+  existing Order/Dispute caller's signature had to change. Every balance-changing method takes an
+  optional trailing `manager: EntityManager` param — pass one when the call must be atomic with
+  other writes in the caller's own transaction (e.g. `OrdersService.purchase` creating the `Order`
+  row and debiting the buyer together); omit it to let the method open its own transaction. Also
+  has two read-only methods with no `manager` param since they never write: `getBalanceSummary`
+  (derived available/pending/earned numbers) and `listTransactions` (paginated raw ledger history).
 - `fee.util.ts` — `calculatePlatformFee(amountWaveCoin, feePercent)`, a pure function (floors the
   fee rather than losing a fractional coin) — reused wherever a seller payout needs a fee split
 - `wallet.module.ts` — exports `WalletService`
@@ -26,6 +30,13 @@ that records every change to it. Nothing outside this module should ever write t
 `orders` was added later, in the `CreateOrdersSchema` migration (Phase 4), once that table existed
 — a reminder that this module was deliberately built ahead of Orders, with the FK backfilled once
 the referenced table caught up.
+
+`sessionId` (migration: `CreateCoachingSessions`, **not yet run against the live DB** — see
+`backend/src/coaching/CLAUDE.md`) — the same pattern for coaching sessions: a bare `uuid` column,
+**no FK constraint yet** (unlike `orderId`, which did eventually get one). Add the FK once
+`coaching_sessions` is confirmed stable, same as `orderId`'s history. `orderId` and `sessionId` are
+mutually exclusive on any one row — an entry is either order-related or session-related, never
+both.
 
 ## Conventions & gotchas
 - **Every method runs inside one transaction** that both updates `users.wavecoinBalance` and writes
