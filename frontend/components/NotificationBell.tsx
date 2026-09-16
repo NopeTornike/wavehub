@@ -12,6 +12,7 @@ function targetForNotification(notification: PublicNotification): string {
   const metadata = notification.metadata ?? {}
   if (metadata.orderId) return `/orders/${metadata.orderId}`
   if (metadata.withdrawRequestId) return '/wallet'
+  if (metadata.conversationId) return `/messages?conversation=${metadata.conversationId}`
   return '/orders'
 }
 

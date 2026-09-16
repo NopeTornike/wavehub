@@ -65,6 +65,21 @@ export default function CoachingSessionDetail() {
   const isBuyer = me?.username === session.buyerUsername
   const canAct = session.status === CoachingSessionStatus.Scheduled && (isCoach || isBuyer)
 
+  const messageOtherParty = async () => {
+    if (!me) return
+    const otherUserId = isCoach ? session.buyerId : session.coachUserId
+    setActionError('')
+    setBusy(true)
+    try {
+      const conversation = await api.startDirectConversation(otherUserId)
+      router.push(`/messages?conversation=${conversation.id}`)
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : 'საუბრის დაწყება ვერ მოხერხდა.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const runAction = async (action: 'complete' | 'cancel') => {
     setActionError('')
     setBusy(true)
@@ -118,6 +133,11 @@ export default function CoachingSessionDetail() {
               <h2>შეტყობინება მწვრთნელს</h2>
               <p>{session.buyerMessage}</p>
             </>
+          )}
+          {(isCoach || isBuyer) && (
+            <button type="button" className="button" disabled={busy} onClick={messageOtherParty}>
+              {isCoach ? 'მყიდველისთვის მესიჯის გაგზავნა' : 'მწვრთნელისთვის მესიჯის გაგზავნა'}
+            </button>
           )}
         </section>
 

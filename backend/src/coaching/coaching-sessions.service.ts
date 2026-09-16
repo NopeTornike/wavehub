@@ -39,6 +39,7 @@ export class CoachingSessionsService {
     return {
       id: session.id,
       coachId: session.coachId,
+      coachUserId: session.coach.userId,
       coachUsername: session.coach.user.username,
       coachFirstName: session.coach.user.firstName,
       coachLastName: session.coach.user.lastName,

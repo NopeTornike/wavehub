@@ -3,14 +3,25 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Conversation } from './conversation.entity';
 import { Message } from './message.entity';
 import { ChatService } from './chat.service';
+import { DirectMessagesController } from './direct-messages.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { Order } from '../orders/order.entity';
+import { CoachingSession } from '../coaching/coaching-session.entity';
+import { User } from '../users/user.entity';
+import { AuthModule } from '../auth/auth.module';
 
-// Deliberately no controller here — chat is order-scoped only (see conversation.entity.ts), so its
-// routes live on OrdersController (`/orders/:id/messages`) where the existing participant-ownership
-// checks already are, rather than duplicating that check here against an Order this module doesn't
-// otherwise know about.
+// Order/CoachingSession/User are registered here as plain entities (read-only lookups inside
+// ChatService), not by importing OrdersModule/CoachingModule/UsersModule — see the "read-only,
+// entity-level dependencies" comment on ChatService's constructor for why, and CLAUDE.md for the
+// full gotcha. AuthModule is imported only so DirectMessagesController's AuthGuard can resolve its
+// own UsersService dependency (same pattern as every other guarded controller's module).
 @Module({
-  imports: [TypeOrmModule.forFeature([Conversation, Message]), NotificationsModule],
+  imports: [
+    TypeOrmModule.forFeature([Conversation, Message, Order, CoachingSession, User]),
+    NotificationsModule,
+    AuthModule,
+  ],
+  controllers: [DirectMessagesController],
   providers: [ChatService],
   exports: [ChatService],
 })

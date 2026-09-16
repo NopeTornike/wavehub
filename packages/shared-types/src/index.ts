@@ -378,6 +378,17 @@ export interface PublicMessage {
   createdAt: string;
 }
 
+// What ChatService#listMyDirectConversations returns (backend/src/chat/) — one row per Direct
+// conversation the caller is part of. `otherUser` is always the *other* participant, resolved
+// relative to whoever is asking, never a fixed buyer/seller role (a Direct conversation's
+// buyerId/sellerId columns just record who happened to start it — see conversation.entity.ts).
+export interface PublicConversationSummary {
+  id: string;
+  otherUser: { id: string; username: string };
+  lastMessage: { body: string; createdAt: string; senderId: string | null } | null;
+  createdAt: string;
+}
+
 // --- Dispute response shapes ---
 // What backend/src/disputes' endpoints return. `resolution`/`resolutionNote`/`resolvedBy`/
 // `resolvedAt` stay null until a dispute is resolved — see DisputesService#resolve.
@@ -729,6 +740,7 @@ export enum CoachingSessionStatus {
 export interface PublicCoachingSession {
   id: string;
   coachId: string;
+  coachUserId: string;
   coachUsername: string;
   coachFirstName: string;
   coachLastName: string;

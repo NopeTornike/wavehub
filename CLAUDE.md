@@ -39,7 +39,7 @@ order before starting any of these.
 | `backend/src/storage/` | File storage abstraction (local disk today, not production-ready) | `backend/src/storage/CLAUDE.md` |
 | `backend/src/orders/` | Purchase flow, delivery lifecycle, the only trigger for wallet money movement | `backend/src/orders/CLAUDE.md` |
 | `backend/src/reviews/` | Buyer reviews of completed orders, seller/listing rating aggregates | `backend/src/reviews/CLAUDE.md` |
-| `backend/src/chat/` | Order-scoped chat (buyer/seller messages + lifecycle system messages) | `backend/src/chat/CLAUDE.md` |
+| `backend/src/chat/` | Order-scoped chat (buyer/seller messages + lifecycle system messages) + Direct messaging between transacted users | `backend/src/chat/CLAUDE.md` |
 | `backend/src/disputes/` | Order dispute resolution (open/discuss/evidence, admin-resolves to wallet+order state) | `backend/src/disputes/CLAUDE.md` |
 | `backend/src/admin/` | Admin role guard + audit logging — the foundation every admin-guarded route builds on | `backend/src/admin/CLAUDE.md` |
 | `backend/src/withdrawals/` | Seller payout requests + derived wallet balance view (available/pending/earned/withdrawn) | `backend/src/withdrawals/CLAUDE.md` |

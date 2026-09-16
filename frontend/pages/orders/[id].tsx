@@ -244,6 +244,19 @@ export default function OrderDetail() {
     }
   }
 
+  const messageOtherParty = async (otherUserId: string) => {
+    setActionError('')
+    setBusy(true)
+    try {
+      const conversation = await api.startDirectConversation(otherUserId)
+      router.push(`/messages?conversation=${conversation.id}`)
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : 'საუბრის დაწყება ვერ მოხერხდა.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const uploadFile = async (event: FormEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0]
     if (!file || !id) return
@@ -327,6 +340,16 @@ export default function OrderDetail() {
               </p>
             )}
             {order.cancellationReason && <p className="note">გაუქმების მიზეზი: {order.cancellationReason}</p>}
+            {isBuyer && (
+              <button type="button" className="button" disabled={busy} onClick={() => messageOtherParty(order.seller.id)}>
+                გამყიდველისთვის მესიჯის გაგზავნა
+              </button>
+            )}
+            {isSeller && (
+              <button type="button" className="button" disabled={busy} onClick={() => messageOtherParty(order.buyer.id)}>
+                მყიდველისთვის მესიჯის გაგზავნა
+              </button>
+            )}
             {order.revisionReason && <p className="note">გადასამუშავებელი შენიშვნა: {order.revisionReason}</p>}
           </div>
 

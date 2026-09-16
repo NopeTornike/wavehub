@@ -103,6 +103,12 @@ see `backend/src/wallet/CLAUDE.md`.
   and snapshotted onto the session, same as `OrdersService#purchase`.
 - `backend/src/notifications/` — best-effort `SessionBooked`/`SessionCompleted`/`SessionCancelled`
   notifications, same try/catch-and-log pattern as every other module's `notify()` helper.
+- `backend/src/chat/` — read-only entity dependency (not a module import) for Direct messaging's
+  "have these two users transacted?" eligibility check, joining `CoachingSession` through `Coach` to
+  compare against `coach.userId` — see that module's `CLAUDE.md`. `PublicCoachingSession.coachUserId`
+  (2026-09-16) was added specifically so the frontend's "Message the coach" button has a real user
+  id to pass to `api.startDirectConversation`, since `coachId` on this type is the `Coach` profile
+  id, not a user id — don't confuse the two.
 - `packages/shared-types/` — `CoachStatus` (new), reuses the existing `VerificationStatus` enum
   rather than duplicating it. `PublicCoachSummary`/`PublicCoachDetail`/`AdminCoachSummary`/
   `PublicCoachingSession` response shapes. `CoachingSessionStatus` and the three `Session*`

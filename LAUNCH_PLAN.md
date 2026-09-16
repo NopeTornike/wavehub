@@ -372,7 +372,22 @@ Carried forward from before this analysis (unaffected by any of the above):
    tournament covers — listing photos and coach photos too) from loading cross-origin in the
    frontend; fixed in `backend/src/main.ts`. See `backend/src/tournaments/CLAUDE.md` for the full
    writeup.
-4. **Direct messaging** (§4) — confirmed scope, builds on existing `chat/` conventions.
+4. **Direct messaging** (§4) — **done (2026-09-17)**. Reused the existing `Conversation`/`Message`
+   entities and the already-scaffolded `ConversationType.Direct` value rather than a new table.
+   `ChatService` gained a real "have these two users transacted together?" gate (checks `Order` in
+   either direction, and `CoachingSession` joined through `Coach` to compare `coach.userId`), a
+   DB-level partial unique index (`UQ_direct_conversation_pair`) so at most one thread exists per
+   user pair regardless of race conditions, and a new `DirectMessagesController`. 10 new unit tests.
+   Migrated (`EnableDirectConversations`) and verified with two real logged-in browser sessions
+   (`testbuyer`/`testseller`, who share a real completed order) messaging each other live, including
+   the 5s poll picking up the other side's reply with no reload, the notification bell deep-linking
+   correctly, a non-transacted user's attempt getting a real 403, and a `psql` check confirming the
+   unique-index guard actually holds under a repeated `start` call. Frontend: a single two-pane
+   inbox page (`pages/messages/index.tsx`, reusing `messages.html`'s real markup which was already
+   sitting unused in `global.css`), a "Message the buyer/seller" button on `orders/[id].tsx` and
+   "Message the buyer/coach" on `coaching-sessions/[id].tsx`, and a "შეტყობინებები" Sidebar nav item.
+   The "coordination only, not a transaction channel" rule is a persistent UI notice linking to
+   Support, not message-content filtering (as originally scoped). See `backend/src/chat/CLAUDE.md`.
 5. **Steam Keys** (§2d) — confirmed scope, but the highest technical-risk item on this list (secret
    key storage/encryption, race-safe single-claim purchase) — budget real care here, not a rushed
    pass.

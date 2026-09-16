@@ -41,6 +41,7 @@ import type {
   ContentPageStatus,
   PublicTournamentSummary,
   TournamentStatus,
+  PublicConversationSummary,
 } from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -213,6 +214,22 @@ export const api = {
 
   sendMessage: (orderId: string, body: string) =>
     request<PublicMessage>(`/orders/${orderId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+
+  // --- Direct messages --- (backend/src/chat/direct-messages.controller.ts) — only between users
+  // who share a real order or coaching session; the backend rejects a stranger with 403, this
+  // client just surfaces whatever it returns.
+  startDirectConversation: (recipientUserId: string) =>
+    request<{ id: string }>('/direct-messages/start', { method: 'POST', body: JSON.stringify({ recipientUserId }) }),
+
+  listDirectConversations: () => request<PublicConversationSummary[]>('/direct-messages'),
+
+  listDirectMessages: (conversationId: string) => request<PublicMessage[]>(`/direct-messages/${conversationId}/messages`),
+
+  sendDirectMessage: (conversationId: string, body: string) =>
+    request<PublicMessage>(`/direct-messages/${conversationId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ body }),
     }),

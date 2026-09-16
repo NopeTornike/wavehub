@@ -113,17 +113,19 @@ Tornike's site — so they reuse the same `.detail-page`/`.detail-title-block`/`
 design language already established for coaching/[id].tsx and the new CMS page renderer, for
 visual consistency with the rest of the ported app rather than staying on the old `.page`/
 `.page-inner` wrapper. The `.chat-panel`/`.chat-message` classes inside stay as-is (custom-built
-earlier for order chat, no prototype reference for a chat UI either — `messages.html` was
-explicitly scoped out, see below).
-**`messages.html`/`cart.html` — deliberate scope decision, not a pending item**: neither maps onto
-anything the real backend supports. `messages.html` is a general-purpose direct-messaging inbox;
-the real app only has order-scoped chat (`backend/src/chat/`) and ticket threads
-(`backend/src/support/`) — there is no concept of a standalone conversation with another user
-outside those two contexts. `cart.html` is a multi-item shopping cart; the real checkout flow
+for order chat, which still has no static-prototype reference of its own — `messages.html`'s real
+markup is for Direct/non-order messaging specifically, see below and `pages/messages/index.tsx`).
+**`messages.html` was ported for real (2026-09-16), revising the scope decision below** — direct
+messaging became a real, confirmed product decision (LAUNCH_PLAN.md §4), scoped down from
+`messages.html`'s original general-purpose/cold-messaging design to transacted-users-only
+coordination. See `pages/messages/index.tsx` in Key files below.
+
+**`cart.html` — still a deliberate scope decision, not a pending item**: doesn't map onto anything
+the real backend supports. It's a multi-item shopping cart; the real checkout flow
 (`backend/src/orders/`) is single-listing-per-purchase by design (matches the WaveCoin/escrow
-model — see the build plan's Phase 5 entry), not a batched multi-item checkout. Porting either
-would mean building real backend features first, not restyling existing ones — out of scope for
-the UI pivot. Revisit only if direct messaging or bulk purchase becomes a real product decision.
+model — see the build plan's Phase 5 entry), not a batched multi-item checkout. Porting it would
+mean building a real multi-item checkout backend first, not restyling an existing one — out of
+scope for the UI pivot. Revisit only if bulk purchase becomes a real product decision.
 
 ## Key files
 - `lib/auth.tsx` — `AuthProvider` + `useAuth()`. The single place that calls `api.me()` on load;
@@ -247,6 +249,21 @@ the UI pivot. Revisit only if direct messaging or bulk purchase becomes a real p
   form + edit-in-place list with cover-image upload and delete, follows `admin/coaches.tsx`'s
   fetch-a-queue + act-on-a-row shape) — linked from `Sidebar` as "Tournaments" (its own top-level
   nav item, not nested under Coaching) and from `AdminLayout` as "ტურნირები".
+- `pages/messages/index.tsx` (2026-09-16) — Direct (non-order) messaging, a single two-pane inbox
+  page (contacts list + thread, real `messages.html` markup — `.direct-messages-shell`/
+  `.direct-message-contacts`/`.direct-message-thread`/`.direct-message-bubble`/etc., all already
+  present in `global.css` from the original design-pivot copy) rather than route-per-conversation,
+  matching the prototype's own single-page design. Polls `api.listDirectMessages` every 5s like
+  order chat. Accepts `?conversation=<id>` to preselect a thread (used when arriving from an order/
+  session "Message" button or a notification deep-link). Always shows a persistent notice linking
+  to `/support` — LAUNCH_PLAN.md §4's "coordination only, go through Support for anything
+  order/payment-related" rule, enforced as UI copy, not message-content filtering. There's no
+  "start a conversation with anyone" flow here — a thread only exists once the backend has actually
+  linked two transacted users (`backend/src/chat/CLAUDE.md`); the only entry points are a "Message
+  the buyer/seller" button on `orders/[id].tsx` and a "Message the buyer/coach" button on
+  `coaching-sessions/[id].tsx`, both calling `api.startDirectConversation` then routing to
+  `/messages?conversation=<id>`. Linked from `Sidebar` as "შეტყობინებები"
+  (`sidebar-message-icon.svg`, distinct from the `message-icon.svg` already used for Support).
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the
@@ -333,6 +350,8 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
 - `backend/src/settings/` — backs `pages/admin/settings.tsx`.
 - `backend/src/coaching/` — backs `pages/coaching/*.tsx` and `pages/admin/coaches.tsx`.
 - `backend/src/tournaments/` — backs `pages/tournaments/*.tsx` and `pages/admin/tournaments.tsx`.
+- `backend/src/chat/` — backs `pages/messages/index.tsx` (Direct messaging) as well as the order
+  chat panel on `orders/[id].tsx`.
 
 ## Status
 The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
@@ -359,16 +378,18 @@ also real end-to-end — public browse/detail/register pages and the admin creat
 delete page, all verified in a real browser click-through against a live Postgres instance, not
 just curl (see `backend/src/tournaments/CLAUDE.md`'s Status section for the full verification
 writeup, including a real cross-origin image-loading bug found and fixed in `backend/src/main.ts`
-during that pass). This covers Phase 11c (core CRUD), 11d
+during that pass). Direct (non-order) messaging (2026-09-16) is also real end-to-end —
+`pages/messages/index.tsx` plus "Message" buttons on `orders/[id].tsx`/`coaching-sessions/[id].tsx`
+— verified with two real logged-in sessions messaging each other live (see
+`backend/src/chat/CLAUDE.md`'s Status section). This covers Phase 11c (core CRUD), 11d
 (Support ticketing — both the staff queue and the user-facing `pages/support/*.tsx`), and part of
 11f (platform settings). A first slice of Coaching (Phase 11b) has frontend too — the public
 directory/profile/apply pages and the admin verification queue — but no session-booking UI, since
 the backend has no booking model yet (see `backend/src/coaching/CLAUDE.md`). Trust & Safety/
 Analytics (11e, 11g) have no frontend at all yet. No cart page
 (checkout is a direct single-listing buy, not a multi-item cart — matches the WaveCoin/order model,
-not an oversight), no seller dashboard / create-listing frontend, no coaching/profile/messages
-pages yet. The repo-root static site remains the reference mockup for all of that until it's
-ported here.
+not an oversight), no seller dashboard / create-listing frontend yet. The repo-root static site
+remains the reference mockup for all of that until it's ported here.
 
 **Verification caveat**: this workspace has no Docker/Postgres available (a constraint noted
 throughout this repo's `CLAUDE.md` files), so everything above was verified via
