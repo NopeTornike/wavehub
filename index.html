@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260902-steam-card-logo-visible" />
+  <link rel="stylesheet" href="styles.css?v=20260917-marketplace-featured" />
 </head>
 <body class="home-page">
   <div class="app-shell">
@@ -675,6 +675,20 @@
         </div>
         <div class="home-steam-dots" aria-hidden="true"><i class="active"></i><i></i><i></i></div>
       </section>
+      <section class="featured-items" id="mobileFeaturedItems" aria-labelledby="mobileFeaturedItemsTitle">
+        <header class="featured-items-heading">
+          <div class="featured-items-title">
+            <span class="featured-items-spark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2.5 18.9 13l10.6 3-10.6 3L16 29.5 13.1 19 2.5 16l10.6-3L16 2.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m24.5 4 .9 3.1 3.1.9-3.1.9-.9 3.1-.9-3.1-3.1-.9 3.1-.9.9-3.1Z" fill="currentColor"/></svg></span>
+            <h2 id="mobileFeaturedItemsTitle">Featured Items</h2>
+          </div>
+          <a href="steam-keys.html">View all <span aria-hidden="true">→</span></a>
+        </header>
+        <div class="featured-items-grid" id="mobileFeaturedItemsList">
+          <a class="featured-item-card" href="steam-keys.html"><span class="featured-item-save" aria-hidden="true">♡</span><span class="featured-item-art item-prime" aria-hidden="true"><svg viewBox="0 0 180 130" fill="none"><path d="m22 89 54-54 42 10 40 40-18 18-42-42-17 17 42 42-18 18-42-42-17 17 42 42-18 18-48-48Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><circle cx="76" cy="35" r="13" stroke="currentColor" stroke-width="5"/><path d="M30 106c24 11 98 12 123 0" stroke="currentColor" stroke-width="2" opacity=".55"/></svg></span><strong>CS2 Prime Status</strong><small>Instant activation</small><b>39.99 GEL</b></a>
+          <a class="featured-item-card" href="steam-keys.html"><span class="featured-item-save" aria-hidden="true">♡</span><span class="featured-item-art item-wallet" aria-hidden="true"><svg viewBox="0 0 180 130" fill="none"><path d="M38 35h80a14 14 0 0 1 14 14v57a14 14 0 0 1-14 14H38a14 14 0 0 1-14-14V49a14 14 0 0 1 14-14Z" stroke="currentColor" stroke-width="5"/><path d="M24 55h92a12 12 0 0 1 12 12v27H91a14 14 0 0 1 0-28h37" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><circle cx="94" cy="80" r="4" fill="currentColor"/><path d="M61 28h45" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M31 106c24 11 98 12 123 0" stroke="currentColor" stroke-width="2" opacity=".55"/></svg></span><strong>Steam Wallet</strong><small>50 GEL gift balance</small><b>50.00 GEL</b></a>
+          <a class="featured-item-card" href="steam-keys.html"><span class="featured-item-save" aria-hidden="true">♡</span><span class="featured-item-art item-pass" aria-hidden="true"><svg viewBox="0 0 180 130" fill="none"><rect x="30" y="32" width="120" height="72" rx="12" stroke="currentColor" stroke-width="5"/><path d="M71 68h-12m6-6v12M114 60l12 8-12 8V60Z" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 106c24 11 98 12 123 0" stroke="currentColor" stroke-width="2" opacity=".55"/></svg></span><strong>PC Game Pass</strong><small>1 month membership</small><b>29.99 GEL</b></a>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -761,9 +775,11 @@
       const faqSection = document.getElementById('faq');
       const competitionSection = document.getElementById('competition');
       const steamSection = document.getElementById('homeSteamGames');
+      const mobileFeaturedItems = document.getElementById('mobileFeaturedItems');
       if (faqSection && competitionSection && steamSection) {
         faqSection.insertAdjacentElement('beforebegin', competitionSection);
         faqSection.insertAdjacentElement('beforebegin', steamSection);
+        if (mobileFeaturedItems) faqSection.insertAdjacentElement('beforebegin', mobileFeaturedItems);
         faqSection.insertAdjacentElement('beforebegin', section);
       }
       const steamTrack = document.getElementById('homeSteamTrack');
@@ -894,11 +910,10 @@
         const source = readHomeData('wavehub.sellerListings');
         const featured = (Array.isArray(source) ? source : [])
           .filter(item => item && item.isActive !== false && item.status !== 'inactive')
-          .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
-          .slice(0, 2);
+          .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
         list.replaceChildren();
         empty.hidden = featured.length > 0;
-        featured.forEach(listing => {
+        featured.slice(0, 2).forEach(listing => {
           const card = document.createElement('article');
           const imageLink = document.createElement('a');
           const heart = document.createElement('span');
@@ -935,6 +950,34 @@
           copy.append(title, meta, footer);
           card.append(imageLink, copy);
           list.appendChild(card);
+        });
+
+        const mobileList = document.getElementById('mobileFeaturedItemsList');
+        if (!mobileList) return;
+        mobileList.replaceChildren();
+        featured.slice(0, 3).forEach(listing => {
+          const card = document.createElement('a');
+          const heart = document.createElement('span');
+          const image = document.createElement('span');
+          const title = document.createElement('strong');
+          const condition = document.createElement('small');
+          const price = document.createElement('b');
+          const detailUrl = listing.id ? `detail.html?type=product&id=${encodeURIComponent(listing.id)}` : 'marketplace.html';
+          const productImage = getFeaturedImage(listing);
+
+          card.className = 'featured-item-card';
+          card.href = detailUrl;
+          heart.className = 'featured-item-save';
+          heart.setAttribute('aria-hidden', 'true');
+          heart.textContent = '♡';
+          image.className = 'mobile-featured-product-image';
+          image.textContent = productImage ? '' : getFeaturedInitials(listing.game);
+          if (productImage) image.style.backgroundImage = `url("${String(productImage).replace(/"/g, '%22')}")`;
+          title.textContent = listing.title || `${listing.game || 'Marketplace'} item`;
+          condition.textContent = listing.condition || listing.itemCondition || 'Factory New';
+          price.textContent = formatFeaturedPrice(listing.price);
+          card.append(heart, image, title, condition, price);
+          mobileList.appendChild(card);
         });
       };
       renderHomeMarketplaceCounts();
