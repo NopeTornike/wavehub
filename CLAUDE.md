@@ -47,7 +47,7 @@ order before starting any of these.
 | `backend/src/settings/` | Platform-wide configurable numbers (fee %, min withdrawal, maintenance flag) — a singleton table | `backend/src/settings/CLAUDE.md` |
 | `backend/src/support/` | Support ticketing — user tickets, staff replies, internal notes, Saved Replies | `backend/src/support/CLAUDE.md` |
 | `backend/src/coaching/` | Coach profiles, public directory, admin verification/suspension — no session booking yet | `backend/src/coaching/CLAUDE.md` |
-| `backend/src/content/` | Static/legal page CMS (About/Contact/Terms/Privacy/Refund) — admin-edited, publicly rendered | `backend/src/content/CLAUDE.md` |
+| `backend/src/content/` | Static/legal page CMS (10 pages: About/Contact/Terms/Privacy/Refund/Delivery/Disputes/Community/Coach & Seller Standards) — admin-edited, publicly rendered, real copy | `backend/src/content/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 

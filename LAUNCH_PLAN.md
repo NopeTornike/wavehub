@@ -345,11 +345,12 @@ Carried forward from before this analysis (unaffected by any of the above):
 
 ## 7. Suggested order of work
 
-1. **Content sync** (§2a) — smallest, safest, immediately valuable. Port the real legal copy from
-   `about.html`/`terms-of-service.html`/`privacy-policy.html`/`refund-cancellation.html` into
-   `content_pages`, add new rows for `delivery-policy`/`dispute-resolution`/
-   `community-guidelines`/`coach-standards`/`seller-standards`. No architecture risk, no open
-   questions left.
+1. **Content sync** (§2a) — **done (2026-09-16)**, commit-pending. `SyncRealContentPageCopy`
+   migration replaced the 5 placeholder pages with real copy and added the 5 new ones
+   (`delivery-policy`/`dispute-resolution`/`community-guidelines`/`coach-standards`/
+   `seller-standards`), all wired into `Footer.tsx`. Verified against the live Postgres instance
+   and in a real browser (`GET /content/coach-standards` and `/pages/coach-standards` both render
+   the real Georgian copy). See `backend/src/content/CLAUDE.md`.
 2. **Finish coaching session booking** (§5) — closest to done, already has real backend code
    sitting uncommitted. Migrate, test, verify against live Postgres, build the frontend booking
    form + sessions list. Decide the dispute-path question (§5, point 5) while doing this.
