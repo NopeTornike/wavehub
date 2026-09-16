@@ -359,8 +359,19 @@ Carried forward from before this analysis (unaffected by any of the above):
    CLAUDE.md`. Also found and fixed a real bug this surfaced: `WalletService.getBalanceSummary()`
    was only summing `OrderRelease` earnings, silently excluding `SessionRelease` — see
    `backend/src/wallet/CLAUDE.md`.
-3. **Tournaments** (§2b) — confirmed scope, clean new module following the existing `Coach`/
-   `ContentPage` pattern exactly.
+3. **Tournaments** (§2b) — **done (2026-09-16)**. New `backend/src/tournaments/` module (entity +
+   registration entity, DTOs, service, controller, migration, 9 unit tests), migrated against live
+   Postgres, and verified through a real browser click-through as testadmin: created a tournament
+   through the admin UI, uploaded a real cover image, browsed/filtered the public list, registered
+   as a buyer (confirmed live in the DB and cascade-deleted along with the tournament on delete),
+   clicked through all 4 detail-page tabs, edited a tournament in place. Frontend: `tournaments/
+   {index,[id]}.tsx` (public browse + 4-tab detail page) and `admin/tournaments.tsx` (create/edit/
+   cover-upload/delete), new "Tournaments" sidebar nav item. Also found and fixed a real,
+   previously-invisible bug this surfaced: `helmet()`'s default same-origin
+   `Cross-Origin-Resource-Policy` header was silently blocking every uploaded image (not just
+   tournament covers — listing photos and coach photos too) from loading cross-origin in the
+   frontend; fixed in `backend/src/main.ts`. See `backend/src/tournaments/CLAUDE.md` for the full
+   writeup.
 4. **Direct messaging** (§4) — confirmed scope, builds on existing `chat/` conventions.
 5. **Steam Keys** (§2d) — confirmed scope, but the highest technical-risk item on this list (secret
    key storage/encryption, race-safe single-claim purchase) — budget real care here, not a rushed

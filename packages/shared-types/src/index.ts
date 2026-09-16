@@ -741,3 +741,36 @@ export interface PublicCoachingSession {
   status: CoachingSessionStatus;
   createdAt: string;
 }
+
+// Tournaments — a genuinely new feature, not in the original product spec (confirmed by grep —
+// see LAUNCH_PLAN.md §2b). Scoped down from origin/main's static prototype to the structural core:
+// admin posts a tournament, users register, no automated bracket/matchmaking/prize-payout — the
+// same "ship the core, flag automation as a deliberate follow-up" pattern this repo has used
+// throughout (see backend/src/withdrawals/CLAUDE.md's manual-payout precedent).
+export enum TournamentStatus {
+  Open = 'open',
+  Upcoming = 'upcoming',
+  Completed = 'completed',
+}
+
+// Deliberately NOT personalized (no "am I registered" field) — this app keeps public endpoints
+// fully public and has the frontend cross-reference GET tournaments/mine (an authenticated,
+// separate call returning just the caller's own registered tournament IDs) instead of an
+// optional-auth pattern, which doesn't exist anywhere else in this codebase (AuthGuard always
+// requires a valid session).
+export interface PublicTournamentSummary {
+  id: string;
+  gameId: string;
+  gameName: string;
+  name: string;
+  description: string;
+  prize: string;
+  status: TournamentStatus;
+  startDate: string;
+  maxPlayers: number;
+  registeredCount: number;
+  coverImageUrl: string | null;
+  createdAt: string;
+}
+
+export type PublicTournamentDetail = PublicTournamentSummary;

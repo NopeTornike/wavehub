@@ -32,7 +32,14 @@ async function bootstrap() {
     app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : process.env.TRUST_PROXY);
   }
 
-  app.use(helmet());
+  // helmet's default Cross-Origin-Resource-Policy is 'same-origin', which silently blocks the
+  // frontend (a different origin — see CORS_ORIGIN below) from loading anything under /uploads
+  // (listing images, coach photos, tournament covers, delivery files) as an <img>/background-image
+  // — the browser drops the response with ERR_BLOCKED_BY_RESPONSE.NotSameOrigin instead of a CORS
+  // error, so it's easy to miss outside an actual browser check. Relaxed to 'cross-origin' since
+  // this app's frontend/backend are deliberately cross-origin (found 2026-09-16 verifying the new
+  // tournament cover-image feature in a real browser — see LAUNCH_PLAN.md).
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(cookieParser());
   // Serves whatever StorageService.save() wrote to disk (backend/src/storage/) — a stand-in for
   // real object storage. See backend/src/storage/CLAUDE.md for why this doesn't survive redeploys

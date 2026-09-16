@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: 'home-icon.svg' },
   { href: '/marketplace', label: 'Marketplace', icon: 'marketplace-icon.svg' },
   { href: '/coaching', label: 'Coaching', icon: 'sidebar-coaching-icon.svg' },
+  { href: '/tournaments', label: 'Tournaments', icon: 'tournaments-icon.svg' },
   { href: '/orders', label: 'Orders', icon: 'orders-icon.svg' },
   { href: '/support', label: 'დახმარება', icon: 'message-icon.svg' },
   { href: '/wallet', label: 'Wallet', icon: 'wallet-icon.svg' },

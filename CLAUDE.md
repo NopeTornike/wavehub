@@ -48,6 +48,7 @@ order before starting any of these.
 | `backend/src/support/` | Support ticketing — user tickets, staff replies, internal notes, Saved Replies | `backend/src/support/CLAUDE.md` |
 | `backend/src/coaching/` | Coach profiles, public directory, admin verification/suspension, session booking + escrow payment | `backend/src/coaching/CLAUDE.md` |
 | `backend/src/content/` | Static/legal page CMS (10 pages: About/Contact/Terms/Privacy/Refund/Delivery/Disputes/Community/Coach & Seller Standards) — admin-edited, publicly rendered, real copy | `backend/src/content/CLAUDE.md` |
+| `backend/src/tournaments/` | Admin-posted tournaments, self-service registration — no bracket/matchmaking/prize-payout automation | `backend/src/tournaments/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 

@@ -39,6 +39,8 @@ import type {
   PublicUserProfile,
   AdminContentPage,
   ContentPageStatus,
+  PublicTournamentSummary,
+  TournamentStatus,
 } from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -452,4 +454,61 @@ export const api = {
   completeCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/complete`, { method: 'POST' }),
 
   cancelCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/cancel`, { method: 'POST' }),
+
+  // --- Tournaments --- (backend/src/tournaments/tournaments.controller.ts)
+  browseTournaments: (filters: { gameId?: string; status?: TournamentStatus; limit?: number; offset?: number } = {}) => {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    })
+    const query = params.toString()
+    return request<{ items: PublicTournamentSummary[]; total: number }>(`/tournaments${query ? `?${query}` : ''}`)
+  },
+
+  getTournament: (id: string) => request<PublicTournamentSummary>(`/tournaments/${id}`),
+
+  listMyTournamentRegistrations: () => request<string[]>('/tournaments/mine'),
+
+  registerForTournament: (id: string) => request<PublicTournamentSummary>(`/tournaments/${id}/register`, { method: 'POST' }),
+
+  adminCreateTournament: (payload: {
+    gameId: string
+    name: string
+    description: string
+    prize: string
+    status?: TournamentStatus
+    startDate: string
+    maxPlayers: number
+  }) => request<PublicTournamentSummary>('/admin/tournaments', { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminUpdateTournament: (
+    id: string,
+    payload: Partial<{
+      gameId: string
+      name: string
+      description: string
+      prize: string
+      status: TournamentStatus
+      startDate: string
+      maxPlayers: number
+    }>,
+  ) => request<PublicTournamentSummary>(`/admin/tournaments/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminSetTournamentCover: async (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(`${API_URL}/admin/tournaments/${id}/cover`, {
+      method: 'POST',
+      credentials: 'include',
+      body: form,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
+      throw new ApiError(res.status, data?.error || message || 'Upload failed')
+    }
+    return data as PublicTournamentSummary
+  },
+
+  adminDeleteTournament: (id: string) => request<{ ok: boolean }>(`/admin/tournaments/${id}`, { method: 'DELETE' }),
 }

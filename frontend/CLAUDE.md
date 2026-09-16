@@ -237,6 +237,16 @@ the UI pivot. Revisit only if direct messaging or bulk purchase becomes a real p
   — linked from `Header` as "კოუჩინგი". `pages/admin/coaches.tsx` is the staff side: a
   pending-verification queue (approve/reject) plus a full coach list with suspend/restore for
   already-verified ones.
+- `pages/tournaments/index.tsx` (status-tab-filtered browse grid, `.tournaments-*`/
+  `.tournament-card*` from `tournaments.html`/`tournaments.js`), `pages/tournaments/[id].tsx`
+  (hero + summary stats + a 4-tab detail panel — General/Prize Pool/Rules/Top Players, the latter
+  two static content matching the prototype's own reference since neither is per-tournament
+  backend data — plus the register button, which cross-references `api.listMyTournamentRegistrations()`
+  client-side to show a "REGISTERED ✓" state, see `backend/src/tournaments/CLAUDE.md`'s
+  "no `isRegistered` on the public shape" gotcha for why), `pages/admin/tournaments.tsx` (create
+  form + edit-in-place list with cover-image upload and delete, follows `admin/coaches.tsx`'s
+  fetch-a-queue + act-on-a-row shape) — linked from `Sidebar` as "Tournaments" (its own top-level
+  nav item, not nested under Coaching) and from `AdminLayout` as "ტურნირები".
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
   httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the
@@ -322,6 +332,7 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
 - `backend/src/support/` — backs `pages/support/*.tsx` and `pages/admin/tickets*.tsx`.
 - `backend/src/settings/` — backs `pages/admin/settings.tsx`.
 - `backend/src/coaching/` — backs `pages/coaching/*.tsx` and `pages/admin/coaches.tsx`.
+- `backend/src/tournaments/` — backs `pages/tournaments/*.tsx` and `pages/admin/tournaments.tsx`.
 
 ## Status
 The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
@@ -342,8 +353,13 @@ panel (`backend/src/chat/CLAUDE.md`) and a dispute panel (open/discuss/attach ev
 panel, mark-read/mark-all-read — `NotificationBell`, `backend/src/notifications/CLAUDE.md`).
 A real admin panel now exists: `AdminLayout` + `pages/admin/*.tsx` cover listing approval, review
 moderation, dispute resolution, withdrawal payout processing, user search/suspend/restore/
-ban/unban, platform settings, and support-ticket triage — see the Key files entry above and
-`backend/src/admin/CLAUDE.md` for the backend side. This covers Phase 11c (core CRUD), 11d
+ban/unban, platform settings, tournament management, and support-ticket triage — see the Key files
+entry above and `backend/src/admin/CLAUDE.md` for the backend side. Tournaments (2026-09-16) are
+also real end-to-end — public browse/detail/register pages and the admin create/edit/cover-upload/
+delete page, all verified in a real browser click-through against a live Postgres instance, not
+just curl (see `backend/src/tournaments/CLAUDE.md`'s Status section for the full verification
+writeup, including a real cross-origin image-loading bug found and fixed in `backend/src/main.ts`
+during that pass). This covers Phase 11c (core CRUD), 11d
 (Support ticketing — both the staff queue and the user-facing `pages/support/*.tsx`), and part of
 11f (platform settings). A first slice of Coaching (Phase 11b) has frontend too — the public
 directory/profile/apply pages and the admin verification queue — but no session-booking UI, since

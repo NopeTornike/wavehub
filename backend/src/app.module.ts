@@ -50,6 +50,9 @@ import { Coach } from './coaching/coach.entity';
 import { CoachingSession } from './coaching/coaching-session.entity';
 import { ContentModule } from './content/content.module';
 import { ContentPage } from './content/content-page.entity';
+import { TournamentsModule } from './tournaments/tournaments.module';
+import { Tournament } from './tournaments/tournament.entity';
+import { TournamentRegistration } from './tournaments/tournament-registration.entity';
 
 // Postgres is mandatory from Phase 1 onward — the JSON-file fallback that used to make this
 // conditional (USE_FILE_STORE) was removed along with AuthService's dual-mode logic. See
@@ -104,6 +107,8 @@ import { ContentPage } from './content/content-page.entity';
         Coach,
         CoachingSession,
         ContentPage,
+        Tournament,
+        TournamentRegistration,
       ],
       synchronize: process.env.TYPEORM_SYNC === 'true',
     }),
@@ -123,6 +128,7 @@ import { ContentPage } from './content/content-page.entity';
     SupportModule,
     CoachingModule,
     ContentModule,
+    TournamentsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
