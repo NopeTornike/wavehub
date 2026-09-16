@@ -5,9 +5,11 @@ things like tournament, coaching backend for that, what we left to do, update md
 will implement all carefully — check new files, analyze, write workplans, make this project ready
 to launch."
 
-This is analysis + a workplan only. **Nothing in this document has been implemented yet** — per the
-request, implementation starts after this is reviewed. The one exception already in the working
-tree: an in-progress, uncommitted coaching session-booking + escrow-payment backend (see §5).
+**Status: analysis complete, all open product questions answered — this is now the confirmed
+workplan.** Nothing described here has been implemented yet except what's noted as already
+in-progress (§5). §1's direction, §3's subscription design, §4's messaging scope, and §2's
+Tournaments/Steam Keys decisions are all confirmed below (see "Decisions" at the end for the raw
+answers) — implementation starts from here, in the priority order in §7.
 
 ---
 
@@ -63,17 +65,17 @@ as-is, backed by a lightweight blob-store "backend" just capable enough to make 
 client-side.** That is a fundamentally different product than the one this branch has been
 building — not a superset, a different architecture for the same idea.
 
-**Recommendation**: do not merge `origin/main`'s backend code, `docker-compose.yml`, or
-`frontend-static.Dockerfile` into `aslan-backend`. Keep pulling `main`'s **static HTML/CSS/JS/asset
-changes** in as UI/UX and copy reference only — exactly the policy this repo has followed
-consistently since Phase 0 (`root CLAUDE.md`: "the static HTML/JS prototype... is UI/UX reference
-only — don't extend it, and don't wire new features to its `localStorage`-based state"). New
-features found only on `main` (tournaments, direct messages, the richer coach-booking UI) are real
-product signal worth building — just built properly on this branch's real schema, not imported
-wholesale.
-
-**This needs your confirmation before I touch anything else** — it's a product direction call, not
-a technical one I should make unilaterally. See the Open Questions section at the end.
+**Confirmed (2026-09-16): "main branch is just frontend side, our branch is the real main."**
+`aslan-backend` is the authoritative product going forward — real Next.js + Postgres backend.
+`origin/main` is UI/UX and copy reference only, same policy this repo has followed since Phase 0
+(`root CLAUDE.md`: "the static HTML/JS prototype... is UI/UX reference only — don't extend it, and
+don't wire new features to its `localStorage`-based state"). Do **not** merge `origin/main`'s
+backend code, `docker-compose.yml`, or `frontend-static.Dockerfile`. New features found only on
+`main` (tournaments, direct messages, the richer coach-booking UI, Steam Keys) are real product
+signal worth building — built properly on this branch's real schema, not imported wholesale. A
+plain `git merge origin/main` is still fine for the **static file changes** (§2e) since those carry
+no backend conflict — just exclude `docker-compose.yml`/`frontend-static.Dockerfile`/anything under
+`backend/src/` from that merge, or cherry-pick the static paths explicitly.
 
 ---
 
@@ -90,7 +92,7 @@ new pages on `main` have **real, properly written Georgian legal copy**, not pla
 | `terms-of-service.html` | `terms-of-service` | Replace placeholder body with real copy (13 sections — accounts, marketplace, coaching, payments, wallet, payouts, delivery, refunds, disputes, prohibited items, content, etc.) |
 | `privacy-policy.html` | `privacy-policy` | Replace placeholder body with real copy |
 | `refund-cancellation.html` | `refund-policy` | Replace placeholder body with real copy |
-| `about.html` / `about-us.html` | `about` | Replace placeholder — two files exist on `main`, need to pick one (probably a duplicate from iteration) |
+| `about.html` | `about` | Replace placeholder. (`about-us.html` also exists on `main` but is a stale duplicate — 47 lines vs. `about.html`'s 101, and only `about.html` is actually linked from `index.html`/`profile-nav.js`/the real footer. Use `about.html`, ignore `about-us.html`.) |
 | `contact-information.html` | `contact` | Replace placeholder — note this branch's `Footer.tsx` deliberately points Contact at `/support` instead of a static page (real ticket flow > static contact info); revisit once real content exists |
 | `delivery-policy.html` | *(none yet)* | New `content_pages` row needed |
 | `dispute-resolution.html` | *(none yet)* | New `content_pages` row needed |
@@ -133,13 +135,39 @@ a date/time/duration, pays immediately, no multi-step wizard yet). **Recommendat
 backend first (§5), then revisit whether the frontend booking flow should adopt this richer
 multi-step UX once there's a real API under it.
 
-### 2d. Steam Keys — currently pure mock, lowest priority
+### 2d. Steam Keys — confirmed real feature, needs its own inventory model
 
-`steam-keys.html`/`steam-keys.js` — 4 hardcoded games, no backend at all (not even the `state`
-blob — just a `localStorage` favorites array). This reads as an exploratory UI mockup for a
-possible future "digital key" listing type, not a committed feature. **Needs a real product
-decision before any backend work**: is this a new `ListingType` (alongside `Service`/`Item`) with
-license-key inventory/stock, or out of scope for now? Flagged as an open question, not started.
+`steam-keys.html`/`steam-keys.js` on `main` is currently 4 hardcoded games with a `localStorage`
+favorites array, no backend. **Confirmed: build this for real**, not just port the mockup.
+
+This is a meaningfully different shape from an ordinary `Item` listing, because the thing being
+sold is a **secret, single-use string** (a Steam activation key) that must stay hidden until
+purchase and must never be sold twice. Recommended design, following this repo's existing
+"structural core first" pattern:
+
+- New `ListingType.DigitalKey` (alongside the existing `Service`/`Item`) — reuses `Listing`'s
+  existing category/game/title/description/images fields, since a key listing is still browsable
+  the same way an item is.
+- New `ListingKeyInventory` table: `listingId` FK, `keyValue` (**encrypted at rest**, not plaintext
+  — this is exactly the kind of secret this repo's non-negotiable rule #2 ("no raw card/payment
+  data ever touches WaveHub's own servers") extends the spirit of, even though it's not payment
+  data specifically: a leaked key is a direct financial loss to the seller), `status`
+  (`available`/`sold`/`revoked`), `orderId` (set once sold, `NULL` while available). Stock is just
+  `COUNT(*) WHERE status = 'available'` — no separate `stockQuantity` column to keep in sync.
+- Purchase flow: `OrdersService.purchase()` for a `DigitalKey` listing atomically claims one
+  `available` row (`SELECT ... FOR UPDATE SKIP LOCKED` or an equivalent row-lock, so two
+  simultaneous buyers can't both claim the same key) and flips it to `sold` in the same transaction
+  as the existing WaveCoin debit — same "one atomic transaction, no compensating delete" principle
+  `OrdersService` already uses everywhere else.
+- Delivery: the buyer only ever sees the key value after `status = paid` on their own order — same
+  ownership-gated pattern `OrderDeliveryFile`s already use for service-listing deliverables.
+- Seller-side: a bulk key-upload form (paste a list of keys, or upload a CSV) rather than one key
+  at a time — sellers realistically have dozens/hundreds of keys per title.
+- **Legal**: third-party key resale is a real compliance question (Steam's own terms restrict
+  resale of purchased keys in some circumstances) — worth a line in the Terms of Service content
+  (§2a) explicitly, and probably a seller-facing attestation at listing-creation time ("I have the
+  legal right to resell this key"). Not a blocker to building the technical feature, but should
+  ship alongside it, not as an afterthought.
 
 ### 2e. Everything else — cosmetic, no backend implication
 
@@ -154,51 +182,95 @@ rather than a blanket `git merge`.
 
 ---
 
-## 3. BOG subscription + payment
+## 3. BOG subscription + membership/visibility plans — confirmed design
 
-**Not built on either branch.** `main`'s BOG changes (see §1) only wire the existing one-time
-top-up flow into the new blob-store wallet — no recurring-billing concept exists anywhere yet, and
-it isn't in `SPECIFICATION.md` either (the spec's payment model is WaveCoin top-up + internal
-escrow, no subscription tier).
+**Not built on either branch yet — new scope, confirmed 2026-09-16.** Confirmed shape: **two
+separate subscription products**, each with multiple tiers (Basic/Pro/Elite-style), and an
+explicitly extensible perks model rather than a hardcoded one ("all of that and can be added things
+too").
 
-Before any implementation, this needs a real product definition — "subscription" could mean
-several different things and the backend design differs a lot depending on which:
+### 3a. The two plan types
 
-1. **A recurring WaveCoin auto-top-up** (e.g. "top up 50 GEL automatically every month") — the
-   simplest to build: a `RecurringTopup` record (userId, amountGel, intervalDays, nextChargeAt,
-   BOG payment-method token) + a cron job that re-charges it, reusing the existing
-   `BogPaymentsService`/`WalletService.recordTopup` plumbing. Requires BOG's **saved
-   card / recurring charge API** (not just their one-time checkout redirect flow this repo
-   currently integrates with) — needs checking against BOG's actual API docs for what that
-   requires (tokenization consent flow, mandate creation, etc.), same "research the real provider
-   contract, don't guess" approach this repo took for the original BOG callback signature
-   verification (see `backend/src/payments/CLAUDE.md`).
-2. **A paid membership tier** (e.g. "WaveHub Pro" unlocking lower platform fees, featured listing
-   slots, priority support) — a much bigger feature: a `Subscription`/`SubscriptionPlan` entity,
-   gating logic across several existing modules (orders' fee calculation, listings' featured flag,
-   support's priority queue), recurring billing same as above underneath it.
-3. **Coach/seller subscription to a paid plan** for marketplace visibility — a narrower version of
-   #2 scoped to sellers/coaches only.
+- **Buyer Membership** — perks framed around the buying experience: priority support, a profile
+  badge, and whatever else gets added later (early access to new listings, exclusive promo codes,
+  etc. — not designing those now, just making sure the schema doesn't need a migration to add one).
+- **Seller/Coach Visibility Plan** — perks framed around marketplace visibility and take-home
+  earnings: a platform-fee discount, featured/boosted placement in marketplace and coaching browse
+  results, priority support, a profile badge.
 
-**This is the highest-uncertainty item in this whole plan — needs your answer on which of these
-(or something else) "subscription" means before any backend design work starts.** See Open
-Questions.
+Both plan types share one schema (a `plans` table with an `audience` column distinguishing
+`buyer`/`seller_coach`, not two separate tables) — same reasoning as `Listing` covering both
+`Service` and `Item` with one table: the two plan types share almost every column (name, tier,
+price, perks), and a shared table means one admin CRUD screen and one `UserSubscription` join
+table instead of two of everything.
+
+### 3b. Extensible perks — a jsonb bag, not one column per perk
+
+`SubscriptionPlan.perks` is a `jsonb` column, e.g.
+`{ "platformFeeDiscountPercent": 3, "featuredListings": true, "prioritySupport": true, "profileBadge": "pro" }`.
+Adding a new perk later (e.g. "early access to new listings") means adding a new key to this bag
+and teaching whichever module reads it what the key means — no new migration, no new column. The
+handful of perks confirmed now:
+
+| Perk key | Applied where | Notes |
+|---|---|---|
+| `platformFeeDiscountPercent` | `OrdersService.purchase()` / `CoachingSessionsService.request()` | Subtracted from `PlatformSettingsService.getPlatformFeePercent()`'s result before snapshotting — read at purchase/booking time, same as the base fee already is. Only meaningful for the seller/coach's own active plan, not the buyer's. |
+| `featuredListings` | `ListingsService.browseActive()` / `CoachesService.browseVerified()` | Sort/boost query changes: an active seller/coach with this perk gets ordered ahead of non-featured results. Read live via a join to `UserSubscription` at query time, **not** a cached `isFeatured` flag on `Listing` — a lapsed subscription must stop boosting immediately, not linger until something re-syncs a flag. |
+| `prioritySupport` | `SupportService.createTicket()` | Defaults a new ticket's `TicketPriority` to `High` instead of `Medium` when the requester has an active plan with this perk. |
+| `profileBadge` | `PublicUser` / `PublicCoachSummary` / `pages/u/[username].tsx` | A tier-labeled badge rendered next to the username — purely cosmetic trust signal. |
+
+### 3c. Billing
+
+`UserSubscription`: `userId`, `planId`, `status` (`active`/`past_due`/`cancelled`/`expired`),
+`currentPeriodEnd`, `cancelAtPeriodEnd`, plus whatever reference BOG's recurring-charge API needs
+to actually re-bill (see below). A `@nestjs/schedule` cron (same pattern as
+`OrdersService`'s existing 72h auto-complete cron) sweeps subscriptions due at `currentPeriodEnd`
+and attempts a recharge; a failed charge moves the subscription to `past_due` rather than
+immediately cancelling it (a brief grace period, not an instant perk cutoff on one declined card).
+
+**Real unknown, needs research before implementation, not guessing**: this repo's existing BOG
+integration (`backend/src/payments/bog-payments.service.ts`) only implements BOG's one-time
+checkout-redirect flow. A recurring charge needs BOG's **saved-card / recurring-payment API**
+(tokenizing a card once, then charging that token on a schedule without the user re-entering
+details) — this needs to be checked against BOG's actual current API documentation before writing
+any code, the same "research the real provider contract, don't guess the shape" approach this repo
+took for the original BOG callback signature verification (see `backend/src/payments/CLAUDE.md`).
+If BOG's public API doesn't expose recurring/tokenized charges at all, the fallback is: charge a
+one-time top-up-sized amount each period and require the user to reauthorize via the normal
+checkout redirect on each renewal (worse UX, but doesn't require a capability BOG might not offer).
 
 ---
 
-## 4. Direct messaging — real feature now, needs a real design
+## 4. Direct messaging — confirmed in scope, transacted users only, coordination not transactions
 
-`main`'s `backend/src/messages/` module (see §1) is a working proof that this is wanted. This
-branch's own `frontend/CLAUDE.md` had ruled it out of scope on the theory that no conversation
-concept existed outside order/ticket threads — that reasoning no longer holds if the product
-actually wants general user-to-user messaging.
+**Confirmed 2026-09-16**: real feature, but scoped down from `main`'s open-messaging version in two
+ways:
 
-If confirmed in scope, the real-architecture version should reuse this repo's existing
-`backend/src/chat/` conventions (`Conversation`/`Message` entities, `ConversationType` enum already
-has a `Direct` value defined and unused — see `packages/shared-types`) rather than building a
-second, parallel `DirectMessage` entity next to `chat/`'s `Message` entity. This was flagged back
-when Order Chat first shipped ("no Direct (non-order) conversations... yet") as the natural next
-step for that module — this is that step, now with real signal that it's wanted.
+1. **Transacted users only** — a buyer and a seller/coach can message each other directly only
+   once they have (or have had) a real order or coaching session together. No cold-messaging a
+   stranger. Enforced server-side at conversation-creation time (check for an `Order`/
+   `CoachingSession` row linking the two users before allowing a `Direct` conversation to open),
+   not just hidden in the UI.
+2. **Coordination only, not a transaction channel** — "users can't do anything without support...
+   process goes through support." Direct messages are for communication (e.g. arranging session
+   details, asking a clarifying question), not for negotiating price, resolving a delivery problem,
+   or anything that changes the state of an order/session. Any of that must go through the existing
+   Support ticket system or Order/Session-scoped chat + dispute flow, not a private DM. This is
+   also a real anti-fraud guardrail, not just a UX opinion — it reinforces the same
+   "no platform bypass" rule the new Terms of Service copy (§2a) already states explicitly
+   (arranging deals or payment outside WaveHub's own checkout is prohibited). Implementation-wise
+   this doesn't need content filtering — it's a policy communicated in the UI (a persistent note in
+   the message thread: "Need help with an order or payment? Contact Support instead.") plus a
+   one-click "Open a support ticket about this conversation" action, not an attempt to parse
+   message content for transaction language.
+
+Build on this repo's existing `backend/src/chat/` conventions (`Conversation`/`Message` entities,
+`ConversationType` enum already has a `Direct` value defined and unused — see
+`packages/shared-types`) rather than a second, parallel `DirectMessage` entity like `main`'s. This
+was flagged back when Order Chat first shipped ("no Direct (non-order) conversations... yet") as
+the natural next step for that module — this is that step. The "must have transacted" gate is new
+logic in `ChatService`/a new `DirectMessagesController`, not something `chat/`'s existing
+Order-conversation code needs to change.
 
 ---
 
@@ -271,38 +343,44 @@ Carried forward from before this analysis (unaffected by any of the above):
 
 ---
 
-## 7. Suggested order of work, once §1's direction is confirmed
+## 7. Suggested order of work
 
-1. **Content sync** (§2a) — smallest, safest, immediately valuable. Port the real legal copy into
-   `content_pages`, add rows for the 5 new page types. No architecture risk.
+1. **Content sync** (§2a) — smallest, safest, immediately valuable. Port the real legal copy from
+   `about.html`/`terms-of-service.html`/`privacy-policy.html`/`refund-cancellation.html` into
+   `content_pages`, add new rows for `delivery-policy`/`dispute-resolution`/
+   `community-guidelines`/`coach-standards`/`seller-standards`. No architecture risk, no open
+   questions left.
 2. **Finish coaching session booking** (§5) — closest to done, already has real backend code
    sitting uncommitted. Migrate, test, verify against live Postgres, build the frontend booking
-   form + sessions list.
-3. **Tournaments** (§2b) — clean, well-scoped new module following the existing `Coach`/
-   `ContentPage` pattern exactly. Good next chunk after coaching sessions.
-4. **BOG subscriptions** (§3) — blocked on your answer to which subscription model is wanted;
-   start the real design once that's clear.
-5. **Direct messaging** (§4) — blocked on confirming it's actually in scope (it was previously
-   ruled out); if yes, build on `chat/`'s existing `Direct` conversation type rather than a new
-   parallel entity.
-6. **Steam Keys** (§2d) — blocked on a real product decision; currently pure mockup.
-7. **e2e test suite** (§6) — last, as already agreed.
+   form + sessions list. Decide the dispute-path question (§5, point 5) while doing this.
+3. **Tournaments** (§2b) — confirmed scope, clean new module following the existing `Coach`/
+   `ContentPage` pattern exactly.
+4. **Direct messaging** (§4) — confirmed scope, builds on existing `chat/` conventions.
+5. **Steam Keys** (§2d) — confirmed scope, but the highest technical-risk item on this list (secret
+   key storage/encryption, race-safe single-claim purchase) — budget real care here, not a rushed
+   pass.
+6. **BOG subscriptions** (§3) — confirmed design, but blocked on researching BOG's actual recurring/
+   tokenized-charge API before writing code (§3c) — start that research early since it could change
+   the design, don't leave it for last.
+7. **e2e test suite** (§6) — last, as already agreed with the user before this analysis started.
 
 ---
 
-## Open questions — need your answer before implementation starts
+## Decisions (2026-09-16) — raw record of what was confirmed
 
-1. **Confirm the §1 recommendation**: keep building the real Next.js + Postgres backend on
-   `aslan-backend` as the one real product, treat `main`'s static files as reference-only (current,
-   long-standing policy), and do **not** adopt `main`'s `state`/blob-store backend, hand-rolled
-   auth, or its nginx-static Docker target? Or is there a reason to reconsider (e.g. a hard
-   deadline that only the simpler static+blob approach could hit)?
-2. **BOG "subscription"** — which of §3's three interpretations (recurring auto-top-up, paid
-   membership tier, seller/coach paid visibility plan) — or something else entirely?
-3. **Direct messaging** — back in scope, yes/no? If yes, any constraints (e.g. only between a buyer
-   and a seller they've transacted with, vs. fully open)?
-4. **Steam Keys** — real feature (needs a license-key inventory/stock model + legal handling of
-   third-party key resale) or drop it?
-5. **Tournaments** — confirm the scoped-down version in §2b (admin posts, users register, no
-   automated bracket/prize payout) is the right first version, not a fuller esports-bracket system?
-6. **`about.html` vs `about-us.html`** on `main` — which one is the real one to port copy from?
+- **Branch direction**: "main branch is just frontend side, our branch is the real main." →
+  confirmed, see §1.
+- **Subscription audience**: two separate plans (buyer membership + seller/coach visibility) → §3a.
+- **Subscription perks**: all four (fee discount, featured listings, priority support, profile
+  badge) plus explicitly designed to be extensible ("can be added things too") → §3b.
+- **Subscription billing**: multiple tiers (Basic/Pro/Elite-style) per plan type → §3c.
+- **Direct messaging**: in scope, transacted users only, and explicitly "users can't do anything
+  without support — buy or process goes through support" (coordination channel, not a transaction
+  channel) → §4.
+- **Steam Keys**: build as a real feature, not a mockup port → §2d.
+- **Tournaments**: confirmed the scoped-down version (admin posts, users register, manual
+  prize payout) is the right first version → §2b.
+- **`about.html` vs `about-us.html`**: resolved without needing to ask — `about.html` is the real,
+  linked page; `about-us.html` is a stale duplicate → §2a.
+
+No open product questions remain blocking §7's workplan. Implementation starts from item 1.

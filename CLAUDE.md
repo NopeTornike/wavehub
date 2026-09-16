@@ -19,10 +19,12 @@ isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable r
 **Read `LAUNCH_PLAN.md` before starting any new feature work right now** — it documents a critical
 finding (as of 2026-09-16): `origin/main` has diverged into a parallel, simpler backend (a
 localStorage-mirroring blob store instead of this branch's real Postgres schema, plus a
-static-only nginx Docker target that drops the real Next.js app). It also has the current workplan
-for BOG subscriptions, Tournaments, Direct Messaging, Steam Keys, and finishing the in-progress
-Coaching session-booking feature, plus open product questions that need an answer before that work
-starts. Don't merge `origin/main`'s backend/Docker changes without reading it first.
+static-only nginx Docker target that drops the real Next.js app) — confirmed to stay reference-only,
+not merged. It also has the confirmed workplan (all open product questions answered as of
+2026-09-16 — see its "Decisions" section) for BOG subscriptions + buyer/seller-coach membership
+plans, Tournaments, Direct Messaging (transacted-users-only, coordination not transactions), Steam
+Keys, and finishing the in-progress Coaching session-booking feature. Read its §7 for the build
+order before starting any of these.
 
 ## Module doc index
 
