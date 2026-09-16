@@ -26,7 +26,7 @@ export class RequirementFieldDto {
 // two listing types sharing one DTO, decorator-based conditional validation gets hard to read
 // quickly; a straight-line check in the service is clearer for a two-way branch like this one.
 export class CreateListingDto {
-  @IsIn([ListingType.Service, ListingType.Item])
+  @IsIn([ListingType.Service, ListingType.Item, ListingType.DigitalKey])
   type: ListingType;
 
   @IsUUID()
@@ -58,6 +58,13 @@ export class CreateListingDto {
   @IsOptional()
   @IsBoolean()
   isUnique?: boolean;
+
+  // DigitalKey-type only — must be exactly `true` (checked imperatively in
+  // ListingsService#createDraft, same reasoning as the rest of this DTO's cross-field validation).
+  // The seller's confirmation of legal resale rights, per LAUNCH_PLAN.md §2d.
+  @IsOptional()
+  @IsBoolean()
+  resaleRightsAttested?: boolean;
 
   // Service-type only
   @IsOptional()

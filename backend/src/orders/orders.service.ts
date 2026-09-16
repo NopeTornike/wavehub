@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nest
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, LessThanOrEqual, Repository } from 'typeorm';
-import { ListingStatus, ListingType, NotificationType, OrderStatus } from '@wavehub/shared-types';
+import { KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus } from '@wavehub/shared-types';
 import type { PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
 import { Order } from './order.entity';
 import { OrderDeliveryFile } from './order-delivery-file.entity';
@@ -10,6 +10,8 @@ import { Listing } from '../listings/listing.entity';
 import { Package } from '../listings/package.entity';
 import { ServiceDetails } from '../listings/service-details.entity';
 import { ItemDetails } from '../listings/item-details.entity';
+import { ListingKeyInventory } from '../listings/listing-key-inventory.entity';
+import { decryptKeyValue } from '../listings/key-encryption.util';
 import { assertValidTransition } from './order-lifecycle';
 import { assertValidTransition as assertValidListingTransition } from '../listings/listing-lifecycle';
 import { validateRequirementsAnswers } from './requirements-validator';
@@ -31,6 +33,8 @@ const ALLOWED_DELIVERY_MIME_TYPES = [
   'application/x-zip-compressed',
 ];
 const MAX_DELIVERY_FILE_BYTES = 20 * 1024 * 1024;
+// Every status a DigitalKey order's key is revealable from — see getRevealedKey's own comment.
+const KEY_REVEALABLE_STATUSES = [OrderStatus.Paid, OrderStatus.InProgress, OrderStatus.Delivered, OrderStatus.Completed];
 
 @Injectable()
 export class OrdersService {
@@ -43,6 +47,7 @@ export class OrdersService {
     @InjectRepository(Package) private readonly packages: Repository<Package>,
     @InjectRepository(ServiceDetails) private readonly serviceDetails: Repository<ServiceDetails>,
     @InjectRepository(ItemDetails) private readonly itemDetails: Repository<ItemDetails>,
+    @InjectRepository(ListingKeyInventory) private readonly keyInventory: Repository<ListingKeyInventory>,
     private readonly dataSource: DataSource,
     private readonly wallet: WalletService,
     private readonly storage: StorageService,
@@ -108,6 +113,15 @@ export class OrdersService {
 
       const details = await this.serviceDetails.findOne({ where: { listingId: listing.id } });
       validateRequirementsAnswers(details?.requirementsSchema ?? [], dto.requirementsAnswers);
+    } else if (listing.type === ListingType.DigitalKey) {
+      if (listing.priceWaveCoin == null) {
+        throw new ForbiddenException('This listing has no price set');
+      }
+      // No stock pre-check here on purpose — DigitalKey stock lives in listing_key_inventory, not
+      // a listings column, and any pre-check here would be racy anyway (two buyers could both pass
+      // it before either claims a row). The atomic claim inside the transaction below is the real,
+      // race-safe gate — see the SELECT ... FOR UPDATE SKIP LOCKED query.
+      priceWaveCoin = listing.priceWaveCoin;
     } else {
       if (listing.priceWaveCoin == null) {
         throw new ForbiddenException('This listing has no price set');
@@ -144,6 +158,44 @@ export class OrdersService {
       });
       const saved = await manager.save(order);
 
+      // The race-safe stock claim: lock exactly one `available` row for this listing (skipping any
+      // row a concurrent purchase already has locked, rather than waiting on it) and flip it to
+      // `sold` in the same statement. Two simultaneous buyers can never claim the same key — one of
+      // them gets a real row, the other's subquery returns nothing (either because every row is
+      // locked by the other transaction, or, once that transaction commits, because none are
+      // `available` anymore). Done before the wallet debit so an out-of-stock buyer's balance is
+      // never touched (the whole transaction still rolls back either way, but this keeps the two
+      // failure modes cleanly separated instead of relying on rollback alone to make it "not
+      // matter").
+      if (listing.type === ListingType.DigitalKey) {
+        // Deliberately built on the QueryBuilder's `UpdateResult.affected` (a stable, documented
+        // TypeORM number), not a hand-parsed `manager.query()` raw-array result — a real bug here
+        // during verification: `manager.query()`'s return value for a raw `UPDATE ... RETURNING`
+        // was NOT the plain `Array<{id}>` this code originally assumed, so `claimed.length === 0`
+        // silently never evaluated true (comparing `undefined === 0`) and let a purchase through
+        // with zero keys actually claimed — caught only by firing real concurrent requests against
+        // a live Postgres instance, not by any unit test with a fake repository. `.affected` has no
+        // such ambiguity.
+        const claimResult = await manager
+          .createQueryBuilder()
+          .update(ListingKeyInventory)
+          .set({ status: KeyInventoryStatus.Sold, orderId: saved.id, soldAt: () => 'now()' })
+          .where(
+            `id = (
+              SELECT id FROM listing_key_inventory
+              WHERE "listingId" = :listingId AND status = :availableStatus
+              ORDER BY "createdAt" ASC
+              FOR UPDATE SKIP LOCKED
+              LIMIT 1
+            )`,
+            { listingId: listing.id, availableStatus: KeyInventoryStatus.Available },
+          )
+          .execute();
+        if (!claimResult.affected) {
+          throw new ForbiddenException('This key listing is out of stock');
+        }
+      }
+
       // WalletService throws a plain Error('INSUFFICIENT_BALANCE') — translate it to a clean 4xx
       // here rather than letting it fall through as an unhandled 500 (rolls back the Order insert
       // either way; this only changes what the caller sees).
@@ -162,6 +214,14 @@ export class OrdersService {
         }
         const soldOut = itemIsUnique || (listing.stockQuantity != null && listing.stockQuantity <= 1);
         if (soldOut) {
+          assertValidListingTransition(listing.status, ListingStatus.Paused);
+          await manager.update(Listing, listing.id, { status: ListingStatus.Paused });
+        }
+      } else if (listing.type === ListingType.DigitalKey) {
+        const remaining = await manager.count(ListingKeyInventory, {
+          where: { listingId: listing.id, status: KeyInventoryStatus.Available },
+        });
+        if (remaining === 0) {
           assertValidListingTransition(listing.status, ListingStatus.Paused);
           await manager.update(Listing, listing.id, { status: ListingStatus.Paused });
         }
@@ -278,6 +338,7 @@ export class OrdersService {
 
   async cancelByBuyer(buyerId: string, orderId: string): Promise<Order> {
     const order = await this.getOrderAsBuyer(buyerId, orderId);
+    this.assertCancellableListingType(order);
     if (order.status !== OrderStatus.Paid) {
       throw new ForbiddenException('You can only cancel before the seller starts work');
     }
@@ -287,8 +348,25 @@ export class OrdersService {
 
   async cancelBySeller(sellerId: string, orderId: string, reason: string): Promise<Order> {
     const order = await this.getOrderAsSeller(sellerId, orderId);
+    this.assertCancellableListingType(order);
     assertValidTransition(order.status, OrderStatus.Cancelled);
     return this.cancelOrder(order, reason);
+  }
+
+  // A DigitalKey order is never plain-cancellable by either party — by the time an order reaches
+  // `Paid` (the only status either cancel method allows from), the key has already been claimed
+  // and is immediately viewable by the buyer (see getRevealedKey). A no-review cancel-and-refund
+  // would let a buyer walk away with a real secret and their WaveCoin back, or let a seller yank
+  // back a key the buyer may have already used. "This key doesn't work" is a real, legitimate
+  // complaint — it just belongs in `backend/src/disputes/` (Paid/InProgress/Delivered are all
+  // openable there already, no changes needed) where an admin actually reviews it, not an
+  // automatic refund either party can trigger unilaterally.
+  private assertCancellableListingType(order: Order): void {
+    if (order.listingType === ListingType.DigitalKey) {
+      throw new ForbiddenException(
+        'Digital key purchases are final and cannot be cancelled — open a dispute if there is a problem with the key',
+      );
+    }
   }
 
   // Relations are joined here (not left as bare FK ids) so a list page can render a card — title,
@@ -486,6 +564,30 @@ export class OrdersService {
       throw new ForbiddenException("This order doesn't belong to you");
     }
     return this.chat.postMessage(orderId, userId, body);
+  }
+
+  // Buyer-only, decrypted on demand — the plaintext key is never stored anywhere except this one
+  // reconstruction from the encrypted column, and never included in the general order-detail
+  // response (findForParticipant) so it can't leak into a listing that both parties (or an admin)
+  // can see. Available from `Paid` onward — LAUNCH_PLAN.md §2d's "the buyer only ever sees the key
+  // value after status = paid" — deliberately not gated on the InProgress/Delivered/Completed
+  // ceremony a service/item order goes through, since there's no real seller action for a key
+  // (it's already in inventory). Cancelled/Refunded orders never reach here in practice (see
+  // assertCancellableListingType — a DigitalKey order can't be plain-cancelled at all), but the
+  // explicit status allowlist below is the actual gate, not an assumption about what else prevents it.
+  async getRevealedKey(buyerId: string, orderId: string): Promise<{ key: string }> {
+    const order = await this.getOrderAsBuyer(buyerId, orderId);
+    if (order.listingType !== ListingType.DigitalKey) {
+      throw new ForbiddenException('This order has no digital key');
+    }
+    if (!KEY_REVEALABLE_STATUSES.includes(order.status)) {
+      throw new ForbiddenException('The key for this order is not available');
+    }
+    const row = await this.keyInventory.findOne({ where: { orderId: order.id, status: KeyInventoryStatus.Sold } });
+    if (!row) {
+      throw new NotFoundException('Key not found for this order');
+    }
+    return { key: decryptKeyValue(row.keyValueEncrypted) };
   }
 
   private async getOrderOrThrow(orderId: string): Promise<Order> {

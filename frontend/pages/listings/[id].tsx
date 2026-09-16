@@ -10,7 +10,7 @@ import { useAuth } from '../../lib/auth'
 export default function ListingDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
-  const { user: me } = useAuth()
+  const { user: me, refresh } = useAuth()
 
   const [listing, setListing] = useState<PublicListingDetail | null>(null)
   const [reviews, setReviews] = useState<PublicReview[]>([])
@@ -85,7 +85,11 @@ export default function ListingDetail() {
 
   const selectedPackage = listing.packages.find((pkg) => pkg.id === selectedPackageId) ?? null
   const displayPrice =
-    listing.type === ListingType.Item ? listing.priceWaveCoin : selectedPackage?.priceWaveCoin ?? null
+    listing.type === ListingType.Item || listing.type === ListingType.DigitalKey
+      ? listing.priceWaveCoin
+      : selectedPackage?.priceWaveCoin ?? null
+  const typeLabel =
+    listing.type === ListingType.Service ? 'სერვისი' : listing.type === ListingType.DigitalKey ? 'გასაღები' : 'ნივთი'
 
   return (
     <Layout>
@@ -102,7 +106,13 @@ export default function ListingDetail() {
             </nav>
 
             <div className="detail-title-block">
-              <p className="section-kicker">{listing.type === ListingType.Service ? 'სერვისის დეტალები' : 'ნივთის დეტალები'}</p>
+              <p className="section-kicker">
+                {listing.type === ListingType.Service
+                  ? 'სერვისის დეტალები'
+                  : listing.type === ListingType.DigitalKey
+                    ? 'გასაღების დეტალები'
+                    : 'ნივთის დეტალები'}
+              </p>
               <h1>{listing.title}</h1>
               {listing.ratingCount > 0 && (
                 <span className="rating-pill">
@@ -118,7 +128,7 @@ export default function ListingDetail() {
                 data-label={listing.images[0] ? undefined : 'სურათი არ არის'}
               >
                 <div className="detail-hero-badges">
-                  <span className="service-tag">{listing.type === ListingType.Service ? 'სერვისი' : 'ნივთი'}</span>
+                  <span className="service-tag">{typeLabel}</span>
                   {listing.isFeatured && <span className="detail-delivery-chip">გამორჩეული</span>}
                 </div>
               </div>
@@ -265,6 +275,13 @@ export default function ListingDetail() {
               listing.stockQuantity !== null && <p className="note">მარაგშია: {listing.stockQuantity}</p>
             )}
 
+            {listing.type === ListingType.DigitalKey && (
+              <p className="note" style={{ marginTop: 8 }}>
+                გასაღები ხელმისაწვდომი გახდება შეძენისთანავე. შესყიდვა საბოლოოა და არ ექვემდებარება გაუქმებას —
+                პრობლემის შემთხვევაში მიმართეთ დავის განხილვას.
+              </p>
+            )}
+
             {listing.type === ListingType.Service &&
               listing.requirementsSchema &&
               listing.requirementsSchema.length > 0 && (
@@ -341,6 +358,11 @@ export default function ListingDetail() {
                     requirementsAnswers:
                       listing.type === ListingType.Service ? requirementAnswers : undefined,
                   })
+                  // Purchasing debits the buyer's WaveCoin balance — refresh the cached session
+                  // before navigating away so the topbar doesn't show a stale balance until a hard
+                  // reload (same real bug/fix pattern as the coaching-session booking flow, see
+                  // frontend/CLAUDE.md).
+                  await refresh()
                   router.push(`/orders/${order.id}`)
                 } catch (err) {
                   setPurchaseError(

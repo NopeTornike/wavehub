@@ -17,6 +17,7 @@ import { Listing } from './listings/listing.entity';
 import { ListingImage } from './listings/listing-image.entity';
 import { ServiceDetails } from './listings/service-details.entity';
 import { ItemDetails } from './listings/item-details.entity';
+import { ListingKeyInventory } from './listings/listing-key-inventory.entity';
 import { Package } from './listings/package.entity';
 import { Category } from './listings/category.entity';
 import { Game } from './listings/game.entity';
@@ -85,6 +86,7 @@ import { TournamentRegistration } from './tournaments/tournament-registration.en
         ListingImage,
         ServiceDetails,
         ItemDetails,
+        ListingKeyInventory,
         Package,
         Category,
         Game,

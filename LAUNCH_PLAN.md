@@ -388,9 +388,22 @@ Carried forward from before this analysis (unaffected by any of the above):
    "Message the buyer/coach" on `coaching-sessions/[id].tsx`, and a "შეტყობინებები" Sidebar nav item.
    The "coordination only, not a transaction channel" rule is a persistent UI notice linking to
    Support, not message-content filtering (as originally scoped). See `backend/src/chat/CLAUDE.md`.
-5. **Steam Keys** (§2d) — confirmed scope, but the highest technical-risk item on this list (secret
-   key storage/encryption, race-safe single-claim purchase) — budget real care here, not a rushed
-   pass.
+5. **Steam Keys** (§2d) — **done (2026-09-17)**. New `ListingType.DigitalKey`, `ListingKeyInventory`
+   table (AES-256-GCM encrypted at rest, `key-encryption.util.ts`), and a race-safe claim in
+   `OrdersService#purchase()` (`SELECT ... FOR UPDATE SKIP LOCKED` via TypeORM's QueryBuilder
+   `.execute()`/`UpdateResult.affected`). A DigitalKey order is never plain-cancellable by either
+   party (final sale — disputes are the venue for "this key doesn't work"); the key is revealed to
+   the buyer via a separate `GET orders/:id/key` pull as soon as the order is `Paid`. Seller-facing
+   bulk key-upload/inventory-management pages and buyer-facing marketplace/detail/order-reveal UI
+   all shipped. Migrated and verified against live Postgres with **real concurrent-purchase
+   testing**, not just curl — this caught and fixed a genuine correctness bug (a `manager.query()`
+   return-shape misunderstanding that let the race-safety check silently never fire, allowing a
+   purchase to succeed with zero keys actually claimed) and surfaced a separate, pre-existing
+   same-buyer wallet-lock deadlock (unrelated to this feature, confirmed to affect plain Item
+   purchases too, flagged as its own follow-up rather than fixed here). Also fixed a real stale-
+   balance bug on the original (pre-existing) marketplace purchase flow, found during this same
+   verification pass. Full writeup: `backend/src/listings/CLAUDE.md` and `backend/src/orders/
+   CLAUDE.md`'s Status sections.
 6. **BOG subscriptions** (§3) — confirmed design, but blocked on researching BOG's actual recurring/
    tokenized-charge API before writing code (§3c) — start that research early since it could change
    the design, don't leave it for last.

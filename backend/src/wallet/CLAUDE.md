@@ -98,6 +98,17 @@ both.
   `withdraw-reversed:<id>`), same pattern as `recordTopup` — a duplicate call for the same
   withdrawal request (e.g. a network retry) is a no-op, not a double debit/credit.
 - WaveCoin is always an integer — never switch any of these fields to a float/decimal.
+- **Known limitation, found 2026-09-17, not yet fixed**: `debitForOrder`'s `SELECT ... FOR UPDATE`
+  lock on the buyer's `users` row can deadlock (Postgres `40P01`, surfaces as an unhandled 500) if
+  the **same buyer** fires many genuinely simultaneous purchase requests — reproduced deliberately
+  while stress-testing `backend/src/listings/`'s DigitalKey concurrent-claim logic (see that
+  module's `CLAUDE.md`), and confirmed to affect plain Item purchases identically, so it's a general
+  gap in this module's locking strategy, not specific to any one listing type. Normal usage (a real
+  buyer clicking "buy" once, or two *different* buyers racing for the same item) never hits it —
+  this only manifests under many-requests-from-one-session load (a buggy double-submit-happy
+  frontend, a script, or abuse). Not fixed here since a real fix (retry-on-deadlock, a queue, or a
+  different lock acquisition order) is a cross-cutting change to how every money-moving method here
+  takes its row lock, not a one-line patch.
 
 ## Related modules
 - `backend/src/users/` — owns the `wavecoinBalance` column this module writes to.

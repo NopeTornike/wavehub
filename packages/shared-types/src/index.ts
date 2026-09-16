@@ -45,6 +45,29 @@ export enum VerificationStatus {
 export enum ListingType {
   Service = 'service',
   Item = 'item',
+  // A secret, single-use activation code (Steam key or similar) — see backend/src/listings/CLAUDE.md
+  // for why this is a third type rather than a variant of Item (stock is derived from
+  // ListingKeyInventory row counts, not a stored stockQuantity; the "item" itself is never shown
+  // until purchase).
+  DigitalKey = 'digital_key',
+}
+
+// listing_key_inventory.status — backend/src/listings/listing-key-inventory.entity.ts. `Revoked` is
+// a soft delete (a seller removing an unsold key), never a hard DELETE, so the row stays for audit.
+export enum KeyInventoryStatus {
+  Available = 'available',
+  Sold = 'sold',
+  Revoked = 'revoked',
+}
+
+// What ListingsService#listKeys returns to a seller viewing their own key inventory — deliberately
+// never includes the key value itself, encrypted or not (see key-encryption.util.ts's comment on
+// why the plaintext is only ever reconstructed once, for the buyer, via OrdersService#getRevealedKey).
+export interface SellerListingKeySummary {
+  id: string;
+  status: KeyInventoryStatus;
+  soldAt: string | null;
+  createdAt: string;
 }
 
 export enum ListingStatus {

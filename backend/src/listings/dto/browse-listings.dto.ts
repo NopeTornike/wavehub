@@ -12,7 +12,7 @@ export class BrowseListingsDto {
   gameId?: string;
 
   @IsOptional()
-  @IsIn([ListingType.Service, ListingType.Item])
+  @IsIn([ListingType.Service, ListingType.Item, ListingType.DigitalKey])
   type?: ListingType;
 
   @IsOptional()

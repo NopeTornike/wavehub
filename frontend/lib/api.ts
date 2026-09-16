@@ -42,6 +42,7 @@ import type {
   PublicTournamentSummary,
   TournamentStatus,
   PublicConversationSummary,
+  SellerListingKeySummary,
 } from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -159,6 +160,37 @@ export const api = {
       `/listings/${listingId}/reviews${sort ? `?sort=${sort}` : ''}`,
     ),
 
+  // --- Seller: digital key listings --- (backend/src/listings/) — no generic create-listing UI
+  // exists yet for Service/Item (see frontend/CLAUDE.md); these are scoped to DigitalKey only,
+  // matching LAUNCH_PLAN.md §2d's "bulk key-upload form" ask. `createDraft`/`findMine`/
+  // `submitForReview` all return the raw TypeORM entity, not a `Public*` shape — typed `unknown`
+  // here, same convention as the admin-mutation endpoints documented in frontend/CLAUDE.md (the
+  // callers only care that the id/status they need is present, read via a narrow local cast).
+  listMyListings: () => request<unknown[]>('/listings/mine'),
+
+  createDigitalKeyListing: (payload: {
+    categoryId: string
+    gameId?: string
+    title: string
+    description: string
+    priceWaveCoin: number
+    resaleRightsAttested: true
+  }) =>
+    request<unknown>('/listings', {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, type: 'digital_key' }),
+    }),
+
+  submitListingForReview: (id: string) => request<unknown>(`/listings/${id}/submit`, { method: 'POST' }),
+
+  addListingKeys: (listingId: string, keys: string[]) =>
+    request<{ added: number }>(`/listings/${listingId}/keys`, { method: 'POST', body: JSON.stringify({ keys }) }),
+
+  listListingKeys: (listingId: string) => request<SellerListingKeySummary[]>(`/listings/${listingId}/keys`),
+
+  removeListingKey: (listingId: string, keyId: string) =>
+    request<void>(`/listings/${listingId}/keys/${keyId}`, { method: 'DELETE' }),
+
   createReview: (payload: { orderId: string; rating: number; body?: string; tags?: string[] }) =>
     request<PublicReview>('/reviews', { method: 'POST', body: JSON.stringify(payload) }),
 
@@ -171,6 +203,10 @@ export const api = {
   listOrdersAsSeller: () => request<PublicOrderSummary[]>('/orders/as-seller'),
 
   getOrder: (id: string) => request<PublicOrderDetail>(`/orders/${id}`),
+
+  // Buyer-only, DigitalKey orders only — a separate pull rather than part of getOrder's response,
+  // see backend/src/orders/CLAUDE.md's getRevealedKey comment for why.
+  getOrderKey: (id: string) => request<{ key: string }>(`/orders/${id}/key`),
 
   startOrder: (id: string) => request<unknown>(`/orders/${id}/start`, { method: 'POST' }),
 

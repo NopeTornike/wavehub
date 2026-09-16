@@ -141,11 +141,17 @@ scope for the UI pivot. Revisit only if bulk purchase becomes a real product dec
 - `pages/marketplace.tsx` — browse grid with category/game/type filters + pagination, wrapped in
   `Layout`
 - `pages/listings/[id].tsx` — listing detail: gallery, description, requirements/FAQ (service),
-  package picker (service) or stock/price (item), reviews with sort. The "buy" button calls
-  `api.purchase()` for real (redirects to `/login?next=...` first if logged out) and, for a service
-  listing with a `requirementsSchema`, renders a form for it before allowing purchase — the answers
-  are sent as `requirementsAnswers`, validated server-side by
-  `backend/src/orders/requirements-validator.ts`
+  package picker (service) or stock/price (item and digital key — a `typeLabel` three-way ternary
+  covers all three types' badges/section headings), reviews with sort. The "buy" button calls
+  `api.purchase()` for real (redirects to `/login?next=...` first if logged out), calls
+  `refresh()` (from `useAuth()`) before navigating to the new order so the topbar balance doesn't go
+  stale (a real bug found and fixed 2026-09-17 — this page was the original copy the coaching-
+  session booking form's own `refresh()` fix was modeled on, but the fix was never backported here
+  until Steam Keys verification caught it) and, for a service listing with a `requirementsSchema`,
+  renders a form for it before allowing purchase — the answers are sent as `requirementsAnswers`,
+  validated server-side by `backend/src/orders/requirements-validator.ts`. A digital-key listing
+  shows a "final sale, no cancellation" notice near the buy button, matching
+  `backend/src/orders/CLAUDE.md`'s cancellation-guard behavior for that type.
 - `pages/orders/index.tsx` — buyer/seller tab list of the viewer's orders (`api.listOrdersAsBuyer`/
   `listOrdersAsSeller`)
 - `pages/orders/[id].tsx` — order detail: status, price/fee breakdown (fee only shown to the
@@ -175,7 +181,22 @@ scope for the UI pivot. Revisit only if bulk purchase becomes a real product dec
   seller / refund buyer / cancel order), calling `api.adminResolveDispute`. `reloadDispute` tries
   the participant-only `api.getDispute` first and falls back to the admin-only
   `api.adminGetDispute` (no participant check) on failure, so a non-participant Super Admin can
-  still see the thread instead of getting stuck on the resulting 403
+  still see the thread instead of getting stuck on the resulting 403. For a digital-key order, also
+  renders a buyer-only "გასაღები" (Key) panel — a "Show the key" button that calls the separate
+  `api.getOrderKey(id)` pull (not part of the main order fetch, matching the backend's deliberate
+  separation — see `backend/src/orders/CLAUDE.md`) and displays the plaintext key in a monospace,
+  select-all span once revealed; gated on `order.listing.type === ListingType.DigitalKey`.
+- `pages/sell/digital-keys/index.tsx` (create-listing form + the seller's own list of digital-key
+  listings) and `pages/sell/digital-keys/[id].tsx` (key inventory management: paste-a-list bulk
+  upload, a status-labeled key list with remove, submit-for-review) — 2026-09-17, Steam Keys. There
+  is still no generic "create a listing" flow for Service/Item (a pre-existing, broader gap this
+  didn't attempt to close — see `backend/src/listings/CLAUDE.md`), so these two pages are
+  deliberately scoped to DigitalKey only, not a first slice of a general seller dashboard. Linked
+  from the marketplace page's header ("Steam-ის გასაღებების გაყიდვა"), not the `Sidebar` — matching
+  how "become a coach" is discoverable from the coaching directory rather than a permanent nav item.
+  `listMyListings`/`createDigitalKeyListing`/`submitListingForReview` in `lib/api.ts` are typed
+  `unknown` (raw TypeORM entity responses, same convention as the admin-mutation endpoints
+  documented below) rather than a `Public*` shape.
 - `pages/wallet.tsx` — full wallet view: the derived balance breakdown (`api.getWalletBalance`
   — available/pending-clearance/earned/withdrawn, see `backend/src/withdrawals/CLAUDE.md` for how
   each number is computed), a WaveCoin top-up form (`api.createBogTopupOrder`, redirects the
@@ -381,7 +402,15 @@ writeup, including a real cross-origin image-loading bug found and fixed in `bac
 during that pass). Direct (non-order) messaging (2026-09-16) is also real end-to-end —
 `pages/messages/index.tsx` plus "Message" buttons on `orders/[id].tsx`/`coaching-sessions/[id].tsx`
 — verified with two real logged-in sessions messaging each other live (see
-`backend/src/chat/CLAUDE.md`'s Status section). This covers Phase 11c (core CRUD), 11d
+`backend/src/chat/CLAUDE.md`'s Status section). Digital key (Steam Keys) listings (2026-09-17) are
+also real end-to-end — marketplace/listing-detail browsing and purchase, a buyer-only key-reveal
+panel on the order page, and a seller-facing create/key-management flow at
+`pages/sell/digital-keys/*.tsx` — verified with a real two-account (seller + buyer) browser
+click-through including two real purchases against a real 2-key inventory, both keys correctly
+revealed, and the listing correctly auto-pausing on sellout (see `backend/src/listings/CLAUDE.md`'s
+Status section for the full writeup, including a real concurrent-purchase correctness bug found and
+fixed, and a separate stale-balance bug fixed on the original `listings/[id].tsx` purchase flow).
+This covers Phase 11c (core CRUD), 11d
 (Support ticketing — both the staff queue and the user-facing `pages/support/*.tsx`), and part of
 11f (platform settings). A first slice of Coaching (Phase 11b) has frontend too — the public
 directory/profile/apply pages and the admin verification queue — but no session-booking UI, since

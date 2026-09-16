@@ -20,6 +20,7 @@ import { CreateListingDto } from './dto/create-listing.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { BrowseListingsDto } from './dto/browse-listings.dto';
 import { RejectListingDto } from './dto/reject-listing.dto';
+import { AddListingKeysDto } from './dto/add-listing-keys.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
 import { AdminGuard } from '../admin/admin-role.guard';
@@ -116,6 +117,32 @@ export class ListingsController {
     @Param('packageId') packageId: string,
   ) {
     return this.listings.removePackage(sellerId, listingId, packageId);
+  }
+
+  // Digital key inventory — seller-only (ownership-checked in the service, same as
+  // packages/images above). Bulk "paste a list" upload rather than one key at a time; see
+  // LAUNCH_PLAN.md §2d and backend/src/listings/CLAUDE.md.
+  @Post('listings/:id/keys')
+  @UseGuards(AuthGuard)
+  addKeys(@CurrentUserId() sellerId: string, @Param('id') listingId: string, @Body() dto: AddListingKeysDto) {
+    return this.listings.addKeys(sellerId, listingId, dto.keys);
+  }
+
+  @Get('listings/:id/keys')
+  @UseGuards(AuthGuard)
+  listKeys(@CurrentUserId() sellerId: string, @Param('id') listingId: string) {
+    return this.listings.listKeys(sellerId, listingId);
+  }
+
+  @Delete('listings/:id/keys/:keyId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard)
+  removeKey(
+    @CurrentUserId() sellerId: string,
+    @Param('id') listingId: string,
+    @Param('keyId') keyId: string,
+  ) {
+    return this.listings.removeKey(sellerId, listingId, keyId);
   }
 
   @Post('listings/:id/images')

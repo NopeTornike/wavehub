@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicDispute, PublicMessage, PublicOrderDetail } from '@wavehub/shared-types'
-import { AdminRole, DisputeResolution, DisputeStatus, MessageType, OrderStatus } from '@wavehub/shared-types'
+import { AdminRole, DisputeResolution, DisputeStatus, ListingType, MessageType, OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -48,6 +48,9 @@ export default function OrderDetail() {
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [revealedKey, setRevealedKey] = useState<string | null>(null)
+  const [revealError, setRevealError] = useState('')
+  const [revealing, setRevealing] = useState(false)
 
   const [revisionReason, setRevisionReason] = useState('')
   const [cancelReason, setCancelReason] = useState('')
@@ -244,6 +247,20 @@ export default function OrderDetail() {
     }
   }
 
+  const revealKey = async () => {
+    if (!id) return
+    setRevealError('')
+    setRevealing(true)
+    try {
+      const { key } = await api.getOrderKey(id)
+      setRevealedKey(key)
+    } catch (err) {
+      setRevealError(err instanceof ApiError ? err.message : 'გასაღების ჩვენება ვერ მოხერხდა.')
+    } finally {
+      setRevealing(false)
+    }
+  }
+
   const messageOtherParty = async (otherUserId: string) => {
     setActionError('')
     setBusy(true)
@@ -352,6 +369,22 @@ export default function OrderDetail() {
             )}
             {order.revisionReason && <p className="note">გადასამუშავებელი შენიშვნა: {order.revisionReason}</p>}
           </div>
+
+          {isBuyer && order.listing.type === ListingType.DigitalKey && (
+            <div className="order-section">
+              <h2>გასაღები</h2>
+              {revealError && <div className="status-text status-error">{revealError}</div>}
+              {revealedKey ? (
+                <p className="note" style={{ fontFamily: 'monospace', fontSize: 16, userSelect: 'all' }}>
+                  {revealedKey}
+                </p>
+              ) : (
+                <button type="button" className="button" disabled={revealing} onClick={revealKey}>
+                  {revealing ? 'მიმდინარეობს…' : 'გასაღების ჩვენება'}
+                </button>
+              )}
+            </div>
+          )}
 
           {order.requirementsAnswers && Object.keys(order.requirementsAnswers).length > 0 && (
             <div className="order-section">

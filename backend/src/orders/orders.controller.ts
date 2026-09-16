@@ -45,6 +45,14 @@ export class OrdersController {
     return this.orders.findForParticipant(userId, id);
   }
 
+  // Buyer-only — deliberately a separate pull, not embedded in findForParticipant's response, so
+  // the decrypted key never rides along with every ordinary order-detail fetch (seen by the seller
+  // and admins too). See OrdersService#getRevealedKey.
+  @Get(':id/key')
+  getKey(@CurrentUserId() buyerId: string, @Param('id') id: string) {
+    return this.orders.getRevealedKey(buyerId, id);
+  }
+
   @Post(':id/start')
   @HttpCode(HttpStatus.OK)
   start(@CurrentUserId() sellerId: string, @Param('id') id: string) {

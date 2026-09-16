@@ -79,6 +79,11 @@ export class Listing {
   @Column({ type: 'integer', nullable: true })
   stockQuantity: number | null;
 
+  // DigitalKey-type only — set once at creation time (the seller's confirmation of legal resale
+  // rights, LAUNCH_PLAN.md §2d), null for Service/Item listings.
+  @Column({ type: 'timestamptz', nullable: true })
+  resaleRightsAttestedAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

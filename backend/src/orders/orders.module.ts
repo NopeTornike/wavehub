@@ -6,6 +6,7 @@ import { Listing } from '../listings/listing.entity';
 import { Package } from '../listings/package.entity';
 import { ServiceDetails } from '../listings/service-details.entity';
 import { ItemDetails } from '../listings/item-details.entity';
+import { ListingKeyInventory } from '../listings/listing-key-inventory.entity';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { WalletModule } from '../wallet/wallet.module';
@@ -17,7 +18,7 @@ import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderDeliveryFile, Listing, Package, ServiceDetails, ItemDetails]),
+    TypeOrmModule.forFeature([Order, OrderDeliveryFile, Listing, Package, ServiceDetails, ItemDetails, ListingKeyInventory]),
     WalletModule,
     StorageModule,
     AuthModule,

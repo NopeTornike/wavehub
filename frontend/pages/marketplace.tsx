@@ -64,7 +64,9 @@ export default function Marketplace() {
     <Layout>
       <section className="marketplace-head" aria-labelledby="marketplaceTitle">
         <div>
-          <p className="section-kicker">სერვისები და ნივთები</p>
+          <p className="section-kicker">
+            სერვისები და ნივთები — <Link href="/sell/digital-keys">Steam-ის გასაღებების გაყიდვა</Link>
+          </p>
           <h1 id="marketplaceTitle">მარკეტფლეისი</h1>
         </div>
         <div className="marketplace-total" aria-label="ხილული ლისტინგები">
@@ -119,9 +121,10 @@ export default function Marketplace() {
               resetOffset()
             }}
           >
-            <option value="">სერვისი და ნივთი</option>
+            <option value="">ყველა ტიპი</option>
             <option value={ListingType.Service}>სერვისი</option>
             <option value={ListingType.Item}>ნივთი</option>
+            <option value={ListingType.DigitalKey}>გასაღები</option>
           </select>
         </label>
       </section>
@@ -153,7 +156,9 @@ export default function Marketplace() {
                   )}
 
                   <div className="marketplace-card-top">
-                    <span className="service-tag">{listing.type === ListingType.Service ? 'სერვისი' : 'ნივთი'}</span>
+                    <span className="service-tag">
+                      {listing.type === ListingType.Service ? 'სერვისი' : listing.type === ListingType.DigitalKey ? 'გასაღები' : 'ნივთი'}
+                    </span>
                     <div className="marketplace-card-actions">
                       <strong>
                         {listing.startingPriceWaveCoin ?? '—'} WC{listing.type === ListingType.Service ? '-დან' : ''}

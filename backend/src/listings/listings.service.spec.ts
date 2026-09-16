@@ -24,6 +24,7 @@ function createFakeRepo() {
     count: jest.fn(async () => rows.size),
     delete: jest.fn(async () => ({ affected: 0 })),
     increment: jest.fn(async () => undefined),
+    update: jest.fn(async () => ({ affected: 0 })),
     createQueryBuilder: jest.fn(),
   };
 }
@@ -34,6 +35,7 @@ describe('ListingsService.createDraft', () => {
     const images = createFakeRepo();
     const serviceDetails = createFakeRepo();
     const itemDetails = createFakeRepo();
+    const keyInventory = createFakeRepo();
     const packages = createFakeRepo();
     const categories = createFakeRepo();
     const games = createFakeRepo();
@@ -44,13 +46,14 @@ describe('ListingsService.createDraft', () => {
       images as any,
       serviceDetails as any,
       itemDetails as any,
+      keyInventory as any,
       packages as any,
       categories as any,
       games as any,
       storage as any,
     );
 
-    return { service, listings, serviceDetails, itemDetails };
+    return { service, listings, serviceDetails, itemDetails, keyInventory };
   }
 
   const sellerId = 'seller-1';
@@ -103,5 +106,148 @@ describe('ListingsService.createDraft', () => {
     expect(listing.priceWaveCoin).toBeNull();
     expect(serviceDetails.save).toHaveBeenCalledTimes(1);
     expect(itemDetails.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a digital key listing with no priceWaveCoin', async () => {
+    const { service } = build();
+
+    await expect(
+      service.createDraft(sellerId, {
+        type: ListingType.DigitalKey,
+        categoryId: 'cat-1',
+        title: 'A valid title here',
+        description: 'A'.repeat(60),
+        resaleRightsAttested: true,
+      } as any),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects a digital key listing without the resale-rights attestation', async () => {
+    const { service } = build();
+
+    await expect(
+      service.createDraft(sellerId, {
+        type: ListingType.DigitalKey,
+        categoryId: 'cat-1',
+        title: 'A valid title here',
+        description: 'A'.repeat(60),
+        priceWaveCoin: 100,
+      } as any),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('creates a digital key listing with no ItemDetails/ServiceDetails row when both requirements are met', async () => {
+    const { service, listings, itemDetails, serviceDetails } = build();
+
+    const listing = await service.createDraft(sellerId, {
+      type: ListingType.DigitalKey,
+      categoryId: 'cat-1',
+      title: 'A valid title here',
+      description: 'A'.repeat(60),
+      priceWaveCoin: 100,
+      resaleRightsAttested: true,
+    } as any);
+
+    expect(listing.status).toBe(ListingStatus.Draft);
+    expect(listing.priceWaveCoin).toBe(100);
+    expect(listing.stockQuantity).toBeNull();
+    expect(listing.resaleRightsAttestedAt).toBeInstanceOf(Date);
+    expect(itemDetails.save).not.toHaveBeenCalled();
+    expect(serviceDetails.save).not.toHaveBeenCalled();
+    expect(listings.save).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ListingsService key inventory', () => {
+  function build(listingOverrides: any = {}) {
+    const listings = createFakeRepo();
+    listings.rows.set('listing-1', {
+      id: 'listing-1',
+      sellerId: 'seller-1',
+      type: ListingType.DigitalKey,
+      ...listingOverrides,
+    });
+    const images = createFakeRepo();
+    const serviceDetails = createFakeRepo();
+    const itemDetails = createFakeRepo();
+    const keyInventory = createFakeRepo();
+    const packages = createFakeRepo();
+    const categories = createFakeRepo();
+    const games = createFakeRepo();
+    const storage = { save: jest.fn() };
+
+    const service = new ListingsService(
+      listings as any,
+      images as any,
+      serviceDetails as any,
+      itemDetails as any,
+      keyInventory as any,
+      packages as any,
+      categories as any,
+      games as any,
+      storage as any,
+    );
+
+    return { service, listings, keyInventory };
+  }
+
+  const sellerId = 'seller-1';
+
+  it('encrypts every key before saving (never stores the raw value)', async () => {
+    const { service, keyInventory } = build();
+
+    const result = await service.addKeys(sellerId, 'listing-1', ['RAW-KEY-ONE', 'RAW-KEY-TWO']);
+
+    expect(result.added).toBe(2);
+    expect(keyInventory.save).toHaveBeenCalledTimes(1);
+    const savedRows = keyInventory.save.mock.calls[0][0];
+    for (const row of savedRows) {
+      expect(row.keyValueEncrypted).not.toContain('RAW-KEY');
+    }
+  });
+
+  it('rejects adding keys to a non-digital-key listing', async () => {
+    const { service } = build({ type: ListingType.Item });
+    await expect(service.addKeys(sellerId, 'listing-1', ['X'])).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects a non-owner from adding keys', async () => {
+    const { service } = build({ sellerId: 'someone-else' });
+    await expect(service.addKeys(sellerId, 'listing-1', ['X'])).rejects.toThrow(ForbiddenException);
+  });
+
+  it('listKeys never includes the encrypted or raw key value', async () => {
+    const { service, keyInventory } = build();
+    keyInventory.rows.set('key-1', {
+      id: 'key-1',
+      listingId: 'listing-1',
+      status: 'available',
+      keyValueEncrypted: 'ciphertext-should-not-leak',
+      soldAt: null,
+      createdAt: new Date(),
+    });
+
+    const result = await service.listKeys(sellerId, 'listing-1');
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).not.toHaveProperty('keyValueEncrypted');
+    expect(JSON.stringify(result)).not.toContain('ciphertext-should-not-leak');
+  });
+
+  it('removeKey only affects an available key (soft-delete via status update)', async () => {
+    const { service, keyInventory } = build();
+    keyInventory.update.mockResolvedValueOnce({ affected: 1 });
+
+    await service.removeKey(sellerId, 'listing-1', 'key-1');
+
+    expect(keyInventory.update).toHaveBeenCalledWith(
+      { id: 'key-1', listingId: 'listing-1', status: 'available' },
+      { status: 'revoked' },
+    );
+  });
+
+  it('removeKey 404s when the key is already sold/revoked or missing', async () => {
+    const { service } = build();
+    await expect(service.removeKey(sellerId, 'listing-1', 'key-1')).rejects.toThrow('Available key not found');
   });
 });

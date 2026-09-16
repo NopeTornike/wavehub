@@ -81,3 +81,20 @@ session charge apart (`backend/src/wallet/WalletService.getBalanceSummary()` sum
 when computing a user's earnings — see that module's `CLAUDE.md` for a real bug this asymmetry
 caused and how it was fixed). `NotificationType` gained `SessionBooked`/`SessionCompleted`/
 `SessionCancelled` for the same feature.
+
+`TournamentStatus`/`PublicTournamentSummary`/`PublicTournamentDetail` (2026-09-16) were added
+alongside `backend/src/tournaments/` — admin-posted tournaments with self-service registration; see
+that module's `CLAUDE.md` for why the public shape deliberately carries no per-viewer
+"am I registered" field. `PublicConversationSummary` (2026-09-17) was added alongside Direct
+(non-order) messaging in `backend/src/chat/` — reuses the existing `ConversationType`/`MessageType`/
+`PublicMessage` rather than new enums, since Direct conversations share the same underlying tables
+as Order chat.
+
+`ListingType` gained a third value, `DigitalKey` (2026-09-17, Steam Keys — LAUNCH_PLAN.md §2d), and
+`KeyInventoryStatus`/`SellerListingKeySummary` were added alongside it — see
+`backend/src/listings/CLAUDE.md` (the entity/encryption side) and `backend/src/orders/CLAUDE.md`
+(the race-safe purchase-claim and key-reveal side, including a real concurrency bug found and fixed
+during verification) for the full writeup. `PublicListingSummary`/`PublicListingDetail` were **not**
+changed — a DigitalKey listing's live available-key count is reported through the existing
+`stockQuantity` field (computed, never the stored column) rather than a new field, keeping the
+public shape's surface area the same across all three listing types.

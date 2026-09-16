@@ -36,6 +36,7 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
     const chat = { ensureConversation: jest.fn(), postSystemMessage: jest.fn() } as any;
     const notifications = { emit: jest.fn() } as any;
     const platformSettings = { getPlatformFeePercent: jest.fn(async () => 10) } as any;
+    const keyInventory = { findOne: jest.fn(), count: jest.fn() } as any;
 
     const service = new OrdersService(
       {} as any, // orders repo — not reached before the guard clauses under test
@@ -44,6 +45,7 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
       fakeRepo(packages) as any,
       { findOne: jest.fn(async ({ where }: any) => serviceDetails[where.listingId] ?? null) } as any,
       { findOne: jest.fn(async ({ where }: any) => itemDetails[where.listingId] ?? null) } as any,
+      keyInventory,
       dataSource,
       wallet,
       storage,
@@ -52,7 +54,7 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
       platformSettings,
     );
 
-    return { service, dataSource, wallet, chat, notifications, platformSettings };
+    return { service, dataSource, wallet, chat, notifications, platformSettings, keyInventory };
   }
 
   it('rejects a listing that does not exist or is not Active', async () => {
@@ -146,5 +148,181 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
     await expect(
       service.purchase(buyerId, { listingId: 'listing-1' } as any),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects a digital key purchase with no price set', async () => {
+    const { service } = build({
+      'listing-1': { id: 'listing-1', sellerId, status: ListingStatus.Active, type: ListingType.DigitalKey, priceWaveCoin: null },
+    });
+    await expect(service.purchase(buyerId, { listingId: 'listing-1' } as any)).rejects.toThrow(ForbiddenException);
+  });
+
+  // `manager.createQueryBuilder()` is mocked directly (not `manager.query()`) — see the comment on
+  // the `execute()`-based claim in orders.service.ts for why: a first version of this code parsed
+  // `manager.query()`'s raw return value by hand and got the shape wrong (verified for real against
+  // a live Postgres instance, not caught by any unit test with a fake repository — see
+  // backend/src/orders/CLAUDE.md), so these tests are written against the same stable
+  // `UpdateResult.affected` contract the real fix now uses, not a raw-driver-shaped mock.
+  function fakeClaimQueryBuilder(affected: number) {
+    const qb: any = {
+      update: jest.fn(() => qb),
+      set: jest.fn(() => qb),
+      where: jest.fn(() => qb),
+      execute: jest.fn(async () => ({ affected })),
+    };
+    return qb;
+  }
+
+  it('rejects a digital key purchase when the atomic claim affects zero rows (out of stock)', async () => {
+    const { service, dataSource, wallet } = build({
+      'listing-1': { id: 'listing-1', sellerId, status: ListingStatus.Active, type: ListingType.DigitalKey, priceWaveCoin: 25 },
+    });
+    const claimQb = fakeClaimQueryBuilder(0);
+    const manager = {
+      query: jest.fn().mockResolvedValueOnce([{ n: '123' }]), // generateOrderNumber's nextval query
+      create: jest.fn((_entity: any, data: any) => data),
+      save: jest.fn(async (row: any) => ({ ...row, id: 'order-1' })),
+      count: jest.fn(),
+      update: jest.fn(),
+      createQueryBuilder: jest.fn(() => claimQb),
+    };
+    dataSource.transaction.mockImplementation((fn: any) => fn(manager));
+
+    await expect(service.purchase(buyerId, { listingId: 'listing-1' } as any)).rejects.toThrow(ForbiddenException);
+    // Must fail before ever attempting to debit the buyer's balance.
+    expect(wallet.debitForOrder).not.toHaveBeenCalled();
+  });
+
+  it('claims a key, debits the buyer, and does not pause the listing when keys remain', async () => {
+    const { service, dataSource, wallet } = build({
+      'listing-1': { id: 'listing-1', sellerId, status: ListingStatus.Active, type: ListingType.DigitalKey, priceWaveCoin: 25 },
+    });
+    const claimQb = fakeClaimQueryBuilder(1);
+    const manager = {
+      query: jest.fn().mockResolvedValueOnce([{ n: '123' }]),
+      create: jest.fn((_entity: any, data: any) => data),
+      save: jest.fn(async (row: any) => ({ ...row, id: 'order-1' })),
+      count: jest.fn().mockResolvedValue(2), // keys still available after this claim
+      update: jest.fn(),
+      createQueryBuilder: jest.fn(() => claimQb),
+    };
+    dataSource.transaction.mockImplementation((fn: any) => fn(manager));
+
+    const result = await service.purchase(buyerId, { listingId: 'listing-1' } as any);
+
+    expect(wallet.debitForOrder).toHaveBeenCalledWith(buyerId, 'order-1', 25, manager);
+    expect(manager.update).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ id: 'order-1', priceWaveCoin: 25 });
+  });
+
+  it('pauses the listing once the last available key is claimed', async () => {
+    const { service, dataSource } = build({
+      'listing-1': { id: 'listing-1', sellerId, status: ListingStatus.Active, type: ListingType.DigitalKey, priceWaveCoin: 25 },
+    });
+    const claimQb = fakeClaimQueryBuilder(1);
+    const manager = {
+      query: jest.fn().mockResolvedValueOnce([{ n: '123' }]),
+      create: jest.fn((_entity: any, data: any) => data),
+      save: jest.fn(async (row: any) => ({ ...row, id: 'order-1' })),
+      count: jest.fn().mockResolvedValue(0), // no keys left after this claim
+      update: jest.fn(),
+      createQueryBuilder: jest.fn(() => claimQb),
+    };
+    dataSource.transaction.mockImplementation((fn: any) => fn(manager));
+
+    await service.purchase(buyerId, { listingId: 'listing-1' } as any);
+
+    expect(manager.update).toHaveBeenCalledWith(expect.anything(), 'listing-1', { status: ListingStatus.Paused });
+  });
+});
+
+describe('OrdersService cancellation guards for DigitalKey orders', () => {
+  const buyerId = 'buyer-1';
+  const sellerId = 'seller-1';
+
+  function build(order: any) {
+    const orders = { findOne: jest.fn(async () => order) } as any;
+    const dataSource = { transaction: jest.fn() } as any;
+    const wallet = { refundBuyer: jest.fn() } as any;
+    const service = new OrdersService(
+      orders,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      dataSource,
+      wallet,
+      {} as any,
+      { postSystemMessage: jest.fn() } as any,
+      { emit: jest.fn() } as any,
+      {} as any,
+    );
+    return { service };
+  }
+
+  it('refuses a buyer cancelling a digital key order', async () => {
+    const { service } = build({ id: 'order-1', buyerId, sellerId, status: 'paid', listingType: ListingType.DigitalKey });
+    await expect(service.cancelByBuyer(buyerId, 'order-1')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('refuses a seller cancelling a digital key order', async () => {
+    const { service } = build({ id: 'order-1', buyerId, sellerId, status: 'paid', listingType: ListingType.DigitalKey });
+    await expect(service.cancelBySeller(sellerId, 'order-1', 'changed my mind')).rejects.toThrow(ForbiddenException);
+  });
+});
+
+describe('OrdersService.getRevealedKey', () => {
+  const buyerId = 'buyer-1';
+  const sellerId = 'seller-1';
+
+  function build(order: any, keyRow: any) {
+    const orders = { findOne: jest.fn(async () => order) } as any;
+    const keyInventory = { findOne: jest.fn(async () => keyRow) } as any;
+    const service = new OrdersService(
+      orders,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      keyInventory,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+    return { service, keyInventory };
+  }
+
+  it('rejects a non-DigitalKey order', async () => {
+    const { service } = build({ id: 'order-1', buyerId, sellerId, status: 'paid', listingType: ListingType.Item }, null);
+    await expect(service.getRevealedKey(buyerId, 'order-1')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects a non-buyer', async () => {
+    const { service } = build({ id: 'order-1', buyerId, sellerId, status: 'paid', listingType: ListingType.DigitalKey }, null);
+    await expect(service.getRevealedKey('someone-else', 'order-1')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects a cancelled/refunded order even if a stray sold row somehow exists', async () => {
+    const { service } = build(
+      { id: 'order-1', buyerId, sellerId, status: 'cancelled', listingType: ListingType.DigitalKey },
+      { keyValueEncrypted: 'irrelevant' },
+    );
+    await expect(service.getRevealedKey(buyerId, 'order-1')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('returns the decrypted key for a paid order', async () => {
+    const { encryptKeyValue } = await import('../listings/key-encryption.util');
+    const { service } = build(
+      { id: 'order-1', buyerId, sellerId, status: 'paid', listingType: ListingType.DigitalKey },
+      { keyValueEncrypted: encryptKeyValue('REAL-STEAM-KEY-123') },
+    );
+    const result = await service.getRevealedKey(buyerId, 'order-1');
+    expect(result).toEqual({ key: 'REAL-STEAM-KEY-123' });
   });
 });

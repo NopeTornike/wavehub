@@ -15,13 +15,14 @@ seller payouts (withdrawals, still a future phase) all hang off an Order existin
 - `requirements-validator.ts` — `validateRequirementsAnswers(schema, answers)`, checks a buyer's
   submitted requirements-form answers against a service listing's required fields at purchase time
 - `orders.service.ts` — everything: `purchase`, `startOrder`, `deliverOrder`, `addDeliveryFile`,
-  `requestRevision`, `acceptDelivery`, `cancelByBuyer`, `cancelBySeller`, the 72h
-  `autoCompleteDueOrders` cron, and `listMessages`/`sendMessage` (thin ownership-checked wrappers
-  around `backend/src/chat/`'s `ChatService` — see that module's doc for why chat's own routes live
-  here instead of a separate controller)
+  `requestRevision`, `acceptDelivery`, `cancelByBuyer`, `cancelBySeller`, `getRevealedKey`
+  (DigitalKey orders only — see the gotcha below), the 72h `autoCompleteDueOrders` cron, and
+  `listMessages`/`sendMessage` (thin ownership-checked wrappers around `backend/src/chat/`'s
+  `ChatService` — see that module's doc for why chat's own routes live here instead of a separate
+  controller)
 - `orders.controller.ts` — all routes guarded, ownership-checked per action (buyer-only vs
   seller-only) inside the service, not the controller; also exposes
-  `GET`/`POST /orders/:id/messages`
+  `GET`/`POST /orders/:id/messages` and `GET /orders/:id/key`
 
 ## Data model
 `orders`, `order_delivery_files` (migration: `CreateOrdersSchema`, which also adds the `orderId` FK
@@ -45,11 +46,52 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   `Active`). Both call sites in `orders.service.ts` go through `assertValidListingTransition` (an
   aliased import of the listings module's `assertValidTransition`) — never mutate `listing.status`
   directly here.
-- **Item vs service purchase differ in what's required**: service needs `packageId` (price/delivery
-  come from the `Package`) and validates `requirementsAnswers` against the listing's
+- **Purchase branches on all three listing types**: service needs `packageId` (price/delivery come
+  from the `Package`) and validates `requirementsAnswers` against the listing's
   `ServiceDetails.requirementsSchema`; item needs no package, prices itself directly, and checks
-  `stockQuantity`. See `purchase()`'s branch — don't add a third listing-type branch without also
-  updating `listings/CLAUDE.md`'s "shared base" note.
+  `stockQuantity` in a pre-transaction guard; DigitalKey also prices itself directly but has no
+  pre-transaction stock check at all — its "stock" (`listing_key_inventory` rows) can only be
+  checked race-safely *inside* the transaction, see the next gotcha.
+- **DigitalKey's stock claim is a real atomic row-lock, not a decrement.** Inside the same
+  transaction as the Order insert and wallet debit, `purchase()` runs a
+  `manager.createQueryBuilder().update(ListingKeyInventory).set({status: Sold, orderId, soldAt})
+  .where('id = (SELECT id ... WHERE listingId = :id AND status = :available ORDER BY createdAt ASC
+  FOR UPDATE SKIP LOCKED LIMIT 1)')` — this locks exactly one `available` row per concurrent
+  purchaser, so two simultaneous buyers can never both claim the same key (verified with real
+  concurrent requests against a live Postgres instance — see `listings/CLAUDE.md`'s Status section
+  for the full writeup, including a real bug this surfaced and fixed). **Check
+  `UpdateResult.affected`, never a hand-parsed `manager.query()` raw result** — `manager.query()`'s
+  return shape for a raw `UPDATE ... RETURNING` is a `[rows, affectedCount]` tuple, not a plain rows
+  array, and `array.length` on that tuple is always `2` regardless of whether anything was actually
+  claimed. This is exactly the bug that shipped once and was only caught by firing genuinely
+  concurrent HTTP requests at a live instance — a unit test with a fake repository has no way to
+  exercise real Postgres row-locking semantics, so don't trust one alone to validate a change here.
+  On zero rows affected, throws `ForbiddenException('This key listing is out of stock')` — thrown
+  *before* the wallet debit, so an out-of-stock buyer's balance is never touched.
+- **A DigitalKey order auto-pauses its listing the same way a sold-out Item does** — after a
+  successful claim, `purchase()` re-counts `available` rows for the listing and pauses it if that
+  count is now zero, via the same `assertValidListingTransition` used for items. Unlike items,
+  there's no unpause-on-cancel path for keys (see the cancellation gotcha below — a DigitalKey
+  order is never plain-cancelled, so this restock path never applies).
+- **A DigitalKey order can never be cancelled by either party through `cancelByBuyer`/
+  `cancelBySeller`** — `assertCancellableListingType` throws a `ForbiddenException` up front for
+  either method. By the time an order reaches the only cancellable status (`Paid`), the key has
+  already been irrevocably claimed and is immediately viewable by the buyer (see `getRevealedKey`
+  below), so a no-review automatic refund would either let a buyer keep a revealed secret *and*
+  their money back, or let a seller claw back a key the buyer may have already redeemed. "This key
+  doesn't work" is a real, legitimate complaint — it goes through `backend/src/disputes/` instead
+  (Paid/InProgress/Delivered are already openable there, no changes needed), where an admin actually
+  reviews it before any refund happens.
+- **`getRevealedKey` is buyer-only, decrypted on demand, and deliberately not part of
+  `findForParticipant`'s response.** It's a separate `GET orders/:id/key` pull so the decrypted key
+  never rides along with the general order-detail fetch (which the seller and any admin viewing the
+  order can also see) — only an explicit buyer request ever reconstructs the plaintext. Revealable
+  from `Paid` onward (not gated on the InProgress/Delivered/Completed ceremony a service/item order
+  goes through) — LAUNCH_PLAN.md §2d's "the buyer only ever sees the key value after status = paid"
+  is a deliberate simplification: there's no real seller "work" to do for a key that already exists
+  in inventory, so making the buyer wait for the seller to click through Start/Deliver would just be
+  UX friction with no purpose. The seller still goes through that ceremony to mark the order
+  `Completed` (for the 7-day payout hold and reviews), it just doesn't gate key visibility.
 - **Both listing types currently go through the same `Paid → InProgress → Delivered → Completed`
   flow**, even though "in progress" is a somewhat artificial step for an item sale (there's no real
   "work" to start). This was a deliberate simplification to avoid building a second state machine
@@ -129,14 +171,32 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
 
 ## Status
 Full purchase-to-completion flow implemented and unit-tested at the validation/lifecycle layer
-(guard clauses, state machine, requirements validation, and the INSUFFICIENT_BALANCE translation)
-— 119 backend tests total after Disputes landed. Not verified against a live Postgres transaction
-(no DB available in the sandbox this was built in — see the migration's own notes and
-`backend/src/wallet/CLAUDE.md`'s equivalent caveat). Frontend exists for checkout, order
-management, chat, and disputes: `frontend/pages/listings/[id].tsx` (including the requirements-form
-for service listings), an order list at `frontend/pages/orders/index.tsx` (buyer/seller tabs), and
-an order detail/actions page at `frontend/pages/orders/[id].tsx` (start/deliver/accept/revision/
-cancel + delivery-file upload + leave-a-review once completed + a polling chat panel + an
-open-dispute form and dispute panel) — see `frontend/CLAUDE.md`. `order-lifecycle.ts`'s
-`Disputed`/`Refunded` targets are now real (see `backend/src/disputes/CLAUDE.md`). The platform fee
-rate is now admin-configurable (`backend/src/settings/`). Still deferred: multi-instance-safe cron.
+(guard clauses, state machine, requirements validation, and the INSUFFICIENT_BALANCE translation).
+**Verified against a real, running Postgres instance** (this repo now has one — see root
+`CLAUDE.md`'s "Real-database verification" section), including a real buyer+seller browser
+click-through of the full purchase→deliver→accept→review lifecycle. Frontend exists for checkout,
+order management, chat, and disputes: `frontend/pages/listings/[id].tsx` (including the
+requirements-form for service listings), an order list at `frontend/pages/orders/index.tsx`
+(buyer/seller tabs), and an order detail/actions page at `frontend/pages/orders/[id].tsx`
+(start/deliver/accept/revision/cancel + delivery-file upload + leave-a-review once completed + a
+polling chat panel + an open-dispute form and dispute panel) — see `frontend/CLAUDE.md`.
+`order-lifecycle.ts`'s `Disputed`/`Refunded` targets are now real (see `backend/src/disputes/
+CLAUDE.md`). The platform fee rate is now admin-configurable (`backend/src/settings/`). Still
+deferred: multi-instance-safe cron.
+
+**DigitalKey purchase + key reveal (2026-09-17) — shipped and verified, including real concurrent
+purchases against a live Postgres instance.** See `backend/src/listings/CLAUDE.md`'s Status section
+for the full writeup: the race-safe claim query, the real correctness bug found and fixed in it
+during verification (a `manager.query()` return-shape misunderstanding that let the "out of stock"
+check silently never fire), the pre-existing same-buyer wallet-lock deadlock this testing also
+surfaced (unrelated to this change, flagged as a follow-up, not fixed here), and the full real
+two-account browser click-through (create → upload keys → submit → admin-approve → two real
+purchases → two real key reveals → live balance updates → auto-pause on sellout).
+
+**A second, separate real bug was found and fixed during this same verification pass, unrelated to
+Steam Keys specifically**: `frontend/pages/listings/[id].tsx`'s buy handler never called
+`useAuth()`'s `refresh()` after a successful purchase, so the topbar WaveCoin balance display went
+stale until a hard reload — the exact same class of bug already found and fixed for coaching-session
+booking (see `backend/src/coaching/CLAUDE.md`), just never applied to the original marketplace
+purchase flow it was copied from. Fixed the same way: `await refresh()` before `router.push`. This
+means every listing type's purchase flow (not just DigitalKey) now updates the header balance live.

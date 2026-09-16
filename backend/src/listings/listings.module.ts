@@ -4,6 +4,7 @@ import { Listing } from './listing.entity';
 import { ListingImage } from './listing-image.entity';
 import { ServiceDetails } from './service-details.entity';
 import { ItemDetails } from './item-details.entity';
+import { ListingKeyInventory } from './listing-key-inventory.entity';
 import { Package } from './package.entity';
 import { Category } from './category.entity';
 import { Game } from './game.entity';
@@ -17,7 +18,16 @@ import { UsersController } from '../users/users.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Listing, ListingImage, ServiceDetails, ItemDetails, Package, Category, Game]),
+    TypeOrmModule.forFeature([
+      Listing,
+      ListingImage,
+      ServiceDetails,
+      ItemDetails,
+      ListingKeyInventory,
+      Package,
+      Category,
+      Game,
+    ]),
     StorageModule,
     AuthModule,
     AdminModule,

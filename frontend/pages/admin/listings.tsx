@@ -7,6 +7,7 @@ import { api, ApiError } from '../../lib/api'
 const TYPE_LABELS: Record<ListingType, string> = {
   [ListingType.Service]: 'სერვისი',
   [ListingType.Item]: 'ნივთი',
+  [ListingType.DigitalKey]: 'გასაღები',
 }
 
 export default function AdminListings() {
