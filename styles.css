@@ -15228,6 +15228,8 @@ body.public-profile-view .main-panel {
 .steam-game-info h2 { min-height: 54px; margin: 0; color: #fff; font-size: clamp(19px,1.6vw,27px); text-transform: uppercase; }
 .steam-game-info > p { margin: 5px 0 12px; color: #aaa4ad; text-transform: uppercase; font-size: 12px; }
 .steam-game-info > p i { color: #a345ff; font-style: normal; }
+.steam-game-info > p { display: flex; align-items: center; gap: 8px; }
+.steam-key-icon { width: 19px; height: 19px; flex: 0 0 19px; display: block; object-fit: contain; filter: invert(1) drop-shadow(0 0 4px rgba(255,80,174,.38)); }
 .steam-game-price { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid rgba(255,255,255,.08); padding: 13px 0; }
 .steam-game-price > strong { color: #fff; font-size: 30px; }
 .steam-game-price > strong small { font-size: 14px; font-weight: 500; }
@@ -16120,4 +16122,142 @@ body.seller-profile-open { overflow: hidden; }
   .site-footer-socials > span { display: none; }
   .site-footer-socials a { width: 36px; height: 36px; }
   .site-footer-language { justify-self: center; }
+}
+
+/* Coach detail: final responsive guardrails. */
+.coach-detail-body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.coach-detail-body .coach-profile-shell,
+.coach-detail-body .coach-profile-shell > *,
+.coach-detail-body .coach-profile-hero > *,
+.coach-detail-body .coach-overview-top > *,
+.coach-detail-body .coach-info-grid > *,
+.coach-detail-body .coach-booking-main > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.coach-detail-body img,
+.coach-detail-body video,
+.coach-detail-body iframe {
+  max-width: 100%;
+}
+
+@media (max-width: 820px) {
+  .coach-detail-body .coach-profile-shell {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 10px 12px 30px;
+    overflow: hidden;
+  }
+
+  .coach-detail-body .coach-profile-hero,
+  .coach-detail-body .coach-score-panels,
+  .coach-detail-body .coach-overview-top,
+  .coach-detail-body .coach-info-grid,
+  .coach-detail-body .coach-booking-main {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .coach-detail-body .coach-profile-hero {
+    gap: 14px;
+    justify-items: stretch;
+  }
+
+  .coach-detail-body .coach-profile-portrait-wrap {
+    min-height: 206px;
+  }
+
+  .coach-detail-body .coach-profile-portrait {
+    width: min(190px, 62vw);
+    margin-inline: auto;
+  }
+
+  .coach-detail-body .coach-profile-intro {
+    width: 100%;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .coach-detail-body .coach-profile-title-row,
+  .coach-detail-body .coach-profile-badges {
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .coach-detail-body .coach-profile-intro p {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .coach-detail-body .coach-profile-metrics,
+  .coach-detail-body .coach-profile-tabs {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coach-detail-body .coach-profile-tabs button {
+    min-width: 0;
+    padding-inline: 8px;
+    overflow-wrap: anywhere;
+  }
+
+  .coach-detail-body .coach-video-card,
+  .coach-detail-body .coach-meet-card,
+  .coach-detail-body .coach-info-card,
+  .coach-detail-body .coach-booking-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .coach-detail-body .coach-video-preview {
+    min-height: 190px;
+  }
+
+  .coach-detail-body .coach-games-card div,
+  .coach-detail-body .coach-languages-card div {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .coach-detail-body .coach-games-card span,
+  .coach-detail-body .coach-languages-card span {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .coach-detail-body .coach-booking-panel {
+    padding: 12px;
+  }
+
+  .coach-detail-body .coach-book-primary,
+  .coach-detail-body .coach-book-secondary {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .coach-detail-body .coach-profile-shell {
+    padding-inline: 9px;
+  }
+
+  .coach-detail-body .coach-profile-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .coach-detail-body .coach-profile-metric {
+    border-right: 0;
+  }
 }

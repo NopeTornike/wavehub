@@ -14,7 +14,7 @@
     const favorites = readFavorites();
     grid.innerHTML = games.map((game) => `<article class="steam-game-card">
       <div class="steam-game-cover" style="background-image:url('${game.cover}')"><span>${game.label}</span><button type="button" class="${favorites.includes(game.id) ? 'active' : ''}" data-steam-favorite="${game.id}" aria-label="Save ${game.title}">♡</button></div>
-      <div class="steam-game-info"><h2>${game.title}</h2><p><i>◉</i> Steam Key</p><div class="steam-game-price"><strong>${game.price}<small> GEL</small></strong><span class="${game.state}">${game.stock}<i></i></span></div><div class="steam-game-actions"><a href="#" data-steam-view="${game.id}">View Game <span>→</span></a><button type="button" ${['out','sold'].includes(game.state) ? 'disabled' : ''} aria-label="Add ${game.title} to cart">🛒</button></div></div>
+      <div class="steam-game-info"><h2>${game.title}</h2><p><img class="steam-key-icon" src="assets/steam-logo.png?v=1" alt="" aria-hidden="true" /> Steam Key</p><div class="steam-game-price"><strong>${game.price}<small> GEL</small></strong><span class="${game.state}">${game.stock}<i></i></span></div><div class="steam-game-actions"><a href="#" data-steam-view="${game.id}">View Game <span>→</span></a><button type="button" ${['out','sold'].includes(game.state) ? 'disabled' : ''} aria-label="Add ${game.title} to cart">🛒</button></div></div>
     </article>`).join('');
   };
   grid?.addEventListener('click', (event) => {
