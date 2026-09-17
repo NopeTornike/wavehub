@@ -723,7 +723,6 @@
 
   <script src="script.js?v=20260902-preserve-marketplace-listings"></script>
   <script src="cart-nav.js"></script>
-  <script src="api-config.js"></script>
 <script src="profile-nav.js?v=20260902-secure-session-messages-1"></script>
   <script src="state-sync.js?v=20260902-server-state-1"></script>
   <script>
@@ -911,63 +910,6 @@
         const price = Number(value);
         return `${Number.isFinite(price) ? (Number.isInteger(price) ? price : price.toFixed(2)) : 0} GEL`;
       };
-      const featuredFavoritesKey = 'wavehub.favorites';
-      const getFeaturedFavoriteId = listing => listing?.id ? `listing:${listing.id}` : '';
-      const getFeaturedFavorites = username => {
-        const favoritesByUser = readHomeData(featuredFavoritesKey, {});
-        const favorites = favoritesByUser && typeof favoritesByUser === 'object' && !Array.isArray(favoritesByUser)
-          ? favoritesByUser[username]
-          : [];
-        return Array.isArray(favorites) ? favorites : [];
-      };
-      const getFeaturedUsername = () => readHomeData('wavehub.session', null)?.user?.username || '';
-      const setFeaturedFavoriteState = (button, isSaved) => {
-        button.classList.toggle('saved', isSaved);
-        button.textContent = isSaved ? '♥' : '♡';
-        button.setAttribute('aria-pressed', String(isSaved));
-        button.setAttribute('aria-label', isSaved ? 'Remove from favorites' : 'Save product');
-        button.title = isSaved ? 'Remove from favorites' : 'Save product';
-      };
-      const toggleFeaturedFavorite = (listing, button) => {
-        const username = getFeaturedUsername();
-        if (!username) {
-          document.getElementById('profileButton')?.click();
-          return;
-        }
-
-        const favoriteId = getFeaturedFavoriteId(listing);
-        if (!favoriteId) return;
-        const favoritesByUser = readHomeData(featuredFavoritesKey, {});
-        const source = favoritesByUser && typeof favoritesByUser === 'object' && !Array.isArray(favoritesByUser)
-          ? favoritesByUser
-          : {};
-        const favorites = getFeaturedFavorites(username);
-        const isSaved = !favorites.some(item => item?.id === favoriteId);
-        const favorite = {
-          id: favoriteId,
-          type: 'product',
-          listingId: listing.id,
-          search: `${listing.title || ''} ${listing.game || ''} ${listing.description || ''}`.trim(),
-          title: listing.title || `${listing.game || 'Marketplace'} item`,
-          description: listing.description || '',
-          seller: listing.sellerName || listing.sellerUsername || 'Marketplace seller',
-          price: formatFeaturedPrice(listing.price),
-          tag: `${listing.game || 'Marketplace'} ${listing.listingType === 'skin' ? 'Skin' : 'Account'}`,
-          savedAt: new Date().toISOString(),
-        };
-        localStorage.setItem(featuredFavoritesKey, JSON.stringify({
-          ...source,
-          [username]: isSaved
-            ? [...favorites.filter(item => item?.id !== favoriteId), favorite]
-            : favorites.filter(item => item?.id !== favoriteId),
-        }));
-        document.querySelectorAll(`[data-featured-favorite-id="${CSS.escape(favoriteId)}"]`).forEach(favoriteButton => {
-          setFeaturedFavoriteState(favoriteButton, isSaved);
-        });
-        button.classList.remove('favorite-pop');
-        requestAnimationFrame(() => button.classList.add('favorite-pop'));
-        window.setTimeout(() => button.classList.remove('favorite-pop'), 300);
-      };
       const renderHomeFeaturedItems = () => {
         const list = document.getElementById('homeFeaturedItems');
         const empty = document.getElementById('homeFeaturedEmpty');
@@ -982,7 +924,7 @@
         featured.slice(0, 2).forEach(listing => {
           const card = document.createElement('article');
           const imageLink = document.createElement('a');
-          const heart = document.createElement('button');
+          const heart = document.createElement('span');
           const copy = document.createElement('div');
           const title = document.createElement('h3');
           const titleLink = document.createElement('a');
@@ -999,11 +941,10 @@
           imageLink.setAttribute('aria-label', `View ${listing.title || `${listing.game || 'Marketplace'} item`}`);
           imageLink.textContent = image ? '' : getFeaturedInitials(listing.game);
           if (image) imageLink.style.backgroundImage = `linear-gradient(180deg, rgba(8, 5, 14, .02), rgba(8, 5, 14, .18)), url("${String(image).replace(/"/g, '%22')}")`;
-          heart.className = 'home-featured-heart home-featured-favorite';
-          heart.type = 'button';
-          heart.dataset.featuredFavoriteId = getFeaturedFavoriteId(listing);
-          setFeaturedFavoriteState(heart, getFeaturedFavorites(getFeaturedUsername()).some(item => item?.id === heart.dataset.featuredFavoriteId));
-          heart.addEventListener('click', () => toggleFeaturedFavorite(listing, heart));
+          heart.className = 'home-featured-heart';
+          heart.setAttribute('aria-hidden', 'true');
+          heart.textContent = '♡';
+          imageLink.appendChild(heart);
 
           copy.className = 'home-featured-copy';
           titleLink.href = detailUrl;
@@ -1015,7 +956,7 @@
           details.textContent = 'View details';
           footer.append(price, details);
           copy.append(title, meta, footer);
-          card.append(imageLink, heart, copy);
+          card.append(imageLink, copy);
           list.appendChild(card);
         });
 
@@ -1023,9 +964,8 @@
         if (!mobileList) return;
         mobileList.replaceChildren();
         featured.slice(0, 3).forEach(listing => {
-          const card = document.createElement('article');
-          const detailLink = document.createElement('a');
-          const heart = document.createElement('button');
+          const card = document.createElement('a');
+          const heart = document.createElement('span');
           const image = document.createElement('span');
           const title = document.createElement('strong');
           const condition = document.createElement('small');
@@ -1034,21 +974,17 @@
           const productImage = getFeaturedImage(listing);
 
           card.className = 'featured-item-card';
-          detailLink.className = 'featured-item-details-link';
-          detailLink.href = detailUrl;
-          heart.className = 'featured-item-save home-featured-favorite';
-          heart.type = 'button';
-          heart.dataset.featuredFavoriteId = getFeaturedFavoriteId(listing);
-          setFeaturedFavoriteState(heart, getFeaturedFavorites(getFeaturedUsername()).some(item => item?.id === heart.dataset.featuredFavoriteId));
-          heart.addEventListener('click', () => toggleFeaturedFavorite(listing, heart));
+          card.href = detailUrl;
+          heart.className = 'featured-item-save';
+          heart.setAttribute('aria-hidden', 'true');
+          heart.textContent = '♡';
           image.className = 'mobile-featured-product-image';
           image.textContent = productImage ? '' : getFeaturedInitials(listing.game);
           if (productImage) image.style.backgroundImage = `url("${String(productImage).replace(/"/g, '%22')}")`;
           title.textContent = listing.title || `${listing.game || 'Marketplace'} item`;
           condition.textContent = listing.condition || listing.itemCondition || 'Factory New';
           price.textContent = formatFeaturedPrice(listing.price);
-          detailLink.append(image, title, condition, price);
-          card.append(heart, detailLink);
+          card.append(heart, image, title, condition, price);
           mobileList.appendChild(card);
         });
       };
@@ -1059,12 +995,8 @@
           renderHomeMarketplaceCounts();
           renderHomeFeaturedItems();
         }
-        if (event.key === featuredFavoritesKey) renderHomeFeaturedItems();
       });
-      window.addEventListener('pageshow', () => {
-        renderHomeMarketplaceCounts();
-        renderHomeFeaturedItems();
-      });
+      window.addEventListener('pageshow', renderHomeMarketplaceCounts);
     })();
   </script>
   <script src="site-footer.js"></script>

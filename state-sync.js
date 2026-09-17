@@ -1,8 +1,5 @@
 (function () {
-  const apiUrls = window.wavehubApiUrls?.()
-    || (['localhost', '127.0.0.1'].includes(window.location.hostname)
-      ? ['http://localhost:4000', 'http://127.0.0.1:4000']
-      : [window.location.origin]);
+  const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
   const managedKeys = new Set([
     'wavehub.cart',
     'wavehub.coachWishlist',

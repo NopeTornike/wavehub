@@ -12,10 +12,7 @@ const confirmPasswordInput = document.getElementById('confirmPassword');
 const loginStatus = document.getElementById('loginStatus');
 const registerStatus = document.getElementById('registerStatus');
 
-const apiUrls = window.wavehubApiUrls?.()
-  || (['localhost', '127.0.0.1'].includes(window.location.hostname)
-    ? ['http://localhost:4000', 'http://127.0.0.1:4000']
-    : [window.location.origin]);
+const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const validUsernamePattern = /^[a-z0-9_-]+$/;
