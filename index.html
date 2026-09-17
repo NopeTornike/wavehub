@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260917-competition-button" />
+  <link rel="stylesheet" href="styles.css?v=20260917-steam-mobile-cards" />
 </head>
 <body class="home-page">
   <div class="app-shell">
@@ -769,6 +769,28 @@
         faqSection.insertAdjacentElement('beforebegin', section);
       }
       const steamTrack = document.getElementById('homeSteamTrack');
+      const steamDescriptions = {
+        'Counter-Strike 2': 'Team up in tactical 5v5 action.',
+        'Dota 2': 'Master strategy in legendary team battles.',
+        Fortnite: 'Build, battle and be the last one standing.',
+        'Elden Ring': 'Enter a dark fantasy world of adventure.',
+        'Call of Duty': 'Fast-paced combat on iconic battlefields.',
+        'GTA V': 'Explore Los Santos in an open-world epic.',
+        Valorant: 'Precise gunplay meets unique abilities.',
+        Minecraft: 'Create, explore and survive your own world.',
+      };
+      steamTrack?.querySelectorAll('.home-steam-card').forEach(card => {
+        const cover = card.querySelector('.home-steam-cover');
+        const title = cover?.getAttribute('aria-label') || 'Steam Game';
+        const rawPrice = card.querySelector(':scope > strong')?.textContent?.replace(/[^0-9.,]/g, '') || '0';
+        const body = document.createElement('span');
+        body.className = 'home-steam-mobile-body';
+        body.innerHTML = `<strong class="home-steam-mobile-title"></strong><span class="home-steam-mobile-description"></span><span class="home-steam-mobile-price-row"><b></b><i><span></span>In Stock</i></span><span class="home-steam-mobile-details">See Details <b aria-hidden="true">→</b></span>`;
+        body.querySelector('.home-steam-mobile-title').textContent = title;
+        body.querySelector('.home-steam-mobile-description').textContent = steamDescriptions[title] || 'Instant Steam key. Start playing today.';
+        body.querySelector('.home-steam-mobile-price-row > b').textContent = `${rawPrice} GEL`;
+        card.appendChild(body);
+      });
       const steamButtons = [...document.querySelectorAll('[data-home-steam-direction]')];
       const steamDots = [...steamSection.querySelectorAll('.home-steam-dots i')];
       const updateSteamCarousel = () => {
