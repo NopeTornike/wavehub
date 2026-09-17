@@ -430,7 +430,7 @@
 
     if (hasText(coach.about)) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-about-card">
           <h2>About ${escapeHtml(coach.name)}</h2>
           <p>${escapeHtml(coach.about)}</p>
         </article>
@@ -439,7 +439,7 @@
 
     if (styleItems.length) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-style-card">
           <h2>Coaching Style</h2>
           <ul class="coach-check-list">
             ${styleItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
@@ -450,7 +450,7 @@
 
     if (expertise) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-expertise-card">
           <h2>Expertise</h2>
           ${expertise}
         </article>
@@ -459,7 +459,7 @@
 
     if (expertiseAreas.length) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-expertise-card">
           <h2>Expertise</h2>
           <ul class="coach-check-list">
             ${expertiseAreas.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
@@ -470,7 +470,7 @@
 
     if (hasText(coach.sessionDescription)) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-session-card">
           <h2>About Session</h2>
           <p>${escapeHtml(coach.sessionDescription)}</p>
         </article>
@@ -976,7 +976,7 @@
       ['Price', coach.priceText || `${Number(coach.price) || 0} GEL/hour`],
     ];
 
-    document.title = `WaveHub - ${coach.name} Book Session`;
+    document.title = `WaveHub - ${coach.name} Coach Profile`;
 
     root.innerHTML = `
       <a class="coach-profile-back" href="coaching.html"><span aria-hidden="true">&lt;</span> Back to Coaches</a>
@@ -1006,7 +1006,7 @@
 
       <div class="coach-profile-tabs" role="tablist" aria-label="Coach sections">
         <button class="active" type="button" data-profile-tab="overview" role="tab" aria-selected="true">Overview</button>
-        <button type="button" data-profile-tab="reviews" role="tab" aria-selected="false">Reviews (${reviewItems.length})</button>
+        <button type="button" data-profile-tab="reviews" role="tab" aria-selected="false">Student Review (${reviewItems.length})</button>
       </div>
 
       <section class="coach-profile-panel" data-profile-panel="overview">

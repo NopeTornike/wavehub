@@ -281,9 +281,13 @@ function createSessionMeta(coach) {
 function createCoachCard(coach) {
   const card = document.createElement('article');
   const gameIcon = getGameIconPath(coach.game);
+  const detailUrl = getCoachBookingUrl(coach);
   card.className = 'coach-card';
   card.dataset.game = coach.game;
   card.dataset.coachId = coach.id || '';
+  card.tabIndex = 0;
+  card.setAttribute('role', 'link');
+  card.setAttribute('aria-label', `View ${coach.name || 'coach'} profile`);
   card.innerHTML = `
     <div class="coach-card-main">
       <div class="coach-avatar-ring">
@@ -313,7 +317,7 @@ function createCoachCard(coach) {
 
     <div class="coach-price-row">
       <p><strong>${coach.priceText || `${coach.price} GEL/hour`}</strong></p>
-      <a href="${getCoachBookingUrl(coach)}" aria-label="Book a session with ${coach.name || 'this coach'}">Book Session</a>
+      <a href="${detailUrl}" aria-label="Book a session with ${coach.name || 'this coach'}">Book Session</a>
     </div>
 
     <div class="coach-card-tags">
@@ -329,6 +333,16 @@ function createCoachCard(coach) {
     const initials = avatar?.querySelector('span');
     if (initials) initials.textContent = '';
   }
+
+  card.addEventListener('click', (event) => {
+    if (event.target.closest('a, button, input, select, textarea')) return;
+    window.location.href = detailUrl;
+  });
+  card.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    window.location.href = detailUrl;
+  });
 
   return card;
 }
