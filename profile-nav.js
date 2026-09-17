@@ -4,7 +4,10 @@
   const purchasesKey = 'wavehub.purchases';
   const walletsKey = 'wavehub.wallets';
   const notificationSeenKey = 'wavehub.notificationSeen';
-  const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
+  const apiUrls = window.wavehubApiUrls?.()
+    || (['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? ['http://localhost:4000', 'http://127.0.0.1:4000']
+      : [window.location.origin]);
   let notificationPanel = null;
   let serverMessages = [];
   let messagesRefreshInFlight = null;

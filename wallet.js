@@ -15,7 +15,10 @@ const onlineCount = document.getElementById('onlineCount');
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
 const walletsKey = 'wavehub.wallets';
-const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
+const apiUrls = window.wavehubApiUrls?.()
+  || (['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? ['http://localhost:4000', 'http://127.0.0.1:4000']
+    : [window.location.origin]);
 
 function readJson(key, fallback) {
   try {

@@ -16,6 +16,12 @@ docker compose up
 Backend runs on `http://localhost:4000`.
 The complete WaveHub site runs on `http://localhost:3000/`.
 
+## Deployment API configuration
+
+For production behind one domain, proxy `/auth`, `/state`, `/messages`, and `/payments` to the backend; the frontend then uses its own origin automatically.
+
+If the API is hosted on a separate domain, set `deployedApiUrl` in `api-config.js` to its HTTPS origin (for example `https://api.wavehub.ge`) before deploying. Also set `CORS_ORIGIN` to the frontend's exact HTTPS origin, `COOKIE_SECURE=true`, and `COOKIE_SAME_SITE=none`.
+
 Copy `.env.example` to `.env` and replace `AUTH_TOKEN_SECRET` with a unique random value of at least 32 characters before starting Docker. Authentication uses a signed, HttpOnly session cookie; browser storage contains public display data only.
 
 Set `CORS_ORIGIN` to the exact frontend origin. Production cookies are secure by default. For a frontend and API hosted on different sites, both must use HTTPS and `COOKIE_SAME_SITE=none`; plain HTTP local development can explicitly use `COOKIE_SECURE=false`.
@@ -29,12 +35,12 @@ Requires Node.js 20.9+.
 ```bash
 cd backend
 npm install
-npm run build
+npm run start:dev
 
-cd ../frontend
-npm install
-npm run build
+# In a separate terminal, serve the static site from the repository root.
 ```
+
+The API listens on port `4000`. The browser must load the frontend through an HTTP server rather than directly from a `file://` URL.
 
 For local database schema sync, `TYPEORM_SYNC=true` is enabled in `docker-compose.yml`.
 For production, use migrations and leave `TYPEORM_SYNC` unset or `false`.
