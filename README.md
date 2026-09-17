@@ -22,8 +22,6 @@ For production behind one domain, proxy `/auth`, `/state`, `/messages`, and `/pa
 
 If the API is hosted on a separate domain, set `deployedApiUrl` in `api-config.js` to its HTTPS origin (for example `https://api.wavehub.ge`) before deploying. Also set `CORS_ORIGIN` to the frontend's exact HTTPS origin, `COOKIE_SECURE=true`, and `COOKIE_SAME_SITE=none`.
 
-On a `*.github.io` site only, login and registration fall back to a browser-only demo account when the API is unavailable. Its data is stored only in that browser and must not be used for real accounts or payments.
-
 Copy `.env.example` to `.env` and replace `AUTH_TOKEN_SECRET` with a unique random value of at least 32 characters before starting Docker. Authentication uses a signed, HttpOnly session cookie; browser storage contains public display data only.
 
 Set `CORS_ORIGIN` to the exact frontend origin. Production cookies are secure by default. For a frontend and API hosted on different sites, both must use HTTPS and `COOKIE_SAME_SITE=none`; plain HTTP local development can explicitly use `COOKIE_SECURE=false`.
