@@ -64,7 +64,11 @@
   }
 
   async function validateServerSession() {
-    if (!readJson(sessionKey, null)?.user?.username) return null;
+    const storedSession = readJson(sessionKey, null);
+    if (!storedSession?.user?.username) return null;
+    if (storedSession.authMode === 'demo' && window.location.hostname.endsWith('.github.io')) {
+      return storedSession.user;
+    }
 
     for (const apiUrl of apiUrls) {
       try {

@@ -18,6 +18,8 @@ const apiUrls = window.wavehubApiUrls?.()
     : [window.location.origin]);
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
+const demoAccountsKey = 'wavehub.demoAccounts';
+const isGitHubPages = window.location.hostname.endsWith('.github.io');
 const validUsernamePattern = /^[a-z0-9_-]+$/;
 
 function readJson(key, fallback) {
@@ -121,7 +123,7 @@ function purgeStoredCredentials() {
   writeJson(localUsersKey, sanitized);
 }
 
-function saveSession(user) {
+function saveSession(user, authMode = 'server') {
   writeJson(sessionKey, {
     user: {
       id: user.id,
@@ -129,8 +131,36 @@ function saveSession(user) {
       firstName: user.firstName,
       lastName: user.lastName,
     },
+    authMode,
     loggedInAt: new Date().toISOString(),
   });
+}
+
+async function hashDemoPassword(password, salt) {
+  const encoded = new TextEncoder().encode(`${salt}:${password}`);
+  const hash = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function registerDemoAccount(payload) {
+  if (!crypto?.subtle) return { ok: false, error: 'This browser does not support demo registration.' };
+  const accounts = readJson(demoAccountsKey, []);
+  const source = Array.isArray(accounts) ? accounts : [];
+  if (source.some((account) => account.username === payload.username)) return { ok: false, error: 'Username is already taken.' };
+  const salt = crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+  const user = { id: `demo:${crypto.randomUUID?.() || Date.now()}`, username: payload.username, firstName: payload.firstName, lastName: payload.lastName, role: 'buyer', createdAt: new Date().toISOString() };
+  writeJson(demoAccountsKey, [...source, { ...user, salt, passwordHash: await hashDemoPassword(payload.password, salt) }]);
+  return { ok: true, user };
+}
+
+async function loginDemoAccount(username, password) {
+  const accounts = readJson(demoAccountsKey, []);
+  const account = (Array.isArray(accounts) ? accounts : []).find((item) => item.username === username);
+  if (!account || !crypto?.subtle || account.passwordHash !== await hashDemoPassword(password, account.salt)) {
+    return { ok: false, error: 'Username or password is incorrect.' };
+  }
+  const { passwordHash, salt, ...user } = account;
+  return { ok: true, user };
 }
 
 function returnToHome() {
@@ -173,6 +203,19 @@ registerForm.addEventListener('submit', async (event) => {
 
   const serverResult = await postToAuth('register', payload);
 
+  if (!serverResult.ok && serverResult.offline && isGitHubPages) {
+    const demoResult = await registerDemoAccount(payload);
+    if (!demoResult.ok) {
+      setStatus(registerStatus, 'error', demoResult.error);
+      return;
+    }
+    const savedUser = cachePublicUser(demoResult.user);
+    saveSession(savedUser, 'demo');
+    setStatus(registerStatus, 'success', 'Demo account created in this browser. Redirecting...');
+    returnToHome();
+    return;
+  }
+
   if (!serverResult.ok) {
     setStatus(
       registerStatus,
@@ -206,6 +249,19 @@ loginForm.addEventListener('submit', async (event) => {
     const savedUser = cachePublicUser(serverResult.data.user);
     saveSession(savedUser);
     setStatus(loginStatus, 'success', 'Logged in. Redirecting...');
+    returnToHome();
+    return;
+  }
+
+  if (serverResult.offline && isGitHubPages) {
+    const demoResult = await loginDemoAccount(username, password);
+    if (!demoResult.ok) {
+      setStatus(loginStatus, 'error', demoResult.error);
+      return;
+    }
+    const savedUser = cachePublicUser(demoResult.user);
+    saveSession(savedUser, 'demo');
+    setStatus(loginStatus, 'success', 'Demo account signed in. Redirecting...');
     returnToHome();
     return;
   }
