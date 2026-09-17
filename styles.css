@@ -15641,6 +15641,10 @@ body.public-profile-view .main-panel {
 .home-featured-heading > span::after { position: absolute; inset: 0; margin: auto; border-radius: 1px; background: linear-gradient(180deg, #ff65ad, #ff177f); content: ''; }
 .home-featured-heading > span::before { width: 4px; height: 16px; }
 .home-featured-heading > span::after { width: 16px; height: 4px; }
+.home-featured-heading > span.home-featured-spark { width: 22px; height: 22px; flex-basis: 22px; color: #f260de; filter: drop-shadow(0 0 7px rgba(242,96,222,.72)); }
+.home-featured-heading > span.home-featured-spark::before,
+.home-featured-heading > span.home-featured-spark::after { content: none; }
+.home-featured-spark svg { width: 100%; height: 100%; display: block; }
 .home-featured-heading h2 { margin: 0; color: #f2edf5; font-size: 13px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .home-featured-list { display: grid; gap: 10px; padding: 0 10px; }
 .home-featured-card { overflow: hidden; border: 1px solid rgba(111, 88, 128, .24); border-radius: 8px; background: #0a0810; transition: border-color 160ms ease, transform 160ms ease; }
