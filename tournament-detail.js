@@ -1,74 +1,17 @@
 (function () {
   const key = 'wavehub.tournaments';
-  const sessionKey = 'wavehub.session';
   const id = new URLSearchParams(location.search).get('id');
-  const read = (name, fallback) => { try { return JSON.parse(localStorage.getItem(name) || JSON.stringify(fallback)); } catch { return fallback; } };
-  const write = (name, value) => localStorage.setItem(name, JSON.stringify(value));
-  const items = read(key, []);
-  let tournament = Array.isArray(items) ? items.find((item) => String(item.id) === String(id)) : null;
   const byId = (name) => document.getElementById(name);
-  const notice = byId('tdNotice');
-  const formatDate = (value, long) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('en-US', long ? { month: 'short', day: 'numeric', year: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBA';
-  const mobileGames = ['Call of Duty', 'Mobile Legends', 'PUBG Mobile', 'Clash of Clans'];
-
-  function render() {
-    if (!tournament) {
-      document.title = 'Tournament not found - WaveHubX';
-      byId('tournamentDetailPage').innerHTML = '<div class="td-not-found"><h1>Tournament not found</h1><p>This tournament may have been removed.</p><a href="tournaments.html">Back to tournaments</a></div>';
-      return;
-    }
-    const max = Math.max(1, Number(tournament.maxPlayers) || 64);
-    const players = Math.min(max, Number(tournament.players) || 0);
-    const status = String(tournament.status || 'upcoming').toLowerCase();
-    const statusText = status === 'open' ? 'OPEN' : status === 'completed' ? 'COMPLETED' : 'UPCOMING';
-    document.title = `${tournament.name} - WaveHubX`;
-    if (tournament.coverData) byId('tournamentDetailHero').style.backgroundImage = `linear-gradient(180deg,rgba(0,4,12,.04),rgba(0,4,12,.22)),url("${String(tournament.coverData).replaceAll('"', '%22')}")`;
-    byId('tdName').textContent = tournament.name || 'WaveHubX Tournament';
-    byId('tdStatus').textContent = statusText;
-    byId('tdStatus').className = status === 'open' ? 'is-open' : status === 'completed' ? 'is-purple' : 'is-orange';
-    byId('tdDate').textContent = formatDate(tournament.startDate);
-    byId('tdDeadline').textContent = tournament.startDate ? `Until ${formatDate(tournament.startDate)}` : 'Until announced';
-    byId('tdDeadlineLong').textContent = tournament.startDate ? `${formatDate(tournament.startDate, true)} – 17:00 (GMT+3)` : 'TBA';
-    byId('tdPlayers').textContent = `${players} / ${max}`;
-    byId('tdPrize').textContent = tournament.prize || 'TBA';
-    byId('tdPrizeLarge').textContent = tournament.prize || 'TBA';
-    byId('tdDescription').textContent = tournament.description || 'Tournament details will be announced soon.';
-    byId('tdOrganizer').textContent = tournament.createdBy || 'WaveHub Official';
-    byId('tdContact').href = `messages.html?to=${encodeURIComponent(tournament.createdBy || 'admin')}`;
-    byId('tdPlatform').textContent = mobileGames.includes(tournament.game) ? 'MOBILE' : 'PC';
-    const button = byId('tdRegister');
-    const username = read(sessionKey, null)?.user?.username;
-    const registered = Array.isArray(tournament.registeredUsers) && tournament.registeredUsers.includes(username);
-    button.disabled = status !== 'open' || players >= max || registered;
-    button.innerHTML = registered ? 'REGISTERED ✓' : players >= max ? 'TOURNAMENT FULL' : status === 'open' ? 'REGISTER NOW <span>›</span>' : statusText;
-  }
-
-  byId('tdRegister')?.addEventListener('click', () => {
-    const user = read(sessionKey, null)?.user;
-    if (!user?.username) { location.href = 'auth.html?mode=login'; return; }
-    const all = read(key, []);
-    const index = all.findIndex((item) => String(item.id) === String(id));
-    if (index < 0) return;
-    const registeredUsers = Array.isArray(all[index].registeredUsers) ? all[index].registeredUsers : [];
-    if (registeredUsers.includes(user.username)) return;
-    all[index].registeredUsers = [...registeredUsers, user.username];
-    all[index].players = Math.min(Number(all[index].maxPlayers) || 64, (Number(all[index].players) || 0) + 1);
-    write(key, all); tournament = all[index]; notice.textContent = 'Registration completed successfully.'; render();
-  });
-
-  document.querySelector('.tournament-detail-tabs')?.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-td-tab]'); if (!button) return;
-    document.querySelectorAll('[data-td-tab]').forEach((item) => item.classList.toggle('active', item === button));
-    document.querySelectorAll('[data-td-panel]').forEach((panel) => panel.classList.toggle('active', panel.dataset.tdPanel === button.dataset.tdTab));
-  });
-  const toggle = byId('menuToggle'); const scrim = byId('scrim');
-  function sidebar(open) { document.body.classList.toggle('sidebar-open', open); toggle?.setAttribute('aria-expanded', String(open)); if (scrim) scrim.hidden = !open; }
-  toggle?.addEventListener('click', () => sidebar(!document.body.classList.contains('sidebar-open'))); scrim?.addEventListener('click', () => sidebar(false));
-  window.addEventListener('storage', (event) => {
-    if (event.key !== key) return;
-    const nextItems = read(key, []);
-    tournament = Array.isArray(nextItems) ? nextItems.find((item) => String(item.id) === String(id)) : null;
-    render();
-  });
-  render();
+  const read = () => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
+  const covers = { 'PUBG Mobile': 'assets/home-game-pubg-mobile.jpg', 'Free Fire': 'assets/freefire-photo.jpeg', 'Standoff 2': 'assets/home-game-standoff2.png', 'Call of Duty': 'assets/cod-photo.jpeg', 'Mobile Legends': 'assets/home-game-mobile-legends.png' };
+  const icons = { calendar: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>', globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>', users: '<svg viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8"/></svg>', pin: '<svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2"/></svg>', layers: '<svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5"/></svg>', arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' };
+  let filter = 'all';
+  let tournament;
+  const esc = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+  const date = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBA';
+  const kind = (match) => { const value = String(match.stage || 'group').toLowerCase(); return value.includes('group') ? 'group' : value.includes('quarter') || value.includes('semi') || value.includes('final') || value.includes('playoff') ? 'playoff' : value; };
+  function row(match) { const state = String(match.status || 'completed').toLowerCase(); const scoreA = Number.isFinite(Number(match.scoreA)) ? match.scoreA : '-'; const scoreB = Number.isFinite(Number(match.scoreB)) ? match.scoreB : '-'; const result = state === 'live' ? 'Live' : state === 'scheduled' ? 'Scheduled' : match.result || 'Final'; return `<article class="match-row ${state}" data-stage="${kind(match)}"><div class="match-stage ${kind(match)}">${esc(match.stage || 'Group Stage')}</div><div class="match-teams"><strong>${esc(match.teamA || 'Team A')}</strong><span>vs</span><strong>${esc(match.teamB || 'Team B')}</strong></div><div class="match-info"><span>${icons.pin}${esc(match.map || 'Map TBA')}</span><span>${icons.layers}${esc(match.format || tournament.format || 'Format TBA')}</span><span>${icons.calendar}${date(match.date)}${match.time ? ` ${esc(match.time)}` : ''}</span></div><div class="match-result ${state}"><b>${esc(result)}</b><strong>${scoreA} - ${scoreB}</strong></div><a class="match-details" href="${esc(match.detailsUrl || '#matchHistoryTitle')}">View Details ${icons.arrow}</a></article>`; }
+  function render() { tournament = read().find((item) => String(item.id) === String(id)); if (!tournament) { byId('tournamentDetailPage').innerHTML = '<div class="td-not-found"><h1>Tournament not found</h1><p>This tournament may have been removed.</p><a href="tournaments.html">Back to tournaments</a></div>'; return; } document.title = `${tournament.name} Results - WaveHubX`; const image = tournament.coverData || covers[tournament.game] || covers['PUBG Mobile']; byId('resultsGameCover').style.backgroundImage = `linear-gradient(90deg,rgba(3,7,15,.05),rgba(3,7,15,.72)),url("${String(image).replaceAll('"', '%22')}")`; byId('tdName').textContent = tournament.name || 'Tournament'; const status = String(tournament.status || 'upcoming').toLowerCase(); byId('tdStatus').className = `results-status ${status}`; byId('tdStatus').innerHTML = `<i></i>${status === 'completed' ? 'Completed' : status === 'open' ? 'In Progress' : 'Upcoming'}`; byId('tdDate').innerHTML = `${icons.calendar}${date(tournament.startDate)}`; byId('tdRegion').innerHTML = `${icons.globe}${esc(tournament.region || 'Server TBA')}`; byId('tdFormat').innerHTML = `${icons.users}${esc(tournament.format || 'Format TBA')}`; byId('tdTeam').textContent = tournament.teamName || 'No team assigned'; const matches = Array.isArray(tournament.matches) ? tournament.matches : []; const shown = filter === 'all' ? matches : matches.filter((match) => kind(match) === filter); byId('matchList').innerHTML = shown.map(row).join(''); byId('matchEmpty').hidden = shown.length > 0; byId('matchHistoryDescription').textContent = matches.length ? 'All published matches are shown from newest to oldest.' : 'Published matches appear here in real time.'; }
+  byId('matchFilters')?.addEventListener('click', (event) => { const button = event.target.closest('[data-match-filter]'); if (!button) return; filter = button.dataset.matchFilter; document.querySelectorAll('[data-match-filter]').forEach((item) => item.classList.toggle('active', item === button)); render(); });
+  const toggle = byId('menuToggle'); const scrim = byId('scrim'); const sidebar = (open) => { document.body.classList.toggle('sidebar-open', open); if (scrim) scrim.hidden = !open; }; toggle?.addEventListener('click', () => sidebar(!document.body.classList.contains('sidebar-open'))); scrim?.addEventListener('click', () => sidebar(false)); window.addEventListener('storage', (event) => { if (event.key === key) render(); }); window.addEventListener('wavehub:tournament-results-updated', render); render();
 }());

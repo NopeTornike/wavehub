@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHubX - Tournaments</title>
-  <link rel="stylesheet" href="styles.css?v=20260827-mobile-reference-1" />
+  <link rel="stylesheet" href="styles.css?v=20260919-tournament-list-reference-5" />
 </head>
 <body>
   <div class="app-shell">
@@ -41,20 +41,19 @@
       <section class="tournaments-page">
         <header class="tournaments-hero">
           <span class="tournaments-hero-icon" aria-hidden="true"><img src="assets/tournaments-icon.svg" alt="" /></span>
-          <div><h1>All Tournaments</h1><p>Discover every active, upcoming, and completed tournament on WaveHubX.</p></div>
+          <div><h1>My Tournaments</h1><p>View all tournaments you've participated in.</p></div>
           <button class="tournament-admin-toggle" id="tournamentAdminToggle" type="button" hidden>Create Tournament <span aria-hidden="true">＋</span></button>
         </header>
 
         <section class="tournament-toolbar" aria-label="Tournament filters">
           <label class="tournament-search"><span class="sr-only">Search tournaments</span><input id="tournamentSearch" type="search" placeholder="Search tournaments..." /><span aria-hidden="true">⌕</span></label>
-          <label><span class="sr-only">Filter by game</span><select id="tournamentGameFilter"><option value="all">All Games</option></select></label>
-          <label><span class="sr-only">Filter by status</span><select id="tournamentStatusFilter"><option value="all">Status</option><option value="open">Open</option><option value="upcoming">Upcoming</option><option value="completed">Completed</option></select></label>
-          <label><span class="sr-only">Sort tournaments</span><select id="tournamentSort"><option value="latest">Sort by: Latest</option><option value="oldest">Sort by: Oldest</option><option value="prize">Sort by: Prize</option></select></label>
+          <label class="tournament-game-filter"><span class="sr-only">Filter by game</span><select id="tournamentGameFilter"><option value="all">All Games</option></select></label>
+          <label class="tournament-legacy-filter"><span class="sr-only">Filter by status</span><select id="tournamentStatusFilter"><option value="all">Status</option><option value="active">Active</option><option value="completed">Completed</option></select></label>
+          <label class="tournament-legacy-filter"><span class="sr-only">Sort tournaments</span><select id="tournamentSort"><option value="latest">Sort by: Latest</option><option value="oldest">Sort by: Oldest</option><option value="prize">Sort by: Prize</option></select></label>
           <div class="tournament-status-tabs" id="tournamentStatusTabs" aria-label="Quick status filter">
-            <button class="active" type="button" data-tournament-status="all">All</button>
-            <button type="button" data-tournament-status="open"><i></i>Open</button>
-            <button type="button" data-tournament-status="upcoming"><i></i>Upcoming</button>
-            <button type="button" data-tournament-status="completed"><i></i>Completed</button>
+            <button class="active" type="button" data-tournament-status="all">All Tournaments <strong id="allTournamentTabCount">0</strong></button>
+            <button type="button" data-tournament-status="active"><i></i>Active <strong id="activeTournamentTabCount">0</strong></button>
+            <button type="button" data-tournament-status="completed"><i></i>Completed <strong id="completedTournamentTabCount">0</strong></button>
           </div>
         </section>
 
@@ -76,7 +75,7 @@
         </section>
 
         <section class="tournaments-list-section" aria-labelledby="tournamentsListTitle">
-          <div class="tournaments-list-heading"><h2 id="tournamentsListTitle">Available Tournaments</h2><strong class="tournament-count" id="tournamentCount">0 tournaments</strong></div>
+          <h2 class="sr-only" id="tournamentsListTitle">My tournaments</h2><strong class="tournament-count sr-only" id="tournamentCount">0 tournaments</strong>
           <div class="tournaments-grid" id="tournamentsGrid"></div>
           <div class="marketplace-empty tournaments-empty" id="tournamentsEmpty"><strong>No tournaments yet</strong><p>New championships added by the WaveHubX admin will appear here.</p></div>
         </section>
@@ -94,7 +93,7 @@
   <script src="cart-nav.js"></script>
 <script src="profile-nav.js?v=20260902-secure-session-messages-1"></script>
   <script src="state-sync.js?v=20260902-server-state-1"></script>
-  <script src="tournaments.js?v=20260813-demo"></script>
+  <script src="tournaments.js?v=20260919-tournament-results-demo"></script>
   <script src="site-footer.js"></script>
 </body>
 </html>

@@ -1,24 +1,43 @@
 (function () {
   const tournamentsKey = 'wavehub.tournaments';
-  const demoSeedKey = 'wavehub.tournaments.demoSeeded.v1';
+  const demoSeedKey = 'wavehub.tournaments.demoSeeded.v2';
   const demoTournament = {
     id: 'wavehub-pubg-mobile-demo',
     game: 'PUBG Mobile',
-    name: 'WaveHub PUBG Mobile Cup',
+    name: 'PUBG Mobile Cup #14',
     description: 'ღია PUBG Mobile ტურნირი ყველა დონის მოთამაშისთვის. შეიკრიბე გუნდთან ერთად, იბრძოლე ფინალისთვის და მოიგე საპრიზო ფონდი.',
     prize: '1,000 GEL',
     status: 'open',
-    startDate: '2026-09-12',
+    startDate: '2026-05-25',
     players: 42,
     maxPlayers: 64,
     coverData: '',
     createdAt: '2026-08-13T00:00:00.000Z',
     createdBy: 'WaveHub Official',
-    registeredUsers: []
+    registeredUsers: [],
+    region: 'EU Server',
+    format: 'Squad (4 Players)',
+    teamName: 'WaveRiders',
+    matches: [
+      { stage: 'Semifinals', status: 'live', teamA: 'WaveRiders', teamB: 'Dark Legion', map: 'Erangel', format: 'Best of 3', date: '2026-05-26', time: '18:30', scoreA: 1, scoreB: 1, result: 'Live' },
+      { stage: 'Quarterfinals', status: 'completed', teamA: 'WaveRiders', teamB: 'Nova Esports', map: 'Miramar', format: 'Best of 3', date: '2026-05-26', time: '16:00', scoreA: 2, scoreB: 0, result: 'Win' },
+      { stage: 'Group Stage', status: 'completed', teamA: 'WaveRiders', teamB: 'Team Infinity', map: 'Sanhok', format: 'Best of 1', date: '2026-05-25', time: '21:00', scoreA: 1, scoreB: 0, result: 'Win' },
+      { stage: 'Group Stage', status: 'completed', teamA: 'WaveRiders', teamB: 'Red Zone', map: 'Erangel', format: 'Best of 1', date: '2026-05-25', time: '17:30', scoreA: 1, scoreB: 0, result: 'Win' },
+      { stage: 'Group Stage', status: 'completed', teamA: 'WaveRiders', teamB: 'Alpha Force', map: 'Miramar', format: 'Best of 1', date: '2026-05-25', time: '15:00', scoreA: 1, scoreB: 0, result: 'Win' }
+    ]
   };
   const sessionKey = 'wavehub.session';
   const localUsersKey = 'wavehub.users';
-  const games = ['Call of Duty', 'Mobile Legends', 'CS2', 'PUBG Mobile', 'Roblox', 'Clash of Clans', 'League of Legends', 'Fortnite', 'Minecraft', 'GTA 5', 'Dota 2', 'Valorant'];
+  const games = ['Call of Duty', 'Free Fire', 'Mobile Legends', 'CS2', 'PUBG Mobile', 'Standoff 2', 'Roblox', 'Clash of Clans', 'League of Legends', 'Fortnite', 'Minecraft', 'GTA 5', 'Dota 2', 'Valorant'];
+  const referenceTournaments = [
+    ['tournament-free-fire-6', 'Free Fire', 'Free Fire Showdown #6', 'open', '2026-05-24', 'ME Server', 'Squad (4 Players)'],
+    ['tournament-standoff-3', 'Standoff 2', 'Standoff 2 Masters #3', 'completed', '2026-05-10', 'EU Server', '5v5'],
+    ['tournament-pubg-11', 'PUBG Mobile', 'PUBG Mobile Cup #11', 'completed', '2026-05-18', 'EU Server', 'Squad (4 Players)'],
+    ['tournament-cod-8', 'Call of Duty', 'Call of Duty Cup #8', 'completed', '2026-04-28', 'NA Server', 'Squad (5 Players)'],
+    ['tournament-mlbb-2', 'Mobile Legends', 'MLBB Championship #2', 'completed', '2026-04-20', 'SEA Server', '5v5'],
+    ['tournament-free-fire-5', 'Free Fire', 'Free Fire Showdown #5', 'completed', '2026-05-05', 'ME Server', 'Squad (4 Players)'],
+    ['tournament-pubg-10', 'PUBG Mobile', 'PUBG Mobile Cup #10', 'completed', '2026-05-12', 'EU Server', 'Squad (4 Players)']
+  ].map(([id, game, name, status, startDate, region, format], index) => ({ id, game, name, status, startDate, region, format, description: `${game} tournament on WaveHubX.`, prize: '1,000 GEL', players: 64, maxPlayers: 64, coverData: '', createdAt: `2026-05-${String(20 - index).padStart(2, '0')}T12:00:00.000Z`, createdBy: 'WaveHub Official', registeredUsers: [] }));
   const grid = document.getElementById('tournamentsGrid');
   const empty = document.getElementById('tournamentsEmpty');
   const count = document.getElementById('tournamentCount');
@@ -65,9 +84,10 @@
   function seedDemoTournament() {
     if (localStorage.getItem(demoSeedKey)) return;
     const tournaments = getTournaments();
-    if (!tournaments.some((item) => item.id === demoTournament.id)) {
-      writeJson(tournamentsKey, [demoTournament, ...tournaments]);
-    }
+    const demoIndex = tournaments.findIndex((item) => item.id === demoTournament.id);
+    if (demoIndex < 0) tournaments.unshift(demoTournament);
+    else if (!Array.isArray(tournaments[demoIndex].matches) || tournaments[demoIndex].matches.length === 0) tournaments[demoIndex] = { ...demoTournament, ...tournaments[demoIndex], matches: demoTournament.matches, region: tournaments[demoIndex].region || demoTournament.region, format: tournaments[demoIndex].format || demoTournament.format, teamName: tournaments[demoIndex].teamName || demoTournament.teamName };
+    writeJson(tournamentsKey, [...referenceTournaments.filter((item) => !tournaments.some((current) => current.id === item.id)), ...tournaments]);
     localStorage.setItem(demoSeedKey, 'true');
   }
 
@@ -99,6 +119,18 @@
     </article>`;
   }
 
+  const coverByGame = { 'PUBG Mobile': 'assets/home-game-pubg-mobile.jpg', 'Free Fire': 'assets/freefire-photo.jpeg', 'Standoff 2': 'assets/home-game-standoff2.png', 'Call of Duty': 'assets/cod-photo.jpeg', 'Mobile Legends': 'assets/home-game-mobile-legends.png' };
+  const tournamentIcons = { users: '<svg viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 20v-2a4 4 0 0 0-3-3.87"/></svg>', globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>', calendar: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>', arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' };
+  function displayStatus(item) { return String(item.status || '').toLowerCase() === 'completed' ? 'completed' : 'active'; }
+  function referenceCard(item, admin) {
+    const status = displayStatus(item);
+    const image = item.coverData || coverByGame[item.game] || coverByGame['PUBG Mobile'];
+    const date = item.startDate ? new Date(`${item.startDate}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBA';
+    const format = item.format || 'Squad (4 Players)';
+    const region = item.region || 'EU Server';
+    return `<article class="tournament-card ${status}"><div class="tournament-card-cover" style="background-image:linear-gradient(90deg,rgba(3,6,14,.05),rgba(3,6,14,.52)),url('${escapeHtml(image)}')"></div><div class="tournament-card-copy"><span class="tournament-card-status ${status}"><i></i>${status === 'active' ? 'In Progress' : 'Completed'}</span><h3>${escapeHtml(item.name)}</h3><div class="tournament-card-facts"><span>${tournamentIcons.users}<strong>${escapeHtml(format)}</strong></span><span>${tournamentIcons.globe}<strong>${escapeHtml(region)}</strong></span><span>${tournamentIcons.calendar}<strong>${date}</strong></span></div>${status === 'active' ? `<a class="tournament-view-button" href="tournament-detail.html?id=${encodeURIComponent(item.id)}">View Tournament ${tournamentIcons.arrow}</a>` : `<a class="tournament-card-arrow" href="tournament-detail.html?id=${encodeURIComponent(item.id)}" aria-label="View tournament">${tournamentIcons.arrow}</a>`}${admin ? `<button class="tournament-delete-button" type="button" data-delete-tournament="${escapeHtml(item.id)}">Delete</button>` : ''}</div></article>`;
+  }
+
   function render() {
     const admin = isAdmin(getUser());
     const query = String(searchInput?.value || '').trim().toLowerCase();
@@ -106,15 +138,20 @@
     const selectedStatus = statusFilter?.value || 'all';
     const sort = sortFilter?.value || 'latest';
     const items = getTournaments().filter((item) => {
-      const itemStatus = String(item.status || 'upcoming').toLowerCase();
+      const itemStatus = displayStatus(item);
       const matchesQuery = !query || `${item.name} ${item.game} ${item.description}`.toLowerCase().includes(query);
       return matchesQuery && (selectedGame === 'all' || item.game === selectedGame) && (selectedStatus === 'all' || itemStatus === selectedStatus);
     }).sort((a, b) => sort === 'oldest' ? new Date(a.createdAt) - new Date(b.createdAt) : sort === 'prize' ? (parseFloat(String(b.prize).replace(/[^0-9.]/g, '')) || 0) - (parseFloat(String(a.prize).replace(/[^0-9.]/g, '')) || 0) : new Date(b.createdAt) - new Date(a.createdAt));
     toggle.hidden = !admin;
     if (!admin) panel.hidden = true;
-    grid.innerHTML = items.map((item) => card(item, admin)).join('');
+    const activeItems = items.filter((item) => displayStatus(item) === 'active');
+    const completedItems = items.filter((item) => displayStatus(item) === 'completed');
+    grid.innerHTML = `${activeItems.length ? `<section class="tournament-group tournament-group-active"><header><h2><i></i>Active Tournaments <strong>${activeItems.length}</strong></h2></header><div class="tournament-card-grid">${activeItems.map((item) => referenceCard(item, admin)).join('')}</div></section>` : ''}${completedItems.length ? `<section class="tournament-group tournament-group-completed"><header><h2><i></i>Completed Tournaments <strong>${completedItems.length}</strong></h2></header><div class="tournament-card-grid">${completedItems.map((item) => referenceCard(item, admin)).join('')}</div></section>` : ''}`;
     empty.hidden = items.length > 0;
     count.textContent = `${items.length} tournament${items.length === 1 ? '' : 's'}`;
+    document.getElementById('allTournamentTabCount').textContent = getTournaments().length;
+    document.getElementById('activeTournamentTabCount').textContent = getTournaments().filter((item) => displayStatus(item) === 'active').length;
+    document.getElementById('completedTournamentTabCount').textContent = getTournaments().filter((item) => displayStatus(item) === 'completed').length;
   }
 
   const gameSelect = document.getElementById('tournamentGame');
