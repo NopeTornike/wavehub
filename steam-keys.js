@@ -1,32 +1,13 @@
 (function () {
   const games = [
-    { id: 'steam-elden-ring', title: 'Elden Ring', price: 89, label: 'Featured', stock: 'In Stock', state: 'stock', cover: 'assets/dota-2-marketplace-cover.png' },
-    { id: 'steam-gta-v', title: 'GTA V', price: 49, label: 'Popular', stock: 'Pre-order', state: 'preorder', cover: 'assets/gta-5-marketplace-cover.png' },
-    { id: 'steam-rdr2', title: 'Red Dead Redemption 2', price: 69, label: 'Best Price', stock: 'Out of Stock', state: 'out', cover: 'assets/clash-of-clans-marketplace-cover.png' },
-    { id: 'steam-cyberpunk', title: 'Cyberpunk 2077', price: 59, label: 'Hot', stock: 'Sold', state: 'sold', cover: 'assets/valorant-marketplace-cover.png' }
-  ];
-  const grid = document.getElementById('steamGrid');
-  const menuToggle = document.getElementById('menuToggle');
-  const scrim = document.getElementById('scrim');
-  const favoritesKey = 'wavehub.steamFavorites';
-  const readFavorites = () => { try { return JSON.parse(localStorage.getItem(favoritesKey) || '[]'); } catch { return []; } };
-  const render = () => {
-    const favorites = readFavorites();
-    grid.innerHTML = games.map((game) => `<article class="steam-game-card">
-      <div class="steam-game-cover" style="background-image:url('${game.cover}')"><span>${game.label}</span><button type="button" class="${favorites.includes(game.id) ? 'active' : ''}" data-steam-favorite="${game.id}" aria-label="Save ${game.title}">♡</button></div>
-      <div class="steam-game-info"><h2>${game.title}</h2><p><img class="steam-key-icon" src="assets/steam-logo.png?v=1" alt="" aria-hidden="true" /> Steam Key</p><div class="steam-game-price"><strong>${game.price}<small> GEL</small></strong><span class="${game.state}">${game.stock}<i></i></span></div><div class="steam-game-actions"><a href="#" data-steam-view="${game.id}">View Game <span>→</span></a><button type="button" ${['out','sold'].includes(game.state) ? 'disabled' : ''} aria-label="Add ${game.title} to cart">🛒</button></div></div>
-    </article>`).join('');
-  };
-  grid?.addEventListener('click', (event) => {
-    const favorite = event.target.closest('[data-steam-favorite]');
-    if (!favorite) return;
-    const favorites = readFavorites();
-    const id = favorite.dataset.steamFavorite;
-    localStorage.setItem(favoritesKey, JSON.stringify(favorites.includes(id) ? favorites.filter((item) => item !== id) : [...favorites, id]));
-    render();
-  });
-  function setSidebar(open) { document.body.classList.toggle('sidebar-open', open); menuToggle?.setAttribute('aria-expanded', String(open)); if (scrim) scrim.hidden = !open; }
-  menuToggle?.addEventListener('click', () => setSidebar(!document.body.classList.contains('sidebar-open')));
-  scrim?.addEventListener('click', () => setSidebar(false));
-  render();
+    ['cs2','Counter-Strike 2','assets/cs2-marketplace-cover.png','shooter',14.99],['pubg','PUBG: BATTLEGROUNDS','assets/pubg-mobile-marketplace-cover.png','shooter',12.99],['cod','Call of Duty','assets/call-of-duty-marketplace-photo.png','shooter',24.99],['dota','Dota 2','assets/dota-2-marketplace-cover.png','strategy',9.99],['gta','Grand Theft Auto V','assets/gta-5-marketplace-cover.png','action',24.99],['fortnite','Fortnite','assets/fortnite-marketplace-cover.png','action',19.99],['valorant','Valorant','assets/valorant-marketplace-cover.png','shooter',19.99],['minecraft','Minecraft','assets/minecraft-marketplace-cover.png','adventure',18.99],['roblox','Roblox','assets/roblox-marketplace-cover.png','adventure',9.99],['lol','League of Legends','assets/league-of-legends-marketplace-cover.png','strategy',14.99],['clash','Clash of Clans','assets/clash-of-clans-marketplace-cover.png','strategy',11.99],['mobile-legends','Mobile Legends','assets/mobile-legends-marketplace-cover.png','rpg',15.99]
+  ].map(([id,title,cover,genre,price], index) => ({ id,title,cover,genre,price,stock: index === 7 ? 'Out of Stock' : 'In Stock', state:index === 7 ? 'out' : 'stock', description: genre === 'shooter' ? 'Team up. Dominate.' : 'Play your way.' }));
+  const grid = document.getElementById('steamGrid'), pager = document.getElementById('steamPagination'), search = document.getElementById('steamSearch'), sort = document.getElementById('steamSort'), genres = document.getElementById('steamGenres');
+  const favoritesKey = 'wavehub.steamFavorites', cartKey = 'wavehub.cart'; let genre = 'all', page = 1; const perPage = 10;
+  const read = (key) => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } }; const esc = (value) => String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+  function filtered() { const query = (search?.value || '').trim().toLowerCase(); const order = sort?.value || 'popular'; return games.filter((game) => (genre === 'all' || game.genre === genre) && (!query || `${game.title} ${game.genre}`.toLowerCase().includes(query))).sort((a,b) => order === 'price-low' ? a.price-b.price : order === 'price-high' ? b.price-a.price : order === 'title' ? a.title.localeCompare(b.title) : 0); }
+  function render() { const items = filtered(), favorites = read(favoritesKey), total = Math.max(1,Math.ceil(items.length/perPage)); page = Math.min(page,total); const shown = items.slice((page-1)*perPage,page*perPage); grid.innerHTML = shown.map((game) => `<article class="steam-game-card"><div class="steam-game-cover" style="background-image:linear-gradient(180deg,transparent,rgba(5,8,16,.65)),url('${game.cover}')"><span><img src="assets/steam-logo.png" alt="">Steam Key</span><b class="steam-stock ${game.state}">${game.stock}</b><button type="button" class="${favorites.includes(game.id) ? 'active' : ''}" data-favorite="${game.id}" aria-label="Save ${esc(game.title)}">♡</button></div><div class="steam-game-info"><h2>${esc(game.title)}</h2><p>${esc(game.description)}</p><div class="steam-game-price"><strong>${game.price.toFixed(2)} <small>GEL</small></strong><a href="steam-game-detail.html?id=${encodeURIComponent(game.id)}">See Details</a></div></div></article>`).join('') || '<p class="steam-empty">No games match those filters.</p>'; pager.innerHTML = Array.from({length:total},(_,i) => `<button type="button" class="${page===i+1?'active':''}" data-page="${i+1}">${i+1}</button>`).join(''); }
+  grid?.addEventListener('click',(event)=>{const button=event.target.closest('[data-favorite]');if(!button)return;const favorites=read(favoritesKey),id=button.dataset.favorite;localStorage.setItem(favoritesKey,JSON.stringify(favorites.includes(id)?favorites.filter(x=>x!==id):[...favorites,id]));render();});
+  pager?.addEventListener('click',(event)=>{const button=event.target.closest('[data-page]');if(!button)return;page=Number(button.dataset.page);render();}); genres?.addEventListener('click',(event)=>{const button=event.target.closest('[data-genre]');if(!button)return;genre=button.dataset.genre;page=1;genres.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===button));render();}); search?.addEventListener('input',()=>{page=1;render();});sort?.addEventListener('change',()=>{page=1;render();});
+  const toggle=document.getElementById('menuToggle'),scrim=document.getElementById('scrim');const sidebar=(open)=>{document.body.classList.toggle('sidebar-open',open);if(scrim)scrim.hidden=!open;};toggle?.addEventListener('click',()=>sidebar(!document.body.classList.contains('sidebar-open')));scrim?.addEventListener('click',()=>sidebar(false));render();
 }());

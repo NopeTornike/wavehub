@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHubX - Steam Keys</title>
-  <link rel="stylesheet" href="styles.css?v=20260917-steam-mobile-icon" />
+  <link rel="stylesheet" href="styles.css?v=20260919-steam-catalog" />
 </head>
 <body class="steam-keys-page">
   <div class="app-shell">
@@ -39,7 +39,8 @@
 
       <section class="steam-store" id="steamGames">
         <header class="steam-store-heading"><div><h1>Steam Games</h1><p>Discover games. Get your key. Start playing.</p></div><a href="#steamGrid">View All Games <span>→</span></a></header>
-        <div class="steam-games-grid" id="steamGrid"></div>
+        <section class="steam-catalog-toolbar" aria-label="Steam game filters"><label><span class="sr-only">Search games</span><input id="steamSearch" type="search" placeholder="Search games..." /></label><label class="steam-sort-label">Sort by <select id="steamSort"><option value="popular">Popular</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option><option value="title">Title</option></select></label><div class="steam-genres" id="steamGenres"><button class="active" type="button" data-genre="all">All</button><button type="button" data-genre="action">Action</button><button type="button" data-genre="adventure">Adventure</button><button type="button" data-genre="rpg">RPG</button><button type="button" data-genre="shooter">Shooter</button><button type="button" data-genre="strategy">Strategy</button><button type="button" data-genre="sports">Sports</button></div></section>
+        <div class="steam-games-grid" id="steamGrid"></div><nav class="steam-pagination" id="steamPagination" aria-label="Game pages"></nav>
       </section>
 
       <section class="featured-items" aria-labelledby="featuredItemsTitle">
@@ -75,7 +76,7 @@
   <script src="cart-nav.js"></script>
 <script src="profile-nav.js?v=20260902-secure-session-messages-1"></script>
   <script src="state-sync.js?v=20260902-server-state-1"></script>
-  <script src="steam-keys.js?v=20260813-1"></script>
+  <script src="steam-keys.js?v=20260919-steam-catalog-detail-link"></script>
   <script src="site-footer.js"></script>
 </body>
 </html>
