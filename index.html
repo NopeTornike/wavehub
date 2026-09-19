@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260919-steam-right-border-24" />
+  <link rel="stylesheet" href="styles.css?v=20260919-frontend-audit-fixes-26" />
 </head>
 <body class="home-page">
   <div class="app-shell">
@@ -926,6 +926,7 @@
           .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
         list.replaceChildren();
         empty.hidden = featured.length > 0;
+        empty.closest('.home-right-rail').hidden = featured.length === 0;
         featured.slice(0, 2).forEach(listing => {
           const card = document.createElement('article');
           const imageLink = document.createElement('a');
