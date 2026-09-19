@@ -2,12 +2,53 @@
   const localUsersKey = 'wavehub.users';
   const sessionKey = 'wavehub.session';
   const purchasesKey = 'wavehub.purchases';
+  const sellerListingsKey = 'wavehub.sellerListings';
+  const sellerReviewsKey = 'wavehub.sellerReviews';
   const walletsKey = 'wavehub.wallets';
   const notificationSeenKey = 'wavehub.notificationSeen';
   const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
   let notificationPanel = null;
   let serverMessages = [];
   let messagesRefreshInFlight = null;
+
+  // A rank is earned from both long-term contribution and recent participation.
+  // Recent activity supplies half of the score, so active members can outrank inactive ones.
+  const waveRanks = [
+    ['Wave Spark', 0], ['Wave Scout', 70], ['Wave Rider', 140], ['Wave Surfer', 220],
+    ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580],
+    ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000],
+  ];
+
+  function isRecent(value) {
+    const time = new Date(value || 0).getTime();
+    return Number.isFinite(time) && time >= Date.now() - (30 * 24 * 60 * 60 * 1000);
+  }
+
+  function getWaveRankMetrics(username, user = {}) {
+    const listings = readJson(sellerListingsKey, []).filter((item) => item?.sellerUsername === username);
+    const purchases = readJson(purchasesKey, []);
+    const purchaseItems = purchases.flatMap((purchase) => Array.isArray(purchase?.items)
+      ? purchase.items.map((item) => ({ ...item, purchasedAt: item.purchasedAt || purchase.purchasedAt, buyerUsername: item.buyerUsername || purchase.buyerUsername }))
+      : [purchase]);
+    const sold = purchaseItems.filter((item) => item?.sellerUsername === username);
+    const bought = purchaseItems.filter((item) => item?.buyerUsername === username || item?.username === username);
+    const reviews = readJson(sellerReviewsKey, []).filter((item) => item?.sellerUsername === username);
+    const progress = Math.min(500,
+      listings.length * 15 + sold.length * 60 + bought.length * 20 + reviews.length * 25 + Math.min(100, Number(user.xp) || 0)
+    );
+    const recentEvents = [
+      ...listings.map((item) => item.createdAt || item.updatedAt),
+      ...sold.map((item) => item.soldAt || item.purchasedAt || item.createdAt),
+      ...bought.map((item) => item.purchasedAt || item.createdAt),
+      ...reviews.map((item) => item.createdAt),
+    ].filter(isRecent).length;
+    const activity = Math.min(500, recentEvents * 75);
+    const score = Math.min(1000, progress + activity);
+    const tierIndex = waveRanks.reduce((current, [, threshold], index) => score >= threshold ? index : current, 0);
+    const [name, threshold] = waveRanks[tierIndex];
+    const next = waveRanks[tierIndex + 1]?.[1] || 1000;
+    return { score, progress, activity, recentEvents, name, tierIndex, progressToNext: threshold === next ? 100 : Math.round(((score - threshold) / (next - threshold)) * 100) };
+  }
 
   function readJson(key, fallback) {
     try {
@@ -153,14 +194,14 @@
               <strong id="profileFullName">Guest account</strong>
               <span class="profile-verified-mark" aria-label="Verified">&#10003;</span>
             </div>
-            <small><span class="profile-rank-gem" aria-hidden="true"></span><span id="profileDropdownRank">Wave Rookie</span></small>
-            <span class="profile-tier"><span aria-hidden="true">&#9812;</span><b id="profileTierName">Wave Rookie</b><i aria-hidden="true">&#8594;</i><strong>Prime</strong></span>
+            <small><span class="profile-rank-gem" aria-hidden="true"></span><span id="profileDropdownRank">Wave Spark</span></small>
+            <span class="profile-tier"><span aria-hidden="true">&#9812;</span><b id="profileTierName">Wave Spark</b><i aria-hidden="true">&#8594;</i><strong id="profileNextTier">Wave Scout</strong></span>
           </div>
         </div>
         <div class="profile-level-row" aria-label="Account level">
           <span>Lv. <strong id="profileDropdownLevel">1</strong></span>
           <i><b id="profileDropdownProgress"></b></i>
-          <small><span id="profileDropdownXp">0</span> / <span id="profileDropdownXpGoal">500</span> XP</small>
+          <small><span id="profileDropdownXp">0</span> / <span id="profileDropdownXpGoal">1000</span> WAVE PTS</small>
         </div>
         <nav class="profile-dropdown-links" aria-label="Profile shortcuts">
           <div class="profile-dropdown-group">
@@ -377,6 +418,7 @@
     const profileHandle = document.getElementById('profileHandle');
     const profileDropdownRank = document.getElementById('profileDropdownRank');
     const profileTierName = document.getElementById('profileTierName');
+    const profileNextTier = document.getElementById('profileNextTier');
     const profileDropdownLevel = document.getElementById('profileDropdownLevel');
     const profileDropdownXp = document.getElementById('profileDropdownXp');
     const profileDropdownXpGoal = document.getElementById('profileDropdownXpGoal');
@@ -399,12 +441,14 @@
     if (profileMeta) profileMeta.textContent = isSignedIn ? 'Manage profile' : 'Not signed in';
     if (profileFullName) profileFullName.textContent = isSignedIn ? getDisplayName(user) : 'Guest account';
     if (profileHandle) profileHandle.textContent = isSignedIn ? `@${username}` : '@guest';
-    const profileRank = user?.rank || user?.role || (isSignedIn ? 'Wave Master' : 'Wave Rookie');
+    const rankMetrics = isSignedIn ? getWaveRankMetrics(username, user) : getWaveRankMetrics('', {});
+    const profileRank = rankMetrics.name;
     const profileLevel = Math.max(1, Number(user?.level) || 1);
-    const profileXpGoal = Math.max(100, Number(user?.xpGoal) || 500);
-    const profileXp = Math.max(0, Math.min(profileXpGoal, Number(user?.xp) || (isSignedIn ? 120 : 0)));
+    const profileXpGoal = 1000;
+    const profileXp = rankMetrics.score;
     if (profileDropdownRank) profileDropdownRank.textContent = profileRank;
     if (profileTierName) profileTierName.textContent = profileRank;
+    if (profileNextTier) profileNextTier.textContent = waveRanks[rankMetrics.tierIndex + 1]?.[0] || 'Wave Apex';
     if (profileDropdownLevel) profileDropdownLevel.textContent = String(profileLevel);
     if (profileDropdownXp) profileDropdownXp.textContent = String(profileXp);
     if (profileDropdownXpGoal) profileDropdownXpGoal.textContent = String(profileXpGoal);
@@ -415,7 +459,7 @@
         : 'auth.html?mode=login';
     }
     if (mobileProfileUsername) mobileProfileUsername.textContent = username;
-    if (mobileProfileRank) mobileProfileRank.textContent = user?.rank || user?.role || (isSignedIn ? 'Wave Master' : 'Wave Rookie');
+    if (mobileProfileRank) mobileProfileRank.textContent = profileRank;
     if (mobileProfileLevel) mobileProfileLevel.textContent = String(Math.max(1, Number(user?.level) || 1));
     if (mobileHeaderAuth) mobileHeaderAuth.classList.toggle('is-signed-in', isSignedIn);
     if (mobileWalletBalance) {

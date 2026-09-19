@@ -916,34 +916,59 @@ function createPublicReviewCard(review) {
   return card;
 }
 
+const waveRankTiers = [
+  ['Wave Spark', 0], ['Wave Scout', 70], ['Wave Rider', 140], ['Wave Surfer', 220],
+  ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580],
+  ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000],
+];
+
+function isRecentWaveActivity(value) {
+  const time = new Date(value || 0).getTime();
+  return Number.isFinite(time) && time >= Date.now() - (30 * 24 * 60 * 60 * 1000);
+}
+
+function getWaveRankMetrics(user, listings = getSellerListings()) {
+  const username = user?.username || '';
+  const userListings = listings.filter((item) => item?.sellerUsername === username);
+  const purchases = getPurchases();
+  const purchaseItems = purchases.flatMap((purchase) => Array.isArray(purchase?.items)
+    ? purchase.items.map((item) => ({ ...item, purchasedAt: item.purchasedAt || purchase.purchasedAt, buyerUsername: item.buyerUsername || purchase.buyerUsername }))
+    : [purchase]);
+  const sold = getSellerSoldItems(username, userListings, user);
+  const bought = purchaseItems.filter((item) => item?.buyerUsername === username || item?.username === username);
+  const reviews = getSellerReviews(username);
+  const progress = Math.min(500,
+    userListings.length * 15 + sold.length * 60 + bought.length * 20 + reviews.length * 25 + Math.min(100, Number(user?.xp) || 0)
+  );
+  const recentEvents = [
+    ...userListings.map((item) => item.createdAt || item.updatedAt),
+    ...sold.map((item) => item.soldAt || item.purchasedAt || item.createdAt),
+    ...bought.map((item) => item.purchasedAt || item.createdAt),
+    ...reviews.map((item) => item.createdAt),
+  ].filter(isRecentWaveActivity).length;
+  const activity = Math.min(500, recentEvents * 75);
+  const score = Math.min(1000, progress + activity);
+  const tierIndex = waveRankTiers.reduce((current, [, threshold], index) => score >= threshold ? index : current, 0);
+  const [tier, threshold] = waveRankTiers[tierIndex];
+  const nextThreshold = waveRankTiers[tierIndex + 1]?.[1] || 1000;
+  return {
+    score, activity, progress, recentEvents, tier,
+    tierProgress: threshold === nextThreshold ? 100 : Math.round(((score - threshold) / (nextThreshold - threshold)) * 100),
+  };
+}
+
 function getPublicProfileRank(username) {
   const users = readJson(localUsersKey, []);
   const listings = getSellerListings();
-  const rankedUsers = (Array.isArray(users) ? users : []).map((user) => {
-    const userListings = listings.filter((listing) => listing.sellerUsername === user.username);
-    const orders = getSellerSoldItems(user.username, userListings, user).length;
-    const reviews = getSellerReviews(user.username);
-    return {
-      username: user.username,
-      orders,
-      reviews: reviews.length,
-      listings: userListings.length,
-      rating: getAverageRating(reviews) || 0,
-    };
-  }).filter((entry) => entry.orders || entry.reviews || entry.listings).sort((a, b) => (
-    b.orders - a.orders
-    || b.reviews - a.reviews
-    || b.listings - a.listings
-    || b.rating - a.rating
-    || a.username.localeCompare(b.username)
-  ));
-
+  const rankedUsers = (Array.isArray(users) ? users : []).map((user) => ({
+    username: user.username,
+    ...getWaveRankMetrics(user, listings),
+  })).filter((entry) => entry.score > 0).sort((a, b) => b.score - a.score || b.activity - a.activity || a.username.localeCompare(b.username));
   const index = rankedUsers.findIndex((entry) => entry.username === username);
   if (index < 0) return null;
   const rank = index + 1;
   const total = Math.max(rankedUsers.length, 1);
-  const percentile = Math.max(1, Math.ceil((rank / total) * 100));
-  return { rank, total, percentile, progress: Math.max(4, Math.round(((total - rank + 1) / total) * 100)) };
+  return { ...rankedUsers[index], rank, total, percentile: Math.max(1, Math.ceil((rank / total) * 100)) };
 }
 
 function getPublicProfileGames(listings, soldItems) {
@@ -1193,13 +1218,13 @@ function renderPublicProfile(user) {
       ? `${formatCount(listings.length)} listed · ${formatCount(soldItems.length)} orders`
       : 'WaveHub community member';
   }
-  if (publicProfileRank) publicProfileRank.textContent = rank ? `#${formatCount(rank.rank)}` : '#-';
+  if (publicProfileRank) publicProfileRank.textContent = rank ? rank.tier : 'Wave Spark';
   if (publicProfileRankCaption) {
-    publicProfileRankCaption.textContent = rank ? `Top ${rank.percentile}% of active members` : 'No marketplace activity yet';
+    publicProfileRankCaption.textContent = rank ? `${formatCount(rank.score)} Wave Points · Top ${rank.percentile}%` : 'Earn points through progress and activity';
   }
-  if (publicProfileRankProgress) publicProfileRankProgress.style.width = rank ? `${rank.progress}%` : '0%';
+  if (publicProfileRankProgress) publicProfileRankProgress.style.width = rank ? `${Math.max(4, rank.tierProgress)}%` : '0%';
   if (publicProfileRankMeta) {
-    publicProfileRankMeta.textContent = rank ? `${formatCount(rank.rank)} of ${formatCount(rank.total)} ranked members` : 'Not ranked';
+    publicProfileRankMeta.textContent = rank ? `${formatCount(rank.activity)} activity points in the last 30 days` : 'No activity yet';
   }
   renderPublicProfileGame(
     displayedGames[0],
