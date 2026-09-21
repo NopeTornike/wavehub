@@ -1,3 +1,5 @@
+import { CREATE_THROTTLE } from '../common/throttle';
+import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AdminRole } from '@wavehub/shared-types';
 import { CoachesService } from './coaches.service';
@@ -26,6 +28,7 @@ export class CoachesController {
   ) {}
 
   @Post('coaches/apply')
+  @Throttle(CREATE_THROTTLE)
   @UseGuards(AuthGuard)
   apply(@CurrentUserId() userId: string, @Body() dto: ApplyCoachDto) {
     return this.coaches.apply(userId, dto);

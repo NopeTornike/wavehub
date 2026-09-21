@@ -87,6 +87,17 @@ directly, to keep one place owning "how do I fetch a user."
 - Every future guarded module should import `AuthGuard`/`CurrentUserId` from here rather than
   reimplementing session verification.
 
+## Launch-hardening notes
+- `SessionService.verify()` pins `algorithms: ['HS256']`. In production `JWT_SECRET` must be >= 32
+  chars and not a placeholder — enforced with every other production check by
+  `backend/src/config/production-config.ts` (the module-level throw in `auth.module.ts` remains as
+  a second line of defence).
+- Session cookie: `httpOnly`, `sameSite: 'lax'`, `secure` when `NODE_ENV=production`, host-only,
+  7-day expiry. Behind Caddy the browser sees one origin (`/api` is proxied), so no `Domain` is set.
+- Email sending never throws into these flows (see `backend/src/email/CLAUDE.md`).
+- `MaintenanceGuard` (settings module) exempts `/auth/login` and `/auth/logout` during maintenance so
+  an admin can sign in; `/auth/register` etc. are blocked for non-staff.
+
 ## Status
 Real session, guard, `/me`, email verification, password reset, rate limiting, and
 suspended/banned enforcement in `AuthGuard` are all implemented and functional end-to-end

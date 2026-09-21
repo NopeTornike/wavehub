@@ -24,7 +24,9 @@ not merged. It also has the confirmed workplan (all open product questions answe
 2026-09-16 — see its "Decisions" section) for BOG subscriptions + buyer/seller-coach membership
 plans, Tournaments, Direct Messaging (transacted-users-only, coordination not transactions), Steam
 Keys, and finishing the in-progress Coaching session-booking feature. Read its §7 for the build
-order before starting any of these.
+order before starting any of these. **Its final "Launch status" section (2026-09-22) lists what the
+launch-readiness pass did and every owner-only item still blocking a real launch; the deployment
+runbook is `docs/DEPLOY.md` and the go-live checklist is `docs/LAUNCH_CHECKLIST.md`.**
 
 ## Module doc index
 
@@ -33,10 +35,10 @@ order before starting any of these.
 | `backend/src/auth/` | Registration, login, sessions, guards | `backend/src/auth/CLAUDE.md` |
 | `backend/src/users/` | User entity + shared lookup service | `backend/src/users/CLAUDE.md` |
 | `backend/src/payments/` | BOG WaveCoin top-up integration | `backend/src/payments/CLAUDE.md` |
-| `backend/src/email/` | Email-sending stub (console.log until a provider is chosen) | `backend/src/email/CLAUDE.md` |
+| `backend/src/email/` | Transactional email — Resend HTTP driver or console, selected by `EMAIL_PROVIDER` | `backend/src/email/CLAUDE.md` |
 | `backend/src/wallet/` | WaveCoin ledger — the only writer of `users.wavecoinBalance` | `backend/src/wallet/CLAUDE.md` |
 | `backend/src/listings/` | Marketplace listings (service + item + digital key), moderation lifecycle | `backend/src/listings/CLAUDE.md` |
-| `backend/src/storage/` | File storage abstraction (local disk today, not production-ready) | `backend/src/storage/CLAUDE.md` |
+| `backend/src/storage/` | Upload storage — local disk or S3-compatible driver, content-sniffed file types | `backend/src/storage/CLAUDE.md` |
 | `backend/src/orders/` | Purchase flow, delivery lifecycle, the only trigger for wallet money movement | `backend/src/orders/CLAUDE.md` |
 | `backend/src/reviews/` | Buyer reviews of completed orders, seller/listing rating aggregates | `backend/src/reviews/CLAUDE.md` |
 | `backend/src/chat/` | Order-scoped chat (buyer/seller messages + lifecycle system messages) + Direct messaging between transacted users | `backend/src/chat/CLAUDE.md` |
@@ -50,6 +52,8 @@ order before starting any of these.
 | `backend/src/content/` | Static/legal page CMS (10 pages: About/Contact/Terms/Privacy/Refund/Delivery/Disputes/Community/Coach & Seller Standards) — admin-edited, publicly rendered, real copy | `backend/src/content/CLAUDE.md` |
 | `backend/src/tournaments/` | Admin-posted tournaments, self-service registration — no bracket/matchmaking/prize-payout automation | `backend/src/tournaments/CLAUDE.md` |
 | `backend/src/subscriptions/` | BOG-billed Buyer / Seller-Coach membership plans, jsonb perks (fee discount, featured, priority support, badge), hourly recharge sweep | `backend/src/subscriptions/CLAUDE.md` |
+| `backend/src/common/` | Cross-cutting runtime: global exception filter, PII-free request log, `/health`, throttle presets | `backend/src/common/CLAUDE.md` |
+| `backend/src/config/` | Production boot-time config validation (refuses dev defaults in `NODE_ENV=production`) | `backend/src/config/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |
 | `frontend/` | Next.js app (the one real frontend — see below) | `frontend/CLAUDE.md` |
 
@@ -77,7 +81,7 @@ Full reasoning for each of these (including which contradictions in the source s
 Baseline hardening that exists today (added Phase 2 after a dedicated pass — see
 `/Users/sarvat/.claude/plans/mighty-mapping-robin.md` progress log for what prompted it):
 
-- **`helmet`** is applied globally in `main.ts` for standard security headers.
+- **`helmet`** is applied globally (`backend/src/app.setup.ts`, shared by `main.ts` and the e2e harness) for standard security headers.
 - **Rate limiting** (`@nestjs/throttler`) is applied globally (100 req/60s/IP default) via
   `APP_GUARD` in `app.module.ts`, with stricter per-route limits (5/60s) on brute-force-prone
   endpoints — registration, login, password reset, email verification. **Any new public endpoint
@@ -91,7 +95,7 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
     a load balancer effectively multiplies the real limit by instance count. Fine for now; revisit
     (Redis-backed throttler storage) if/when this actually runs on more than one instance.
   - Rate limiting only reflects the real client IP if `TRUST_PROXY` is correctly configured in
-    front of a real reverse proxy/load balancer — see `main.ts` and `.env.example`. Never set it
+    front of a real reverse proxy/load balancer — see `app.setup.ts` and `.env.example`. Never set it
     without an actual trusted proxy in front; doing so lets any client spoof its own IP via
     `X-Forwarded-For` and silently defeats the rate limit.
 - **Every mutating endpoint validates input via a `class-validator` DTO** under a global
@@ -142,6 +146,41 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   the ban. This adds a small DB round-trip to every guarded request; accepted as the cost of a ban
   actually taking effect. There is still no way to revoke one specific session early ("log out this
   device") short of a full account suspend/ban.
+- **Launch-readiness hardening (2026-09-22, full review of every route)** — findings and fixes, all
+  covered by tests in `backend/test/security.e2e-spec.ts` / `hardening.e2e-spec.ts` and unit specs:
+  - **Public `GET /listings` and `/listings/:id` leaked the seller's full `User` row** (email, WaveCoin
+    balance, admin role, moderation reason). Now projected through `toPublicSeller()`
+    (`backend/src/listings/CLAUDE.md`). The e2e suite sweeps **every** JSON response of a broad API
+    walk for `passwordHash`/`email`/`wavecoinBalance`/`adminRole`/... outside own-data and admin
+    routes — keep it green when adding endpoints that join user rows.
+  - **Upload validation trusted the client** (`Content-Type` + filename extension), allowing stored
+    XSS via an HTML file labelled `image/png` served from the API origin. `StorageService` now
+    identifies files by magic bytes, derives extension/content-type itself, uses UUID names only,
+    and `/uploads` is served with `nosniff` + a sandboxing CSP + attachment disposition for
+    non-images (`backend/src/storage/CLAUDE.md`).
+  - **Malformed uuid path params produced 500s** (and stack logs); a global filter now maps them to
+    404 and guarantees no SQL/stack text ever reaches a client (`backend/src/common/CLAUDE.md`).
+  - **A disallowed CORS origin caused a 500** (`callback(new Error())`); now answered without CORS
+    headers. Dev-only origin allowances (`null`, localhost) stay disabled in production.
+  - Session JWT verification pins `HS256`. Authenticated abuse-prone writes (uploads, messages,
+    creates) got per-IP throttles on top of the global 100/min (`common/throttle.ts`).
+  - **Production refuses to boot on dev defaults** — weak/placeholder `JWT_SECRET`/
+    `KEY_ENCRYPTION_SECRET`/DB password, `http://` URLs, `TYPEORM_SYNC=true`, missing `TRUST_PROXY`/
+    `EMAIL_PROVIDER` (`backend/src/config/CLAUDE.md`).
+  - **Maintenance Mode is enforced** by a global guard (`backend/src/settings/CLAUDE.md`).
+  - Logging: the access log carries no IPs/cookies/bodies/user ids; the email console fallback never
+    logs bodies (one-time links) or addresses in production; provider errors log HTTP status +
+    recipient domain only.
+  - Reviewed and found sound (no change needed): every route has an auth guard or is deliberately
+    public; ownership checks on orders/listings/keys/notifications/withdrawals/tickets/disputes/
+    coaching sessions/DMs; every mutating endpoint validates a DTO; all SQL is parameterised
+    (query builders or `$n` placeholders — no string-built SQL); admin routes fail closed
+    (`AdminGuard` without `@RequireAdminRole` = 403); BOG callbacks are signature-verified and
+    `@SkipThrottle`d.
+  - `npm audit --omit=dev` clean: bumped `next` to `^16.3.5` (critical advisories), `@nestjs/*` to
+    `^11.2.5`, transitive `sharp`/`qs`/`postcss`/`nanoid`/`multer` via `npm audit fix`. Note: after
+    `npm audit fix`, `@nestjs/common`/`core`/`platform-express` must be kept on matching versions
+    (a mismatch breaks Nest at import time); `npm dedupe` cleared a stale nested copy.
 - Not yet done, tracked for later phases: CSRF tokens (see reasoning above — currently judged
   unnecessary, not forgotten), CAPTCHA/bot-protection on registration. Structured audit logging
   (§non-negotiable-rule-3) landed in Phase 11a — `audit_logs` (`backend/src/admin/CLAUDE.md`) is a
@@ -183,7 +222,8 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   see `backend/src/admin/CLAUDE.md` and `frontend/CLAUDE.md`. **Phase 11d (Support ticketing) has
   also landed** — see `backend/src/support/CLAUDE.md`. **Phase 11f is partially done** (platform
   fee % and minimum withdrawal are admin-configurable — `backend/src/settings/CLAUDE.md` — but
-  promo codes, banners, and Maintenance Mode enforcement are not). **Phase 11b (Coaching) is now
+  promo codes and banners are not; Maintenance Mode **is** now enforced — see
+  `backend/src/settings/CLAUDE.md`). **Phase 11b (Coaching) is now
   functionally complete for a first version** — coach profiles, the public directory, admin
   verification/suspension, and session booking + escrow payment (with the same 7-day withdrawal
   hold as an order) all exist and are verified against the real Postgres instance
@@ -258,7 +298,7 @@ on each run — never the dev DB) and drives it over real HTTP with a cookie-jar
 local Postgres with the `.env.example` credentials; no extra dependencies (Node's built-in `fetch`).
 `EmailService.send` is patched to capture verification links; each test client gets a unique
 `X-Forwarded-For` (test-only `TRUST_PROXY`) so per-IP throttles don't collide. Runs in CI after the
-unit tests. Specs (98 tests, 13 files): `auth`, `marketplace` (purchase→deliver→accept escrow + fee math,
+unit tests. Specs: `auth`, `marketplace` (purchase→deliver→accept escrow + fee math,
 withdrawal hold, cancel/refund), `digital-keys` (no key leakage, concurrent oversell), `subscriptions`
 (admin plan CRUD, fee discount, featured boost, badge, priority tickets), `social` (transacted-only
 DMs, tournament capacity), and — added in the coverage pass — `disputes` (open/messages/evidence,
@@ -268,7 +308,9 @@ complete/cancel, fee snapshot), `reviews` (completed-buyer-only, one per order, 
 moderation), `admin-auth` (22-route role-guard matrix over all 6 staff roles, password reset,
 suspended/banned session + login rejection), `bog-callbacks` (topup + subscription callbacks with
 genuinely RSA-signed payloads), `order-races` (concurrent accept/cancel/dispute), and
-`support-notifications-settings`.
+`support-notifications-settings`, plus `security` (response-privacy sweep across the API, malformed-id
+handling, stranger-vs-order authorization) and `hardening` (upload validation + served headers,
+CORS/error hygiene, helmet, `/health`, Maintenance Mode, authz spot checks).
 
 **Conventions for new specs**: `test/flows.ts` has `buyItem(...)` (drive an order to a stage),
 `clearHold` (backdate the 7-day withdrawal hold) and `assertConserved` — call the latter in
@@ -289,47 +331,49 @@ repeatedly against top-up money; a concurrent duplicate BOG top-up callback surf
 a hidden/deleted review resurrected it; a suspended/banned user could still log in and lifting a
 suspension activated a never-verified account; illegal status transitions returned 500 (now 409).
 
-## Docker / local readiness
+## Docker / production deployment
 
-`docker-compose.yml`, `backend/Dockerfile`, and `frontend/Dockerfile` build from the **monorepo root**
-as their Docker build context (`context: .`, `dockerfile: backend/Dockerfile` /
-`frontend/Dockerfile`) — not from `./backend`/`./frontend` as isolated contexts. This is required
-because both apps depend on `packages/shared-types` via npm workspace hoisting; a subdirectory-only
-build context can't see that package at all and `npm install` inside it would fail to resolve
-`@wavehub/shared-types`. Both Dockerfiles are deliberately single-stage (not a slimmed multi-stage
-build) — correctly isolating one workspace's production-only dependencies out of an npm-workspaces
-monorepo is easy to get subtly wrong, and this has never been verified against a real Docker daemon
-(no Docker available in the environment that wrote it), so correctness/simplicity was prioritized over
-image size.
+**Production = one Ubuntu 24.04 VPS running `docker-compose.yml`** (Caddy auto-HTTPS → Next.js
+frontend at `/`, NestJS backend at `/api`, Postgres 16; only Caddy publishes ports). The step-by-step
+runbook is `docs/DEPLOY.md`, every env var is in `/.env.production.example`, the go-live list is
+`docs/LAUNCH_CHECKLIST.md`. Local try-out with dev defaults: `docker-compose.local.yml`.
 
-`docker-compose.yml`'s `backend` service sets `JWT_SECRET` to an insecure local-only default
-(`wavehub-local-dev-secret-change-me`) so `docker compose up` works out of the box — `auth.module.ts`
-throws at boot if `JWT_SECRET` is unset while `NODE_ENV=production`, which is the default `NODE_ENV`
-here. **Always override `JWT_SECRET` via a real `.env` file or secret manager past local/throwaway
-use.** `FRONTEND_URL`/`BACKEND_PUBLIC_URL`/`BOG_CLIENT_ID`/`BOG_CLIENT_SECRET` are also now passed
-through from the host environment (the BOG ones are legitimately optional — `/payments/bog/*` 503s
-without them, everything else works).
+- `docker-compose.yml`/`backend/Dockerfile`/`frontend/Dockerfile` build from the **monorepo root**
+  (`context: .`) because both apps depend on `packages/shared-types` via workspace hoisting. Both
+  Dockerfiles are deliberately single-stage (correctness over image size), use `npm ci`, run as the
+  non-root `node` user, and have `HEALTHCHECK`s. The compose file adds `restart: unless-stopped`,
+  `init: true`, healthcheck-gated `depends_on`, json-file log rotation, named volumes (`pgdata`,
+  `uploads`, `caddy_data`) and **required-variable checks (`${VAR:?}`) with no insecure defaults** —
+  unlike the previous file, which defaulted `JWT_SECRET`, `TYPEORM_SYNC=true`, a known DB password
+  and published Postgres/backend ports to the internet.
+- **Migrations run on every backend container start** (`backend/docker-entrypoint.sh` →
+  `npm run migration:run:prod -w backend`, from the *compiled* data source; `RUN_MIGRATIONS=false`
+  skips). A failed migration aborts the boot.
+- **The compiled backend needs `node --conditions=wavehub-node-prod`** so `@wavehub/shared-types`
+  resolves to its built `dist/` — see `packages/shared-types/CLAUDE.md`. Before this fix,
+  `node backend/dist/main.js` (the old Dockerfile CMD) crashed on its first import; the Docker
+  image had never actually been able to start. `npm run backend:build` now builds shared-types first.
+- `KEY_ENCRYPTION_SECRET` is passed through and required (the previous compose file omitted it, so a
+  production container couldn't boot once Steam Keys landed). `TRUST_PROXY=1`, `UPLOADS_DIR`,
+  `EMAIL_*`, `STORAGE_DRIVER`/`S3_*`, `BOG_*`, `REQUEST_LOG` are passed through too.
+- Root `.dockerignore` excludes `node_modules`, build output, `.git`, `.env*`, `backend/uploads` — this
+  matters because a root-context `COPY . .` would otherwise overwrite the image's Linux-native
+  `node_modules` (bcrypt, Next/SWC) with the host's.
+- Scripts: `scripts/backup.sh` (pg_dump + uploads tarball, retention, integrity check) and
+  `scripts/restore-db.sh`. Reverse-proxy config: `deploy/Caddyfile`.
+- `.github/workflows/ci.yml` has a `docker` job that validates both compose files, builds both images
+  and boots Postgres + backend to `healthy` on every PR.
 
-Root `.dockerignore` (new) excludes `node_modules`, `**/node_modules`, build output
-(`backend/dist`, `frontend/.next`, `packages/*/dist`), `.git`, `.env*` (except `.env.example`), and
-editor/OS noise. This matters more than it looks: without it, a root-context `COPY . .` would
-overwrite the image's freshly-`npm install`ed Linux-native `node_modules` (bcrypt's native addon,
-Next.js/SWC's platform binary) with whatever's on the host machine — silently breaking native
-dependencies at container runtime. This was the single most severe gap found in the pre-existing
-Docker setup.
+**Verification status (2026-09-22):** the environment that wrote this had **no Docker daemon and no
+Caddy binary**, so `docker compose build/up` and the Caddyfile have *not* been run for real by the
+authors (the CI `docker` job is the first real check). What *was* run for real: the compiled backend
+(`backend:build` → `migration:run:prod` against a fresh Postgres → `npm start` → `GET /health` → clean
+SIGTERM shutdown), the production-config refusal output, `next build`, the compose/CI YAML parse,
+and shell syntax checks of the scripts.
 
-**Status: fixed but unverified against a real Docker daemon** — same standing sandbox constraint
-noted throughout `/Users/sarvat/.claude/plans/mighty-mapping-robin.md`'s progress log (no Docker
-available in the environment these files were edited in). Run a real `docker compose build &&
-docker compose up` before relying on this for an actual deployment.
-
-**Cleanup done (2026-07-19)**: the three candidates flagged above have been resolved —
-`backend/package-lock.json`/`frontend/package-lock.json` (pre-workspaces artifacts, untouched
-since the repo's first commit) were deleted, the stray `frontend/node_modules` was removed, and
-both `backend/package.json` and `frontend/package.json` now list `"@wavehub/shared-types": "*"`
-explicitly rather than relying purely on implicit workspace hoisting. Re-ran `npm install` at the
-root afterward and confirmed the `node_modules/@wavehub/shared-types` symlink still resolves and
-every build/lint/test command still passes.
+**Cleanup done (2026-07-19)**: pre-workspaces `backend/package-lock.json`/`frontend/package-lock.json`
+were deleted, the stray `frontend/node_modules` removed, and both workspaces list
+`"@wavehub/shared-types": "*"` explicitly.
 
 ## Tool portability
 

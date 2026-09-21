@@ -1,3 +1,5 @@
+import { CREATE_THROTTLE, MESSAGE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
+import { Throttle } from '@nestjs/throttler';
 import {
   Body,
   Controller,
@@ -37,6 +39,7 @@ export class DisputesController {
   ) {}
 
   @Post()
+  @Throttle(CREATE_THROTTLE)
   open(@CurrentUserId() userId: string, @Param('orderId') orderId: string, @Body() dto: OpenDisputeDto) {
     return this.disputes.open(userId, orderId, dto.reason);
   }
@@ -47,6 +50,7 @@ export class DisputesController {
   }
 
   @Post('messages')
+  @Throttle(MESSAGE_THROTTLE)
   addMessage(
     @CurrentUserId() userId: string,
     @Param('orderId') orderId: string,
@@ -56,6 +60,7 @@ export class DisputesController {
   }
 
   @Post('evidence')
+  @Throttle(UPLOAD_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }))
   addEvidence(

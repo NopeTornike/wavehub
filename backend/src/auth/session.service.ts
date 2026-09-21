@@ -21,7 +21,8 @@ export class SessionService {
   }
 
   verify(token: string): SessionPayload {
-    return this.jwt.verify<SessionPayload>(token);
+    // Algorithm pinned so a token can never be accepted under a different (e.g. `none`) algorithm.
+    return this.jwt.verify<SessionPayload>(token, { algorithms: ['HS256'] });
   }
 
   attach(res: Response, userId: string) {

@@ -158,7 +158,7 @@ export class DisputesService {
         disputeId: dispute.id,
         uploadedBy: userId,
         fileUrl: stored.url,
-        fileType: file.mimetype,
+        fileType: stored.contentType ?? file.mimetype,
       }),
     );
     return this.loadPublic(dispute);

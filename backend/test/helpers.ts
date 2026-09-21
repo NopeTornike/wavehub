@@ -1,10 +1,10 @@
 import 'reflect-metadata';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import * as cookieParser from 'cookie-parser';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/app.setup';
 import { EmailService } from '../src/email/email.service';
 import { WalletService } from '../src/wallet/wallet.service';
 
@@ -26,9 +26,7 @@ export async function createApp(): Promise<E2eApp> {
     sentEmails.push({ to, subject, body });
   };
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true, logger: ['error'] });
-  app.set('trust proxy', 1);
-  app.use(cookieParser());
-  app.useGlobalPipes(new ValidationPipe({ forbidNonWhitelisted: true, transform: true, whitelist: true }));
+  configureApp(app); // the same middleware/pipes/filters main.ts runs (TRUST_PROXY comes from e2e-env.ts)
   await app.listen(0);
   const baseUrl = await app.getUrl();
   return {
@@ -42,6 +40,10 @@ export async function createApp(): Promise<E2eApp> {
 }
 
 let ipCounter = 1;
+
+// Every JSON response any Client receives, recorded so a spec can scan them all (see
+// security.e2e-spec.ts's PII/secret-leak sweep).
+export const recordedResponses: { method: string; path: string; status: number; body: any }[] = [];
 
 // A cookie-jar HTTP client for one user. Every client gets a unique X-Forwarded-For so the
 // per-IP throttles never collide between users.
@@ -73,6 +75,27 @@ export class Client {
     } catch {
       /* non-JSON body */
     }
+    recordedResponses.push({ method, path, status: res.status, body: parsed });
+    return { status: res.status, body: parsed };
+  }
+
+  // multipart/form-data upload of one file under the field name `file`.
+  async upload(path: string, content: Buffer, filename: string, mime: string): Promise<{ status: number; body: any }> {
+    const form = new FormData();
+    form.append('file', new Blob([new Uint8Array(content)], { type: mime }), filename);
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method: 'POST',
+      headers: { 'x-forwarded-for': this.ip, ...(this.cookie ? { cookie: this.cookie } : {}) },
+      body: form,
+    });
+    const text = await res.text();
+    let parsed: any = text;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      /* non-JSON body */
+    }
+    recordedResponses.push({ method: 'POST', path, status: res.status, body: parsed });
     return { status: res.status, body: parsed };
   }
 

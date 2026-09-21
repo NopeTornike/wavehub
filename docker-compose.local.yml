@@ -1,0 +1,64 @@
+# LOCAL try-out stack (no TLS, no reverse proxy, dev defaults, ports published on localhost):
+#
+#   docker compose -f docker-compose.local.yml up --build
+#
+# Frontend http://localhost:3000, backend http://localhost:4000. NODE_ENV=development, so the
+# insecure dev JWT/encryption-key fallbacks are permitted (and loudly warned) — NEVER deploy this
+# file. The real deployment file is docker-compose.yml (see docs/DEPLOY.md).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wavehub
+      POSTGRES_PASSWORD: wavehubpass
+      POSTGRES_DB: wavehubdb
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wavehub -d wavehubdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: wavehub
+      DATABASE_PASSWORD: wavehubpass
+      DATABASE_NAME: wavehubdb
+      CORS_ORIGIN: http://localhost:3000
+      FRONTEND_URL: http://localhost:3000
+      BACKEND_PUBLIC_URL: http://localhost:4000
+      BOG_CLIENT_ID: ${BOG_CLIENT_ID:-}
+      BOG_CLIENT_SECRET: ${BOG_CLIENT_SECRET:-}
+    volumes:
+      - uploads_local:/data/uploads
+    ports:
+      - "127.0.0.1:4000:4000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4000
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  pgdata_local:
+  uploads_local:

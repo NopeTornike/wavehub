@@ -55,6 +55,7 @@ import { ContentPage } from './content/content-page.entity';
 import { TournamentsModule } from './tournaments/tournaments.module';
 import { Tournament } from './tournaments/tournament.entity';
 import { TournamentRegistration } from './tournaments/tournament-registration.entity';
+import { CommonModule } from './common/common.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SubscriptionPlan } from './subscriptions/subscription-plan.entity';
 import { UserSubscription } from './subscriptions/user-subscription.entity';
@@ -140,6 +141,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
     ContentModule,
     TournamentsModule,
     SubscriptionsModule,
+    CommonModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

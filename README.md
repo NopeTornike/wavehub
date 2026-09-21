@@ -7,33 +7,36 @@ map (module docs, non-negotiable rules, architecture notes) and
 - Backend: NestJS, TypeORM, PostgreSQL — `backend/`
 - Frontend: Next.js — `frontend/`
 - Shared types: `packages/shared-types/`
-- Local dev: Docker Compose with PostgreSQL
+- Deployment: Docker Compose + Caddy on one VPS (see below)
 
 This is an npm workspaces monorepo — one `npm install` at the repo root covers both apps.
 
-## Quick Start With Docker
+## Quick Start With Docker (local try-out)
 
 ```bash
-docker compose build
-docker compose up
+docker compose -f docker-compose.local.yml up --build
 ```
 
-Backend runs on `http://localhost:4000`.
-Frontend runs on `http://localhost:3000/register`.
+Frontend `http://localhost:3000/register`, backend `http://localhost:4000` (`/health` for a status
+check). This file uses insecure dev defaults (`NODE_ENV=development`) and is **for local use only**;
+migrations run automatically when the backend container starts. BOG credentials are optional —
+only `/payments/bog/*` needs them.
 
-`docker-compose.yml` fills in insecure local-only defaults for everything required to boot
-(including `JWT_SECRET`) so this works out of the box — **override `JWT_SECRET` via a real `.env`
-file or your deployment's secret manager for anything beyond local/throwaway use.** `BOG_CLIENT_ID`/
-`BOG_CLIENT_SECRET` are left unset by default; only `/payments/bog/*` (WaveCoin top-up) needs them,
-everything else works without them.
+## Production deployment
 
-> **Caveat:** `backend/Dockerfile`, `frontend/Dockerfile`, and this `docker-compose.yml` were
-> rewritten to work with the npm-workspaces monorepo layout (the versions from before that
-> migration built from `./backend`/`./frontend` as isolated contexts and couldn't resolve the
-> `@wavehub/shared-types` workspace dependency at all — see `backend/CLAUDE.md`). This rewrite has
-> **not** been run against a real Docker daemon — the environment it was written in had none
-> available. Do a real `docker compose build && docker compose up` before relying on this for an
-> actual deployment.
+`docker-compose.yml` is the **production** stack for a single Ubuntu 24.04 VPS (Caddy with automatic
+HTTPS, frontend at `/`, API at `/api`, Postgres, non-root containers, healthchecks, restart policies).
+It has no insecure defaults: secrets are required and the backend refuses to boot in production with
+dev/placeholder values.
+
+- Runbook: [`docs/DEPLOY.md`](./docs/DEPLOY.md) (firewall, Docker install, env file, backups, log
+  rotation, updates)
+- Every variable: [`.env.production.example`](./.env.production.example)
+- Go-live list (incl. what only the owner can do): [`docs/LAUNCH_CHECKLIST.md`](./docs/LAUNCH_CHECKLIST.md)
+
+> The Docker artifacts were written without a Docker daemon available; CI (`docker` job) builds the
+> images and boots the backend on every PR, but the first full run on a real server is still yours —
+> see the honesty note at the top of `docs/DEPLOY.md`.
 
 ## Local Development
 
@@ -51,10 +54,10 @@ Per-workspace scripts are exposed at the root (`backend:dev`, `backend:lint`, `b
 Copy `backend/.env.example` to `backend/.env` (or set the equivalent env vars) before running the
 backend outside Docker Compose.
 
-For local database schema sync, `TYPEORM_SYNC=true` is enabled in `docker-compose.yml`. For
-anything beyond quick local experiments, use migrations instead
-(`npm run migration:run -w backend`) and leave `TYPEORM_SYNC` unset or `false` — see
-`backend/src/data-source.ts`.
+Schema changes go through migrations (`npm run migration:run -w backend`); `TYPEORM_SYNC=true` is
+for throwaway local experiments only and is refused in production. `npm run backend:build` builds
+`packages/shared-types` first; the compiled backend must be started with
+`node --conditions=wavehub-node-prod` (`npm run start -w backend` does this).
 
 ## Bank of Georgia Payments
 

@@ -4,22 +4,36 @@
 Platform-wide configurable numbers that used to be hardcoded constants scattered across other
 modules: the order platform-fee percentage and the minimum seller withdrawal amount. Build-plan
 Phase 11f ("Platform Settings"), pulled forward as a small, bounded slice rather than waiting for
-the rest of that phase (promo codes, banners, API/commission settings beyond these two, Maintenance
-Mode enforcement).
+the rest of that phase (promo codes, banners, API/commission settings beyond these two). Maintenance
+Mode enforcement landed with the launch-readiness pass (see below).
 
 ## Key files
 - `platform-settings.entity.ts` — `PlatformSettings`: a deliberate **singleton table**, exactly
   one row at a fixed well-known id (`PLATFORM_SETTINGS_SINGLETON_ID`), seeded by the
   `CreatePlatformSettings` migration. `platformFeePercent` (was `DEFAULT_PLATFORM_FEE_PERCENT` in
   `backend/src/orders/orders.service.ts`), `minWithdrawalWaveCoin` (was `MIN_WITHDRAWAL_WAVECOIN`
-  in `backend/src/withdrawals/withdrawals.service.ts`), `maintenanceMode` (stored, **not yet
-  enforced anywhere** — see Status)
+  in `backend/src/withdrawals/withdrawals.service.ts`), `maintenanceMode` (enforced by
+  `MaintenanceGuard` — see below)
 - `platform-settings.service.ts` — `PlatformSettingsService.get()`/`.getPlatformFeePercent()`/
   `.getMinWithdrawalWaveCoin()`/`.update()`. `get()` throws `InternalServerErrorException` if the
   singleton row is missing rather than silently creating a default one — a missing row means the
   migration never ran, which is a real deployment bug worth surfacing loudly, not masking.
 - `platform-settings.controller.ts` — `GET`/`POST admin/platform-settings`, both **Super Admin
   only** (see gotcha below), audit-logged on update.
+- `maintenance.guard.ts` — `MaintenanceGuard`, a **global `APP_GUARD`** (registered in
+  `settings.module.ts`). While `maintenanceMode` is on, every non-`GET/HEAD/OPTIONS` request gets
+  `503` + `Retry-After: 300` and a body `{statusCode, error, message, maintenance: true}` (the human
+  text is in `error` because `frontend/lib/api.ts` displays `error` before `message`). **Exempt:**
+  staff (any `adminRole`, checked against the DB from the session cookie — the guard runs before the
+  per-route `AuthGuard`, so it does its own lookup), `POST /auth/login` + `/auth/logout` (so an admin
+  can sign in to switch it off; non-admins can log in but still can't write anything else), and the
+  two BOG server-to-server callbacks (`/payments/bog/callback`, `/subscriptions/bog-callback`) —
+  dropping those would leave a customer who already paid uncredited. Reads stay up so the site
+  can render read-only. Background cron jobs (order auto-complete, subscription recharges) are not
+  HTTP and are unaffected. `GET /health` reports `maintenance` publicly.
+- `PlatformSettingsService.isMaintenanceMode()` — the flag, cached in memory for 5 s (the guard runs
+  on every write, so no per-request DB read); `update()` refreshes it immediately. **Fails open**
+  (returns false) if the row can't be read, so a DB blip doesn't add a self-inflicted outage.
 - `dto/update-platform-settings.dto.ts` — all fields optional (a partial update), validated ranges
   (fee 0–100, min withdrawal ≥ 1).
 
@@ -59,12 +73,10 @@ fixed id.
 (missing-row failure, both getters, partial-update behavior) — 179 backend tests total as of the
 last update. Not verified against a live Postgres transaction (no DB available in the sandbox this
 was built in). Frontend: `frontend/pages/admin/settings.tsx` is a real form wired to both
-endpoints. **`maintenanceMode` is stored and editable but not enforced anywhere** — flipping it
-today changes nothing about how the API behaves. A real Maintenance Mode needs a global guard/
-middleware that lets auth (so an admin can still log in) and every `/admin/*` route through while
-503-ing everything else; that's a broader, riskier change (touches every route's behavior) that
-wasn't built in the same pass as adding the storage for the flag — deliberately scoped out rather
-than guessed at. Not built: payment-method toggles, escrow parameters, or anything else
+endpoints. **`maintenanceMode` is enforced** (`MaintenanceGuard`, unit-tested in
+`maintenance.guard.spec.ts` and exercised end to end in `backend/test/hardening.e2e-spec.ts`: non-admin/
+anonymous writes 503, reads/admin/login/BOG webhook keep working, recovery after switch-off). The
+frontend has no dedicated banner — a refused write shows the 503 text where it happens. Not built: payment-method toggles, escrow parameters, or anything else
 SPECIFICATION.md §5.13.1's "Platform Settings" line mentions beyond these two numbers and the
 maintenance flag — those weren't concretely specified enough elsewhere in the source spec to model
 yet.

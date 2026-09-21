@@ -71,6 +71,12 @@ Steam Keys.
   `GET listings/:id`** in `listings.controller.ts` — Express matches routes in registration order,
   so `:id` would otherwise swallow `pending-review` as if it were an id. Rendered by
   `frontend/pages/admin/listings.tsx`.
+- **Public listing responses project `seller` through `toPublicSeller()`** (id, username, first/last
+  name, rating aggregates — exactly the shared `PublicSeller` type). Until the launch-readiness
+  pass, `browseActive`/`findPublicById` serialized the joined `User` entity, so every anonymous
+  `GET /listings` leaked each seller's **email, WaveCoin balance, admin role and moderation
+  reason**. `backend/test/security.e2e-spec.ts` sweeps every response for such fields — keep any new
+  read path that joins a user going through a projection like this one.
 - **`findPublicById`/`browseActive` only ever return `Active` listings.** A draft/pending/paused
   listing is 404 to anyone but its owner (who uses `findMine` instead). Don't add a "preview" path
   that bypasses this without deciding who's allowed to see a non-active listing and why.
@@ -88,7 +94,8 @@ Steam Keys.
   decorator-based conditional validation got hard to read quickly — the check is a plain `if` at the
   top of `createDraft` instead. See `listings.service.spec.ts` for the tests covering this branch.
 - **Image storage goes through `StorageService`** (`backend/src/storage/`), not directly to disk —
-  see that module's doc for why the current implementation isn't production-ready as-is.
+  it validates the file's real type by magic bytes (an HTML file labelled `image/png` is rejected
+  with 415) and supports local disk or S3-compatible storage; see that module's doc.
 - Max 5 images/listing, JPG/PNG/WEBP only, 5MB/file — enforced in `ListingsService.addImage`, not
   just at the multer/interceptor level (interceptor-level limits alone wouldn't produce a clean API
   error, just a raw multipart failure).

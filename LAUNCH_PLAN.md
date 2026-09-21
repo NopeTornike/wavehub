@@ -441,3 +441,60 @@ Carried forward from before this analysis (unaffected by any of the above):
   linked page; `about-us.html` is a stale duplicate → §2a.
 
 No open product questions remain blocking §7's workplan. Implementation starts from item 1.
+
+
+---
+
+## Launch status (2026-09-22) — production-readiness pass
+
+Branch `chore/launch-readiness`. Everything that could be done without secrets or owner decisions
+was done; the code is launchable on a single Ubuntu 24.04 VPS. What follows is the honest ledger.
+
+### Done (engineering)
+- **Full backend security review** (authz/IDOR on every route, DTO coverage, throttling, uploads,
+  helmet/CORS/cookies, secrets, PII logging, error leakage, JWT, proxy/rate-limit, SQL injection).
+  Real findings, all fixed with tests: public listings leaked the seller's email/balance/admin role;
+  uploads trusted client type/filename (stored XSS); malformed ids caused 500s; disallowed CORS
+  origin caused a 500; no per-route limits on abusable writes; email console fallback logged one-time
+  links. Details: root `CLAUDE.md` → Security. Reviewed-and-sound items are listed there too.
+- **Dependencies**: `npm audit --omit=dev` → 0 vulnerabilities (Next 16.3.5, Nest 11.2.5, etc.).
+- **The production Docker image could never have started**: `@wavehub/shared-types`' `main` was raw
+  TypeScript, so the compiled backend crashed on its first import. Fixed (built `dist` + a custom
+  export condition); compiled backend now verified to run against Postgres.
+- **Docker/compose rewritten for production**: non-root, healthchecks, restart policies, migrations on
+  boot, volumes for Postgres/uploads/certs, required secrets (incl. `KEY_ENCRYPTION_SECRET`, which the
+  old file omitted), no exposed DB/backend ports, log rotation, Caddy with auto-HTTPS, local-only
+  compose for dev. CI now builds both images and boots the stack to `healthy`.
+- **Deployment assets**: `deploy/Caddyfile`, `docs/DEPLOY.md`, `docs/LAUNCH_CHECKLIST.md`,
+  `.env.production.example`, `scripts/backup.sh` + `scripts/restore-db.sh`.
+- **Pluggable storage** (local | S3-compatible via `fetch`+SigV4, no AWS SDK) with content-sniffed
+  file validation. **Email**: Resend driver via `fetch` + console fallback.
+- **Maintenance Mode enforced** (global guard; admin/login/BOG-webhook exempt). **`/health`** with DB
+  check, graceful shutdown, PII-free structured request log, global exception filter.
+- **Production boot gate**: refuses dev defaults (JWT/key/DB secrets, http URLs, sync, proxy, email).
+- Tests: unit + real-Postgres e2e (security sweep, hardening) — see the PR for counts.
+
+### Not verified (be honest before launching)
+- `docker compose build/up` and the Caddyfile were **not run** by the authors (no Docker/Caddy in the
+  authoring environment). CI's `docker` job is the first real check; the first full run on the VPS is
+  the second.
+- The **S3 driver** and **Resend driver** were tested against mocks/spec vectors only — no real
+  bucket/account.
+- **BOG** (top-up, callback, subscriptions/recurring) has never run against real BOG.
+- Real TLS/certificate issuance, the reverse proxy's forwarded-IP handling under real load, and the
+  restore drill.
+
+### Owner-only items still blocking a real launch
+1. **BOG production credentials** + callback URLs registered with BOG, and **saved-card / recurring
+   payments enabled** on the merchant account (subscriptions depend on it).
+2. **Domain + DNS** pointing at the VPS (and the VPS itself).
+3. **Email provider account** (Resend account + verified sending domain + API key) — no email, no
+   account verification, no transactions.
+4. **Object-storage bucket** (optional; otherwise uploads live on the server disk and rely on backups).
+5. **Legal review** of the CMS copy (Terms, Privacy, Refund, Delivery, Disputes, Community,
+   Seller/Coach Standards, About, Contact) — not lawyer-reviewed.
+6. **CAPTCHA decision** for registration/login (currently IP rate-limits only).
+7. Operational decisions: who processes manual payouts and when; who staffs support/admin roles;
+   off-server backup destination; platform fee/min-withdrawal/subscription-plan values.
+
+See `docs/LAUNCH_CHECKLIST.md` for the tickable version and `docs/DEPLOY.md` for the runbook.

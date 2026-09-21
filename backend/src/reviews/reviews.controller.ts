@@ -1,3 +1,5 @@
+import { CREATE_THROTTLE } from '../common/throttle';
+import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AdminRole } from '@wavehub/shared-types';
 import { ReviewsService } from './reviews.service';
@@ -43,6 +45,7 @@ export class ReviewsController {
   }
 
   @Post('reviews')
+  @Throttle(CREATE_THROTTLE)
   @UseGuards(AuthGuard)
   create(@CurrentUserId() buyerId: string, @Body() dto: CreateReviewDto) {
     return this.reviews.create(buyerId, dto);
@@ -56,6 +59,7 @@ export class ReviewsController {
   }
 
   @Post('reviews/:id/report')
+  @Throttle(CREATE_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
   report(@CurrentUserId() reporterId: string, @Param('id') id: string, @Body() dto: ReportReviewDto) {

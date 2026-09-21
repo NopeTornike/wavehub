@@ -1,0 +1,52 @@
+# Caddy reverse proxy for the production compose stack (docker-compose.yml). Caddy obtains and
+# renews the Let's Encrypt certificate automatically; DOMAIN and ACME_EMAIL come from the compose
+# `caddy` service environment (which reads them from .env).
+#
+# ONE domain serves everything:
+#   https://DOMAIN/        -> frontend (Next.js)
+#   https://DOMAIN/api/*   -> backend (the /api prefix is stripped before proxying, so the backend
+#                             still sees /auth/login, /payments/bog/callback, /uploads/..., /health)
+# Same-origin means no CORS at all in the browser and a session cookie scoped to one host. The
+# matching .env values are NEXT_PUBLIC_API_URL / BACKEND_PUBLIC_URL = https://DOMAIN/api.
+#
+# Prefer a separate api.DOMAIN host instead? Add a second site block proxying to backend:4000, set
+# NEXT_PUBLIC_API_URL/BACKEND_PUBLIC_URL to https://api.DOMAIN, CORS_ORIGIN to https://DOMAIN, and
+# re-check the cookie/SameSite notes in docs/DEPLOY.md (same registrable domain keeps them working).
+#
+# Caddy's access log is deliberately not enabled (it would record client IPs, which the
+# application itself avoids logging); add a `log` block here only if you decide you need it.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		-Server
+	}
+
+	handle_path /api/* {
+		# Largest legitimate upload is 20 MB (delivery files / dispute evidence) plus multipart overhead.
+		request_body {
+			max_size 25MB
+		}
+		# Caddy sets X-Forwarded-For to the real client IP (overwriting any client-supplied value),
+		# which the backend's per-IP rate limiting relies on (TRUST_PROXY=1).
+		reverse_proxy backend:4000 {
+			health_uri /health
+			health_interval 30s
+			health_timeout 5s
+		}
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

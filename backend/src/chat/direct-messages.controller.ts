@@ -1,3 +1,5 @@
+import { CREATE_THROTTLE, MESSAGE_THROTTLE } from '../common/throttle';
+import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { ChatService } from './chat.service';
@@ -17,6 +19,7 @@ export class DirectMessagesController {
   constructor(private readonly chat: ChatService) {}
 
   @Post('start')
+  @Throttle(CREATE_THROTTLE)
   @UseGuards(VerifiedEmailGuard)
   start(@CurrentUserId() userId: string, @Body() dto: StartDirectConversationDto) {
     return this.chat.getOrCreateDirectConversation(userId, dto.recipientUserId);
@@ -33,6 +36,7 @@ export class DirectMessagesController {
   }
 
   @Post(':id/messages')
+  @Throttle(MESSAGE_THROTTLE)
   sendMessage(@CurrentUserId() userId: string, @Param('id') id: string, @Body() dto: SendMessageDto) {
     return this.chat.postDirectMessage(id, userId, dto.body);
   }
