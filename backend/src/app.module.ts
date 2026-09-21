@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { InvalidTransitionFilter } from './invalid-transition.filter';
+import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -145,7 +144,6 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_FILTER, useClass: InvalidTransitionFilter },
   ],
 })
 export class AppModule {}

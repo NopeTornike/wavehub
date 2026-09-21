@@ -1,4 +1,4 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { ArgumentsHost, Catch, ConflictException, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 // Postgres SQLSTATEs that mean "the client sent something the column type can't hold" — not a server
@@ -19,6 +19,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const res = http.getResponse<Response>();
     const req = http.getRequest<Request & { requestId?: string }>();
+
+    // The status-lifecycle helpers (order/listing/withdrawal/coach/coaching-session) throw plain
+    // `Invalid*TransitionError`s for an illegal state change (e.g. cancelling a withdrawal that is
+    // already being processed) — a conflict with the resource's current state, so 409, not 500.
+    if (exception instanceof Error && /^Invalid.*TransitionError$/.test(exception.constructor.name)) {
+      exception = new ConflictException(exception.message);
+    }
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();

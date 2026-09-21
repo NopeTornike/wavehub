@@ -99,25 +99,6 @@ export class Client {
     return { status: res.status, body: parsed };
   }
 
-  // Multipart upload (single `file` field) for evidence/delivery-file style endpoints.
-  async upload(path: string, filename: string, mime: string, content: string): Promise<{ status: number; body: any }> {
-    const form = new FormData();
-    form.append('file', new Blob([content], { type: mime }), filename);
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: { 'x-forwarded-for': this.ip, ...(this.cookie ? { cookie: this.cookie } : {}) },
-      body: form,
-    });
-    const text = await res.text();
-    let parsed: any = text;
-    try {
-      parsed = text ? JSON.parse(text) : null;
-    } catch {
-      /* non-JSON body */
-    }
-    return { status: res.status, body: parsed };
-  }
-
   get = (path: string) => this.request('GET', path);
   post = (path: string, body?: unknown) => this.request('POST', path, body ?? {});
   del = (path: string) => this.request('DELETE', path);

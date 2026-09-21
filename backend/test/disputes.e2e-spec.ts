@@ -58,12 +58,12 @@ describe('disputes (e2e)', () => {
     expect((await outsider.client.post(`/orders/${orderId}/dispute/messages`, { body: 'hi' })).status).toBe(403);
     expect((await outsider.client.get(`/orders/${orderId}/dispute`)).status).toBe(403);
 
-    const png = await buyer.client.upload(`/orders/${orderId}/dispute/evidence`, 'proof.png', 'image/png', 'fakepng');
+    const png = await buyer.client.upload(`/orders/${orderId}/dispute/evidence`, Buffer.from('89504e470d0a1a0a0000000d49484452','hex'), 'proof.png', 'image/png');
     expect(png.status).toBe(200);
     expect(png.body.evidence).toHaveLength(1);
-    const exe = await buyer.client.upload(`/orders/${orderId}/dispute/evidence`, 'evil.exe', 'application/x-msdownload', 'MZ');
+    const exe = await buyer.client.upload(`/orders/${orderId}/dispute/evidence`, Buffer.from('MZ'), 'evil.exe', 'application/x-msdownload');
     expect(exe.status).toBe(403);
-    expect((await outsider.client.upload(`/orders/${orderId}/dispute/evidence`, 'p.png', 'image/png', 'x')).status).toBe(403);
+    expect((await outsider.client.upload(`/orders/${orderId}/dispute/evidence`, Buffer.from('x'), 'p.png', 'image/png')).status).toBe(403);
   });
 
   it('resolution is admin-only, Super-Admin-only among staff', async () => {

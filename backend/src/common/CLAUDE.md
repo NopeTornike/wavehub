@@ -9,7 +9,7 @@ harness so tests run the same middleware/pipes/filters as production).
 ## Key files
 - `all-exceptions.filter.ts` — global `@Catch()` filter. `HttpException`s render exactly as Nest
   would. A Postgres `22P02` (invalid uuid in a path param — `GET /orders/not-a-uuid`) becomes a
-  clean **404** instead of a 500; `22003/22001/22007/22008` become 400; body-parser 4xx keep their
+  clean **404** instead of a 500; an `Invalid*TransitionError` from the status-lifecycle helpers becomes **409** (illegal state change); `22003/22001/22007/22008` become 400; body-parser 4xx keep their
   status with a generic message; **everything else is logged server-side (with the request id and
   stack) and answered with `{statusCode:500, message:'Internal server error'}`** — never SQL text, a
   stack, or a driver message (root `CLAUDE.md` security rule).
