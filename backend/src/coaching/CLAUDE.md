@@ -175,3 +175,9 @@ problem in practice.
   coach, change a coach's price, cancel/reschedule a session) — some of these (edit profile, change
   price) could be added cheaply on top of what exists; session-related ones need the booking model
   first.
+
+## Subscription perks
+`CoachesService.browseVerified` orders `featured_boost` (Seller/Coach plan with `featuredListings`)
+ahead of rating and attaches `profileBadge` via one batched `getActivePerksForUsers` per page;
+`findPublicById` attaches it for the detail. `CoachingSessionsService.request` uses
+`SubscriptionsService.effectiveFeePercent(coach.userId, base)` for the snapshotted fee %.

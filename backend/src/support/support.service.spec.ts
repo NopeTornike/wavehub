@@ -70,7 +70,7 @@ describe('SupportService', () => {
     const orders = { findOne: jest.fn(async () => options.order ?? null) } as any;
     const notifications = { emit: jest.fn() } as any;
 
-    const service = new SupportService(tickets, messages, savedReplies, orders, notifications);
+    const service = new SupportService(tickets, messages, savedReplies, orders, notifications, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any);
     return { service, tickets, messages, orders, ticketRow, ticketUpdates, savedMessages };
   }
 

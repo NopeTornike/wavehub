@@ -541,6 +541,8 @@ export interface PublicCoachSummary {
   hourlyRateWaveCoin: number;
   ratingAvg: string | null;
   ratingCount: number;
+  // Active Seller/Coach plan's profileBadge perk, if any.
+  profileBadge: string | null;
 }
 
 export interface PublicCoachDetail extends PublicCoachSummary {
@@ -744,6 +746,11 @@ export interface PublicUserProfile {
   sellerRatingCount: number;
   activeListingCount: number;
   createdAt: string;
+  // From an active (or past_due-grace) subscription's `perks.profileBadge` — the Seller/Coach
+  // Visibility plan's badge takes priority over a Buyer Membership one if a user somehow holds
+  // both, since a public seller-profile page is inherently seller-context. Null if the user has
+  // no subscription with this perk. See backend/src/subscriptions/CLAUDE.md.
+  profileBadge: string | null;
 }
 
 // Coaching session booking + escrow payment (build-plan Phase 11b follow-up — see
@@ -809,3 +816,61 @@ export interface PublicTournamentSummary {
 }
 
 export type PublicTournamentDetail = PublicTournamentSummary;
+
+// BOG subscription + membership/visibility plans (LAUNCH_PLAN.md §3) — two separate subscription
+// products (Buyer Membership, Seller/Coach Visibility) sharing one `plans` table distinguished by
+// `audience`, same reasoning as `Listing` covering both Service/Item/DigitalKey with one table.
+export enum SubscriptionAudience {
+  Buyer = 'buyer',
+  SellerCoach = 'seller_coach',
+}
+
+// `UserSubscription.status`. `PastDue` still carries perks (a deliberate grace period — a single
+// declined recharge shouldn't be an instant perk cutoff, see backend/src/subscriptions/CLAUDE.md);
+// only `Cancelled`/`Expired` do not. `Cancelled` is buyer-initiated (cancelAtPeriodEnd, perks last
+// until the period actually ends); `Expired` is system-initiated (grace period ran out with no
+// successful recharge).
+export enum SubscriptionStatus {
+  Active = 'active',
+  PastDue = 'past_due',
+  Cancelled = 'cancelled',
+  Expired = 'expired',
+}
+
+// `SubscriptionPlan.perks` — a jsonb bag (§3b), not one column per perk, so a new perk never needs
+// a migration. Every key is optional; see backend/src/subscriptions/CLAUDE.md for exactly which
+// modules read which key and how. Add new keys here as they're confirmed, not speculatively.
+export interface SubscriptionPerks {
+  platformFeeDiscountPercent?: number;
+  featuredListings?: boolean;
+  prioritySupport?: boolean;
+  profileBadge?: string;
+}
+
+export interface PublicSubscriptionPlan {
+  id: string;
+  audience: SubscriptionAudience;
+  tier: string;
+  name: string;
+  description: string;
+  priceGel: number;
+  billingPeriodDays: number;
+  perks: SubscriptionPerks;
+  sortOrder: number;
+}
+
+export interface PublicUserSubscription {
+  id: string;
+  plan: PublicSubscriptionPlan;
+  status: SubscriptionStatus;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  createdAt: string;
+}
+
+// What the admin plan-management list returns — PublicSubscriptionPlan plus isActive, since an
+// admin needs to see (and toggle) inactive plans too, unlike the public browse endpoint which only
+// ever returns active ones.
+export interface AdminSubscriptionPlanSummary extends PublicSubscriptionPlan {
+  isActive: boolean;
+}

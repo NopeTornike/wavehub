@@ -15,6 +15,7 @@ import { AuthModule } from '../auth/auth.module';
 import { ChatModule } from '../chat/chat.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SettingsModule } from '../settings/settings.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SettingsModule } from '../settings/settings.module';
     ChatModule,
     NotificationsModule,
     SettingsModule,
+    SubscriptionsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

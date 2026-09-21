@@ -404,9 +404,16 @@ Carried forward from before this analysis (unaffected by any of the above):
    balance bug on the original (pre-existing) marketplace purchase flow, found during this same
    verification pass. Full writeup: `backend/src/listings/CLAUDE.md` and `backend/src/orders/
    CLAUDE.md`'s Status sections.
-6. **BOG subscriptions** (§3) — confirmed design, but blocked on researching BOG's actual recurring/
-   tokenized-charge API before writing code (§3c) — start that research early since it could change
-   the design, don't leave it for last.
+6. ✅ **BOG subscriptions** (§3) — **done.** Research resolved the §3c unknown: BOG supports saved-card
+   background recharges (`PUT …/orders/:id/subscriptions` to save the card, then
+   `POST …/ecommerce/orders/:parent/subscribe`; amount fixed to the parent order). Built: plans +
+   subscriptions + charge-attempt tables, checkout/callback/cancel, hourly recharge sweep with 7-day
+   `past_due` grace, all four perks wired (fee discount in percentage points, featured boost for
+   listings + coaches, priority support, profile badge), `/plans` + admin plan CRUD UI. Verified live
+   against Postgres and in a browser. **Caveats**: not verified against real BOG (no credentials /
+   public callback URL); BOG may require saved-card enablement on the merchant account — confirm.
+   Deferred: admin manual grant/revoke, past_due emails, proration. Full writeup:
+   `backend/src/subscriptions/CLAUDE.md`.
 7. **e2e test suite** (§6) — last, as already agreed with the user before this analysis started.
 
 ---

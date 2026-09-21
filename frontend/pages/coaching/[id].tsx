@@ -86,6 +86,7 @@ export default function CoachProfile() {
               <p className="section-kicker">მწვრთნელის პროფილი</p>
               <h1>
                 {coach.firstName} {coach.lastName}
+                {coach.profileBadge && <span className="badge-pill" style={{ marginLeft: 8 }}>★ {coach.profileBadge}</span>}
               </h1>
               {coach.ratingAvg && (
                 <span className="rating-pill">

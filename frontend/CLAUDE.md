@@ -433,3 +433,9 @@ BOG top-up redirect and the full purchase→deliver→accept→review order life
 click-tested end-to-end. Do that (from a working directory inside this repo, `docker-compose up`,
 seed a listing, walk a full buyer+seller journey through `/marketplace` → `/orders` → `/wallet`)
 before trusting this in front of a real user.
+
+## Subscriptions UI
+`/plans` (public plan browse grouped by audience, "my subscriptions" with cancel-at-period-end,
+subscribe → BOG redirect; checkout 503s locally without BOG credentials), `/admin/subscription-plans`
+(create + activate/deactivate; perks form covers the four known keys). `.badge-pill` renders
+`profileBadge` on `/u/[username]` and coach cards/detail.

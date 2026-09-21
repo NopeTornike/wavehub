@@ -92,7 +92,7 @@ export default function CoachingDirectory() {
                       <i />
                     </div>
                     <div className="coach-card-copy">
-                      <h2>{coach.firstName} {coach.lastName}</h2>
+                      <h2>{coach.firstName} {coach.lastName}{coach.profileBadge && <span className="badge-pill" style={{ marginLeft: 8 }}>★ {coach.profileBadge}</span>}</h2>
                       <p className="coach-rating-line">
                         {coach.ratingAvg ? (
                           <>

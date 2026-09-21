@@ -43,6 +43,11 @@ import type {
   TournamentStatus,
   PublicConversationSummary,
   SellerListingKeySummary,
+  PublicSubscriptionPlan,
+  PublicUserSubscription,
+  AdminSubscriptionPlanSummary,
+  SubscriptionAudience,
+  SubscriptionPerks,
 } from '@wavehub/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -564,4 +569,43 @@ export const api = {
   },
 
   adminDeleteTournament: (id: string) => request<{ ok: boolean }>(`/admin/tournaments/${id}`, { method: 'DELETE' }),
+
+  // --- Subscriptions --- (backend/src/subscriptions/subscriptions.controller.ts)
+  listSubscriptionPlans: (audience?: SubscriptionAudience) =>
+    request<PublicSubscriptionPlan[]>(`/subscriptions/plans${audience ? `?audience=${audience}` : ''}`),
+
+  listMySubscriptions: () => request<PublicUserSubscription[]>('/subscriptions/mine'),
+
+  checkoutSubscription: (payload: { planId: string; successUrl: string; failUrl: string }) =>
+    request<{ orderId: string; redirectUrl: string }>('/subscriptions/checkout', { method: 'POST', body: JSON.stringify(payload) }),
+
+  cancelSubscription: (id: string) => request<PublicUserSubscription>(`/subscriptions/${id}/cancel`, { method: 'POST' }),
+
+  adminListSubscriptionPlans: () => request<AdminSubscriptionPlanSummary[]>('/admin/subscription-plans'),
+
+  adminCreateSubscriptionPlan: (payload: {
+    audience: SubscriptionAudience
+    tier: string
+    name: string
+    description: string
+    priceGel: number
+    billingPeriodDays?: number
+    perks?: SubscriptionPerks
+    sortOrder?: number
+    isActive?: boolean
+  }) => request<AdminSubscriptionPlanSummary>('/admin/subscription-plans', { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminUpdateSubscriptionPlan: (
+    id: string,
+    payload: Partial<{
+      tier: string
+      name: string
+      description: string
+      priceGel: number
+      billingPeriodDays: number
+      perks: SubscriptionPerks
+      sortOrder: number
+      isActive: boolean
+    }>,
+  ) => request<AdminSubscriptionPlanSummary>(`/admin/subscription-plans/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
 }

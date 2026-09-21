@@ -1,8 +1,9 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotificationType, TicketPriority, TicketStatus } from '@wavehub/shared-types';
+import { NotificationType, SubscriptionAudience, TicketPriority, TicketStatus } from '@wavehub/shared-types';
 import type { AdminTicketSummary, PublicSavedReply, PublicTicket, PublicTicketMessage } from '@wavehub/shared-types';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { Ticket } from './ticket.entity';
 import { TicketMessage } from './ticket-message.entity';
 import { SavedReply } from './saved-reply.entity';
@@ -21,6 +22,7 @@ export class SupportService {
     @InjectRepository(SavedReply) private readonly savedReplies: Repository<SavedReply>,
     @InjectRepository(Order) private readonly orders: Repository<Order>,
     private readonly notifications: NotificationsService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   // Best-effort — a notification failure must never block a reply or status change, same pattern
@@ -46,9 +48,17 @@ export class SupportService {
       }
     }
 
+    // `prioritySupport` perk (either audience's plan): tickets open as High instead of the default.
+    const [buyerPerks, sellerPerks] = await Promise.all([
+      this.subscriptions.getActivePerks(requesterId, SubscriptionAudience.Buyer),
+      this.subscriptions.getActivePerks(requesterId, SubscriptionAudience.SellerCoach),
+    ]);
+    const priority = buyerPerks?.prioritySupport || sellerPerks?.prioritySupport ? TicketPriority.High : undefined;
+
     const ticket = await this.tickets.save(
       this.tickets.create({
         requesterId,
+        ...(priority ? { priority } : {}),
         subject: dto.subject,
         category: dto.category,
         orderId: dto.orderId ?? null,

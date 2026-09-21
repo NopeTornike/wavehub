@@ -98,3 +98,8 @@ during verification) for the full writeup. `PublicListingSummary`/`PublicListing
 changed — a DigitalKey listing's live available-key count is reported through the existing
 `stockQuantity` field (computed, never the stored column) rather than a new field, keeping the
 public shape's surface area the same across all three listing types.
+
+## Subscriptions
+`SubscriptionAudience`, `SubscriptionStatus`, `SubscriptionPerks` (all keys optional, extend here),
+`PublicSubscriptionPlan`, `PublicUserSubscription`, `AdminSubscriptionPlanSummary`;
+`profileBadge: string | null` on `PublicUserProfile` and `PublicCoachSummary`.

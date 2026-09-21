@@ -10,9 +10,10 @@ import { AdminTicketsController, AdminSavedRepliesController } from './admin-tic
 import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Ticket, TicketMessage, SavedReply, Order]), AuthModule, AdminModule, NotificationsModule],
+  imports: [TypeOrmModule.forFeature([Ticket, TicketMessage, SavedReply, Order]), AuthModule, AdminModule, NotificationsModule, SubscriptionsModule],
   controllers: [SupportController, AdminTicketsController, AdminSavedRepliesController],
   providers: [SupportService],
   exports: [SupportService],

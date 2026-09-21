@@ -12753,3 +12753,41 @@ body.public-profile-view .main-panel {
 .tournament-detail-notice { color:#43e894; text-align:center; font-weight:850; }.td-not-found { min-height:60vh; display:grid; place-content:center; justify-items:center; text-align:center; }.td-not-found a { color:var(--pink); }
 @media(max-width:1250px){.tournament-detail-summary{grid-template-columns:repeat(3,minmax(0,1fr));}.tournament-detail-summary button{min-height:58px}.tournament-detail-panel.active[data-td-panel="general"]{grid-template-columns:1fr}.tournament-general-info{padding-right:0;border-right:0}.tournament-about>p{min-height:0}}
 @media(max-width:760px){.tournament-detail-page{padding:12px 0 110px}.tournament-detail-hero{aspect-ratio:1.55/1;min-height:250px;border-radius:10px 10px 0 0}.tournament-detail-hero-copy{padding:14px}.tournament-detail-hero-copy>span{letter-spacing:.25em}.tournament-detail-hero-copy i{width:24px}.tournament-detail-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.tournament-detail-summary>div{padding:13px 9px}.tournament-detail-summary button{grid-column:1/-1}.tournament-detail-tabs{gap:5px;margin-top:22px}.tournament-detail-tabs button{min-height:58px;font-size:19px}.tournament-detail-tabs button span{display:none}.tournament-detail-panel.active[data-td-panel="general"]{padding:16px;gap:25px}.tournament-info-grid{grid-template-columns:1fr}.tournament-info-grid p:nth-child(odd){border-right:0}.tournament-info-grid p:nth-child(even){padding-left:0}.tournament-organizer{grid-template-columns:56px minmax(0,1fr)}.tournament-organizer img{width:56px;height:56px}.tournament-organizer a{grid-column:1/-1;width:100%;text-align:center}.td-simple-panel{grid-template-columns:1fr;padding:22px}.td-simple-panel>span{font-size:70px}.tournament-detail-back{font-size:11px}}
+
+/* Subscription profile badge (PublicUserProfile.profileBadge / PublicCoachSummary.profileBadge) */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 196, 61, 0.45);
+  border-radius: 999px;
+  color: #ffc43d;
+  background: rgba(255, 196, 61, 0.1);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.plan-card ul {
+  margin: 0;
+  padding-left: 18px;
+  flex: 1;
+}

@@ -101,3 +101,7 @@ admin-only methods needed something real to gate on. Suspend/restore/ban/unban (
 the loop: those admin-only methods elsewhere finally had a real user-management screen wired to
 them (`frontend/pages/admin/users.tsx`). Still no way to *grant* `adminRole` itself via the API —
 only a direct DB update.
+
+## Profile badge
+`GET users/:username` (in `users.controller.ts`) returns `profileBadge` from the user's active
+Seller/Coach plan, falling back to their Buyer plan, else `null`.

@@ -105,3 +105,7 @@ SLA breach alerting (only raw timestamps exist, no "average response time" stat 
 flagging), escalation as a distinct action (the closest equivalent is setting `status: escalated`
 via `updateTicket`, not a dedicated route with its own semantics), and note-ownership enforcement
 (see the gotcha above — moot until notes are editable/deletable at all).
+
+## Subscription perk: priority support
+`createTicket` opens the ticket as `TicketPriority.High` when the requester has an active/past_due
+plan (either audience) with `perks.prioritySupport`; otherwise the entity default (Medium).

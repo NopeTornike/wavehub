@@ -52,6 +52,7 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
       chat,
       notifications,
       platformSettings,
+      { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any,
     );
 
     return { service, dataSource, wallet, chat, notifications, platformSettings, keyInventory };
@@ -258,6 +259,7 @@ describe('OrdersService cancellation guards for DigitalKey orders', () => {
       { postSystemMessage: jest.fn() } as any,
       { emit: jest.fn() } as any,
       {} as any,
+      {} as any,
     );
     return { service };
   }
@@ -288,6 +290,7 @@ describe('OrdersService.getRevealedKey', () => {
       {} as any,
       {} as any,
       keyInventory,
+      {} as any,
       {} as any,
       {} as any,
       {} as any,

@@ -12,6 +12,7 @@ import { AdminModule } from '../admin/admin.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { SettingsModule } from '../settings/settings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     WalletModule,
     SettingsModule,
     NotificationsModule,
+    SubscriptionsModule,
   ],
   controllers: [CoachesController, CoachingSessionsController],
   providers: [CoachesService, CoachingSessionsService],

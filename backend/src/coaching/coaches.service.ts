@@ -1,16 +1,20 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CoachStatus, VerificationStatus } from '@wavehub/shared-types';
+import { CoachStatus, SubscriptionAudience, VerificationStatus } from '@wavehub/shared-types';
 import type { AdminCoachSummary, PublicCoachDetail, PublicCoachSummary } from '@wavehub/shared-types';
 import { Coach } from './coach.entity';
 import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { BrowseCoachesDto } from './dto/browse-coaches.dto';
 import { assertValidVerificationTransition } from './coach-lifecycle';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class CoachesService {
-  constructor(@InjectRepository(Coach) private readonly coaches: Repository<Coach>) {}
+  constructor(
+    @InjectRepository(Coach) private readonly coaches: Repository<Coach>,
+    private readonly subscriptions: SubscriptionsService,
+  ) {}
 
   // Creates a new application, or — if the user's previous application was rejected — reopens
   // that same row back to Pending (see coach-lifecycle.ts) rather than creating a second row,
@@ -58,19 +62,40 @@ export class CoachesService {
       .leftJoinAndSelect('coach.user', 'user')
       .leftJoinAndSelect('coach.game', 'game')
       .where('coach.verificationStatus = :verified', { verified: VerificationStatus.Verified })
-      .andWhere('coach.status = :active', { active: CoachStatus.Active });
+      .andWhere('coach.status = :active', { active: CoachStatus.Active })
+      // Seller/Coach `featuredListings` perk boosts a coach ahead of the rating order (aliases are
+      // quoted — raw join strings don't get TypeORM's alias escaping; see listings.service.ts).
+      .leftJoin(
+        'user_subscriptions',
+        'coachSub',
+        `"coachSub"."userId" = "coach"."userId" AND "coachSub"."status" IN ('active', 'past_due') AND "coachSub"."audience" = 'seller_coach'`,
+      )
+      .leftJoin(
+        'subscription_plans',
+        'coachPlan',
+        `"coachPlan"."id" = "coachSub"."planId" AND ("coachPlan"."perks"->>'featuredListings')::boolean IS TRUE`,
+      )
+      .addSelect('CASE WHEN "coachPlan"."id" IS NOT NULL THEN 1 ELSE 0 END', 'featured_boost');
 
     if (filters.gameId) {
       qb.andWhere('coach.gameId = :gameId', { gameId: filters.gameId });
     }
 
     const [rows, total] = await qb
-      .orderBy('coach.ratingAvg', 'DESC', 'NULLS LAST')
+      .orderBy('featured_boost', 'DESC')
+      .addOrderBy('coach.ratingAvg', 'DESC', 'NULLS LAST')
       .take(filters.limit ?? 20)
       .skip(filters.offset ?? 0)
       .getManyAndCount();
 
-    return { items: rows.map((row) => this.toSummary(row)), total };
+    const perks = await this.subscriptions.getActivePerksForUsers(
+      rows.map((r) => r.userId),
+      SubscriptionAudience.SellerCoach,
+    );
+    return {
+      items: rows.map((row) => this.toSummary(row, perks.get(row.userId)?.profileBadge ?? null)),
+      total,
+    };
   }
 
   async findPublicById(id: string): Promise<PublicCoachDetail> {
@@ -79,7 +104,8 @@ export class CoachesService {
       relations: ['user', 'game'],
     });
     if (!coach) throw new NotFoundException('Coach not found');
-    return this.toDetail(coach);
+    const perks = await this.subscriptions.getActivePerks(coach.userId, SubscriptionAudience.SellerCoach);
+    return this.toDetail(coach, perks?.profileBadge ?? null);
   }
 
   // --- Admin-facing ---
@@ -130,7 +156,7 @@ export class CoachesService {
     return this.toAdminSummary(await this.getOrThrow(id));
   }
 
-  private toSummary(coach: Coach): PublicCoachSummary {
+  private toSummary(coach: Coach, profileBadge: string | null = null): PublicCoachSummary {
     return {
       id: coach.id,
       username: coach.user.username,
@@ -141,11 +167,12 @@ export class CoachesService {
       hourlyRateWaveCoin: coach.hourlyRateWaveCoin,
       ratingAvg: coach.ratingAvg,
       ratingCount: coach.ratingCount,
+      profileBadge,
     };
   }
 
-  private toDetail(coach: Coach): PublicCoachDetail {
-    return { ...this.toSummary(coach), bio: coach.bio, languages: coach.languages };
+  private toDetail(coach: Coach, profileBadge: string | null): PublicCoachDetail {
+    return { ...this.toSummary(coach, profileBadge), bio: coach.bio, languages: coach.languages };
   }
 
   private toAdminSummary(coach: Coach): AdminCoachSummary {

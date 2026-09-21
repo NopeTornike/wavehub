@@ -154,8 +154,35 @@ export class ListingsService {
       qb.andWhere('listing.type = :type', { type: filters.type });
     }
 
+    // `featuredListings` perk boost (LAUNCH_PLAN.md §3b) — read live via a join to
+    // user_subscriptions/subscription_plans, never a cached flag on Listing, so a lapsed
+    // subscription stops boosting the instant it lapses rather than lingering until something
+    // re-syncs a flag. Joined (not a separate lookup) so the boost applies BEFORE pagination cuts
+    // the result down to one page — a later in-memory re-sort of just the fetched page would be too
+    // late to promote a boosted listing that the SQL-level ORDER BY + LIMIT already excluded.
+    // Every alias below is quoted to match TypeORM's own mixed-case alias quoting exactly
+    // ("sellerSub", "sellerPlan") — an unquoted reference in a raw join condition gets
+    // lowercase-folded by Postgres's parser and then fails to resolve against the quoted alias
+    // TypeORM generates elsewhere in the same query (`missing FROM-clause entry for "sellersub"`,
+    // caught while verifying this against a live instance).
+    qb.leftJoin(
+      'user_subscriptions',
+      'sellerSub',
+      `"sellerSub"."userId" = "listing"."sellerId" AND "sellerSub"."status" IN ('active', 'past_due') AND "sellerSub"."audience" = 'seller_coach'`,
+    )
+      .leftJoin(
+        'subscription_plans',
+        'sellerPlan',
+        `"sellerPlan"."id" = "sellerSub"."planId" AND ("sellerPlan"."perks"->>'featuredListings')::boolean IS TRUE`,
+      )
+      // A named raw column, not an inline expression in .orderBy() — TypeORM's orderBy alias
+      // resolution (used to decide whether DISTINCT/pagination needs adjusting) chokes on a raw
+      // boolean/CASE expression passed directly, but orders correctly by a plain addSelect alias.
+      .addSelect('CASE WHEN "sellerPlan"."id" IS NOT NULL THEN 1 ELSE 0 END', 'featured_boost');
+
     const [items, total] = await qb
-      .orderBy('listing.isFeatured', 'DESC')
+      .orderBy('featured_boost', 'DESC')
+      .addOrderBy('listing.isFeatured', 'DESC')
       .addOrderBy('listing.createdAt', 'DESC')
       .take(filters.limit ?? 20)
       .skip(filters.offset ?? 0)

@@ -60,6 +60,7 @@ export default function PublicProfile() {
                 </h2>
                 <span>@{profile.username}</span>
                 <strong className="public-profile-role">WaveHub წევრი</strong>
+                {profile.profileBadge && <span className="badge-pill">★ {profile.profileBadge}</span>}
                 <small>შემოგვიერთდა {new Date(profile.createdAt).toLocaleDateString('ka-GE', { year: 'numeric', month: 'long' })}</small>
               </div>
             </section>

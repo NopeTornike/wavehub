@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/admin/tickets', label: 'ბილეთები' },
   { href: '/admin/coaches', label: 'მწვრთნელები' },
   { href: '/admin/tournaments', label: 'ტურნირები' },
+  { href: '/admin/subscription-plans', label: 'გამოწერები' },
   { href: '/admin/content', label: 'კონტენტი' },
   { href: '/admin/settings', label: 'პლატფორმის პარამეტრები' },
 ]

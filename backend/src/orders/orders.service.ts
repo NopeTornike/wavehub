@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, LessThanOrEqual, Repository } from 'typeorm';
@@ -54,6 +55,7 @@ export class OrdersService {
     private readonly chat: ChatService,
     private readonly notifications: NotificationsService,
     private readonly platformSettings: PlatformSettingsService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   // Every lifecycle system-message post goes through this — chat is a side channel, never allowed
@@ -134,7 +136,10 @@ export class OrdersService {
       itemIsUnique = details?.isUnique ?? true;
     }
 
-    const platformFeePercent = await this.platformSettings.getPlatformFeePercent();
+    const platformFeePercent = await this.subscriptions.effectiveFeePercent(
+      listing.sellerId,
+      await this.platformSettings.getPlatformFeePercent(),
+    );
     const { feeWaveCoin, sellerReceivesWaveCoin } = calculatePlatformFee(priceWaveCoin, platformFeePercent);
 
     const saved = await this.dataSource.transaction(async (manager) => {

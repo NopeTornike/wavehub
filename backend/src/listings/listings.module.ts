@@ -15,6 +15,7 @@ import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
 import { UsersModule } from '../users/users.module';
 import { UsersController } from '../users/users.controller';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { UsersController } from '../users/users.controller';
     AuthModule,
     AdminModule,
     UsersModule,
+    SubscriptionsModule,
   ],
   // UsersController (public GET /users/:username) is declared here rather than in UsersModule
   // itself — it needs both UsersService and ListingsService, and UsersModule must stay a leaf

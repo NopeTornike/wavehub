@@ -184,3 +184,10 @@ anything specific to Steam Keys — normal usage (different buyers, or one buyer
 never hits it. Flagged as a follow-up rather than fixed here since it needs a real fix across the
 whole wallet-locking strategy (e.g. retry-on-deadlock or a different lock ordering), not a
 listings/orders-local patch. See `backend/src/wallet/CLAUDE.md`.
+
+## Subscription perk: featured boost
+`browseActive` left-joins (quoted aliases) `user_subscriptions`/`subscription_plans` and orders by a
+`featured_boost` select ahead of `isFeatured`/`createdAt`, so a seller with an active/past_due
+Seller-Coach plan whose `perks.featuredListings` is true sorts first — live, no cached flag. The
+`GET users/:username` profile now returns `profileBadge` too. `ListingsModule` imports
+`SubscriptionsModule`. See `backend/src/subscriptions/CLAUDE.md`.

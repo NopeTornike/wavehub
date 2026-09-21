@@ -88,3 +88,11 @@ credentials, confirm the callback body's actual full shape against a real test p
 used here — `body.order_id`, and `order_status.key`/`external_order_id` from the receipt endpoint —
 are drawn from BOG's public docs, not observed from a real payload), and confirm the public key is
 still current.
+
+## Subscription billing additions
+`BogPaymentsService` also exposes `createSubscriptionOrder`, `saveCard(orderId)` and
+`chargeSavedCard(parentOrderId, externalOrderId, callbackUrl)` for `backend/src/subscriptions/`
+(exported via `PaymentsModule`). `saveCard`/`chargeSavedCard` deliberately have no "credentials not
+configured" guard — they surface BOG's own error and callers catch it. Subscription callbacks land on
+`POST /subscriptions/bog-callback` (same signature verification + authoritative re-fetch as the
+top-up callback). Same unverified-against-real-BOG caveat as above; see the subscriptions doc.

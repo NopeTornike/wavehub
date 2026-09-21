@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CoachStatus, CoachingSessionStatus, NotificationType, VerificationStatus } from '@wavehub/shared-types';
@@ -25,6 +26,7 @@ export class CoachingSessionsService {
     private readonly wallet: WalletService,
     private readonly platformSettings: PlatformSettingsService,
     private readonly notifications: NotificationsService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   private async notify(userId: string, type: NotificationType, title: string, body: string, sessionId: string): Promise<void> {
@@ -86,7 +88,10 @@ export class CoachingSessionsService {
     }
 
     const priceWaveCoin = Math.round((coach.hourlyRateWaveCoin * dto.durationMinutes) / 60);
-    const platformFeePercent = await this.platformSettings.getPlatformFeePercent();
+    const platformFeePercent = await this.subscriptions.effectiveFeePercent(
+      coach.userId,
+      await this.platformSettings.getPlatformFeePercent(),
+    );
     const { feeWaveCoin, sellerReceivesWaveCoin: coachPayoutWaveCoin } = calculatePlatformFee(
       priceWaveCoin,
       platformFeePercent,

@@ -66,7 +66,7 @@ describe('CoachingSessionsService', () => {
     const platformSettings = { getPlatformFeePercent: jest.fn(async () => 10) } as any;
     const notifications = { emit: jest.fn() } as any;
 
-    const service = new CoachingSessionsService(sessions, coaches, dataSource, wallet, platformSettings, notifications);
+    const service = new CoachingSessionsService(sessions, coaches, dataSource, wallet, platformSettings, notifications, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any);
     return { service, sessions, coaches, dataSource, wallet, platformSettings, notifications, sessionRows };
   }
 

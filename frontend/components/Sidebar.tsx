@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/messages', label: 'შეტყობინებები', icon: 'sidebar-message-icon.svg' },
   { href: '/support', label: 'დახმარება', icon: 'message-icon.svg' },
   { href: '/wallet', label: 'Wallet', icon: 'wallet-icon.svg' },
+  { href: '/plans', label: 'გამოწერები', icon: 'wallet-icon.svg' },
 ]
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

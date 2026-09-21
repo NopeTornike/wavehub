@@ -33,7 +33,7 @@ describe('CoachesService', () => {
       }),
     } as any;
 
-    const service = new CoachesService(repo);
+    const service = new CoachesService(repo, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any);
     return { service, repo, rows };
   }
 

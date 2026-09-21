@@ -200,3 +200,8 @@ stale until a hard reload — the exact same class of bug already found and fixe
 booking (see `backend/src/coaching/CLAUDE.md`), just never applied to the original marketplace
 purchase flow it was copied from. Fixed the same way: `await refresh()` before `router.push`. This
 means every listing type's purchase flow (not just DigitalKey) now updates the header balance live.
+
+## Subscription perk: fee discount
+`purchase()` snapshots `SubscriptionsService.effectiveFeePercent(listing.sellerId, baseFee)` — the
+seller's plan `platformFeeDiscountPercent` (percentage points, floored at 0) off the global fee.
+Verified live: base 10%, discount 3 → snapshot 7; in-flight orders keep their snapshot.
