@@ -29,6 +29,10 @@ one of three outcomes wired straight into the wallet and order state machine. Bu
 CASCADE` from `disputes`.
 
 ## Conventions & gotchas
+- **Both `open()` and `resolve()` re-check under a row lock** inside their transaction (`open`
+  locks the order and requires its status to be what was validated; `resolve` locks the dispute row
+  and re-checks `Open`). Two concurrent resolves used to both refund the buyer; an accept that won
+  a race with `open()` used to leave a completed order flipped to `Disputed`.
 - **Unlike `backend/src/chat/` (no controller — piggybacks on `OrdersController`), this module has
   its own `DisputesController`.** The reasoning differs: `DisputesService` already depends directly
   on the `Order` repo for its own status-transition logic (open/resolve both read and write order

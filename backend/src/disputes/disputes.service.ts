@@ -90,6 +90,13 @@ export class DisputesService {
     let saved: Dispute;
     try {
       saved = await this.dataSource.transaction(async (manager) => {
+        // Re-check the order under a row lock: an accept/cancel that committed after the unlocked
+        // read above must win — otherwise a dispute would be opened (and the order flipped back to
+        // Disputed) on an order whose money has already been paid out or refunded.
+        const lockedOrder = await manager.findOne(Order, { where: { id: order.id }, lock: { mode: 'pessimistic_write' } });
+        if (!lockedOrder || lockedOrder.status !== order.status) {
+          throw new ForbiddenException('This order cannot be disputed in its current status');
+        }
         const dispute = manager.create(Dispute, {
           orderId: order.id,
           buyerId: order.buyerId,
@@ -184,6 +191,14 @@ export class DisputesService {
 
     await this.dataSource.transaction(async (manager) => {
       const now = new Date();
+
+      // Serialize concurrent resolves of the same dispute: the unlocked pre-checks above are only
+      // a fast path — two admins (or a double-click) could both pass them and each move the money.
+      // Lock the dispute row and re-check its status under the lock; the loser sees `resolved`.
+      const locked = await manager.findOne(Dispute, { where: { id: dispute.id }, lock: { mode: 'pessimistic_write' } });
+      if (!locked || locked.status === DisputeStatus.Resolved || locked.status === DisputeStatus.Closed) {
+        throw new ForbiddenException('This dispute has already been resolved');
+      }
 
       if (resolution === DisputeResolution.ReleaseToSeller) {
         await this.wallet.releaseSellerEarnings(order.sellerId, order.id, order.sellerPayoutWaveCoin, undefined, manager);

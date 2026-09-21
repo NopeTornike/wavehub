@@ -75,6 +75,25 @@ describe('WalletService', () => {
     expect(ledgerEntries).toHaveLength(1);
   });
 
+  it('recordTopup takes the user row lock before the reference check so racing duplicates serialize', async () => {
+    const calls: string[] = [];
+    const existing = { id: 'e1', reference: 'ref-race' };
+    const manager = {
+      findOne: jest.fn(async (entity: any, opts: any) => {
+        calls.push(opts.lock ? 'lock-user' : 'check-reference');
+        return opts.lock ? { id: userId, wavecoinBalance: 100 } : existing;
+      }),
+      update: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+    } as any;
+    const wallet = new WalletService({ transaction: jest.fn(async (cb: any) => cb(manager)) } as any);
+    const entry = await wallet.recordTopup(userId, 50, 'ref-race');
+    expect(calls).toEqual(['lock-user', 'check-reference']);
+    expect(entry).toBe(existing);
+    expect(manager.update).not.toHaveBeenCalled();
+  });
+
   it('recordTopup is idempotent on reference — a repeat call does not double-credit', async () => {
     const { dataSource, users, ledgerEntries } = createFakeDataSource([
       { id: userId, wavecoinBalance: 0 },
@@ -191,7 +210,7 @@ describe('WalletService', () => {
     // dataSource.getRepository(...).createQueryBuilder(...) rather than a transaction manager, so
     // it needs its own chainable query-builder stub. Exercises the arithmetic (capping
     // availableToWithdraw at the current balance), not real SQL — see wallet/CLAUDE.md.
-    function fakeSummaryDataSource(wavecoinBalance: number, sums: { totalEarned: number; pendingClearance: number }) {
+    function fakeSummaryDataSource(wavecoinBalance: number, sums: { totalEarned: number; pendingClearance: number; withdrawnNet?: number }) {
       let call = 0;
       const qb = {
         select: jest.fn().mockReturnThis(),
@@ -200,8 +219,9 @@ describe('WalletService', () => {
         getRawOne: jest.fn(async () => {
           call += 1;
           // First sumEntries() call is totalEarned (no andWhere on availableAt), second is
-          // pendingClearance (has the extra andWhere) — matches call order in getBalanceSummary.
-          return { sum: String(call === 1 ? sums.totalEarned : sums.pendingClearance) };
+          // pendingClearance (has the extra andWhere), third is the net of withdrawal ledger rows
+          // (<= 0) — matches call order in getBalanceSummary.
+          return { sum: String(call === 1 ? sums.totalEarned : call === 2 ? sums.pendingClearance : sums.withdrawnNet ?? 0) };
         }),
       };
       const repo = { createQueryBuilder: jest.fn(() => qb), findOne: jest.fn(async () => ({ id: userId, wavecoinBalance })) };
@@ -233,6 +253,14 @@ describe('WalletService', () => {
       expect(summary.availableToWithdraw).toBe(150);
     });
 
+    // Real bug found by the e2e suite (withdrawals.e2e-spec.ts): withdrawals were never subtracted
+    // from cleared earnings, so the same earnings could be withdrawn repeatedly against top-up money.
+    it('subtracts already-withdrawn/held earnings from what is still withdrawable', async () => {
+      const dataSource = fakeSummaryDataSource(1000, { totalEarned: 90, pendingClearance: 0, withdrawnNet: -90 });
+      const summary = await new WalletService(dataSource).getBalanceSummary(userId);
+      expect(summary.availableToWithdraw).toBe(0);
+    });
+
     // Real bug found while verifying coaching-session escrow against a live Postgres instance
     // (2026-09-16): this method originally summed only WalletLedgerType.OrderRelease, so a coach's
     // SessionRelease earnings were silently excluded from totalEarned/availableToWithdraw even
@@ -243,7 +271,7 @@ describe('WalletService', () => {
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn((clause: string, params: any) => {
-          if (clause.includes('e.type')) capturedTypes = params.types;
+          if (clause.includes('e.type') && !capturedTypes) capturedTypes = params.types; // first call = totalEarned
           return qb;
         }),
         getRawOne: jest.fn(async () => ({ sum: '18' })),

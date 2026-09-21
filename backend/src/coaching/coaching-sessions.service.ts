@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CoachStatus, CoachingSessionStatus, NotificationType, VerificationStatus } from '@wavehub/shared-types';
 import type { PublicCoachingSession } from '@wavehub/shared-types';
 import { CoachingSession } from './coaching-session.entity';
@@ -169,6 +169,18 @@ export class CoachingSessionsService {
     return this.toPublic(session);
   }
 
+  // The unlocked status check in complete()/cancel() is only a fast path: two concurrent calls (a
+  // coach completing while the buyer cancels, or a double click) can both pass it and then both
+  // move money — paying the coach AND refunding the buyer. Re-read the row under a row lock inside
+  // the money transaction and re-validate; the loser then sees the winner's terminal status.
+  private async lockAndRevalidate(manager: EntityManager, sessionId: string, target: CoachingSessionStatus): Promise<void> {
+    const locked = await manager.findOne(CoachingSession, { where: { id: sessionId }, lock: { mode: 'pessimistic_write' } });
+    if (!locked) {
+      throw new NotFoundException('Session not found');
+    }
+    assertValidSessionTransition(locked.status, target);
+  }
+
   // Coach-only — marks the session done and releases escrow to the coach (same 7-day withdrawal
   // hold as an order's seller payout).
   async complete(sessionId: string, callerUserId: string): Promise<PublicCoachingSession> {
@@ -179,6 +191,7 @@ export class CoachingSessionsService {
     assertValidSessionTransition(session.status, CoachingSessionStatus.Completed);
 
     await this.dataSource.transaction(async (manager) => {
+      await this.lockAndRevalidate(manager, session.id, CoachingSessionStatus.Completed);
       await manager.update(CoachingSession, session.id, { status: CoachingSessionStatus.Completed });
       await this.wallet.releaseCoachEarnings(
         session.coach.userId,
@@ -213,6 +226,7 @@ export class CoachingSessionsService {
     assertValidSessionTransition(session.status, CoachingSessionStatus.Cancelled);
 
     await this.dataSource.transaction(async (manager) => {
+      await this.lockAndRevalidate(manager, session.id, CoachingSessionStatus.Cancelled);
       await manager.update(CoachingSession, session.id, { status: CoachingSessionStatus.Cancelled });
       await this.wallet.refundBuyerForSession(session.buyerId, session.id, session.priceWaveCoin, manager);
     });

@@ -115,8 +115,9 @@ export class UsersService {
     if (user.status !== UserStatus.Suspended) {
       throw new BadRequestException('User is not currently suspended');
     }
-    await this.repo.update(id, { status: UserStatus.Active, moderationReason: null });
-    return this.toAdminUser({ ...user, status: UserStatus.Active, moderationReason: null });
+    const status = this.statusAfterLifting(user);
+    await this.repo.update(id, { status, moderationReason: null });
+    return this.toAdminUser({ ...user, status, moderationReason: null });
   }
 
   // Permanent ban — Super Admin only, enforced at the controller via @RequireAdminRole(), not
@@ -132,8 +133,15 @@ export class UsersService {
     if (user.status !== UserStatus.Banned) {
       throw new BadRequestException('User is not currently banned');
     }
-    await this.repo.update(id, { status: UserStatus.Active, moderationReason: null });
-    return this.toAdminUser({ ...user, status: UserStatus.Active, moderationReason: null });
+    const status = this.statusAfterLifting(user);
+    await this.repo.update(id, { status, moderationReason: null });
+    return this.toAdminUser({ ...user, status, moderationReason: null });
+  }
+
+  // Lifting a suspension/ban must not hand a never-verified account full `active` status (that
+  // would bypass the email-verification requirement) — such accounts go back to pending.
+  private statusAfterLifting(user: User): UserStatus {
+    return user.emailVerifiedAt ? UserStatus.Active : UserStatus.PendingVerification;
   }
 
   private async getOrThrow(id: string): Promise<User> {

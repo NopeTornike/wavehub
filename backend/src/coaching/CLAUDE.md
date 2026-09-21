@@ -64,6 +64,9 @@ below).
 see `backend/src/wallet/CLAUDE.md`.
 
 ## Conventions & gotchas
+- **`complete()`/`cancel()` re-check `Scheduled` under a row lock** (`lockAndRevalidate`) — a coach
+  completing while the buyer cancels used to both pay the coach and refund the buyer. Covered by
+  `test/coaching.e2e-spec.ts`.
 - **`apply()` reuses the same row on reapplication after rejection** rather than inserting a new
   one — `userId`'s `UNIQUE` constraint makes a second row impossible anyway, so this is required,
   not just tidy. A first-time applicant gets a new row at `Pending`; a previously-`Rejected`

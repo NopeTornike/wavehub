@@ -1,8 +1,8 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, LessThanOrEqual, Repository } from 'typeorm';
+import { DataSource, EntityManager, LessThanOrEqual, Repository } from 'typeorm';
 import { KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus } from '@wavehub/shared-types';
 import type { PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
 import { Order } from './order.entity';
@@ -480,8 +480,21 @@ export class OrdersService {
     }
   }
 
+  // The status checks done on the unlocked read in acceptDelivery/cancelBy*/autoComplete are only a
+  // fast path. Two concurrent requests (double-click, a buyer cancel racing a seller cancel, an
+  // accept racing a dispute) can both pass them and each move money — a double refund/payout.
+  // Re-read the row under a row lock inside the money transaction and require the status to still
+  // be what the caller validated; the loser gets a 409 instead of moving funds a second time.
+  private async lockOrderExpecting(manager: EntityManager, order: Order): Promise<void> {
+    const locked = await manager.findOne(Order, { where: { id: order.id }, lock: { mode: 'pessimistic_write' } });
+    if (!locked || locked.status !== order.status) {
+      throw new ConflictException('This order was just updated by another request — reload and try again');
+    }
+  }
+
   private async completeOrder(order: Order): Promise<Order> {
     const saved = await this.dataSource.transaction(async (manager) => {
+      await this.lockOrderExpecting(manager, order);
       await this.wallet.releaseSellerEarnings(
         order.sellerId,
         order.id,
@@ -515,6 +528,7 @@ export class OrdersService {
 
   private async cancelOrder(order: Order, reason: string): Promise<Order> {
     const saved = await this.dataSource.transaction(async (manager) => {
+      await this.lockOrderExpecting(manager, order);
       await this.wallet.refundBuyer(order.buyerId, order.id, order.priceWaveCoin, manager);
       order.status = OrderStatus.Cancelled;
       order.cancelledAt = new Date();

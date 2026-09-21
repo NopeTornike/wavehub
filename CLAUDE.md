@@ -209,9 +209,9 @@ detail; the two real bugs this surfaced (both now fixed) are documented right be
 
 **Still not covered by this**: Trust & Safety/Analytics/the rest of Coaching/promo codes/CMS
 (unbuilt features, not unverified ones), the BOG payment integration against real sandbox
-credentials, e2e/HTTP-level tests beyond the core spine (a real Postgres-backed suite now exists in
+credentials, e2e/HTTP-level tests (a real Postgres-backed suite now exists in
 `backend/test/` — see "E2E suite" below — but covers only auth, the order/escrow spine, digital keys,
-subscription perks, direct messaging and tournaments), and a genuinely fresh `docker
+subscription perks, direct messaging, tournaments, and — since the coverage pass — disputes, withdrawals, coaching, reviews, admin roles and signed BOG callbacks), and a genuinely fresh `docker
 compose up` (the native-Postgres path above bypassed Docker entirely; the Dockerfiles/compose file
 themselves are still unverified against a real Docker daemon). Don't read "verified" here as
 "every corner of every feature has been clicked" — it means the core account/listing/order/escrow
@@ -258,12 +258,36 @@ on each run — never the dev DB) and drives it over real HTTP with a cookie-jar
 local Postgres with the `.env.example` credentials; no extra dependencies (Node's built-in `fetch`).
 `EmailService.send` is patched to capture verification links; each test client gets a unique
 `X-Forwarded-For` (test-only `TRUST_PROXY`) so per-IP throttles don't collide. Runs in CI after the
-unit tests. Specs: `auth`, `marketplace` (purchase→deliver→accept escrow + fee math, withdrawal hold,
-cancel/refund), `digital-keys` (no key leakage, 5-way concurrent oversell test), `subscriptions`
-(admin plan CRUD, fee discount, featured boost, badge, priority tickets, callback), `social`
-(transacted-only DMs, tournament capacity). BOG callbacks with real signatures are NOT covered (no
-credentials). **The suite's first run found a real gap** — `pending_verification` accounts could
-transact — fixed by `VerifiedEmailGuard` (`backend/src/auth/CLAUDE.md`).
+unit tests. Specs (98 tests, 13 files): `auth`, `marketplace` (purchase→deliver→accept escrow + fee math,
+withdrawal hold, cancel/refund), `digital-keys` (no key leakage, concurrent oversell), `subscriptions`
+(admin plan CRUD, fee discount, featured boost, badge, priority tickets), `social` (transacted-only
+DMs, tournament capacity), and — added in the coverage pass — `disputes` (open/messages/evidence,
+Super-Admin resolve → wallet + order + stock state for all three resolutions), `withdrawals`
+(minimum, 7-day hold, balance math, admin process/reject, cancel), `coaching` (booking, escrow,
+complete/cancel, fee snapshot), `reviews` (completed-buyer-only, one per order, aggregates,
+moderation), `admin-auth` (22-route role-guard matrix over all 6 staff roles, password reset,
+suspended/banned session + login rejection), `bog-callbacks` (topup + subscription callbacks with
+genuinely RSA-signed payloads), `order-races` (concurrent accept/cancel/dispute), and
+`support-notifications-settings`.
+
+**Conventions for new specs**: `test/flows.ts` has `buyItem(...)` (drive an order to a stage),
+`clearHold` (backdate the 7-day withdrawal hold) and `assertConserved` — call the latter in
+`afterAll`: total WaveCoin must equal top-ups minus open escrow, completed-order/session fees and live
+withdrawals, and every user's balance must equal the sum of their ledger rows. Specs share ONE
+database, so never assert "table is empty" — compare before/after counts. Signed BOG callbacks: set
+`process.env.BOG_CALLBACK_PUBLIC_KEY` to a test key (already read per call, no production seam
+needed) and sign the raw body with the private half; stub `BogPaymentsService.prototype` methods
+(`getOrderDetails`, `createWavecoinOrder`, `createSubscriptionOrder`, `saveCard`) like `EmailService`.
+Client has `upload()` for multipart. Not covered: real BOG sandbox, and same-user concurrent
+purchases/withdrawals/bookings (a 40P01 deadlock — fixed on the separate `fix/wallet-deadlock` branch).
+
+**Real bugs the suites have found so far**: unverified accounts could transact (`VerifiedEmailGuard`);
+and in the coverage pass — double refund/payout races on order cancel, dispute resolve and session
+complete/cancel (status was only checked on an unlocked read; now re-checked under a row lock);
+withdrawals never subtracted prior withdrawals, so the same cleared earnings could be withdrawn
+repeatedly against top-up money; a concurrent duplicate BOG top-up callback surfaced a 500; reporting
+a hidden/deleted review resurrected it; a suspended/banned user could still log in and lifting a
+suspension activated a never-verified account; illegal status transitions returned 500 (now 409).
 
 ## Docker / local readiness
 

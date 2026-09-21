@@ -29,6 +29,9 @@ modules, use `UsersService` (`backend/src/users/CLAUDE.md`) instead of injecting
 directly, to keep one place owning "how do I fetch a user."
 
 ## Conventions & gotchas
+- **`login` rejects a suspended/banned account with 403 (`ACCOUNT_SUSPENDED`)**, checked only after
+  the password matches so it can't probe account status. Previously it issued a session cookie that
+  `AuthGuard` then rejected everywhere.
 - **Session is a stateless JWT in an httpOnly cookie — there is no `sessions` table.** There's no
   way to revoke a single session early (e.g. "log out this device") without waiting for the 7-day
   expiry. If that becomes a real requirement, that's the point to add a session table or a

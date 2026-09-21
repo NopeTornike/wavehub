@@ -101,7 +101,9 @@ export class ReviewsService {
     const review = await this.getReviewOrThrow(reviewId);
     const report = this.reports.create({ reviewId: review.id, reportedBy: reporterId, reason });
     const saved = await this.reports.save(report);
-    await this.reviews.update(review.id, { status: ReviewStatus.Reported });
+    // Only a Published review flips to Reported. Reporting a Hidden/Deleted review (which any user
+    // can do) must not resurrect it into the moderation queue as if it were live content.
+    await this.reviews.update({ id: review.id, status: ReviewStatus.Published }, { status: ReviewStatus.Reported });
     return saved;
   }
 

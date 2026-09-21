@@ -8,7 +8,7 @@ import { UsersService } from './users.service';
 // real Postgres to test against, same philosophy as the build plan's testing section).
 describe('UsersService', () => {
   function build(user: any) {
-    const row = { moderationReason: null, createdAt: new Date('2026-01-01T00:00:00Z'), ...user };
+    const row = { moderationReason: null, emailVerifiedAt: new Date('2026-01-01T00:00:00Z'), createdAt: new Date('2026-01-01T00:00:00Z'), ...user };
     const repo = {
       findOne: jest.fn(async () => row),
       update: jest.fn(async (_id: string, patch: any) => Object.assign(row, patch)),
@@ -53,6 +53,18 @@ describe('UsersService', () => {
     it('refuses to restore a user who is not suspended', async () => {
       const { service } = build({ id: 'u1', status: UserStatus.Active });
       await expect(service.restore('u1')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('lifting a suspension/ban for an unverified account', () => {
+    it('restore returns a never-verified user to pending_verification, not active', async () => {
+      const { service } = build({ id: 'u1', status: UserStatus.Suspended, emailVerifiedAt: null });
+      expect((await service.restore('u1')).status).toBe(UserStatus.PendingVerification);
+    });
+
+    it('unban returns a never-verified user to pending_verification, not active', async () => {
+      const { service } = build({ id: 'u1', status: UserStatus.Banned, emailVerifiedAt: null });
+      expect((await service.unban('u1')).status).toBe(UserStatus.PendingVerification);
     });
   });
 

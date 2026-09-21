@@ -1,6 +1,7 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { BadRequestException } from '@nestjs/common';
-import { ListingStatus, ListingType } from '@wavehub/shared-types';
+import { ListingStatus, ListingType, OrderStatus } from '@wavehub/shared-types';
+import { Order } from './order.entity';
 import { OrdersService } from './orders.service';
 
 // Fake repositories following the same pattern as listings.service.spec.ts — enough surface for
@@ -378,5 +379,48 @@ describe('OrdersService.getRevealedKey', () => {
     );
     const result = await service.getRevealedKey(buyerId, 'order-1');
     expect(result).toEqual({ key: 'REAL-STEAM-KEY-123' });
+  });
+});
+
+// Found by the e2e suite (order-races.e2e-spec.ts): status was only checked on an unlocked read, so
+// concurrent cancels each refunded and an accept racing a dispute could pay out a disputed order.
+describe('OrdersService money transitions re-check status under a row lock', () => {
+  const buyerId = 'buyer-1';
+  const sellerId = 'seller-1';
+
+  function build(readStatus: OrderStatus, lockedStatus: OrderStatus) {
+    const order = { id: 'order-1', buyerId, sellerId, status: readStatus, priceWaveCoin: 50, sellerPayoutWaveCoin: 45, listingId: 'l1', listingType: ListingType.Service, orderNumber: 'WH-1' };
+    const orders = { findOne: jest.fn(async () => ({ ...order })) } as any;
+    const manager = {
+      findOne: jest.fn(async (entity: any) => (entity === Order ? { ...order, status: lockedStatus } : null)),
+      save: jest.fn(async (o: any) => o),
+      increment: jest.fn(),
+      update: jest.fn(),
+    };
+    const dataSource = { transaction: jest.fn((fn: any) => fn(manager)) } as any;
+    const wallet = { refundBuyer: jest.fn(), releaseSellerEarnings: jest.fn() } as any;
+    const service = new OrdersService(
+      orders, {} as any, {} as any, {} as any, {} as any, {} as any, {} as any, dataSource, wallet, {} as any,
+      { postSystemMessage: jest.fn() } as any, { emit: jest.fn() } as any, {} as any, {} as any,
+    );
+    return { service, wallet, manager };
+  }
+
+  it('cancelByBuyer refunds when the locked row is still Paid', async () => {
+    const { service, wallet } = build(OrderStatus.Paid, OrderStatus.Paid);
+    await service.cancelByBuyer(buyerId, 'order-1');
+    expect(wallet.refundBuyer).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancelByBuyer refunds nothing if another request already changed the order', async () => {
+    const { service, wallet } = build(OrderStatus.Paid, OrderStatus.Cancelled);
+    await expect(service.cancelByBuyer(buyerId, 'order-1')).rejects.toThrow(ConflictException);
+    expect(wallet.refundBuyer).not.toHaveBeenCalled();
+  });
+
+  it('acceptDelivery pays nothing if the order was disputed after the unlocked read', async () => {
+    const { service, wallet } = build(OrderStatus.Delivered, OrderStatus.Disputed);
+    await expect(service.acceptDelivery(buyerId, 'order-1')).rejects.toThrow(ConflictException);
+    expect(wallet.releaseSellerEarnings).not.toHaveBeenCalled();
   });
 });

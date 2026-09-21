@@ -31,6 +31,11 @@ onto `wallet_ledger_entries` that was left bare when the wallet ledger was built
 gap-minimal, race-free numbering — not a UUID, not app-side counting.
 
 ## Conventions & gotchas
+- **`completeOrder`/`cancelOrder` re-check status under a row lock** (`lockOrderExpecting`): the
+  status check in `acceptDelivery`/`cancelBy*` is an unlocked fast path, so concurrent cancels each
+  refunded and an accept racing a dispute could pay a disputed order. The loser now gets a 409.
+  Covered by `test/order-races.e2e-spec.ts`. Illegal lifecycle transitions in general answer 409 via
+  `InvalidTransitionFilter` (`backend/src/invalid-transition.filter.ts`), not 500.
 - **Checkout is one atomic transaction, not a multi-step payment flow.** Under the WaveCoin payment
   model (see root `CLAUDE.md`), there's no external payment-gateway redirect to wait on — `purchase()`
   creates the `Order` row and calls `WalletService.debitForOrder` **inside the same

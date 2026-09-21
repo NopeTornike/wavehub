@@ -1,6 +1,8 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DisputeResolution, DisputeStatus, ListingStatus, ListingType, OrderStatus } from '@wavehub/shared-types';
 import { DisputesService } from './disputes.service';
+import { Dispute } from './dispute.entity';
+import { Order } from '../orders/order.entity';
 
 // Same fake-repository/fake-manager approach as reviews.service.spec.ts and
 // orders.service.spec.ts.
@@ -23,7 +25,7 @@ describe('DisputesService', () => {
         updates.push(data);
       }),
       increment: jest.fn(async () => undefined),
-      findOne: jest.fn(async () => null),
+      findOne: jest.fn<Promise<any>, any[]>(async () => null),
       _saved: saved,
       _updates: updates,
     };
@@ -31,6 +33,8 @@ describe('DisputesService', () => {
 
   function build(order: any, existingDispute: any = null) {
     const manager = fakeManager();
+    // open() re-reads the order under a row lock inside its transaction.
+    manager.findOne.mockImplementation(async (entity: any) => (entity === Order ? order : null));
     const dataSource = { transaction: jest.fn(async (cb: any) => cb(manager)) } as any;
     const orders = { findOne: jest.fn(async () => order) } as any;
     const disputes = {
@@ -46,6 +50,17 @@ describe('DisputesService', () => {
     const service = new DisputesService(disputes, messages, evidence, orders, dataSource, wallet, storage, chat, notifications);
     return { service, manager, disputes, messages, evidence, wallet, storage, chat, notifications };
   }
+
+  describe('open (races)', () => {
+    it('refuses to open when the locked order row is no longer in the status that was validated', async () => {
+      const order = { id: orderId, buyerId, sellerId, status: OrderStatus.Delivered, deliveredAt: new Date() };
+      const { service, manager } = build(order);
+      manager.findOne.mockImplementation(async (entity: any) => (entity === Order ? { ...order, status: OrderStatus.Completed } : null));
+      await expect(service.open(buyerId, orderId, 'Item never arrived')).rejects.toThrow(ForbiddenException);
+      expect(manager.save).not.toHaveBeenCalled();
+      expect(manager._updates).toHaveLength(0);
+    });
+  });
 
   describe('open', () => {
     it('rejects when the order does not exist', async () => {
@@ -97,6 +112,7 @@ describe('DisputesService', () => {
     it('translates a DB unique-constraint violation into a clean "already exists" error', async () => {
       const order = { id: orderId, buyerId, sellerId, status: OrderStatus.Paid };
       const manager = fakeManager();
+      manager.findOne.mockImplementation(async (entity: any) => (entity === Order ? order : null));
       manager.save.mockRejectedValueOnce({ code: '23505' });
       const dataSource = { transaction: jest.fn(async (cb: any) => cb(manager)) } as any;
       const orders = { findOne: jest.fn(async () => order) } as any;
@@ -153,6 +169,9 @@ describe('DisputesService', () => {
   describe('resolve', () => {
     function buildForResolve(order: any, dispute: any) {
       const manager = fakeManager();
+      // The service re-reads the dispute under a row lock inside the transaction (races between
+      // concurrent resolves) — serve it from the same fixture, keyed on the entity class.
+      manager.findOne.mockImplementation(async (entity: any) => (entity === Dispute ? dispute : null));
       const dataSource = { transaction: jest.fn(async (cb: any) => cb(manager)) } as any;
       const orders = { findOne: jest.fn(async () => order) } as any;
       const disputes = { findOne: jest.fn(async () => dispute) } as any;
@@ -178,6 +197,18 @@ describe('DisputesService', () => {
       await expect(
         service.resolve(disputeId, 'admin-1', DisputeResolution.ReleaseToSeller, 'note'),
       ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('re-checks the dispute status under the row lock so a racing resolve moves no money', async () => {
+      const order = { id: orderId, buyerId, sellerId, status: OrderStatus.Disputed, priceWaveCoin: 100, listingId: 'l', listingType: ListingType.Service };
+      const open = { id: disputeId, orderId, status: DisputeStatus.Open, createdAt: new Date() };
+      const { service, manager, wallet } = buildForResolve(order, open);
+      // Pre-check sees Open, but by the time the lock is acquired another resolve already won.
+      manager.findOne.mockImplementation(async (entity: any) =>
+        entity === Dispute ? { ...open, status: DisputeStatus.Resolved } : null,
+      );
+      await expect(service.resolve(disputeId, 'admin-1', DisputeResolution.RefundBuyer, 'race')).rejects.toThrow(ForbiddenException);
+      expect(wallet.refundBuyer).not.toHaveBeenCalled();
     });
 
     it('ReleaseToSeller releases seller earnings and completes the order', async () => {
@@ -229,11 +260,9 @@ describe('DisputesService', () => {
       };
       const dispute = { id: disputeId, orderId, status: DisputeStatus.Open, createdAt: new Date() };
       const { service, manager, wallet } = buildForResolve(order, dispute);
-      manager.findOne.mockResolvedValue({
-        id: 'listing-1',
-        stockQuantity: 0,
-        status: ListingStatus.Paused,
-      });
+      manager.findOne.mockImplementation(async (entity: any) =>
+        entity === Dispute ? dispute : { id: 'listing-1', stockQuantity: 0, status: ListingStatus.Paused },
+      );
 
       await service.resolve(disputeId, 'admin-1', DisputeResolution.CancelOrder, 'Mutual agreement to cancel');
 
