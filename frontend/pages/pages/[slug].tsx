@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import type { PublicContentPage } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 // Renders whatever the admin Content section publishes at this slug — see backend/src/content/.
 // No static-prototype page exists for a generic legal/info page, so this reuses the listing
@@ -27,7 +27,7 @@ export default function ContentPage() {
         if (!cancelled) setPage(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'გვერდი ვერ მოიძებნა.')
+        if (!cancelled) setError(errorMessage(err, 'გვერდი ვერ მოიძებნა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -38,7 +38,7 @@ export default function ContentPage() {
   }, [slug])
 
   return (
-    <Layout>
+    <Layout title={page?.title ?? 'გვერდი'} noIndex={!page}>
       <div className="detail-page">
         {loading ? (
           <div className="marketplace-empty">იტვირთება…</div>

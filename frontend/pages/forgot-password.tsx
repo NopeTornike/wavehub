@@ -1,6 +1,8 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState, type FormEvent } from 'react'
-import { api, ApiError } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
+import PageHead from '../components/PageHead'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -25,7 +27,7 @@ export default function ForgotPassword() {
       // (avoids leaking which emails exist) — the UI reflects that same behavior.
       setSuccess('თუ ეს email დარეგისტრირებულია, პაროლის აღდგენის ბმული გამოგზავნილია.')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'სერვერთან დაკავშირება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'სერვერთან დაკავშირება ვერ მოხერხდა.'))
     } finally {
       setSubmitting(false)
     }
@@ -33,10 +35,11 @@ export default function ForgotPassword() {
 
   return (
     <main className="auth-page-shell">
+      <PageHead title="პაროლის აღდგენა" description="მოითხოვეთ პაროლის აღდგენის ბმული ელფოსტაზე." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
         <div className="auth-card-top">
-          <Link className="auth-brand" href="/" aria-label="Back to WaveHub">
-            <img src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" />
+          <Link className="auth-brand" href="/" aria-label="WaveHub — მთავარი გვერდი">
+            <Image src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" width={600} height={310} priority />
           </Link>
         </div>
         <div className="auth-card-head">

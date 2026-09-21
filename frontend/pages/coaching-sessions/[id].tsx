@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { PublicCoachingSession } from '@wavehub/shared-types'
 import { CoachingSessionStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 const STATUS_LABELS: Record<CoachingSessionStatus, string> = {
@@ -16,13 +16,19 @@ const STATUS_LABELS: Record<CoachingSessionStatus, string> = {
 export default function CoachingSessionDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
-  const { user: me, refresh } = useAuth()
+  const { user: me, checked, refresh } = useAuth()
 
   const [session, setSession] = useState<PublicCoachingSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (checked && !me && id) {
+      router.push(`/login?next=${encodeURIComponent(`/coaching-sessions/${id}`)}`)
+    }
+  }, [checked, me, id, router])
 
   const load = () => {
     if (!id) return
@@ -31,7 +37,7 @@ export default function CoachingSessionDetail() {
     api
       .getCoachingSession(id)
       .then(setSession)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'სესია ვერ მოიძებნა.'))
+      .catch((err) => setError(errorMessage(err, 'სესია ვერ მოიძებნა.')))
       .finally(() => setLoading(false))
   }
 
@@ -41,9 +47,9 @@ export default function CoachingSessionDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  if (loading) {
+  if (loading || (checked && !me)) {
     return (
-      <Layout>
+      <Layout title="სესია" noIndex>
         <div className="detail-page">
           <div className="marketplace-empty">იტვირთება…</div>
         </div>
@@ -53,7 +59,7 @@ export default function CoachingSessionDetail() {
 
   if (error || !session) {
     return (
-      <Layout>
+      <Layout title="სესია" noIndex>
         <div className="detail-page">
           <div className="marketplace-empty">{error || 'სესია ვერ მოიძებნა.'}</div>
         </div>
@@ -74,13 +80,18 @@ export default function CoachingSessionDetail() {
       const conversation = await api.startDirectConversation(otherUserId)
       router.push(`/messages?conversation=${conversation.id}`)
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'საუბრის დაწყება ვერ მოხერხდა.')
+      setActionError(errorMessage(err, 'საუბრის დაწყება ვერ მოხერხდა.'))
     } finally {
       setBusy(false)
     }
   }
 
   const runAction = async (action: 'complete' | 'cancel') => {
+    const question =
+      action === 'complete'
+        ? 'დარწმუნებული ხართ, რომ სესია ჩატარებულია? თანხა გადავა თქვენს ბალანსზე.'
+        : 'დარწმუნებული ხართ, რომ გსურთ სესიის გაუქმება?'
+    if (!window.confirm(question)) return
     setActionError('')
     setBusy(true)
     try {
@@ -91,14 +102,14 @@ export default function CoachingSessionDetail() {
       // cancelling doesn't touch their own balance, but refresh() is still cheap and correct).
       await refresh()
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'მოქმედება ვერ შესრულდა.')
+      setActionError(errorMessage(err, 'მოქმედება ვერ შესრულდა.'))
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Layout>
+    <Layout title={`სესია — ${session.coachFirstName} ${session.coachLastName}`} noIndex>
       {/* No static-prototype reference for a session-detail page — mirrors orders/[id].tsx's
           .detail-page/.detail-section shell, without the chat/dispute panels orders have (no
           dispute path for sessions yet, see backend/src/coaching/CLAUDE.md). */}
@@ -134,6 +145,11 @@ export default function CoachingSessionDetail() {
               <p>{session.buyerMessage}</p>
             </>
           )}
+          {!canAct && actionError && (
+            <div className="status-text status-error" role="alert">
+              {actionError}
+            </div>
+          )}
           {(isCoach || isBuyer) && (
             <button type="button" className="button" disabled={busy} onClick={messageOtherParty}>
               {isCoach ? 'მყიდველისთვის მესიჯის გაგზავნა' : 'მწვრთნელისთვის მესიჯის გაგზავნა'}
@@ -144,7 +160,11 @@ export default function CoachingSessionDetail() {
         {canAct && (
           <section className="detail-section detail-summary-card">
             <h2>მოქმედებები</h2>
-            {actionError && <div className="status-text status-error">{actionError}</div>}
+            {actionError && (
+              <div className="status-text status-error" role="alert">
+                {actionError}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {isCoach && (
                 <button className="detail-buy-button" type="button" disabled={busy} onClick={() => runAction('complete')}>

@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicSavedReply, PublicTicket } from '@wavehub/shared-types'
 import { TicketPriority, TicketStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../../components/AdminLayout'
-import { api, ApiError } from '../../../lib/api'
+import { api, errorMessage } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
 
 const STATUS_LABELS: Record<TicketStatus, string> = {
@@ -46,7 +46,7 @@ export default function AdminTicketDetail() {
         if (!cancelled) setTicket(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ბილეთის ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ბილეთის ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -79,7 +79,7 @@ export default function AdminTicketDetail() {
       setTicket(updated)
       setReplyDraft('')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'პასუხის გაგზავნა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'პასუხის გაგზავნა ვერ მოხერხდა.'))
     } finally {
       setBusy(false)
     }
@@ -95,7 +95,7 @@ export default function AdminTicketDetail() {
       setTicket(updated)
       setNoteDraft('')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'შენიშვნის დამატება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'შენიშვნის დამატება ვერ მოხერხდა.'))
     } finally {
       setBusy(false)
     }
@@ -108,7 +108,7 @@ export default function AdminTicketDetail() {
     try {
       setTicket(await api.adminUpdateTicket(id, { status }))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'სტატუსის შეცვლა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'სტატუსის შეცვლა ვერ მოხერხდა.'))
     } finally {
       setBusy(false)
     }
@@ -121,7 +121,7 @@ export default function AdminTicketDetail() {
     try {
       setTicket(await api.adminUpdateTicket(id, { priority }))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'პრიორიტეტის შეცვლა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'პრიორიტეტის შეცვლა ვერ მოხერხდა.'))
     } finally {
       setBusy(false)
     }
@@ -134,22 +134,22 @@ export default function AdminTicketDetail() {
     try {
       setTicket(await api.adminUpdateTicket(id, { assignedToId: me.id }))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'მინიჭება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'მინიჭება ვერ მოხერხდა.'))
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="ბილეთი">
       {loading ? (
         <div className="empty-state">იტვირთება…</div>
       ) : error && !ticket ? (
-        <div className="status-text status-error">{error}</div>
+        <div className="status-text status-error" role="alert">{error}</div>
       ) : ticket ? (
         <>
           <h1 className="page-title">{ticket.subject}</h1>
-          {error && <div className="status-text status-error">{error}</div>}
+          {error && <div className="status-text status-error" role="alert">{error}</div>}
 
           <div className="admin-row-actions" style={{ marginBottom: 20 }}>
             <select value={ticket.status} disabled={busy} onChange={(e) => changeStatus(e.target.value as TicketStatus)}>

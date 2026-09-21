@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { AdminSubscriptionPlanSummary, SubscriptionPerks } from '@wavehub/shared-types'
 import { SubscriptionAudience } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
+
+const AUDIENCE_LABELS: Record<SubscriptionAudience, string> = {
+  [SubscriptionAudience.Buyer]: 'მყიდველი',
+  [SubscriptionAudience.SellerCoach]: 'გამყიდველი / მწვრთნელი',
+}
 
 const emptyForm = {
   audience: SubscriptionAudience.Buyer as SubscriptionAudience,
@@ -27,6 +32,16 @@ function buildPerks(f: typeof emptyForm): SubscriptionPerks {
   return perks
 }
 
+// Human-readable perk summary for the plan list (instead of dumping the raw jsonb).
+function perkSummary(perks: SubscriptionPerks): string {
+  const parts: string[] = []
+  if (perks.platformFeeDiscountPercent) parts.push(`საკომისიო −${perks.platformFeeDiscountPercent}%`)
+  if (perks.featuredListings) parts.push('გამორჩეული')
+  if (perks.prioritySupport) parts.push('პრიორიტეტული მხარდაჭერა')
+  if (perks.profileBadge) parts.push(`ბეჯი: ${perks.profileBadge}`)
+  return parts.length > 0 ? parts.join(', ') : 'პერკების გარეშე'
+}
+
 export default function AdminSubscriptionPlans() {
   const [items, setItems] = useState<AdminSubscriptionPlanSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,32 +54,46 @@ export default function AdminSubscriptionPlans() {
   const reload = () =>
     api
       .adminListSubscriptionPlans()
-      .then(setItems)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.'))
+      .then((rows) => {
+        setItems(rows)
+        setError('')
+      })
+      .catch((err) => setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.')))
       .finally(() => setLoading(false))
 
   useEffect(() => {
     void reload()
   }, [])
 
-  const create = async () => {
+  const create = async (event: FormEvent) => {
+    event.preventDefault()
     setFormError('')
+    // Mirrors backend/src/subscriptions/dto/create-plan.dto.ts so the admin gets a Georgian hint
+    // before the round-trip instead of a raw class-validator message.
+    const tier = form.tier.trim()
+    const name = form.name.trim()
+    const description = form.description.trim()
+    if (tier.length < 2 || tier.length > 40) return setFormError('დონე უნდა იყოს 2–40 სიმბოლო.')
+    if (name.length < 3 || name.length > 80) return setFormError('სახელი უნდა იყოს 3–80 სიმბოლო.')
+    if (description.length < 10 || description.length > 2000) return setFormError('აღწერა უნდა იყოს 10–2000 სიმბოლო.')
+    if (!Number.isInteger(form.priceGel) || form.priceGel < 1) return setFormError('ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 ₾.')
+    if (!Number.isInteger(form.billingPeriodDays) || form.billingPeriodDays < 1) return setFormError('პერიოდი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 დღე.')
     setCreating(true)
     try {
       await api.adminCreateSubscriptionPlan({
         audience: form.audience,
-        tier: form.tier.trim(),
-        name: form.name.trim(),
-        description: form.description.trim(),
-        priceGel: Number(form.priceGel),
-        billingPeriodDays: Number(form.billingPeriodDays),
-        sortOrder: Number(form.sortOrder),
+        tier,
+        name,
+        description,
+        priceGel: form.priceGel,
+        billingPeriodDays: form.billingPeriodDays,
+        sortOrder: Number(form.sortOrder) || 0,
         perks: buildPerks(form),
       })
       setForm(emptyForm)
       await reload()
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'შექმნა ვერ მოხერხდა.')
+      setFormError(errorMessage(err, 'შექმნა ვერ მოხერხდა.'))
     } finally {
       setCreating(false)
     }
@@ -77,42 +106,86 @@ export default function AdminSubscriptionPlans() {
       await api.adminUpdateSubscriptionPlan(plan.id, { isActive: !plan.isActive })
       await reload()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'განახლება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'განახლება ვერ მოხერხდა.'))
     } finally {
       setBusyId(null)
     }
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="გამოწერის გეგმები">
       <h1 className="page-title">გამოწერის გეგმები</h1>
       <p className="page-subtitle">მყიდველის და გამყიდველის/მწვრთნელის გეგმები. არსებულ გამოწერებზე ფასი არ იცვლება — ახალი გეგმა შექმენით.</p>
-      {error && <div className="status-text status-error">{error}</div>}
+      {error && (
+        <div className="status-text status-error" role="alert">
+          {error}
+        </div>
+      )}
 
-      <div className="admin-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, marginBottom: 32 }}>
-        <h2 style={{ fontSize: '1rem', margin: 0 }}>ახალი გეგმა</h2>
-        {formError && <div className="status-text status-error">{formError}</div>}
-        <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value as SubscriptionAudience })}>
-          <option value={SubscriptionAudience.Buyer}>მყიდველი</option>
-          <option value={SubscriptionAudience.SellerCoach}>გამყიდველი / მწვრთნელი</option>
-        </select>
-        <input placeholder="დონე (მაგ. plus)" value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value })} />
-        <input placeholder="სახელი" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <textarea placeholder="აღწერა (მინ. 10 სიმბოლო)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <input type="number" min={1} placeholder="ფასი ₾" value={form.priceGel} onChange={(e) => setForm({ ...form, priceGel: Number(e.target.value) })} />
-        <input type="number" min={1} placeholder="პერიოდი (დღე)" value={form.billingPeriodDays} onChange={(e) => setForm({ ...form, billingPeriodDays: Number(e.target.value) })} />
-        <input type="number" min={0} max={100} placeholder="საკომისიოს შემცირება პროც. პუნქტით (გამყიდველი/მწვრთნელი)" value={form.feeDiscount} onChange={(e) => setForm({ ...form, feeDiscount: e.target.value })} />
-        <input placeholder="პროფილის ბეჯი (ტექსტი)" value={form.profileBadge} onChange={(e) => setForm({ ...form, profileBadge: e.target.value })} />
-        <label>
-          <input type="checkbox" checked={form.featuredListings} onChange={(e) => setForm({ ...form, featuredListings: e.target.checked })} /> გამორჩეული განცხადებები / მწვრთნელი
+      <form className="stack-form" onSubmit={create}>
+        <h2>ახალი გეგმა</h2>
+        {formError && (
+          <div className="status-text status-error" role="alert">
+            {formError}
+          </div>
+        )}
+        <div className="stack-form-grid">
+          <label className="field">
+            აუდიტორია
+            <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value as SubscriptionAudience })}>
+              <option value={SubscriptionAudience.Buyer}>{AUDIENCE_LABELS[SubscriptionAudience.Buyer]}</option>
+              <option value={SubscriptionAudience.SellerCoach}>{AUDIENCE_LABELS[SubscriptionAudience.SellerCoach]}</option>
+            </select>
+          </label>
+          <label className="field">
+            დონე
+            <input placeholder="მაგ. plus" value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value })} required />
+          </label>
+          <label className="field">
+            სახელი
+            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          </label>
+        </div>
+        <label className="field">
+          აღწერა <small>მინიმუმ 10 სიმბოლო</small>
+          <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
         </label>
-        <label>
-          <input type="checkbox" checked={form.prioritySupport} onChange={(e) => setForm({ ...form, prioritySupport: e.target.checked })} /> პრიორიტეტული მხარდაჭერა
+        <div className="stack-form-grid">
+          <label className="field">
+            ფასი (₾)
+            <input type="number" min={1} step={1} value={form.priceGel} onChange={(e) => setForm({ ...form, priceGel: Number(e.target.value) })} required />
+          </label>
+          <label className="field">
+            პერიოდი (დღე)
+            <input type="number" min={1} step={1} value={form.billingPeriodDays} onChange={(e) => setForm({ ...form, billingPeriodDays: Number(e.target.value) })} required />
+          </label>
+          <label className="field">
+            რიგითობა
+            <input type="number" step={1} value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} />
+          </label>
+        </div>
+        <div className="stack-form-grid">
+          <label className="field">
+            საკომისიოს შემცირება (პროც. პუნქტი) <small>მოქმედებს გამყიდველზე/მწვრთნელზე</small>
+            <input type="number" min={0} max={100} value={form.feeDiscount} onChange={(e) => setForm({ ...form, feeDiscount: e.target.value })} />
+          </label>
+          <label className="field">
+            პროფილის ბეჯი (ტექსტი)
+            <input value={form.profileBadge} onChange={(e) => setForm({ ...form, profileBadge: e.target.value })} />
+          </label>
+        </div>
+        <label className="field check">
+          <input type="checkbox" checked={form.featuredListings} onChange={(e) => setForm({ ...form, featuredListings: e.target.checked })} />
+          გამორჩეული განცხადებები / მწვრთნელი
         </label>
-        <button type="button" className="button" disabled={creating} onClick={create}>
-          {creating ? '…' : 'შექმნა'}
+        <label className="field check">
+          <input type="checkbox" checked={form.prioritySupport} onChange={(e) => setForm({ ...form, prioritySupport: e.target.checked })} />
+          პრიორიტეტული მხარდაჭერა
+        </label>
+        <button type="submit" className="button" disabled={creating}>
+          {creating ? 'იქმნება…' : 'გეგმის შექმნა'}
         </button>
-      </div>
+      </form>
 
       <h2 style={{ fontSize: '1rem' }}>ყველა გეგმა</h2>
       {loading ? (
@@ -124,9 +197,12 @@ export default function AdminSubscriptionPlans() {
           {items.map((p) => (
             <div key={p.id} className="admin-row">
               <div className="admin-row-main">
-                <strong>{p.name}</strong> <span className="note">({p.audience} · {p.tier})</span>
+                <strong>{p.name}</strong>{' '}
+                <span className="note">
+                  ({AUDIENCE_LABELS[p.audience]} · {p.tier})
+                </span>
                 <div className="note" style={{ margin: 0 }}>
-                  {p.priceGel} ₾ / {p.billingPeriodDays} დღე · {p.isActive ? 'აქტიური' : 'გამორთული'} · {JSON.stringify(p.perks)}
+                  {p.priceGel} ₾ / {p.billingPeriodDays} დღე · {p.isActive ? 'აქტიური' : 'გამორთული'} · {perkSummary(p.perks)}
                 </div>
               </div>
               <div className="admin-row-actions">

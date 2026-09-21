@@ -1,27 +1,36 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { PublicTournamentSummary } from '@wavehub/shared-types'
 import { TournamentStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 const STATUS_LABELS: Record<TournamentStatus, string> = {
-  [TournamentStatus.Open]: 'OPEN',
-  [TournamentStatus.Upcoming]: 'UPCOMING',
-  [TournamentStatus.Completed]: 'COMPLETED',
+  [TournamentStatus.Open]: 'ღიაა',
+  [TournamentStatus.Upcoming]: 'მალე იწყება',
+  [TournamentStatus.Completed]: 'დასრულებულია',
 }
 
-type Tab = 'general' | 'prize' | 'rules' | 'players'
+type Tab = 'general' | 'prize' | 'rules'
 
-// Markup pulled from tournament-detail.html (see LAUNCH_PLAN.md §2b). "Rules" and "Top Players"
-// panels are static content in the prototype itself too (not per-tournament data) — kept as-is
-// rather than fabricating dynamic content the backend doesn't have.
+const TABS: { id: Tab; icon: string; label: string }[] = [
+  { id: 'general', icon: 'ⓘ', label: 'ზოგადი' },
+  { id: 'prize', icon: '♛', label: 'პრიზი' },
+  { id: 'rules', icon: '▤', label: 'წესები' },
+]
+
+// Markup pulled from tournament-detail.html (see LAUNCH_PLAN.md §2b). The prototype's "Top Players"
+// tab is intentionally not ported: this app has no standings/bracket data (tournaments are
+// registration-only — backend/src/tournaments/CLAUDE.md), so the tab could only ever promise
+// something that doesn't exist. The "Rules" tab shows WaveHub-wide conduct rules, not per-tournament
+// data (the backend has no such field) — it says so.
 export default function TournamentDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
-  const { user: me, refresh } = useAuth()
+  const { user: me } = useAuth()
+  const meId = me?.id
 
   const [tournament, setTournament] = useState<PublicTournamentSummary | null>(null)
   const [loading, setLoading] = useState(true)
@@ -31,28 +40,29 @@ export default function TournamentDetail() {
   const [registering, setRegistering] = useState(false)
   const [registerError, setRegisterError] = useState('')
 
-  const load = () => {
+  const load = useCallback(() => {
     if (!id) return
-    setLoading(true)
     setError('')
-    Promise.all([api.getTournament(id), me ? api.listMyTournamentRegistrations() : Promise.resolve<string[]>([])])
+    Promise.all([api.getTournament(id), meId ? api.listMyTournamentRegistrations() : Promise.resolve<string[]>([])])
       .then(([data, myIds]) => {
         setTournament(data)
         setIsRegistered(myIds.includes(id))
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'ტურნირი ვერ მოიძებნა.'))
+      .catch((err) => setError(errorMessage(err, 'ტურნირი ვერ მოიძებნა.')))
       .finally(() => setLoading(false))
-  }
+  }, [id, meId])
 
   useEffect(() => {
+    // Refetch when the route param or the logged-in identity changes (registered-state depends on
+    // who's asking) — depends on the id string, not the user object, so a balance refresh doesn't
+    // re-run it.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, me])
+  }, [load])
 
   if (loading) {
     return (
-      <Layout>
+      <Layout title="ტურნირი">
         <div className="tournament-detail-page">
           <div className="marketplace-empty">იტვირთება…</div>
         </div>
@@ -62,10 +72,10 @@ export default function TournamentDetail() {
 
   if (error || !tournament) {
     return (
-      <Layout>
+      <Layout title="ტურნირი ვერ მოიძებნა" noIndex>
         <div className="tournament-detail-page td-not-found">
           <strong>{error || 'ტურნირი ვერ მოიძებნა.'}</strong>
-          <Link href="/tournaments">All Tournaments</Link>
+          <Link href="/tournaments">ყველა ტურნირი</Link>
         </div>
       </Layout>
     )
@@ -83,30 +93,39 @@ export default function TournamentDetail() {
       setTournament(updated)
       setIsRegistered(true)
     } catch (err) {
-      setRegisterError(err instanceof ApiError ? err.message : 'რეგისტრაცია ვერ მოხერხდა.')
+      setRegisterError(errorMessage(err, 'რეგისტრაცია ვერ მოხერხდა.'))
     } finally {
       setRegistering(false)
     }
   }
 
   const full = tournament.registeredCount >= tournament.maxPlayers
+  const open = tournament.status === TournamentStatus.Open
+  const canRegister = !isRegistered && !full && open
   const registerLabel = isRegistered
-    ? 'REGISTERED ✓'
+    ? 'დარეგისტრირებული ხართ ✓'
     : full
-      ? 'TOURNAMENT FULL'
-      : tournament.status === TournamentStatus.Open
-        ? 'REGISTER NOW ›'
-        : STATUS_LABELS[tournament.status]
+      ? 'ადგილები ამოიწურა'
+      : open
+        ? me
+          ? 'რეგისტრაცია ›'
+          : 'შესვლა და რეგისტრაცია ›'
+        : tournament.status === TournamentStatus.Completed
+          ? 'ტურნირი დასრულდა'
+          : 'რეგისტრაცია ჯერ არ დაწყებულა'
+  const startDate = new Date(tournament.startDate).toLocaleDateString('ka-GE', { month: 'long', day: 'numeric', year: 'numeric' })
 
   return (
-    <Layout>
+    <Layout title={tournament.name} description={`${tournament.gameName} — ${tournament.description}`.slice(0, 200)}>
       <section className="tournament-detail-page">
         <Link className="tournament-detail-back" href="/tournaments">
-          ← All Tournaments
+          ← ყველა ტურნირი
         </Link>
 
         <div
           className="tournament-detail-hero"
+          role="img"
+          aria-label={`${tournament.name} — ქოვერი`}
           style={tournament.coverImageUrl ? { backgroundImage: `url(${tournament.coverImageUrl})` } : undefined}
         >
           <div className="tournament-detail-hero-copy">
@@ -118,113 +137,110 @@ export default function TournamentDetail() {
           </div>
         </div>
 
-        <section className="tournament-detail-summary">
+        <section className="tournament-detail-summary" aria-label="ტურნირის მონაცემები">
           <div>
-            <b>▣</b>
+            <b aria-hidden="true">▣</b>
             <span>
-              <small>REGISTRATION</small>
-              <strong className={tournament.status === TournamentStatus.Open ? 'is-open' : ''}>{STATUS_LABELS[tournament.status]}</strong>
+              <small>რეგისტრაცია</small>
+              <strong className={open ? 'is-open' : ''}>{STATUS_LABELS[tournament.status]}</strong>
             </span>
           </div>
           <div>
-            <b>□</b>
+            <b aria-hidden="true">□</b>
             <span>
-              <small>TOURNAMENT DATE</small>
-              <strong>{new Date(tournament.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+              <small>თარიღი</small>
+              <strong>{startDate}</strong>
             </span>
           </div>
           <div>
-            <b>♙</b>
+            <b aria-hidden="true">♙</b>
             <span>
-              <small>PLAYERS</small>
+              <small>მოთამაშეები</small>
               <strong>
                 {tournament.registeredCount} / {tournament.maxPlayers}
               </strong>
-              <em>REGISTERED</em>
+              <em>დარეგისტრირებული</em>
             </span>
           </div>
           <div>
-            <b>♛</b>
+            <b aria-hidden="true">♛</b>
             <span>
-              <small>PRIZE POOL</small>
+              <small>პრიზი</small>
               <strong className="is-pink">{tournament.prize}</strong>
             </span>
           </div>
           <div>
-            <b>◇</b>
+            <b aria-hidden="true">◇</b>
             <span>
-              <small>ENTRY FEE</small>
-              <strong className="is-open">FREE</strong>
+              <small>შენატანი</small>
+              <strong className="is-open">უფასო</strong>
             </span>
           </div>
-          <button type="button" disabled={registering || isRegistered || full || tournament.status !== TournamentStatus.Open} onClick={register}>
-            {registering ? 'იჯავშნება…' : registerLabel} {!isRegistered && !full && tournament.status === TournamentStatus.Open && <span>›</span>}
+          <button type="button" disabled={registering || (me ? !canRegister : !open)} onClick={register}>
+            {registering ? 'იჯავშნება…' : registerLabel}
           </button>
         </section>
 
-        {registerError && <p className="tournament-detail-notice" style={{ color: 'var(--red)' }}>{registerError}</p>}
+        {registerError && (
+          <p className="tournament-detail-notice" role="alert" style={{ color: 'var(--red)' }}>
+            {registerError}
+          </p>
+        )}
 
-        <div className="tournament-detail-tabs" role="tablist">
-          <button className={tab === 'general' ? 'active' : ''} type="button" onClick={() => setTab('general')}>
-            ⓘ <span>GENERAL</span>
-          </button>
-          <button className={tab === 'prize' ? 'active' : ''} type="button" onClick={() => setTab('prize')}>
-            ♛ <span>PRIZE POOL</span>
-          </button>
-          <button className={tab === 'rules' ? 'active' : ''} type="button" onClick={() => setTab('rules')}>
-            ▤ <span>RULES</span>
-          </button>
-          <button className={tab === 'players' ? 'active' : ''} type="button" onClick={() => setTab('players')}>
-            ♕ <span>TOP PLAYERS</span>
-          </button>
+        <div className="tournament-detail-tabs" role="tablist" aria-label="ტურნირის დეტალები">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              id={`td-tab-${t.id}`}
+              className={tab === t.id ? 'active' : ''}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              aria-controls={`td-panel-${t.id}`}
+              onClick={() => setTab(t.id)}
+            >
+              <span aria-hidden="true" style={{ margin: 0 }}>
+                {t.icon}
+              </span>{' '}
+              <span>{t.label}</span>
+            </button>
+          ))}
         </div>
 
         {tab === 'general' && (
-          <section className="tournament-detail-panel active">
+          <section className="tournament-detail-panel active" id="td-panel-general" role="tabpanel" aria-labelledby="td-tab-general">
             <div className="tournament-general-info">
-              <h2>ABOUT TOURNAMENT</h2>
-              <p>{tournament.description}</p>
+              <h2>ტურნირის შესახებ</h2>
+              <p style={{ whiteSpace: 'pre-line' }}>{tournament.description}</p>
             </div>
           </section>
         )}
 
         {tab === 'prize' && (
-          <section className="tournament-detail-panel active">
+          <section className="tournament-detail-panel active" id="td-panel-prize" role="tabpanel" aria-labelledby="td-tab-prize">
             <div className="td-simple-panel">
-              <span>♛</span>
+              <span aria-hidden="true">♛</span>
               <div>
-                <h2>PRIZE POOL</h2>
+                <h2>პრიზი</h2>
                 <strong>{tournament.prize}</strong>
-                <p>The announced prize pool will be awarded according to the tournament results.</p>
+                <p>გამოცხადებული პრიზი გადაეცემა გამარჯვებულებს ტურნირის შედეგების მიხედვით.</p>
               </div>
             </div>
           </section>
         )}
 
         {tab === 'rules' && (
-          <section className="tournament-detail-panel active">
+          <section className="tournament-detail-panel active" id="td-panel-rules" role="tabpanel" aria-labelledby="td-tab-rules">
             <div className="td-simple-panel">
-              <span>▤</span>
+              <span aria-hidden="true">▤</span>
               <div>
-                <h2>TOURNAMENT RULES</h2>
+                <h2>ზოგადი წესები</h2>
                 <ul>
-                  <li>Use only your registered WaveHub account.</li>
-                  <li>Check in before the registration deadline.</li>
-                  <li>Fair play and respectful conduct are required.</li>
-                  <li>Organizer decisions apply to disputed match results.</li>
+                  <li>ითამაშეთ მხოლოდ თქვენი რეგისტრირებული WaveHub ანგარიშით.</li>
+                  <li>სამართლიანი თამაში და მოწინააღმდეგის პატივისცემა სავალდებულოა.</li>
+                  <li>სადავო შედეგებზე ორგანიზატორის გადაწყვეტილება საბოლოოა.</li>
                 </ul>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {tab === 'players' && (
-          <section className="tournament-detail-panel active">
-            <div className="td-simple-panel">
-              <span>♕</span>
-              <div>
-                <h2>TOP PLAYERS</h2>
-                <p>Standings will appear after the tournament begins.</p>
+                <p>ეს WaveHub-ის ყველა ტურნირზე მოქმედი ზოგადი წესებია.</p>
               </div>
             </div>
           </section>

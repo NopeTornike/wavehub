@@ -26,7 +26,8 @@ const NAV_ITEMS = [
 // role without access to a given section just gets a 403 from that page's own api call rather
 // than the link being hidden. Building a full client-side permission matrix mirroring the backend
 // one exactly wasn't worth the duplication risk for a first pass — see frontend/CLAUDE.md.
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default function AdminLayout({ children, title }: { children: ReactNode; title?: string }) {
+  const layoutTitle = title ? `${title} · ადმინ პანელი` : 'ადმინ პანელი'
   const router = useRouter()
   const { user, checked } = useAuth()
 
@@ -38,7 +39,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   if (!checked || (checked && !user)) {
     return (
-      <Layout>
+      <Layout title={layoutTitle} noIndex>
         <div className="page">
           <div className="page-inner">
             <div className="empty-state">იტვირთება…</div>
@@ -50,7 +51,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   if (!user!.adminRole) {
     return (
-      <Layout>
+      <Layout title={layoutTitle} noIndex>
         <div className="page">
           <div className="page-inner">
             <div className="admin-denied">
@@ -64,12 +65,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Layout>
+    <Layout title={layoutTitle} noIndex>
       <div className="page">
         <div className="page-inner">
-          <nav className="admin-nav">
+          <nav className="admin-nav" aria-label="ადმინ პანელის სექციები">
             {NAV_ITEMS.map((item) => (
-              <Link key={item.href} href={item.href} className={router.pathname === item.href ? 'active' : ''}>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={router.pathname === item.href ? 'active' : ''}
+                aria-current={router.pathname === item.href ? 'page' : undefined}
+              >
                 {item.label}
               </Link>
             ))}

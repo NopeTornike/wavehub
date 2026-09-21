@@ -218,10 +218,26 @@ scope for the UI pivot. Revisit only if bulk purchase becomes a real product dec
 - `pages/verify-email.tsx` — landing page for the verification link (`?token=`), auto-verifies on
   load; offers a "resend" button on failure (only works if the visitor still has a valid session —
   see `api.resendVerification` in `lib/api.ts`)
-- `components/Layout.tsx`, `components/Header.tsx`, `components/Footer.tsx` — shared chrome.
-  `Header` reads identity from `useAuth()` (no fetch of its own) and, when logged in, renders
-  `NotificationBell`. `Layout` is applied per-page, not globally in `_app.tsx` — the auth pages
-  (`login`/`register`/etc.) intentionally render bare, without the marketing header/footer
+- `components/Layout.tsx`, `Sidebar.tsx`, `Topbar.tsx`, `Footer.tsx` — shared chrome (the old
+  `Header.tsx` no longer exists). `Layout` is applied per-page, not globally in `_app.tsx` — the auth
+  pages (`login`/`register`/etc.) intentionally render bare, without the shell. **Every page passes
+  `title` (and `description` where it's public, `noIndex` where it's private/transactional) to
+  `Layout`/`AdminLayout`** — they feed `components/PageHead.tsx` (`<title>` "X | WaveHub", meta
+  description, Open Graph, optional `noindex`); bare pages render `PageHead` directly. `Layout` also
+  renders a skip-to-content link, closes the mobile sidebar on Escape/route change, and mounts
+  `VerifyEmailBanner`.
+- `components/VerifyEmailBanner.tsx` — global banner (in `Layout`) for a logged-in account whose
+  `status === pending_verification`: explains what's locked, "resend verification" button
+  (`POST /auth/resend-verification`, 60s client cooldown to match the backend's 5/min throttle) and
+  an "I already verified" re-check (`refresh()`). Exists because the backend's `VerifiedEmailGuard`
+  answers 403 `Please verify your email address before doing this` on POST /orders, /listings,
+  coach-session booking, BOG top-up, tournament register, DM start, withdrawals and subscription
+  checkout — registration auto-logs the user in, so this is every new user's first-session state.
+  `register.tsx` calls `refresh()` after signup and `verify-email.tsx` after a successful verify, so
+  the banner appears/disappears without a reload.
+- `pages/_document.tsx` (`<html lang="ka">`, favicon `public/favicon.svg`, theme color),
+  `pages/404.tsx` and `pages/_error.tsx` (Georgian, the latter deliberately doesn't use `Layout`),
+  `public/robots.txt` (disallows the private/transactional routes)
 - `components/NotificationBell.tsx` — bell icon with an unread-count badge (polls
   `api.getUnreadNotificationCount` every 20s) that opens a dropdown panel on click (fetches
   `api.listNotifications` fresh each time it opens, not cached). Clicking a notification marks it
@@ -262,9 +278,10 @@ scope for the UI pivot. Revisit only if bulk purchase becomes a real product dec
   already-verified ones.
 - `pages/tournaments/index.tsx` (status-tab-filtered browse grid, `.tournaments-*`/
   `.tournament-card*` from `tournaments.html`/`tournaments.js`), `pages/tournaments/[id].tsx`
-  (hero + summary stats + a 4-tab detail panel — General/Prize Pool/Rules/Top Players, the latter
-  two static content matching the prototype's own reference since neither is per-tournament
-  backend data — plus the register button, which cross-references `api.listMyTournamentRegistrations()`
+  (hero + summary stats + a 3-tab detail panel — General/Prize/Rules; the Rules tab is WaveHub-wide
+  conduct copy (the backend has no per-tournament rules field) and says so, and the prototype's "Top
+  Players" tab was deliberately dropped in the 2026-09 audit because there are no standings to show —
+  root rule #6 — plus the register button, which cross-references `api.listMyTournamentRegistrations()`
   client-side to show a "REGISTERED ✓" state, see `backend/src/tournaments/CLAUDE.md`'s
   "no `isRegistered` on the public shape" gotcha for why), `pages/admin/tournaments.tsx` (create
   form + edit-in-place list with cover-image upload and delete, follows `admin/coaches.tsx`'s
@@ -287,7 +304,17 @@ scope for the UI pivot. Revisit only if bulk purchase becomes a real product dec
   (`sidebar-message-icon.svg`, distinct from the `message-icon.svg` already used for Support).
 - `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
   `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
-  httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Note the
+  httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Both JSON
+  (`request`) and multipart (`upload`) calls share one `send()` so network failures become
+  `ApiError(status 0)`. **Error text**: Nest built-in exceptions put the human message in
+  `message` (and only the status name in `error`), the app's own `HttpException({ok:false,error})`
+  bodies have only `error` — `send()` prefers `message`, then `error` (reading `error` first, as this
+  file used to, turned every Nest error into a bare "Forbidden"/"Bad Request"). **Every page's catch
+  block must use `errorMessage(err, 'ქართული fallback')`**, not `err.message`: it maps the
+  unverified-email 403 (`isEmailNotVerifiedError`), 429, network failure, and the common English
+  backend strings (`KNOWN_MESSAGES`) to Georgian. Add a string there when you see a new user-facing
+  backend message leak through in English. `lib/labels.ts` holds Georgian labels for
+  `ListingStatus`/`KeyInventoryStatus` (never render a raw enum value). Note the
   marketplace/order/review methods return the raw backend shape, unlike the auth methods which are
   wrapped in `{ ok: true, ... }` — don't assume a uniform envelope. `addDeliveryFile` is the one
   method that doesn't go through the shared `request()` helper — it needs `FormData`/multipart, not
@@ -338,6 +365,19 @@ shapes and status enums come from `packages/shared-types` — `lib/api.ts` alrea
   `setState` at the start of an effect body. It's a real, standard "refetch when a dependency
   changes" pattern, not a bug; don't remove the disable comment without an actual redesign (e.g.
   `useTransition`) to replace it.
+- **`refresh()` from `useAuth()` after anything that moves WaveCoin** (purchase, order accept/cancel,
+  dispute resolve, coaching booking/complete/cancel, withdrawal request/cancel, top-up return) or the
+  topbar balance goes stale until a hard reload — this was missing in several places before the
+  2026-09 audit. Depend on `user?.id`, not the `user` object, in effects that must not re-run on a
+  balance refresh (`refresh()` replaces the object).
+- Reading `event.currentTarget` after an `await` in a handler is `null` in React 17+ — capture the
+  element (`const input = event.currentTarget`) first (file-upload handlers on `orders/[id].tsx`
+  had this bug).
+- Forms on admin/seller pages use `.stack-form` + `<label className="field">` (real labels, a
+  `<form onSubmit>` so Enter works) instead of placeholder-only inputs; client-side validation mirrors
+  the backend DTO bounds and returns a Georgian message before the round-trip.
+- Images in `components/`/auth pages use `next/image` (`unoptimized` for the SVG icons). Zero ESLint
+  warnings is the bar — `npm run frontend:lint` must be clean.
 - Copy is in Georgian, matching the existing auth pages — keep new user-facing text in Georgian
   unless told otherwise.
 - **`AdminLayout` shows every nav link to any user with a non-null `adminRole`, regardless of
@@ -420,7 +460,19 @@ Analytics (11e, 11g) have no frontend at all yet. No cart page
 not an oversight), no seller dashboard / create-listing frontend yet. The repo-root static site
 remains the reference mockup for all of that until it's ported here.
 
-**Verification caveat**: this workspace has no Docker/Postgres available (a constraint noted
+**2026-09 frontend audit (chore/frontend-audit)**: audited plans/subscriptions, tournaments,
+messages, digital keys, listing/order key flows, coaching + sessions, public profile and the shared
+components against the backend controllers/DTOs; added the unverified-email banner + friendly 403
+handling, the Georgian 404/error pages, per-page titles/meta, favicon/robots, keyboard/ARIA fixes
+and phone-width overflow fixes (`.main-panel` grid track, tournament hero, marketplace head), and
+found/fixed the `error`-before-`message` bug in `api.ts` above. Verified in a real browser against a
+live backend + Postgres: banner + resend, the unverified 403 on tournament registration, digital-key
+purchase → key reveal with the topbar balance updating, coach session booking/cancel with balance
+refresh, direct messaging (Enter to send), admin tournament/plan pages, 375px overflow sweep. Not
+verified: real BOG checkout (no credentials), the seller-side file upload handler, a real
+`ka-GE` date locale (the headless browser lacked ICU data for it).
+
+**Verification caveat (historical)**: this workspace has no Docker/Postgres available (a constraint noted
 throughout this repo's `CLAUDE.md` files), so everything above was verified via
 `npm run build`/`lint`/typecheck only, against real response *shapes* from `packages/shared-types` —
 not against a running backend with real seeded data in an actual browser. **A live browser preview

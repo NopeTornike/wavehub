@@ -1,15 +1,23 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { PublicTournamentSummary } from '@wavehub/shared-types'
 import { TournamentStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 const STATUS_LABELS: Record<TournamentStatus, string> = {
-  [TournamentStatus.Open]: 'Registration Open',
-  [TournamentStatus.Upcoming]: 'Upcoming',
-  [TournamentStatus.Completed]: 'Completed',
+  [TournamentStatus.Open]: 'რეგისტრაცია ღიაა',
+  [TournamentStatus.Upcoming]: 'მალე იწყება',
+  [TournamentStatus.Completed]: 'დასრულებულია',
 }
+
+const FILTERS: { value: TournamentStatus | ''; label: string }[] = [
+  { value: '', label: 'ყველა' },
+  { value: TournamentStatus.Open, label: 'ღია' },
+  { value: TournamentStatus.Upcoming, label: 'მოახლოებული' },
+  { value: TournamentStatus.Completed, label: 'დასრულებული' },
+]
 
 // Real markup pulled from tournaments.html/tournaments.js (see LAUNCH_PLAN.md §2b) — the CSS for
 // .tournaments-*/.tournament-card* was appended to global.css alongside this page since it didn't
@@ -37,7 +45,9 @@ export default function Tournaments() {
       })
       .catch((err) => {
         if (cancelled) return
-        setError(err instanceof ApiError ? err.message : 'ტურნირების ჩატვირთვა ვერ მოხერხდა.')
+        setItems([])
+        setTotal(0)
+        setError(errorMessage(err, 'ტურნირების ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -48,54 +58,62 @@ export default function Tournaments() {
   }, [statusFilter])
 
   return (
-    <Layout>
+    <Layout
+      title="ტურნირები"
+      description="WaveHub-ის ყველა აქტიური, მოახლოებული და დასრულებული ტურნირი — დარეგისტრირდით და ითამაშეთ პრიზებისთვის."
+    >
       <section className="tournaments-page">
         <header className="tournaments-hero">
           <span className="tournaments-hero-icon" aria-hidden="true">
-            <img src="/assets/tournaments-icon.svg" alt="" />
+            <Image src="/assets/tournaments-icon.svg" alt="" width={43} height={43} unoptimized />
           </span>
           <div>
-            <h1>All Tournaments</h1>
-            <p>Discover every active, upcoming, and completed tournament on WaveHub.</p>
+            <h1>ყველა ტურნირი</h1>
+            <p>აღმოაჩინეთ WaveHub-ის ყველა აქტიური, მოახლოებული და დასრულებული ტურნირი.</p>
           </div>
         </header>
 
-        <section className="tournament-toolbar" aria-label="Tournament filters">
-          <div className="tournament-status-tabs" aria-label="Quick status filter">
-            <button type="button" className={statusFilter === '' ? 'active' : ''} onClick={() => setStatusFilter('')}>
-              All
-            </button>
-            <button type="button" className={statusFilter === TournamentStatus.Open ? 'active' : ''} onClick={() => setStatusFilter(TournamentStatus.Open)}>
-              <i /> Open
-            </button>
-            <button type="button" className={statusFilter === TournamentStatus.Upcoming ? 'active' : ''} onClick={() => setStatusFilter(TournamentStatus.Upcoming)}>
-              <i /> Upcoming
-            </button>
-            <button type="button" className={statusFilter === TournamentStatus.Completed ? 'active' : ''} onClick={() => setStatusFilter(TournamentStatus.Completed)}>
-              <i /> Completed
-            </button>
+        <section className="tournament-toolbar" aria-label="ტურნირების ფილტრი">
+          <div className="tournament-status-tabs" role="group" aria-label="სტატუსის ფილტრი">
+            {FILTERS.map((filter) => (
+              <button
+                key={filter.value || 'all'}
+                type="button"
+                className={statusFilter === filter.value ? 'active' : ''}
+                aria-pressed={statusFilter === filter.value}
+                onClick={() => setStatusFilter(filter.value)}
+              >
+                {filter.value !== '' && <i aria-hidden="true" />} {filter.label}
+              </button>
+            ))}
           </div>
         </section>
 
         <section className="tournaments-list-section" aria-labelledby="tournamentsListTitle">
           <div className="tournaments-list-heading">
-            <h2 id="tournamentsListTitle">Available Tournaments</h2>
-            <strong className="tournament-count">{total} tournament{total === 1 ? '' : 's'}</strong>
+            <h2 id="tournamentsListTitle">ხელმისაწვდომი ტურნირები</h2>
+            <strong className="tournament-count" aria-live="polite">
+              {total} ტურნირი
+            </strong>
           </div>
 
-          {error && <div className="status-text status-error">{error}</div>}
+          {error && (
+            <div className="status-text status-error" role="alert">
+              {error}
+            </div>
+          )}
 
           {loading ? (
             <div className="marketplace-empty">იტვირთება…</div>
           ) : items.length === 0 ? (
             <div className="marketplace-empty tournaments-empty">
-              <strong>No tournaments yet</strong>
-              <p>New championships added by the WaveHub admin will appear here.</p>
+              <strong>ტურნირები ჯერ არ არის</strong>
+              <p>ადმინისტრაციის მიერ დამატებული ახალი ტურნირები აქ გამოჩნდება.</p>
             </div>
           ) : (
             <div className="tournaments-grid">
               {items.map((tournament) => {
-                const progress = Math.round((tournament.registeredCount / tournament.maxPlayers) * 100)
+                const progress = Math.min(100, Math.round((tournament.registeredCount / tournament.maxPlayers) * 100))
                 return (
                   <article key={tournament.id} className="tournament-card">
                     <div
@@ -106,7 +124,7 @@ export default function Tournaments() {
                       <div className="tournament-card-title">
                         <h3>{tournament.name}</h3>
                         <span className={`tournament-card-status ${tournament.status}`}>
-                          <i />
+                          <i aria-hidden="true" />
                           {STATUS_LABELS[tournament.status]}
                         </span>
                       </div>
@@ -116,33 +134,33 @@ export default function Tournaments() {
                       <div className="tournament-card-facts">
                         <span>
                           <b aria-hidden="true">▣</b>
-                          <strong>{new Date(tournament.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
-                          <small>Start Date</small>
+                          <strong>{new Date(tournament.startDate).toLocaleDateString('ka-GE', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                          <small>დაწყება</small>
                         </span>
                         <span>
                           <b aria-hidden="true">♛</b>
                           <strong>{tournament.prize}</strong>
-                          <small>Prize Pool</small>
+                          <small>პრიზი</small>
                         </span>
                         <span>
                           <b aria-hidden="true">♙</b>
                           <strong>
                             {tournament.registeredCount} / {tournament.maxPlayers}
                           </strong>
-                          <small>Players</small>
+                          <small>მოთამაშე</small>
                         </span>
                       </div>
                       <div className="tournament-progress">
                         <span>
-                          <small>Registration Progress</small>
-                          <strong>{progress}% Filled</strong>
+                          <small>რეგისტრაციის სისავსე</small>
+                          <strong>{progress}%</strong>
                         </span>
-                        <i>
+                        <i role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="რეგისტრაციის სისავსე">
                           <b style={{ width: `${progress}%` }} />
                         </i>
                       </div>
                       <Link className="tournament-view-button" href={`/tournaments/${tournament.id}`}>
-                        View Tournament <span aria-hidden="true">→</span>
+                        ტურნირის ნახვა <span aria-hidden="true">→</span>
                       </Link>
                     </div>
                   </article>

@@ -45,7 +45,7 @@ export default function AdminDashboard() {
   }, [])
 
   return (
-    <AdminLayout>
+    <AdminLayout title="დაფა">
       <h1 className="page-title">ადმინ პანელი</h1>
       <p className="page-subtitle">დღეს ყურადღების საჭიროებელი ელემენტები</p>
 

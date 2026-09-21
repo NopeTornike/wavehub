@@ -12791,3 +12791,314 @@ body.public-profile-view .main-panel {
   padding-left: 18px;
   flex: 1;
 }
+
+/* ====================================================================
+   Frontend audit additions (chore/frontend-audit)
+   ==================================================================== */
+
+/* Accessibility: visible keyboard focus everywhere, skip link, screen-reader-only text. */
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 1000;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--pink);
+  color: #fff;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  left: 8px;
+}
+
+#main-content:focus {
+  outline: none;
+}
+
+/* Unverified-email banner (components/VerifyEmailBanner.tsx), rendered under the topbar. */
+.verify-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border: 1px solid rgba(244, 184, 74, 0.5);
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(244, 184, 74, 0.14), rgba(244, 184, 74, 0.05));
+}
+
+.verify-banner-copy {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.verify-banner-copy strong {
+  color: var(--gold);
+}
+
+.verify-banner-ok {
+  color: var(--green);
+}
+
+.verify-banner-error {
+  color: #ff8fa8;
+}
+
+.verify-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.verify-banner-actions button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--pink), var(--violet));
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.verify-banner-actions button.secondary {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+}
+
+.verify-banner-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Stacked form used by admin/seller pages (replaces ad-hoc inline flex styles). */
+.stack-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  margin-bottom: 32px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.stack-form h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.stack-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stack-form .field.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.stack-form .field small {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.stack-form input:not([type='checkbox']),
+.stack-form select,
+.stack-form textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.stack-form select option {
+  background: var(--surface);
+}
+
+.stack-form .button {
+  width: auto;
+  align-self: flex-start;
+}
+
+.stack-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+/* Digital-key reveal panel on orders/[id].tsx */
+.key-reveal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.key-reveal code {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--pink);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.key-reveal .button {
+  width: auto;
+}
+
+.chat-form-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chat-form-row .input {
+  flex: 1 1 200px;
+  margin-top: 0;
+}
+
+.chat-form-row .button {
+  width: auto;
+}
+
+/* Error / 404 pages */
+.error-page {
+  min-height: 60vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.error-page-code {
+  margin: 0;
+  font-size: clamp(4rem, 14vw, 7rem);
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--pink), var(--violet), var(--cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.error-page h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.error-page p {
+  margin: 0;
+  max-width: 460px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.error-page-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.error-page-actions a,
+.error-page-actions button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--pink), var(--violet));
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.error-page-actions a.secondary,
+.error-page-actions button.secondary {
+  border: 1px solid var(--line);
+  background: transparent;
+}
+
+@media (max-width: 760px) {
+  .verify-banner {
+    padding: 12px 14px;
+  }
+
+  .verify-banner-actions {
+    width: 100%;
+  }
+
+  .verify-banner-actions button {
+    flex: 1 1 140px;
+  }
+}
+
+/* A bare `display: grid` gets an implicit `auto` column that expands to its widest child's min-content —
+   one wide grid/table/hero inside a page pushed the whole panel (topbar included) past the viewport on phones. */
+.main-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* aspect-ratio + min-height made the hero derive its width from its height (388px in a 355px column). */
+.tournament-detail-hero {
+  width: 100%;
+}
+
+/* The heading + count tile row overflowed the viewport on phones (the tile is a fixed 112px min). */
+.marketplace-head {
+  flex-wrap: wrap;
+}
+
+.marketplace-head > div {
+  min-width: 0;
+}
+
+.marketplace-head h1 {
+  overflow-wrap: anywhere;
+}

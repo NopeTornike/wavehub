@@ -1,23 +1,23 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { SellerListingKeySummary } from '@wavehub/shared-types'
+import { KeyInventoryStatus, ListingStatus } from '@wavehub/shared-types'
 import Layout from '../../../components/Layout'
-import { api, ApiError } from '../../../lib/api'
+import { api, errorMessage, type MyListing } from '../../../lib/api'
+import { KEY_STATUS_LABELS, LISTING_STATUS_LABELS } from '../../../lib/labels'
 import { useAuth } from '../../../lib/auth'
 
-const STATUS_LABELS: Record<string, string> = {
-  available: 'ხელმისაწვდომი',
-  sold: 'გაყიდულია',
-  revoked: 'გაუქმებულია',
-}
+// Mirrors AddListingKeysDto: 1–500 keys per request, each 4–200 characters.
+const MAX_KEYS_PER_UPLOAD = 500
 
 export default function ManageDigitalKeyListing() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
   const { user, checked } = useAuth()
+  const userId = user?.id
 
-  const [listing, setListing] = useState<any>(null)
+  const [listing, setListing] = useState<MyListing | null>(null)
   const [keys, setKeys] = useState<SellerListingKeySummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -33,28 +33,24 @@ export default function ManageDigitalKeyListing() {
     }
   }, [checked, user, router, id])
 
-  const reload = () => {
-    if (!id) return
-    setLoading(true)
-    setError('')
-    Promise.all([
-      api.listMyListings().then((rows) => (rows as any[]).find((row) => row.id === id) ?? null),
-      api.listListingKeys(id),
-    ])
+  // Quiet reload: only the first load shows the full-page spinner, so the textarea/scroll position
+  // isn't thrown away after every upload/remove.
+  const reload = useCallback(() => {
+    if (!id) return Promise.resolve()
+    return Promise.all([api.listMyListings().then((rows) => rows.find((row) => row.id === id) ?? null), api.listListingKeys(id)])
       .then(([found, keyRows]) => {
         setListing(found)
         setKeys(keyRows)
+        setError('')
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.'))
+      .catch((err) => setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.')))
       .finally(() => setLoading(false))
-  }
+  }, [id])
 
   useEffect(() => {
-    if (!user || !id) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    reload()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, id])
+    if (!userId || !id) return
+    void reload()
+  }, [userId, id, reload])
 
   const uploadKeys = async () => {
     if (!id) return
@@ -62,15 +58,27 @@ export default function ManageDigitalKeyListing() {
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
-    if (parsed.length === 0) return
+    if (parsed.length === 0) {
+      setUploadError('ჩასვით მინიმუმ ერთი გასაღები.')
+      return
+    }
+    if (parsed.length > MAX_KEYS_PER_UPLOAD) {
+      setUploadError(`ერთ ჯერზე მაქსიმუმ ${MAX_KEYS_PER_UPLOAD} გასაღების ატვირთვაა შესაძლებელი (ახლა: ${parsed.length}).`)
+      return
+    }
+    const badLine = parsed.findIndex((key) => key.length < 4 || key.length > 200)
+    if (badLine !== -1) {
+      setUploadError(`გასაღები #${badLine + 1} უნდა იყოს 4–200 სიმბოლო.`)
+      return
+    }
     setUploadError('')
     setUploading(true)
     try {
       await api.addListingKeys(id, parsed)
       setKeysText('')
-      reload()
+      await reload()
     } catch (err) {
-      setUploadError(err instanceof ApiError ? err.message : 'ატვირთვა ვერ მოხერხდა.')
+      setUploadError(errorMessage(err, 'ატვირთვა ვერ მოხერხდა.'))
     } finally {
       setUploading(false)
     }
@@ -82,9 +90,9 @@ export default function ManageDigitalKeyListing() {
     setError('')
     try {
       await api.submitListingForReview(id)
-      reload()
+      await reload()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'გაგზავნა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'გაგზავნა ვერ მოხერხდა.'))
     } finally {
       setSubmitting(false)
     }
@@ -92,20 +100,23 @@ export default function ManageDigitalKeyListing() {
 
   const removeKey = async (keyId: string) => {
     if (!id) return
+    if (!window.confirm('წავშალოთ ეს გასაღები ინვენტარიდან?')) return
     setBusyKeyId(keyId)
     try {
       await api.removeListingKey(id, keyId)
-      reload()
+      await reload()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'წაშლა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'წაშლა ვერ მოხერხდა.'))
     } finally {
       setBusyKeyId(null)
     }
   }
 
+  const title = 'გასაღებების მართვა'
+
   if (!user || loading) {
     return (
-      <Layout>
+      <Layout title={title} noIndex>
         <div className="page">
           <div className="page-inner">
             <div className="empty-state">იტვირთება…</div>
@@ -115,64 +126,85 @@ export default function ManageDigitalKeyListing() {
     )
   }
 
-  if (error && !listing) {
+  if (!listing) {
     return (
-      <Layout>
+      <Layout title={title} noIndex>
         <div className="page">
           <div className="page-inner">
-            <div className="status-text status-error">{error}</div>
+            <Link href="/sell/digital-keys">← ჩემი განცხადებები</Link>
+            <div className="status-text status-error" role="alert" style={{ marginTop: 12 }}>
+              {error || 'განცხადება ვერ მოიძებნა.'}
+            </div>
           </div>
         </div>
       </Layout>
     )
   }
 
-  const availableCount = keys.filter((k) => k.status === 'available').length
+  const availableCount = keys.filter((k) => k.status === KeyInventoryStatus.Available).length
+  const canSubmit = listing.status === ListingStatus.Draft || listing.status === ListingStatus.Rejected
 
   return (
-    <Layout>
+    <Layout title={`${listing.title} — ${title}`} noIndex>
       <div className="page">
         <div className="page-inner">
-          <Link href="/sell/digital-keys">← ჩემი ლისტინგები</Link>
+          <Link href="/sell/digital-keys">← ჩემი განცხადებები</Link>
           <h1 className="page-title" style={{ marginTop: 12 }}>
-            {listing?.title}
+            {listing.title}
           </h1>
           <p className="page-subtitle">
-            სტატუსი: {listing?.status} · ფასი: {listing?.priceWaveCoin} WC · ხელმისაწვდომი გასაღები: {availableCount}
+            სტატუსი: {LISTING_STATUS_LABELS[listing.status] ?? listing.status} · ფასი: {listing.priceWaveCoin} WC · ხელმისაწვდომი გასაღები: {availableCount}
           </p>
 
-          {error && <div className="status-text status-error">{error}</div>}
+          {error && (
+            <div className="status-text status-error" role="alert">
+              {error}
+            </div>
+          )}
 
-          {(listing?.status === 'draft' || listing?.status === 'rejected') && (
+          {canSubmit && (
             <div className="admin-row" style={{ marginBottom: 24 }}>
               <div className="admin-row-main">
-                <strong>გასაგზავნია განსახილველად</strong>
+                <strong>{listing.status === ListingStatus.Rejected ? 'უარყოფილია — გაასწორეთ და თავიდან გაგზავნეთ' : 'გასაგზავნია განსახილველად'}</strong>
                 <span className="note" style={{ margin: 0 }}>
-                  გამოაქვეყნეთ ლისტინგი მას შემდეგ, რაც დაამატებთ გასაღებებს.
+                  გამოაქვეყნეთ განცხადება მას შემდეგ, რაც დაამატებთ გასაღებებს.
+                  {listing.status === ListingStatus.Rejected && listing.rejectionReason && ` მიზეზი: ${listing.rejectionReason}`}
                 </span>
               </div>
-              <button type="button" className="button" disabled={submitting} onClick={submitForReview}>
+              <button type="button" className="button" disabled={submitting || availableCount === 0} onClick={submitForReview}>
                 {submitting ? 'იგზავნება…' : 'გაგზავნა განხილვისთვის'}
               </button>
             </div>
           )}
 
-          <div className="admin-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1rem', margin: 0 }}>გასაღებების დამატება</h2>
-            <p className="note" style={{ margin: 0 }}>
-              ჩასვით ერთი გასაღები თითო ხაზზე.
-            </p>
-            {uploadError && <div className="status-text status-error">{uploadError}</div>}
-            <textarea
-              placeholder={'XXXXX-XXXXX-XXXXX\nYYYYY-YYYYY-YYYYY'}
-              value={keysText}
-              onChange={(e) => setKeysText(e.target.value)}
-              rows={6}
-            />
-            <button type="button" className="button" disabled={uploading} onClick={uploadKeys}>
+          <form
+            className="stack-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void uploadKeys()
+            }}
+          >
+            <h2>გასაღებების დამატება</h2>
+            {uploadError && (
+              <div className="status-text status-error" role="alert">
+                {uploadError}
+              </div>
+            )}
+            <label className="field">
+              გასაღებები <small>ჩასვით ერთი გასაღები თითო ხაზზე (მაქს. {MAX_KEYS_PER_UPLOAD})</small>
+              <textarea
+                placeholder={'XXXXX-XXXXX-XXXXX\nYYYYY-YYYYY-YYYYY'}
+                value={keysText}
+                onChange={(e) => setKeysText(e.target.value)}
+                rows={6}
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </label>
+            <button type="submit" className="button" disabled={uploading}>
               {uploading ? 'იტვირთება…' : 'გასაღებების ატვირთვა'}
             </button>
-          </div>
+          </form>
 
           <h2 style={{ fontSize: '1rem' }}>ინვენტარი ({keys.length})</h2>
           {keys.length === 0 ? (
@@ -182,13 +214,13 @@ export default function ManageDigitalKeyListing() {
               {keys.map((k) => (
                 <div key={k.id} className="admin-row">
                   <div className="admin-row-main">
-                    <strong>{STATUS_LABELS[k.status] ?? k.status}</strong>
+                    <strong>{KEY_STATUS_LABELS[k.status] ?? k.status}</strong>
                     <span className="note" style={{ margin: 0 }}>
                       დამატებულია: {new Date(k.createdAt).toLocaleString('ka-GE')}
                       {k.soldAt && ` · გაყიდულია: ${new Date(k.soldAt).toLocaleString('ka-GE')}`}
                     </span>
                   </div>
-                  {k.status === 'available' && (
+                  {k.status === KeyInventoryStatus.Available && (
                     <div className="admin-row-actions">
                       <button type="button" className="button" disabled={busyKeyId === k.id} onClick={() => removeKey(k.id)}>
                         წაშლა

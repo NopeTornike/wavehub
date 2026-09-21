@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicCoachDetail } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 const DURATION_OPTIONS = [30, 60, 90, 120]
@@ -17,6 +17,8 @@ export default function CoachProfile() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // Local-date `YYYY-MM-DD` for the date input's `min` (computed once, outside render).
+  const [todayIso] = useState(() => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10))
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
   const [durationMinutes, setDurationMinutes] = useState(60)
@@ -35,7 +37,7 @@ export default function CoachProfile() {
         if (!cancelled) setCoach(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'მწვრთნელი ვერ მოიძებნა.')
+        if (!cancelled) setError(errorMessage(err, 'მწვრთნელი ვერ მოიძებნა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -47,7 +49,7 @@ export default function CoachProfile() {
 
   if (loading) {
     return (
-      <Layout>
+      <Layout title="მწვრთნელი">
         <div className="detail-page">
           <div className="marketplace-empty">იტვირთება…</div>
         </div>
@@ -57,7 +59,7 @@ export default function CoachProfile() {
 
   if (error || !coach) {
     return (
-      <Layout>
+      <Layout title="მწვრთნელი ვერ მოიძებნა" noIndex>
         <div className="detail-page">
           <div className="marketplace-empty">{error || 'მწვრთნელი ვერ მოიძებნა.'}</div>
         </div>
@@ -65,8 +67,15 @@ export default function CoachProfile() {
     )
   }
 
+  const isOwnProfile = me?.username === coach.username
+  const sessionPrice = Math.round((coach.hourlyRateWaveCoin * durationMinutes) / 60)
+  const notEnoughBalance = me !== null && me !== undefined && me.wavecoinBalance < sessionPrice
+
   return (
-    <Layout>
+    <Layout
+      title={`${coach.firstName} ${coach.lastName} — მწვრთნელი`}
+      description={`${coach.specialty}${coach.gameName ? ` (${coach.gameName})` : ''}. ${coach.bio}`.slice(0, 160)}
+    >
       {/* No coach-profile page exists in the static prototype (coach-book-session.html is a
           large booking-flow mock for a feature this app doesn't have yet — see
           backend/src/coaching/CLAUDE.md's "no session booking" gap) — reuses listing detail's
@@ -123,7 +132,7 @@ export default function CoachProfile() {
             </div>
 
             <Link href={`/u/${coach.username}`} className="seller-card">
-              <div className="seller-avatar">{coach.firstName[0]}</div>
+              <div className="seller-avatar" aria-hidden="true">{coach.firstName[0]}</div>
               <div>
                 <div style={{ fontWeight: 700 }}>
                   {coach.firstName} {coach.lastName}
@@ -134,7 +143,11 @@ export default function CoachProfile() {
               </div>
             </Link>
 
-            {me ? (
+            {isOwnProfile ? (
+              <p className="note" style={{ textAlign: 'center' }}>
+                ეს თქვენი პროფილია — საკუთარი თავის დაჯავშნა შეუძლებელია.
+              </p>
+            ) : me ? (
               <form
                 className="detail-section"
                 style={{ marginTop: 0 }}
@@ -164,7 +177,7 @@ export default function CoachProfile() {
                     await refresh()
                     router.push(`/coaching-sessions/${session.id}`)
                   } catch (err) {
-                    setBookingError(err instanceof ApiError ? err.message : 'სესიის დაჯავშნა ვერ მოხერხდა.')
+                    setBookingError(errorMessage(err, 'სესიის დაჯავშნა ვერ მოხერხდა.'))
                   } finally {
                     setBooking(false)
                   }
@@ -176,6 +189,7 @@ export default function CoachProfile() {
                     id="scheduledDate"
                     className="input"
                     type="date"
+                    min={todayIso}
                     value={scheduledDate}
                     onChange={(event) => setScheduledDate(event.target.value)}
                     required
@@ -217,9 +231,18 @@ export default function CoachProfile() {
                     onChange={(event) => setBuyerMessage(event.target.value)}
                   />
                 </div>
-                {bookingError && <div className="status-text status-error">{bookingError}</div>}
+                {bookingError && (
+                  <div className="status-text status-error" role="alert">
+                    {bookingError}
+                  </div>
+                )}
+                {notEnoughBalance && (
+                  <p className="note">
+                    თქვენი ბალანსია {me.wavecoinBalance} WC — ამ სესიისთვის არ გყოფნით. <Link href="/wallet">შეავსეთ საფულე</Link>
+                  </p>
+                )}
                 <button className="detail-buy-button" type="submit" disabled={booking}>
-                  {booking ? 'იჯავშნება…' : `სესიის დაჯავშნა — ${Math.round((coach.hourlyRateWaveCoin * durationMinutes) / 60)} WC`}
+                  {booking ? 'იჯავშნება…' : `სესიის დაჯავშნა — ${sessionPrice} WC`}
                 </button>
               </form>
             ) : (

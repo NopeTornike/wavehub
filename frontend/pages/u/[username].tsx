@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import type { PublicUserProfile } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 // Public seller-profile page — backed by GET /users/:username (backend/src/users/
 // users.controller.ts). Reuses profile.html's own `.public-profile-hero`/`.public-profile-stats`
@@ -30,7 +30,7 @@ export default function PublicProfile() {
         if (!cancelled) setProfile(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'პროფილი ვერ მოიძებნა.')
+        if (!cancelled) setError(errorMessage(err, 'პროფილი ვერ მოიძებნა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -41,16 +41,22 @@ export default function PublicProfile() {
   }, [username])
 
   return (
-    <Layout>
+    <Layout
+      title={profile ? `${profile.firstName} ${profile.lastName} (@${profile.username})` : username ? `@${username}` : 'პროფილი'}
+      description={profile ? `${profile.firstName} ${profile.lastName}-ის პროფილი WaveHub-ზე — რეიტინგი და აქტიური განცხადებები.` : undefined}
+      noIndex={!profile}
+    >
       <div className="detail-page">
         {loading ? (
           <div className="marketplace-empty">იტვირთება…</div>
         ) : error || !profile ? (
-          <div className="marketplace-empty">{error || 'პროფილი ვერ მოიძებნა.'}</div>
+          <div className="marketplace-empty" role="alert">
+            {error || 'პროფილი ვერ მოიძებნა.'}
+          </div>
         ) : (
           <>
             <section className="public-profile-hero" aria-labelledby="publicProfileName">
-              <span className="public-profile-avatar avatar avatar-hot">
+              <span className="public-profile-avatar avatar avatar-hot" aria-hidden="true">
                 {profile.firstName[0]}
                 {profile.lastName[0]}
               </span>

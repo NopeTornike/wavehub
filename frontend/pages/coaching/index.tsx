@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { PublicCoachSummary, PublicGame } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 const PAGE_SIZE = 20
 
@@ -13,6 +13,7 @@ export default function CoachingDirectory() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     api.listGames().then(setGames).catch(() => undefined)
@@ -32,7 +33,7 @@ export default function CoachingDirectory() {
       })
       .catch((err) => {
         if (cancelled) return
-        setError(err instanceof ApiError ? err.message : 'მწვრთნელების ჩატვირთვა ვერ მოხერხდა.')
+        setError(errorMessage(err, 'მწვრთნელების ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -42,8 +43,24 @@ export default function CoachingDirectory() {
     }
   }, [gameId])
 
+  const loadMore = async () => {
+    setLoadingMore(true)
+    try {
+      const res = await api.browseCoaches({ gameId: gameId || undefined, limit: PAGE_SIZE, offset: items.length })
+      setItems((prev) => [...prev, ...res.items])
+      setTotal(res.total)
+    } catch (err) {
+      setError(errorMessage(err, 'მწვრთნელების ჩატვირთვა ვერ მოხერხდა.'))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
   return (
-    <Layout>
+    <Layout
+      title="მწვრთნელების ძებნა"
+      description="ვერიფიცირებული გეიმინგ მწვრთნელები WaveHub-ზე — დაჯავშნეთ სესია PUBG Mobile, COD Mobile, Free Fire და სხვა თამაშებისთვის."
+    >
       {/* .coaching-body scopes coaching.html's own --coach-* CSS variables (colors/lines) — that
           page uses a standalone shell outside .app-shell, but we keep the sidebar for nav
           consistency and just borrow its content classes, so the variables need this wrapper
@@ -60,12 +77,12 @@ export default function CoachingDirectory() {
             </div>
           </div>
 
-          <div className="coach-game-tabs" aria-label="თამაშის ფილტრი">
-            <button type="button" className={gameId === '' ? 'active' : ''} onClick={() => setGameId('')}>
+          <div className="coach-game-tabs" role="group" aria-label="თამაშის ფილტრი">
+            <button type="button" className={gameId === '' ? 'active' : ''} aria-pressed={gameId === ''} onClick={() => setGameId('')}>
               ყველა თამაში
             </button>
             {games.map((g) => (
-              <button key={g.id} type="button" className={gameId === g.id ? 'active' : ''} onClick={() => setGameId(g.id)}>
+              <button key={g.id} type="button" className={gameId === g.id ? 'active' : ''} aria-pressed={gameId === g.id} onClick={() => setGameId(g.id)}>
                 {g.name}
               </button>
             ))}
@@ -76,7 +93,11 @@ export default function CoachingDirectory() {
             <strong>{total} მწვრთნელი ნაპოვნია</strong>
           </div>
 
-          {error && <div className="status-text status-error">{error}</div>}
+          {error && (
+            <div className="status-text status-error" role="alert">
+              {error}
+            </div>
+          )}
 
           {loading ? (
             <div className="coach-empty">იტვირთება…</div>
@@ -88,7 +109,7 @@ export default function CoachingDirectory() {
                 <article key={coach.id} className="coach-card">
                   <div className="coach-card-main">
                     <div className="coach-avatar-ring">
-                      <span>{coach.firstName[0]}{coach.lastName[0]}</span>
+                      <span aria-hidden="true">{coach.firstName[0]}{coach.lastName[0]}</span>
                       <i />
                     </div>
                     <div className="coach-card-copy">
@@ -123,6 +144,14 @@ export default function CoachingDirectory() {
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+
+          {!loading && items.length < total && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+              <button type="button" className="button" style={{ width: 'auto' }} disabled={loadingMore} onClick={loadMore}>
+                {loadingMore ? 'იტვირთება…' : 'მეტის ჩვენება'}
+              </button>
             </div>
           )}
         </section>

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { AdminTicketSummary } from '@wavehub/shared-types'
 import { TicketPriority, TicketStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 const STATUS_LABELS: Record<TicketStatus, string> = {
   [TicketStatus.Open]: 'ღიაა',
@@ -32,7 +32,7 @@ export default function AdminTickets() {
     api
       .adminListTickets({ status: status || undefined, priority: priority || undefined })
       .then(setTickets)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.'))
+      .catch((err) => setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.')))
       .finally(() => setLoading(false))
   }
 
@@ -46,7 +46,7 @@ export default function AdminTickets() {
         if (!cancelled) setTickets(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -58,7 +58,7 @@ export default function AdminTickets() {
   }, [])
 
   return (
-    <AdminLayout>
+    <AdminLayout title="ბილეთები">
       <h1 className="page-title">დახმარების ბილეთები</h1>
       <p className="page-subtitle">ყველა მომხმარებლის ბილეთი</p>
 
@@ -90,7 +90,7 @@ export default function AdminTickets() {
         </button>
       </form>
 
-      {error && <div className="status-text status-error">{error}</div>}
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
 
       {loading ? (
         <div className="empty-state">იტვირთება…</div>

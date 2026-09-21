@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { AdminReviewSummary } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 export default function AdminReviews() {
   const [items, setItems] = useState<AdminReviewSummary[]>([])
@@ -20,7 +20,7 @@ export default function AdminReviews() {
         if (!cancelled) setItems(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -38,18 +38,18 @@ export default function AdminReviews() {
       else await api.adminRestoreReview(id)
       setItems((prev) => prev.filter((item) => item.id !== id))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'მოქმედება ვერ შესრულდა.')
+      setError(errorMessage(err, 'მოქმედება ვერ შესრულდა.'))
     } finally {
       setBusyId(null)
     }
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="შეფასებები">
       <h1 className="page-title">დარეპორტებული შეფასებები</h1>
       <p className="page-subtitle">მომხმარებლების მიერ დარეპორტებული შეფასებები</p>
 
-      {error && <div className="status-text status-error">{error}</div>}
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
 
       {loading ? (
         <div className="empty-state">იტვირთება…</div>
