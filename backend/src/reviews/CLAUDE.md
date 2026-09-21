@@ -23,6 +23,8 @@ below on why they live there). `reviews.orderId` has a `UNIQUE` constraint and a
 BETWEEN 1 AND 5)` — both enforced by Postgres, not just app-layer validation.
 
 ## Conventions & gotchas
+- **`report()` only flips a `Published` review to `Reported`** (conditional update). Any user can
+  report any review, and previously reporting a hidden/deleted one resurrected it into the queue.
 - **"One review per order" is a DB constraint, not just a service-layer check.** `create()` does
   check first, but the real guarantee is the `UNIQUE` constraint on `reviews.orderId` — a
   Postgres `23505` unique-violation error is caught and translated into a clean

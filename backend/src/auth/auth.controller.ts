@@ -129,6 +129,9 @@ export class AuthController {
       if (err.message === 'INVALID_CREDENTIALS') {
         throw new HttpException({ ok: false, error: 'Invalid username or password' }, HttpStatus.UNAUTHORIZED);
       }
+      if (err.message === 'ACCOUNT_SUSPENDED') {
+        throw new HttpException({ ok: false, error: 'Account suspended or banned' }, HttpStatus.FORBIDDEN);
+      }
       throw new HttpException({ ok: false, error: 'Server error' }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

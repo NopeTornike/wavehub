@@ -90,8 +90,10 @@ describe('subscriptions + perks (e2e)', () => {
   });
 
   it('the callback endpoint always answers 200 and ignores unsigned requests', async () => {
+    // Specs share one database, so compare against the count before rather than assuming empty.
+    const before = (await ctx.dataSource.query(`SELECT COUNT(*)::int c FROM subscription_charge_attempts`))[0].c;
     const res = await buyer.client.post('/subscriptions/bog-callback', { body: { order_id: 'x' } });
     expect(res.status).toBe(200);
-    expect(await ctx.dataSource.query(`SELECT 1 FROM subscription_charge_attempts`)).toHaveLength(0);
+    expect((await ctx.dataSource.query(`SELECT COUNT(*)::int c FROM subscription_charge_attempts`))[0].c).toBe(before);
   });
 });

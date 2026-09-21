@@ -39,6 +39,13 @@ mutually exclusive on any one row — an entry is either order-related or sessio
 both.
 
 ## Conventions & gotchas
+- **`availableToWithdraw` nets out prior withdrawals** (`withdrawnNet` = sum of `withdrawal` ledger
+  rows: holds are negative, reversals positive). Before, only earnings and the current balance were
+  compared, so the same cleared earnings could be withdrawn repeatedly against top-up money (found
+  by `test/withdrawals.e2e-spec.ts`).
+- **`recordTopup` locks the user row BEFORE its `reference` idempotency check.** Concurrent
+  deliveries of one BOG callback serialize there and the loser returns the existing entry; the old
+  order (check, then lock) credited once but let the loser die on the unique index as a 500.
 - **Every method runs inside one transaction** that both updates `users.wavecoinBalance` and writes
   the matching ledger row — either one opened internally (`dataSource.transaction()`, the default
   when no `manager` is passed) or the caller's own (when composed via the `manager` param). Never

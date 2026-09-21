@@ -164,7 +164,7 @@ describe('CoachingSessionsService', () => {
       const { service, sessions, dataSource, wallet } = build();
       const row = fakeSession();
       sessions.findOne.mockResolvedValue(row);
-      const manager = { update: jest.fn(async () => undefined) };
+      const manager = { update: jest.fn(async () => undefined), findOne: jest.fn(async () => ({ status: CoachingSessionStatus.Scheduled })) };
       dataSource.transaction.mockImplementation(async (fn: any) => {
         await fn(manager);
       });
@@ -193,7 +193,7 @@ describe('CoachingSessionsService', () => {
       const { service, sessions, dataSource, wallet } = build();
       const row = fakeSession();
       sessions.findOne.mockResolvedValue(row);
-      const manager = { update: jest.fn(async () => undefined) };
+      const manager = { update: jest.fn(async () => undefined), findOne: jest.fn(async () => ({ status: CoachingSessionStatus.Scheduled })) };
       dataSource.transaction.mockImplementation(async (fn: any) => {
         await fn(manager);
       });
@@ -208,7 +208,7 @@ describe('CoachingSessionsService', () => {
       const { service, sessions, dataSource, wallet } = build();
       const row = fakeSession();
       sessions.findOne.mockResolvedValue(row);
-      const manager = { update: jest.fn(async () => undefined) };
+      const manager = { update: jest.fn(async () => undefined), findOne: jest.fn(async () => ({ status: CoachingSessionStatus.Scheduled })) };
       dataSource.transaction.mockImplementation(async (fn: any) => {
         await fn(manager);
       });
@@ -216,6 +216,27 @@ describe('CoachingSessionsService', () => {
       await service.cancel(sessionId, coachUserId);
 
       expect(wallet.refundBuyerForSession).toHaveBeenCalledWith(buyerId, sessionId, row.priceWaveCoin, manager);
+    });
+  });
+
+  describe('races', () => {
+    it('complete() re-checks status under the row lock and pays nothing if a cancel already won', async () => {
+      const { service, sessions, dataSource, wallet } = build();
+      sessions.findOne.mockResolvedValue(fakeSession({ status: CoachingSessionStatus.Scheduled }));
+      const manager = { update: jest.fn(), findOne: jest.fn(async () => ({ status: CoachingSessionStatus.Cancelled })) };
+      dataSource.transaction.mockImplementation((fn: any) => fn(manager));
+      await expect(service.complete(sessionId, coachUserId)).rejects.toThrow();
+      expect(wallet.releaseCoachEarnings).not.toHaveBeenCalled();
+      expect(manager.update).not.toHaveBeenCalled();
+    });
+
+    it('cancel() re-checks status under the row lock and refunds nothing if a completion already won', async () => {
+      const { service, sessions, dataSource, wallet } = build();
+      sessions.findOne.mockResolvedValue(fakeSession({ status: CoachingSessionStatus.Scheduled }));
+      const manager = { update: jest.fn(), findOne: jest.fn(async () => ({ status: CoachingSessionStatus.Completed })) };
+      dataSource.transaction.mockImplementation((fn: any) => fn(manager));
+      await expect(service.cancel(sessionId, buyerId)).rejects.toThrow();
+      expect(wallet.refundBuyerForSession).not.toHaveBeenCalled();
     });
   });
 

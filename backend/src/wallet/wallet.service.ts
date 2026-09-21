@@ -30,14 +30,17 @@ export class WalletService {
     }
 
     const run = async (m: EntityManager) => {
-      const existing = await m.findOne(WalletLedgerEntry, { where: { reference } });
-      if (existing) {
-        return existing;
-      }
-
+      // Lock the user row BEFORE the idempotency check: concurrent deliveries of the same BOG
+      // callback then serialize here, and the loser sees the winner's ledger row instead of racing
+      // to insert the same unique `reference` (which credited once but surfaced as a 500).
       const user = await m.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
       if (!user) {
         throw new Error('USER_NOT_FOUND');
+      }
+
+      const existing = await m.findOne(WalletLedgerEntry, { where: { reference } });
+      if (existing) {
+        return existing;
       }
 
       const balanceAfter = user.wavecoinBalance + amountWaveCoin;
@@ -407,7 +410,12 @@ export class WalletService {
     const pendingClearance = await this.sumEntries(repo, userId, earningTypes, (qb) =>
       qb.andWhere('e.availableAt > :now', { now }),
     );
-    const clearedEarnings = totalEarned - pendingClearance;
+    // Net of everything already withdrawn (or held for a pending request): a hold is a negative
+    // `withdrawal` entry and a rejection/cancellation reversal a positive one, so their sum is
+    // <= 0. Without this, the same cleared earnings could be withdrawn again and again for as long
+    // as the wallet balance (which also holds top-up money) stayed above them.
+    const withdrawnNet = await this.sumEntries(repo, userId, WalletLedgerType.Withdrawal);
+    const clearedEarnings = totalEarned - pendingClearance + withdrawnNet;
 
     return {
       walletBalance: user.wavecoinBalance,

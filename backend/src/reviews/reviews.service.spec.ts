@@ -122,7 +122,8 @@ describe('ReviewsService', () => {
       const { service, reviews, reports } = build(null, { id: 'review-1', sellerId });
       await service.report('reporter-1', 'review-1', 'spam');
       expect(reports.save).toHaveBeenCalled();
-      expect(reviews.update).toHaveBeenCalledWith('review-1', { status: ReviewStatus.Reported });
+      // Conditional on Published so a report can never resurrect a hidden/deleted review.
+      expect(reviews.update).toHaveBeenCalledWith({ id: 'review-1', status: ReviewStatus.Published }, { status: ReviewStatus.Reported });
     });
   });
 });

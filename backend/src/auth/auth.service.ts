@@ -99,6 +99,12 @@ export class AuthService {
     if (!user || !(await bcrypt.compare(payload.password, user.passwordHash))) {
       throw new Error('INVALID_CREDENTIALS');
     }
+    // Checked only AFTER the password matched, so it can't be used to probe which accounts are
+    // suspended. Without this a banned user still received a fresh session cookie (which AuthGuard
+    // then rejects on every guarded route) - a login that "succeeds" into an unusable session.
+    if (user.status === UserStatus.Suspended || user.status === UserStatus.Banned) {
+      throw new Error('ACCOUNT_SUSPENDED');
+    }
 
     return user;
   }

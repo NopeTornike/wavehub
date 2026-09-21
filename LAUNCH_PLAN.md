@@ -327,9 +327,12 @@ committed):
 
 Carried forward from before this analysis (unaffected by any of the above):
 
-- ✅ **Task #72 — e2e/HTTP test suite** — landed (item 7): `backend/test/`, real Postgres, 20 tests
-  across auth/marketplace/digital keys/subscriptions/social, wired into CI. Not covered: signed BOG
-  callbacks, disputes, withdrawals processing, coaching sessions, reviews — extend as needed.
+- ✅ **Task #72 — e2e/HTTP test suite** — landed (item 7) and extended (branch `test/e2e-coverage`):
+  `backend/test/`, real Postgres, 98 tests / 13 files, wired into CI. Now also covers disputes,
+  withdrawals, coaching sessions, reviews, the admin role matrix, password reset, suspended/banned
+  accounts, order/session races, and BOG top-up + subscription callbacks with genuinely signed
+  payloads, all with a global WaveCoin conservation assertion. Still not covered: the real BOG
+  sandbox, and same-user concurrent purchases/withdrawals/bookings (see `fix/wallet-deadlock`).
 - **Public seller-profile page enrichment** — `frontend/pages/u/[username].tsx` ships today with
   only 3 stat tiles (Rating, Public listings, Member since) because "Orders received"/"Buyer
   reviews" aren't cheaply computable yet. Low priority.
@@ -415,7 +418,8 @@ Carried forward from before this analysis (unaffected by any of the above):
    Deferred: admin manual grant/revoke, past_due emails, proration. Full writeup:
    `backend/src/subscriptions/CLAUDE.md`.
 7. ✅ **e2e test suite** (§6) — **done.** See root `CLAUDE.md`'s "E2E suite". Its first run exposed that
-   unverified accounts could transact; fixed with `VerifiedEmailGuard` in the same change.
+   unverified accounts could transact; fixed with `VerifiedEmailGuard` in the same change. The
+   coverage extension (`test/e2e-coverage`) found and fixed more — see root `CLAUDE.md`'s "E2E suite".
 
 ---
 

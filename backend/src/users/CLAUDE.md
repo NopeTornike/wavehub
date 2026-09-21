@@ -45,6 +45,8 @@ admin-foundation work), and `AddUserAdminManagementColumns` (adds `createdAt`/`m
 alongside `admin-users.controller.ts`).
 
 ## Conventions & gotchas
+- **`restore`/`unban` return a never-verified account to `pending_verification`, not `active`**
+  (`statusAfterLifting`) — otherwise lifting a suspension bypassed the email-verification rule.
 - `role` is still a blunt `'buyer' | 'seller'` flag, unrelated to `status`. Per the build plan, a
   future `seller_profiles` table (1:1 with `users`, created lazily on first listing) should become
   the real "is this person a seller" signal — don't build authorization logic that treats `role` as
