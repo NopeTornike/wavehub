@@ -6,6 +6,8 @@ import { SubscriptionsService } from './subscriptions.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { CheckoutSubscriptionDto } from './dto/checkout-subscription.dto';
+import { GrantSubscriptionDto } from './dto/grant-subscription.dto';
+import { RevokeSubscriptionDto } from './dto/revoke-subscription.dto';
 import { ListPlansDto } from './dto/list-plans.dto';
 import { verifyBogCallbackSignature } from '../payments/bog-signature.util';
 import { AuthGuard } from '../auth/auth.guard';
@@ -124,5 +126,57 @@ export class SubscriptionsController {
       metadata: dto as Record<string, unknown>,
     });
     return plan;
+  }
+
+  // Manual grant / revoke of a user's subscription — SuperAdmin only, audit-logged with the reason.
+  // A grant has no BOG card behind it: never recharged, just expires at period end. POST-only like
+  // every mutating route here; VerifiedEmailGuard follows AuthGuard per the marketplace-mutation rule.
+  @Get('admin/subscriptions')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  listLive() {
+    return this.subscriptions.listLiveForAdmin();
+  }
+
+  @Post('admin/subscriptions/grant')
+  @UseGuards(AuthGuard, VerifiedEmailGuard, AdminGuard)
+  @RequireAdminRole()
+  async grant(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Body() dto: GrantSubscriptionDto,
+  ) {
+    const sub = await this.subscriptions.grantSubscription(adminId, dto);
+    await this.audit.log({
+      adminId,
+      adminRole,
+      action: 'subscription.grant',
+      entityType: 'user_subscription',
+      entityId: sub.id,
+      metadata: { userId: dto.userId, planId: dto.planId, periodDays: dto.periodDays ?? null, reason: dto.reason },
+    });
+    return { id: sub.id, currentPeriodEnd: sub.currentPeriodEnd.toISOString() };
+  }
+
+  @Post('admin/subscriptions/:id/revoke')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, VerifiedEmailGuard, AdminGuard)
+  @RequireAdminRole()
+  async revoke(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id') id: string,
+    @Body() dto: RevokeSubscriptionDto,
+  ) {
+    const sub = await this.subscriptions.revokeSubscription(id);
+    await this.audit.log({
+      adminId,
+      adminRole,
+      action: 'subscription.revoke',
+      entityType: 'user_subscription',
+      entityId: id,
+      metadata: { userId: sub.userId, reason: dto.reason },
+    });
+    return { id: sub.id, status: sub.status };
   }
 }

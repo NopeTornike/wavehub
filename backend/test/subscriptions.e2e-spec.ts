@@ -1,3 +1,4 @@
+import { SubscriptionsService } from '../src/subscriptions/subscriptions.service';
 import { createApp, credit, E2eApp, makeAdmin, publishItemListing, registerUser, TestUser } from './helpers';
 
 describe('subscriptions + perks (e2e)', () => {
@@ -95,5 +96,82 @@ describe('subscriptions + perks (e2e)', () => {
     const res = await buyer.client.post('/subscriptions/bog-callback', { body: { order_id: 'x' } });
     expect(res.status).toBe(200);
     expect((await ctx.dataSource.query(`SELECT COUNT(*)::int c FROM subscription_charge_attempts`))[0].c).toBe(before);
+  });
+
+  describe('admin grant / revoke + lifecycle notifications', () => {
+    let target: TestUser;
+    let grantPlan: string;
+    let subId: string;
+
+    beforeAll(async () => {
+      target = await registerUser(ctx, 'granted');
+      grantPlan = (await admin.client.post('/admin/subscription-plans', {
+        audience: 'buyer', tier: 'gift', name: 'E2E Gifted', description: 'Manually granted plan.', priceGel: 5, billingPeriodDays: 30, perks: { prioritySupport: true },
+      })).body.id;
+    });
+
+    const notificationTypes = async (u: TestUser) =>
+      (await u.client.get('/notifications')).body.map((n: any) => n.type);
+
+    it('is SuperAdmin-only, validated, and POST-only', async () => {
+      const dto = { userId: target.id, planId: grantPlan, reason: 'support goodwill' };
+      expect((await buyer.client.post('/admin/subscriptions/grant', dto)).status).toBe(403);
+      expect((await admin.client.post('/admin/subscriptions/grant', { ...dto, reason: '' })).status).toBe(400);
+      expect((await admin.client.post('/admin/subscriptions/grant', { ...dto, extra: 1 })).status).toBe(400);
+      expect((await admin.client.get('/admin/subscriptions/grant')).status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('grants a card-less subscription, audit-logs it, notifies, and blocks a second live one', async () => {
+      const dto = { userId: target.id, planId: grantPlan, periodDays: 10, reason: 'support goodwill' };
+      const res = await admin.client.post('/admin/subscriptions/grant', dto);
+      expect(res.status).toBeLessThan(300);
+      subId = res.body.id;
+
+      const row = (await ctx.dataSource.query(`SELECT "bogParentOrderId", "grantedByAdminId", status FROM user_subscriptions WHERE id = $1`, [subId]))[0];
+      expect(row.bogParentOrderId).toBeNull();
+      expect(row.grantedByAdminId).toBe(admin.id);
+      const audit = await ctx.dataSource.query(`SELECT 1 FROM audit_logs WHERE action = 'subscription.grant' AND "entityId" = $1`, [subId]);
+      expect(audit).toHaveLength(1);
+      expect(await notificationTypes(target)).toContain('subscription_granted');
+
+      const mine = (await target.client.get('/subscriptions/mine')).body;
+      expect(mine[0].isGranted).toBe(true);
+      expect((await admin.client.post('/admin/subscriptions/grant', dto)).status).toBe(409);
+      expect((await admin.client.get('/admin/subscriptions')).body.map((r: any) => r.id)).toContain(subId);
+    });
+
+    it('sends one expiring notice, then the cron expires it without a BOG charge and notifies', async () => {
+      const svc = ctx.app.get(SubscriptionsService);
+      await ctx.dataSource.query(`UPDATE user_subscriptions SET "currentPeriodEnd" = now() + interval '1 day' WHERE id = $1`, [subId]);
+      await svc.sweepDueSubscriptions();
+      await svc.sweepDueSubscriptions();
+      expect((await notificationTypes(target)).filter((t: string) => t === 'subscription_expiring')).toHaveLength(1);
+
+      await ctx.dataSource.query(`UPDATE user_subscriptions SET "currentPeriodEnd" = now() - interval '1 minute' WHERE id = $1`, [subId]);
+      await svc.sweepDueSubscriptions();
+      expect((await ctx.dataSource.query(`SELECT status FROM user_subscriptions WHERE id = $1`, [subId]))[0].status).toBe('expired');
+      expect(await notificationTypes(target)).toContain('subscription_expired');
+      expect(await ctx.dataSource.query(`SELECT 1 FROM subscription_charge_attempts WHERE "subscriptionId" = $1`, [subId])).toHaveLength(0);
+    });
+
+    it('notifies on past_due, and revoke ends the subscription with an audit entry', async () => {
+      const svc = ctx.app.get(SubscriptionsService);
+      const res = await admin.client.post('/admin/subscriptions/grant', { userId: target.id, planId: grantPlan, reason: 'second grant' });
+      const id = res.body.id;
+      // Simulate a BOG-billed sub that fails its recharge dispatch (BOG is unconfigured here).
+      await ctx.dataSource.query(`UPDATE user_subscriptions SET "bogParentOrderId" = 'e2e-parent', "currentPeriodEnd" = now() - interval '1 minute' WHERE id = $1`, [id]);
+      await svc.sweepDueSubscriptions();
+      expect((await ctx.dataSource.query(`SELECT status FROM user_subscriptions WHERE id = $1`, [id]))[0].status).toBe('past_due');
+      expect(await notificationTypes(target)).toContain('subscription_past_due');
+      await svc.sweepDueSubscriptions();
+      expect((await notificationTypes(target)).filter((t: string) => t === 'subscription_past_due')).toHaveLength(1);
+
+      expect((await buyer.client.post(`/admin/subscriptions/${id}/revoke`, { reason: 'abuse' })).status).toBe(403);
+      const revoked = await admin.client.post(`/admin/subscriptions/${id}/revoke`, { reason: 'abuse' });
+      expect(revoked.status).toBeLessThan(300);
+      expect((await ctx.dataSource.query(`SELECT status FROM user_subscriptions WHERE id = $1`, [id]))[0].status).toBe('cancelled');
+      expect(await ctx.dataSource.query(`SELECT 1 FROM audit_logs WHERE action = 'subscription.revoke' AND "entityId" = $1`, [id])).toHaveLength(1);
+      expect((await admin.client.post(`/admin/subscriptions/${id}/revoke`, { reason: 'again' })).status).toBe(409);
+    });
   });
 });

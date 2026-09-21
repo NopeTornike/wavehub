@@ -57,4 +57,26 @@ perk means a new key + teaching the reading module, no migration).
   `POST …/ecommerce/orders/:parent/subscribe`) are implemented from BOG's published docs; BOG may
   need saved-card enablement on the merchant account — confirm with BOG before launch, and confirm
   the real callback payload shapes with a sandbox payment.
-- No admin UI to manually grant/revoke a user's subscription, no email on `past_due`, no proration.
+- No proration (plan changes = cancel + fresh checkout).
+- Grant/revoke and lifecycle notifications are covered by unit tests and `backend/test/subscriptions.e2e-spec.ts`
+  (real Postgres); the hourly sweep is invoked directly in e2e, the `@Cron` schedule itself is not.
+
+## Admin manual grant / revoke
+- `GET admin/subscriptions` (live rows + owner), `POST admin/subscriptions/grant` (`userId`, `planId`, optional
+  `periodDays` 1-3650 defaulting to the plan's period, mandatory `reason`), `POST admin/subscriptions/:id/revoke`
+  (`reason`). SuperAdmin only, audit-logged (`subscription.grant` / `subscription.revoke`, reason in metadata),
+  mutating routes use `AuthGuard, VerifiedEmailGuard, AdminGuard`.
+- A grant is a normal `user_subscriptions` row with `bogParentOrderId = NULL` (column made nullable by migration
+  `SubscriptionGrantsAndNotices`) and `grantedByAdminId` set. `PublicUserSubscription.isGranted` exposes it.
+  The sweep never calls BOG for it: at `currentPeriodEnd` it goes straight to `expired`. It cannot be cancelled by
+  the user (nothing to stop) — admins revoke it.
+- One live sub per user per audience is enforced twice: a 409 pre-check and the partial unique index (23505 -> 409).
+- Revoke sets `cancelled` immediately (perks stop now); works on BOG-billed rows too (recharges stop because the
+  sweep only looks at live rows; the saved card is untouched).
+
+## Notifications (best-effort, never block billing)
+`SubscriptionsService.notify` -> `NotificationsService.emit` + email to the user's address, errors only logged.
+Types: `subscription_granted`, `subscription_past_due` (only on the active -> past_due transition, not on each
+hourly retry), `subscription_expiring` (3 days before the end of a NON-renewing sub — cancel-at-period-end or a
+grant — once per period via `expiryNoticeSentAt`, reset on a completed recharge), `subscription_cancelled`
+(period-end cancel or admin revoke), `subscription_expired` (grace ran out or a grant ended).

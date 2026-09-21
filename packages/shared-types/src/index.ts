@@ -186,6 +186,11 @@ export enum NotificationType {
   SessionBooked = 'session_booked',
   SessionCompleted = 'session_completed',
   SessionCancelled = 'session_cancelled',
+  SubscriptionGranted = 'subscription_granted',
+  SubscriptionPastDue = 'subscription_past_due',
+  SubscriptionExpiring = 'subscription_expiring',
+  SubscriptionCancelled = 'subscription_cancelled',
+  SubscriptionExpired = 'subscription_expired',
 }
 
 // Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
@@ -865,6 +870,9 @@ export interface PublicUserSubscription {
   status: SubscriptionStatus;
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
+  // True when an admin granted this subscription manually: no BOG card on file, never auto-renews,
+  // simply expires at `currentPeriodEnd`.
+  isGranted: boolean;
   createdAt: string;
 }
 
@@ -873,4 +881,9 @@ export interface PublicUserSubscription {
 // ever returns active ones.
 export interface AdminSubscriptionPlanSummary extends PublicSubscriptionPlan {
   isActive: boolean;
+}
+
+// Admin view of a user's live/past subscription — PublicUserSubscription plus who owns it.
+export interface AdminUserSubscriptionSummary extends PublicUserSubscription {
+  user: { id: string; username: string; email: string };
 }
