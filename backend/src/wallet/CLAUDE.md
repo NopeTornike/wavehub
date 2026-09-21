@@ -21,6 +21,8 @@ that records every change to it. Nothing outside this module should ever write t
   row and debiting the buyer together); omit it to let the method open its own transaction. Also
   has two read-only methods with no `manager` param since they never write: `getBalanceSummary`
   (derived available/pending/earned numbers) and `listTransactions` (paginated raw ledger history).
+- `transaction-retry.util.ts` — `withTransactionRetry`/`isRetryableTransactionError`: bounded retry of a
+  whole transaction on Postgres `40P01`/`40001` (see the deadlock note under Conventions)
 - `fee.util.ts` — `calculatePlatformFee(amountWaveCoin, feePercent)`, a pure function (floors the
   fee rather than losing a fractional coin) — reused wherever a seller payout needs a fee split
 - `wallet.module.ts` — exports `WalletService`
@@ -98,17 +100,27 @@ both.
   `withdraw-reversed:<id>`), same pattern as `recordTopup` — a duplicate call for the same
   withdrawal request (e.g. a network retry) is a no-op, not a double debit/credit.
 - WaveCoin is always an integer — never switch any of these fields to a float/decimal.
-- **Known limitation, found 2026-09-17, not yet fixed**: `debitForOrder`'s `SELECT ... FOR UPDATE`
-  lock on the buyer's `users` row can deadlock (Postgres `40P01`, surfaces as an unhandled 500) if
-  the **same buyer** fires many genuinely simultaneous purchase requests — reproduced deliberately
-  while stress-testing `backend/src/listings/`'s DigitalKey concurrent-claim logic (see that
-  module's `CLAUDE.md`), and confirmed to affect plain Item purchases identically, so it's a general
-  gap in this module's locking strategy, not specific to any one listing type. Normal usage (a real
-  buyer clicking "buy" once, or two *different* buyers racing for the same item) never hits it —
-  this only manifests under many-requests-from-one-session load (a buggy double-submit-happy
-  frontend, a script, or abuse). Not fixed here since a real fix (retry-on-deadlock, a queue, or a
-  different lock acquisition order) is a cross-cutting change to how every money-moving method here
-  takes its row lock, not a one-line patch.
+- **Same-buyer deadlock — FIXED (2026-09-22).** Root cause: `OrdersService.purchase` (and
+  session booking, withdrawal requests) first INSERTs a row with an FK to `users` (Order.buyerId
+  etc.), which takes a `FOR KEY SHARE` lock on the user row — shareable across concurrent
+  transactions — and only then `debitFor*` runs `SELECT ... FOR UPDATE` on that same row. N
+  concurrent same-user transactions each hold KEY SHARE and each wait for the others' to clear
+  before upgrading: Postgres aborts one with `40P01`, surfacing as a 500. Fix, two layers:
+  (1) **lock ordering** — `WalletService.lockAccount(userId, manager)` takes the exclusive row
+  lock, and every caller that inserts an FK-to-user row before debiting
+  (`OrdersService.purchase`, `CoachingSessionsService` booking, `WithdrawalsService` request) now
+  calls it as the FIRST statement in the transaction, so same-user transactions serialize cleanly
+  instead of deadlocking; (2) **bounded retry** — `transaction-retry.util.ts`'s
+  `withTransactionRetry` re-runs the whole transaction (up to 4 attempts, jittered backoff) on
+  `40P01`/`40001`, as a backstop for any other lock-order interaction. Business errors
+  (`INSUFFICIENT_BALANCE`) are never retried. **Rules for new code**: if a transaction inserts a
+  row FK-referencing a user and then debits/credits that user, call `lockAccount` first; only wrap
+  callbacks in `withTransactionRetry` when they have no external side effects (notifications/chat/
+  email go after commit). Overdraw is impossible: the balance check happens after the exclusive
+  lock, so concurrent debits see each other's committed result. Covered by
+  `backend/test/wallet-concurrency.e2e-spec.ts` (real Postgres: 12 simultaneous same-buyer
+  purchases, no 5xx; 10 simultaneous purchases against a 35-coin balance -> exactly 3 succeed,
+  balance 5) — that spec returned 500s on the unfixed code.
 
 ## Related modules
 - `backend/src/users/` — owns the `wavecoinBalance` column this module writes to.

@@ -19,6 +19,21 @@ const DEFAULT_HOLD_DAYS = 7;
 export class WalletService {
   constructor(private readonly dataSource: DataSource) {}
 
+  // Takes the `FOR UPDATE` row lock on a user's `users` row and returns nothing. Callers that
+  // INSERT a row with a foreign key to this user (an Order, a CoachingSession, a WithdrawRequest)
+  // and THEN call a debit method MUST call this first, inside the same transaction, before the
+  // insert. Why: an FK insert takes a `FOR KEY SHARE` lock on the referenced `users` row, which
+  // several concurrent transactions can hold simultaneously; each one's later `FOR UPDATE` in the
+  // debit then waits on the others' KEY SHARE locks, and Postgres aborts one with 40P01
+  // (deadlock). Taking the exclusive lock first serializes same-user transactions up front, so the
+  // KEY SHARE is acquired while we already own the row (no conflict). See CLAUDE.md.
+  async lockAccount(userId: string, manager: EntityManager): Promise<void> {
+    const user = await manager.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
+    if (!user) {
+      throw new Error('USER_NOT_FOUND');
+    }
+  }
+
   async recordTopup(
     userId: string,
     amountWaveCoin: number,

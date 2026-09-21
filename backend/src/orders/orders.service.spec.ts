@@ -27,7 +27,7 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
 
   function build(listings: Record<string, any>, packages: Record<string, any> = {}, serviceDetails: Record<string, any> = {}, itemDetails: Record<string, any> = {}) {
     const dataSource = { transaction: jest.fn() } as any;
-    const wallet = { debitForOrder: jest.fn() } as any;
+    const wallet = { debitForOrder: jest.fn(), lockAccount: jest.fn() } as any;
     const storage = { save: jest.fn() } as any;
     // Chat and notifications are both best-effort side channels purchase() calls after its
     // transaction resolves (see orders.service.ts) — these need to be real jest.fn()s so that path
@@ -149,6 +149,57 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
     await expect(
       service.purchase(buyerId, { listingId: 'listing-1' } as any),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('locks the buyer account before any insert, and retries the whole transaction on a deadlock (40P01)', async () => {
+    const { service, dataSource, wallet } = build({
+      'listing-1': { id: 'listing-1', sellerId, status: ListingStatus.Active, type: ListingType.Item, priceWaveCoin: 15, stockQuantity: 3 },
+    });
+    const calls: string[] = [];
+    const manager = {
+      query: jest.fn().mockResolvedValue([{ n: '123' }]),
+      create: jest.fn((_entity: any, data: any) => data),
+      save: jest.fn(async (row: any) => {
+        calls.push('insert');
+        return { ...row, id: 'order-1' };
+      }),
+      decrement: jest.fn(),
+      update: jest.fn(),
+    };
+    wallet.lockAccount.mockImplementation(async () => {
+      calls.push('lock');
+    });
+    let attempt = 0;
+    dataSource.transaction.mockImplementation(async (fn: any) => {
+      attempt++;
+      const result = await fn(manager);
+      if (attempt === 1) {
+        throw Object.assign(new Error('deadlock detected'), { driverError: { code: '40P01' } });
+      }
+      return result;
+    });
+
+    const order = await service.purchase(buyerId, { listingId: 'listing-1' } as any);
+    expect(order.id).toBe('order-1');
+    expect(dataSource.transaction).toHaveBeenCalledTimes(2);
+    expect(wallet.debitForOrder).toHaveBeenCalledTimes(2);
+    // Every attempt locks the account first, before inserting the order.
+    expect(calls).toEqual(['lock', 'insert', 'lock', 'insert']);
+  });
+
+  it('does not retry an INSUFFICIENT_BALANCE failure', async () => {
+    const { service, dataSource, wallet } = build({
+      'listing-1': { id: 'listing-1', sellerId, status: ListingStatus.Active, type: ListingType.Item, priceWaveCoin: 15, stockQuantity: 3 },
+    });
+    const manager = {
+      query: jest.fn().mockResolvedValue([{ n: '123' }]),
+      create: jest.fn((_entity: any, data: any) => data),
+      save: jest.fn(async (row: any) => ({ ...row, id: 'order-1' })),
+    };
+    dataSource.transaction.mockImplementation((fn: any) => fn(manager));
+    wallet.debitForOrder.mockRejectedValue(new Error('INSUFFICIENT_BALANCE'));
+    await expect(service.purchase(buyerId, { listingId: 'listing-1' } as any)).rejects.toThrow(ForbiddenException);
+    expect(dataSource.transaction).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a digital key purchase with no price set', async () => {
