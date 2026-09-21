@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Logger, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { SubscriptionsService } from './subscriptions.service';
@@ -35,7 +36,7 @@ export class SubscriptionsController {
   }
 
   @Post('subscriptions/checkout')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, VerifiedEmailGuard)
   checkout(@CurrentUserId() userId: string, @Body() dto: CheckoutSubscriptionDto) {
     return this.subscriptions.startCheckout(userId, dto);
   }

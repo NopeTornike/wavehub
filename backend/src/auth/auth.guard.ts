@@ -40,6 +40,7 @@ export class AuthGuard implements CanActivate {
     }
 
     request.userId = userId;
+    request.userStatus = user.status;
     return true;
   }
 }

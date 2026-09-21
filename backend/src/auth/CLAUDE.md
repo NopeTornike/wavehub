@@ -91,3 +91,12 @@ suspended/banned enforcement in `AuthGuard` are all implemented and functional e
 available in the sandbox this was authored in — see the migration files' own notes). Not yet built:
 CAPTCHA/bot protection, OAuth ("Gmail-ით რეგისტრაცია" noted in the frontend copy as a future
 addition), single-session revocation short of a full suspend/ban.
+
+## VerifiedEmailGuard (email verification actually gates transacting)
+Registration auto-logs-in a `pending_verification` account, and until the e2e suite exposed it,
+nothing stopped such an account from buying, listing, withdrawing, etc. `AuthGuard` now also sets
+`request.userStatus`, and `VerifiedEmailGuard` (listed AFTER `AuthGuard`) rejects with 403 unless
+status is `active`. Applied to: `POST /orders`, `POST /listings`, `POST /coaches/:id/sessions`,
+`POST /payments/bog/create-order`, `POST /tournaments/:id/register`, `POST /direct-messages/start`,
+`POST /withdrawals`, `POST /subscriptions/checkout`. Reads, `/auth/me`, support tickets and
+verification itself stay open. **Any new money-moving or marketplace-mutating route must add it.**

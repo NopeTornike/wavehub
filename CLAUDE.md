@@ -209,8 +209,9 @@ detail; the two real bugs this surfaced (both now fixed) are documented right be
 
 **Still not covered by this**: Trust & Safety/Analytics/the rest of Coaching/promo codes/CMS
 (unbuilt features, not unverified ones), the BOG payment integration against real sandbox
-credentials, e2e/HTTP-level automated tests (still only unit tests with fake repositories — a real
-Postgres-backed e2e suite is a planned follow-up, not done yet), and a genuinely fresh `docker
+credentials, e2e/HTTP-level tests beyond the core spine (a real Postgres-backed suite now exists in
+`backend/test/` — see "E2E suite" below — but covers only auth, the order/escrow spine, digital keys,
+subscription perks, direct messaging and tournaments), and a genuinely fresh `docker
 compose up` (the native-Postgres path above bypassed Docker entirely; the Dockerfiles/compose file
 themselves are still unverified against a real Docker daemon). Don't read "verified" here as
 "every corner of every feature has been clicked" — it means the core account/listing/order/escrow
@@ -248,6 +249,21 @@ PASSWORD 'wavehubpass' CREATEDB`) and `createdb -O wavehub wavehubdb` — these 
 `backend/.env.example`'s defaults exactly, so no further config is needed once `backend/.env`
 exists. Run `npm run backend:migrate` once, then `npm run backend:dev` / `npm run frontend:dev`
 (or the equivalent preview-tool launch configs) as usual.
+
+## E2E suite (`backend/test/`)
+
+`npm run backend:test:e2e` boots the real `AppModule` on an ephemeral port against its own
+throwaway Postgres database (`wavehubdb_test`, dropped/recreated with every real migration applied
+on each run — never the dev DB) and drives it over real HTTP with a cookie-jar client. Needs only a
+local Postgres with the `.env.example` credentials; no extra dependencies (Node's built-in `fetch`).
+`EmailService.send` is patched to capture verification links; each test client gets a unique
+`X-Forwarded-For` (test-only `TRUST_PROXY`) so per-IP throttles don't collide. Runs in CI after the
+unit tests. Specs: `auth`, `marketplace` (purchase→deliver→accept escrow + fee math, withdrawal hold,
+cancel/refund), `digital-keys` (no key leakage, 5-way concurrent oversell test), `subscriptions`
+(admin plan CRUD, fee discount, featured boost, badge, priority tickets, callback), `social`
+(transacted-only DMs, tournament capacity). BOG callbacks with real signatures are NOT covered (no
+credentials). **The suite's first run found a real gap** — `pending_verification` accounts could
+transact — fixed by `VerifiedEmailGuard` (`backend/src/auth/CLAUDE.md`).
 
 ## Docker / local readiness
 

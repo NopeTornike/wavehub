@@ -11,6 +11,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -65,7 +66,7 @@ export class BogPaymentsController {
   // charged (that was the shape of the bug this replaced: a client could ask to be credited any
   // number of WaveCoin regardless of amountGel). See bog-topup-intent.entity.ts / CLAUDE.md.
   @Post('create-order')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, VerifiedEmailGuard)
   @Throttle(CREATE_ORDER_THROTTLE)
   async createOrder(@CurrentUserId() userId: string, @Body() body: CreateBogOrderDto) {
     const user = await this.usersService.findById(userId);

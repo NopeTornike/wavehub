@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { ChatService } from './chat.service';
 import { StartDirectConversationDto } from './dto/start-direct-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
@@ -16,6 +17,7 @@ export class DirectMessagesController {
   constructor(private readonly chat: ChatService) {}
 
   @Post('start')
+  @UseGuards(VerifiedEmailGuard)
   start(@CurrentUserId() userId: string, @Body() dto: StartDirectConversationDto) {
     return this.chat.getOrCreateDirectConversation(userId, dto.recipientUserId);
   }

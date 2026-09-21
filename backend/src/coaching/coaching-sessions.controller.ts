@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { CoachingSessionsService } from './coaching-sessions.service';
 import { RequestSessionDto } from './dto/request-session.dto';
 import { AuthGuard } from '../auth/auth.guard';
@@ -10,6 +11,7 @@ export class CoachingSessionsController {
   constructor(private readonly sessions: CoachingSessionsService) {}
 
   @Post('coaches/:id/sessions')
+  @UseGuards(VerifiedEmailGuard)
   request(@CurrentUserId() buyerId: string, @Param('id') coachId: string, @Body() dto: RequestSessionDto) {
     return this.sessions.request(buyerId, coachId, dto);
   }

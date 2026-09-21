@@ -12,6 +12,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
@@ -72,7 +73,7 @@ export class ListingsController {
   }
 
   @Post('listings')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, VerifiedEmailGuard)
   create(@CurrentUserId() sellerId: string, @Body() dto: CreateListingDto) {
     return this.listings.createDraft(sellerId, dto);
   }

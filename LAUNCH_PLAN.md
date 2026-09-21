@@ -327,9 +327,9 @@ committed):
 
 Carried forward from before this analysis (unaffected by any of the above):
 
-- **Task #72 — e2e/HTTP test suite** against a real test DB. Still only unit tests with fake
-  repositories. Explicitly deprioritized behind finishing the system, per earlier instruction —
-  still true, now behind §3/§4/§5 too.
+- ✅ **Task #72 — e2e/HTTP test suite** — landed (item 7): `backend/test/`, real Postgres, 20 tests
+  across auth/marketplace/digital keys/subscriptions/social, wired into CI. Not covered: signed BOG
+  callbacks, disputes, withdrawals processing, coaching sessions, reviews — extend as needed.
 - **Public seller-profile page enrichment** — `frontend/pages/u/[username].tsx` ships today with
   only 3 stat tiles (Rating, Public listings, Member since) because "Orders received"/"Buyer
   reviews" aren't cheaply computable yet. Low priority.
@@ -414,7 +414,8 @@ Carried forward from before this analysis (unaffected by any of the above):
    public callback URL); BOG may require saved-card enablement on the merchant account — confirm.
    Deferred: admin manual grant/revoke, past_due emails, proration. Full writeup:
    `backend/src/subscriptions/CLAUDE.md`.
-7. **e2e test suite** (§6) — last, as already agreed with the user before this analysis started.
+7. ✅ **e2e test suite** (§6) — **done.** See root `CLAUDE.md`'s "E2E suite". Its first run exposed that
+   unverified accounts could transact; fixed with `VerifiedEmailGuard` in the same change.
 
 ---
 

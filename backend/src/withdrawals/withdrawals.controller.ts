@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { Transform } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { WithdrawalsService } from './withdrawals.service';
@@ -50,6 +51,7 @@ export class WithdrawalsController {
   }
 
   @Post('withdrawals')
+  @UseGuards(VerifiedEmailGuard)
   request(@CurrentUserId() sellerId: string, @Body() dto: CreateWithdrawRequestDto) {
     return this.withdrawals.request(sellerId, dto);
   }

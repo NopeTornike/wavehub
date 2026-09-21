@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
@@ -46,7 +47,7 @@ export class TournamentsController {
 
   @Post('tournaments/:id/register')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, VerifiedEmailGuard)
   register(@CurrentUserId() userId: string, @Param('id') id: string) {
     return this.tournaments.register(id, userId);
   }

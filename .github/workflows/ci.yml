@@ -41,6 +41,9 @@ jobs:
       - run: npm run backend:build
       - run: npm run migration:run -w backend
       - run: npm run backend:test
+      # Real-Postgres HTTP e2e suite — creates/drops its own `wavehubdb_test` database (see
+      # backend/test/), independent of DATABASE_NAME above.
+      - run: npm run backend:test:e2e
 
   frontend:
     runs-on: ubuntu-latest

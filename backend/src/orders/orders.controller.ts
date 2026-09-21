@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { OrdersService } from './orders.service';
@@ -26,6 +27,7 @@ export class OrdersController {
   constructor(private readonly orders: OrdersService) {}
 
   @Post()
+  @UseGuards(VerifiedEmailGuard)
   purchase(@CurrentUserId() buyerId: string, @Body() dto: PurchaseOrderDto) {
     return this.orders.purchase(buyerId, dto);
   }
