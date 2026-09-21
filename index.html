@@ -679,6 +679,7 @@
           <a class="featured-item-card" href="steam-keys.html"><span class="featured-item-save" aria-hidden="true">♡</span><span class="featured-item-art item-wallet" aria-hidden="true"><svg viewBox="0 0 180 130" fill="none"><path d="M38 35h80a14 14 0 0 1 14 14v57a14 14 0 0 1-14 14H38a14 14 0 0 1-14-14V49a14 14 0 0 1 14-14Z" stroke="currentColor" stroke-width="5"/><path d="M24 55h92a12 12 0 0 1 12 12v27H91a14 14 0 0 1 0-28h37" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><circle cx="94" cy="80" r="4" fill="currentColor"/><path d="M61 28h45" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M31 106c24 11 98 12 123 0" stroke="currentColor" stroke-width="2" opacity=".55"/></svg></span><strong>Steam Wallet</strong><small>50 GEL gift balance</small><b>50.00 GEL</b></a>
           <a class="featured-item-card" href="steam-keys.html"><span class="featured-item-save" aria-hidden="true">♡</span><span class="featured-item-art item-pass" aria-hidden="true"><svg viewBox="0 0 180 130" fill="none"><rect x="30" y="32" width="120" height="72" rx="12" stroke="currentColor" stroke-width="5"/><path d="M71 68h-12m6-6v12M114 60l12 8-12 8V60Z" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 106c24 11 98 12 123 0" stroke="currentColor" stroke-width="2" opacity=".55"/></svg></span><strong>PC Game Pass</strong><small>1 month membership</small><b>29.99 GEL</b></a>
         </div>
+        <p class="featured-items-empty" id="mobileFeaturedItemsEmpty" hidden>ამ ეტაპზე Featured Item-ები არ არის.</p>
       </section>
     </main>
   </div>
@@ -924,9 +925,11 @@
         const featured = (Array.isArray(source) ? source : [])
           .filter(item => item && item.isActive !== false && item.status !== 'inactive')
           .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+        const hasFeaturedItems = featured.length > 0;
         list.replaceChildren();
-        empty.hidden = featured.length > 0;
-        empty.closest('.home-right-rail').hidden = featured.length === 0;
+        empty.hidden = hasFeaturedItems;
+        empty.closest('.home-right-rail').hidden = !hasFeaturedItems;
+        document.body.classList.toggle('featured-items-fallback', !hasFeaturedItems);
         featured.slice(0, 2).forEach(listing => {
           const card = document.createElement('article');
           const imageLink = document.createElement('a');
@@ -967,8 +970,10 @@
         });
 
         const mobileList = document.getElementById('mobileFeaturedItemsList');
-        if (!mobileList) return;
+        const mobileEmpty = document.getElementById('mobileFeaturedItemsEmpty');
+        if (!mobileList || !mobileEmpty) return;
         mobileList.replaceChildren();
+        mobileEmpty.hidden = hasFeaturedItems;
         featured.slice(0, 3).forEach(listing => {
           const card = document.createElement('a');
           const heart = document.createElement('span');
