@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { PublicCoachingSession } from '@wavehub/shared-types'
 import { CoachingSessionStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 const STATUS_LABELS: Record<CoachingSessionStatus, string> = {
@@ -43,7 +43,7 @@ export default function CoachingSessions() {
       })
       .catch((err) => {
         if (cancelled) return
-        setError(err instanceof ApiError ? err.message : 'სესიების ჩატვირთვა ვერ მოხერხდა.')
+        setError(errorMessage(err, 'სესიების ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -56,7 +56,7 @@ export default function CoachingSessions() {
   const totalPrice = sessions.reduce((sum, session) => sum + session.priceWaveCoin, 0)
 
   return (
-    <Layout>
+    <Layout title="ჩემი სესიები" noIndex>
       <section className="orders-page-head">
         <div>
           <p className="section-kicker">კოუჩინგის სესიები</p>
@@ -92,9 +92,13 @@ export default function CoachingSessions() {
           </button>
         </div>
 
-        {error && <div className="status-text status-error">{error}</div>}
+        {error && (
+          <div className="status-text status-error" role="alert">
+            {error}
+          </div>
+        )}
 
-        {loading ? (
+        {!checked || !user || loading ? (
           <div className="orders-empty">იტვირთება…</div>
         ) : sessions.length === 0 ? (
           <div className="orders-empty">
@@ -108,8 +112,7 @@ export default function CoachingSessions() {
               return (
                 <Link key={session.id} href={`/coaching-sessions/${session.id}`} className="order-card">
                   <span className="order-thumb" aria-hidden="true">
-                    {session.coachFirstName[0]}
-                    {session.coachLastName[0]}
+                    {counterpart.slice(0, 2).toUpperCase()}
                   </span>
                   <div className="order-copy">
                     <div>

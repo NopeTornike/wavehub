@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AdminContentPage } from '@wavehub/shared-types'
 import { ContentPageStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 // Main Administrator + Super Admin only server-side (see
 // backend/src/content/admin-content.controller.ts) — any other role's calls here 403, surfaced
@@ -25,7 +25,7 @@ export default function AdminContent() {
     api
       .adminListContentPages()
       .then(setPages)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.'))
+      .catch((err) => setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.')))
       .finally(() => setLoading(false))
   }
 
@@ -63,19 +63,19 @@ export default function AdminContent() {
       load()
       selectPage(updated)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'შენახვა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="კონტენტი">
       <h1 className="page-title">კონტენტის მართვა</h1>
       <p className="page-subtitle">საიტის სტატიკური გვერდები — About, Terms, Privacy Policy და სხვა</p>
 
-      {error && <div className="status-text status-error">{error}</div>}
-      {saved && <div className="status-text status-success">შენახულია.</div>}
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
+      {saved && <div className="status-text status-success" role="status">შენახულია.</div>}
 
       <div className="detail-layout" style={{ marginTop: 16 }}>
         <div className="detail-main">

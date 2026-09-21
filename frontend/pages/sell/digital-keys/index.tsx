@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicCategory, PublicGame } from '@wavehub/shared-types'
+import { ListingType } from '@wavehub/shared-types'
 import Layout from '../../../components/Layout'
-import { api, ApiError } from '../../../lib/api'
+import { api, errorMessage, type MyListing } from '../../../lib/api'
+import { LISTING_STATUS_LABELS } from '../../../lib/labels'
 import { useAuth } from '../../../lib/auth'
 
 // Steam Keys (LAUNCH_PLAN.md §2d). No generic "create any listing" page exists yet for Service/Item
@@ -12,8 +14,9 @@ import { useAuth } from '../../../lib/auth'
 export default function MyDigitalKeyListings() {
   const router = useRouter()
   const { user, checked } = useAuth()
+  const userId = user?.id
 
-  const [listings, setListings] = useState<any[]>([])
+  const [listings, setListings] = useState<MyListing[]>([])
   const [categories, setCategories] = useState<PublicCategory[]>([])
   const [games, setGames] = useState<PublicGame[]>([])
   const [loading, setLoading] = useState(true)
@@ -34,54 +37,61 @@ export default function MyDigitalKeyListings() {
     }
   }, [checked, user, router])
 
-  const reload = () => {
-    setLoading(true)
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
     api
       .listMyListings()
-      .then((rows) => setListings((rows as any[]).filter((row) => row.type === 'digital_key')))
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.'))
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    if (!user) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- refetch-on-login, not an external subscription
-    reload()
+      .then((rows) => {
+        if (!cancelled) setListings(rows.filter((row) => row.type === ListingType.DigitalKey))
+      })
+      .catch((err) => {
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
     api.listCategories().then(setCategories).catch(() => undefined)
     api.listGames().then(setGames).catch(() => undefined)
-  }, [user])
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
 
-  const create = async () => {
+  // Keys are items, not services — hide service-only categories, but fall back to everything if
+  // the seed data has no item/both categories rather than presenting an empty dropdown.
+  const itemCategories = categories.filter((c) => c.type !== 'service')
+  const categoryOptions = itemCategories.length > 0 ? itemCategories : categories
+
+  const create = async (event: FormEvent) => {
+    event.preventDefault()
     setCreateError('')
-    if (!categoryId) {
-      setCreateError('აირჩიეთ კატეგორია.')
-      return
-    }
-    if (!attested) {
-      setCreateError('საჭიროა დაადასტუროთ გასაღებების ხელახალი გაყიდვის უფლება.')
-      return
-    }
+    // Mirrors CreateListingDto (title 5–100, description 50–5000, integer price >= 1).
+    if (!categoryId) return setCreateError('აირჩიეთ კატეგორია.')
+    if (title.trim().length < 5 || title.trim().length > 100) return setCreateError('სათაური უნდა იყოს 5–100 სიმბოლო.')
+    if (description.trim().length < 50 || description.trim().length > 5000) return setCreateError('აღწერა უნდა იყოს 50–5000 სიმბოლო.')
+    if (!Number.isInteger(priceWaveCoin) || priceWaveCoin < 1) return setCreateError('ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 WC.')
+    if (!attested) return setCreateError('საჭიროა დაადასტუროთ გასაღებების ხელახალი გაყიდვის უფლება.')
     setCreating(true)
     try {
-      const listing: any = await api.createDigitalKeyListing({
+      const listing = await api.createDigitalKeyListing({
         categoryId,
         gameId: gameId || undefined,
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         priceWaveCoin,
         resaleRightsAttested: true,
       })
       router.push(`/sell/digital-keys/${listing.id}`)
     } catch (err) {
-      setCreateError(err instanceof ApiError ? err.message : 'შექმნა ვერ მოხერხდა.')
-    } finally {
+      setCreateError(errorMessage(err, 'შექმნა ვერ მოხერხდა.'))
       setCreating(false)
     }
   }
 
   if (!user) {
     return (
-      <Layout>
+      <Layout title="ჩემი გასაღებების განცხადებები" noIndex>
         <div className="page">
           <div className="page-inner">
             <div className="empty-state">იტვირთება…</div>
@@ -92,60 +102,74 @@ export default function MyDigitalKeyListings() {
   }
 
   return (
-    <Layout>
+    <Layout title="ჩემი გასაღებების განცხადებები" noIndex>
       <div className="page">
         <div className="page-inner">
-          <h1 className="page-title">ჩემი გასაღებების ლისტინგები</h1>
+          <h1 className="page-title">ჩემი გასაღებების განცხადებები</h1>
           <p className="page-subtitle">Steam-ის (ან სხვა) აქტივაციის გასაღებების გაყიდვა</p>
 
-          <div className="admin-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1rem', margin: 0 }}>ახალი ლისტინგი</h2>
-            {createError && <div className="status-text status-error">{createError}</div>}
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-              <option value="">აირჩიეთ კატეგორია</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <select value={gameId} onChange={(e) => setGameId(e.target.value)}>
-              <option value="">თამაში (არასავალდებულო)</option>
-              {games.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-            <input placeholder="სათაური" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <textarea
-              placeholder="აღწერა (მინ. 50 სიმბოლო)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-            />
-            <input
-              type="number"
-              min={1}
-              placeholder="ფასი (WC)"
-              value={priceWaveCoin}
-              onChange={(e) => setPriceWaveCoin(Number(e.target.value))}
-            />
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <form className="stack-form" onSubmit={create}>
+            <h2>ახალი განცხადება</h2>
+            {createError && (
+              <div className="status-text status-error" role="alert">
+                {createError}
+              </div>
+            )}
+            <div className="stack-form-grid">
+              <label className="field">
+                კატეგორია
+                <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
+                  <option value="">აირჩიეთ კატეგორია</option>
+                  {categoryOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                თამაში <small>არასავალდებულო</small>
+                <select value={gameId} onChange={(e) => setGameId(e.target.value)}>
+                  <option value="">—</option>
+                  {games.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className="field">
+              სათაური <small>5–100 სიმბოლო</small>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} required />
+            </label>
+            <label className="field">
+              აღწერა <small>მინიმუმ 50 სიმბოლო ({description.trim().length}/50)</small>
+              <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} required />
+            </label>
+            <label className="field">
+              ფასი (WC) <small>ერთი გასაღების ფასი</small>
+              <input type="number" min={1} step={1} value={priceWaveCoin} onChange={(e) => setPriceWaveCoin(Number(e.target.value))} required />
+            </label>
+            <label className="field check">
               <input type="checkbox" checked={attested} onChange={(e) => setAttested(e.target.checked)} />
               <span>ვადასტურებ, რომ მაქვს ამ გასაღებების ხელახალი გაყიდვის კანონიერი უფლება.</span>
             </label>
-            <button type="button" className="button" disabled={creating} onClick={create}>
-              {creating ? 'იქმნება…' : 'ლისტინგის შექმნა'}
+            <button type="submit" className="button" disabled={creating}>
+              {creating ? 'იქმნება…' : 'განცხადების შექმნა'}
             </button>
-          </div>
+          </form>
 
-          <h2 style={{ fontSize: '1rem' }}>ჩემი ლისტინგები</h2>
-          {error && <div className="status-text status-error">{error}</div>}
+          <h2 style={{ fontSize: '1rem' }}>ჩემი განცხადებები</h2>
+          {error && (
+            <div className="status-text status-error" role="alert">
+              {error}
+            </div>
+          )}
           {loading ? (
             <div className="empty-state">იტვირთება…</div>
           ) : listings.length === 0 ? (
-            <div className="empty-state">ლისტინგები არ არის.</div>
+            <div className="empty-state">განცხადებები ჯერ არ გაქვთ.</div>
           ) : (
             <div className="order-list">
               {listings.map((listing) => (
@@ -153,7 +177,7 @@ export default function MyDigitalKeyListings() {
                   <div className="admin-row-main">
                     <strong>{listing.title}</strong>
                     <span className="note" style={{ margin: 0 }}>
-                      {listing.status} · {listing.priceWaveCoin} WC
+                      {LISTING_STATUS_LABELS[listing.status] ?? listing.status} · {listing.priceWaveCoin} WC
                     </span>
                   </div>
                 </Link>

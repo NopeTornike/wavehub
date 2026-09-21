@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicWalletBalance, PublicWalletTransaction, PublicWithdrawRequest } from '@wavehub/shared-types'
 import { WithdrawMethod, WithdrawStatus } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
-import { api, ApiError } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 
 const TOPUP_AMOUNTS = [10, 25, 50, 100]
@@ -68,6 +68,10 @@ export default function Wallet() {
   const topUp = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
+    if (!Number.isInteger(amount) || amount < 1) {
+      setError('თანხა უნდა იყოს მთელი რიცხვი, მინიმუმ 1 ₾.')
+      return
+    }
     setSubmitting(true)
     try {
       const origin = window.location.origin
@@ -78,7 +82,7 @@ export default function Wallet() {
       })
       window.location.href = result.redirectUrl
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'გადახდის დაწყება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'გადახდის დაწყება ვერ მოხერხდა.'))
       setSubmitting(false)
     }
   }
@@ -91,8 +95,10 @@ export default function Wallet() {
       await api.requestWithdrawal({ amountWaveCoin: withdrawAmount, method: withdrawMethod, payoutDetails })
       setPayoutDetails({})
       loadWalletData()
+      // A withdrawal request debits the WaveCoin balance shown in the topbar.
+      await refresh()
     } catch (err) {
-      setWithdrawError(err instanceof ApiError ? err.message : 'მოთხოვნის გაგზავნა ვერ მოხერხდა.')
+      setWithdrawError(errorMessage(err, 'მოთხოვნის გაგზავნა ვერ მოხერხდა.'))
     } finally {
       setWithdrawBusy(false)
     }
@@ -103,8 +109,10 @@ export default function Wallet() {
     try {
       await api.cancelWithdrawal(id)
       loadWalletData()
+      // Cancelling returns the reserved amount to the WaveCoin balance shown in the topbar.
+      await refresh()
     } catch (err) {
-      setWithdrawError(err instanceof ApiError ? err.message : 'გაუქმება ვერ მოხერხდა.')
+      setWithdrawError(errorMessage(err, 'გაუქმება ვერ მოხერხდა.'))
     } finally {
       setWithdrawBusy(false)
     }
@@ -120,19 +128,19 @@ export default function Wallet() {
       : [{ key: 'email', label: 'ელფოსტა' }]
 
   return (
-    <Layout>
+    <Layout title="საფულე" noIndex>
       <section className="wallet-page-head">
         <h1>ჩემი საფულე</h1>
         <p>მართეთ ბალანსი, ტრანზაქციები და WaveCoin შევსება.</p>
       </section>
 
       {router.query.topup === 'success' && (
-        <div className="status-text status-success">
+        <div className="status-text status-success" role="status">
           გადახდა დადასტურებულია — ბალანსი განახლდება რამდენიმე წამში.
         </div>
       )}
       {router.query.topup === 'fail' && (
-        <div className="status-text status-error">გადახდა ვერ შესრულდა. სცადეთ თავიდან.</div>
+        <div className="status-text status-error" role="alert">გადახდა ვერ შესრულდა. სცადეთ თავიდან.</div>
       )}
 
       {!checked ? (
@@ -202,6 +210,7 @@ export default function Wallet() {
                   </button>
                   <input
                     type="number"
+                    aria-label="თანხა (₾)"
                     min={1}
                     step={1}
                     value={amount}
@@ -223,7 +232,7 @@ export default function Wallet() {
                 <span>ჯამი</span>
                 <strong>{amount} GEL</strong>
               </div>
-              {error && <div className="status-text status-error">{error}</div>}
+              {error && <div className="status-text status-error" role="alert">{error}</div>}
               <button className="cart-checkout-button" type="submit" disabled={submitting || amount < 1}>
                 {submitting ? 'გადამისამართება…' : 'გადახდა Bank of Georgia-ით'}
               </button>
@@ -284,7 +293,7 @@ export default function Wallet() {
                     />
                   </div>
                 ))}
-                {withdrawError && <div className="status-text status-error">{withdrawError}</div>}
+                {withdrawError && <div className="status-text status-error" role="alert">{withdrawError}</div>}
                 <button className="button" type="submit" disabled={withdrawBusy || withdrawAmount < 20}>
                   მოთხოვნის გაგზავნა
                 </button>

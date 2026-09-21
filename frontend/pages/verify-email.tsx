@@ -1,7 +1,10 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useRef, useState } from 'react'
-import { api, ApiError } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
+import PageHead from '../components/PageHead'
+import { useAuth } from '../lib/auth'
 
 type Status = 'pending' | 'verifying' | 'success' | 'error'
 
@@ -13,6 +16,7 @@ export default function VerifyEmail() {
   const [error, setError] = useState('')
   const [resendMessage, setResendMessage] = useState('')
   const attempted = useRef(false)
+  const { user, refresh } = useAuth()
 
   useEffect(() => {
     if (!router.isReady || !token || attempted.current) {
@@ -23,11 +27,16 @@ export default function VerifyEmail() {
     setStatus('verifying')
     api
       .verifyEmail(token)
-      .then(() => setStatus('success'))
+      .then(() => {
+        setStatus('success')
+        // If the visitor is logged in in this browser, unlock the gated actions + hide the banner now.
+        void refresh()
+      })
       .catch((err) => {
         setStatus('error')
-        setError(err instanceof ApiError ? err.message : 'ვერიფიკაცია ვერ მოხერხდა.')
+        setError(errorMessage(err, 'ვერიფიკაცია ვერ მოხერხდა.'))
       })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `refresh` is stable; the attempt runs once
   }, [router.isReady, token])
 
   const resend = async () => {
@@ -42,10 +51,11 @@ export default function VerifyEmail() {
 
   return (
     <main className="auth-page-shell">
+      <PageHead title="ელფოსტის დადასტურება" description="დაადასტურეთ თქვენი ელფოსტა WaveHub-ზე." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
         <div className="auth-card-top">
-          <Link className="auth-brand" href="/" aria-label="Back to WaveHub">
-            <img src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" />
+          <Link className="auth-brand" href="/" aria-label="WaveHub — მთავარი გვერდი">
+            <Image src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" width={600} height={310} priority />
           </Link>
         </div>
         <div className="auth-card-head">
@@ -70,8 +80,8 @@ export default function VerifyEmail() {
             <p className="auth-status" aria-live="polite" style={{ color: 'var(--green)' }}>
               Email წარმატებით დადასტურდა!
             </p>
-            <Link className="auth-back-link" href="/login">
-              შესვლა
+            <Link className="auth-back-link" href={user ? '/marketplace' : '/login'}>
+              {user ? 'მარკეტფლეისზე გადასვლა' : 'შესვლა'}
             </Link>
           </>
         )}

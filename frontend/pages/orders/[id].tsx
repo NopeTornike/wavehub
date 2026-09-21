@@ -1,9 +1,9 @@
 import { useRouter } from 'next/router'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { PublicDispute, PublicMessage, PublicOrderDetail } from '@wavehub/shared-types'
 import { AdminRole, DisputeResolution, DisputeStatus, ListingType, MessageType, OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 const MESSAGE_POLL_MS = 5000
@@ -41,7 +41,7 @@ const RESOLUTION_LABELS: Record<DisputeResolution, string> = {
 export default function OrderDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
-  const { user: me } = useAuth()
+  const { user: me, checked, refresh } = useAuth()
 
   const [order, setOrder] = useState<PublicOrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -51,12 +51,14 @@ export default function OrderDetail() {
   const [revealedKey, setRevealedKey] = useState<string | null>(null)
   const [revealError, setRevealError] = useState('')
   const [revealing, setRevealing] = useState(false)
+  const [keyCopied, setKeyCopied] = useState(false)
 
   const [revisionReason, setRevisionReason] = useState('')
   const [cancelReason, setCancelReason] = useState('')
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewBody, setReviewBody] = useState('')
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
+  const [reviewError, setReviewError] = useState('')
 
   const [messages, setMessages] = useState<PublicMessage[]>([])
   const [draftMessage, setDraftMessage] = useState('')
@@ -69,6 +71,12 @@ export default function OrderDetail() {
   const [disputeBusy, setDisputeBusy] = useState(false)
   const [disputeError, setDisputeError] = useState('')
   const [resolveNote, setResolveNote] = useState('')
+
+  useEffect(() => {
+    if (checked && !me && id) {
+      router.push(`/login?next=${encodeURIComponent(`/orders/${id}`)}`)
+    }
+  }, [checked, me, id, router])
 
   const reload = () => {
     if (!id) return Promise.resolve()
@@ -111,8 +119,10 @@ export default function OrderDetail() {
       setDispute(updated)
       setResolveNote('')
       await reload()
+      // Resolution can refund/release WaveCoin — the viewer may be a party to this order.
+      await refresh()
     } catch (err) {
-      setDisputeError(err instanceof ApiError ? err.message : 'გადაწყვეტა ვერ შესრულდა.')
+      setDisputeError(errorMessage(err, 'გადაწყვეტა ვერ შესრულდა.'))
     } finally {
       setDisputeBusy(false)
     }
@@ -131,7 +141,7 @@ export default function OrderDetail() {
       })
       .catch((err) => {
         if (cancelled) return
-        setError(err instanceof ApiError ? err.message : 'შეკვეთის ჩატვირთვა ვერ მოხერხდა.')
+        setError(errorMessage(err, 'შეკვეთის ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -158,7 +168,7 @@ export default function OrderDetail() {
       setDisputeReason('')
       await reload()
     } catch (err) {
-      setDisputeError(err instanceof ApiError ? err.message : 'დავის გახსნა ვერ მოხერხდა.')
+      setDisputeError(errorMessage(err, 'დავის გახსნა ვერ მოხერხდა.'))
     } finally {
       setDisputeBusy(false)
     }
@@ -174,14 +184,16 @@ export default function OrderDetail() {
       setDispute(updated)
       setDisputeDraftMessage('')
     } catch (err) {
-      setDisputeError(err instanceof ApiError ? err.message : 'შეტყობინების გაგზავნა ვერ მოხერხდა.')
+      setDisputeError(errorMessage(err, 'შეტყობინების გაგზავნა ვერ მოხერხდა.'))
     } finally {
       setDisputeBusy(false)
     }
   }
 
-  const uploadDisputeEvidence = async (event: FormEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0]
+  const uploadDisputeEvidence = async (event: ChangeEvent<HTMLInputElement>) => {
+    // React nulls `event.currentTarget` after the first await, so grab the input up front.
+    const input = event.currentTarget
+    const file = input.files?.[0]
     if (!file || !id) return
     setDisputeError('')
     setDisputeBusy(true)
@@ -189,10 +201,10 @@ export default function OrderDetail() {
       const updated = await api.addDisputeEvidence(id, file)
       setDispute(updated)
     } catch (err) {
-      setDisputeError(err instanceof ApiError ? err.message : 'ფაილის ატვირთვა ვერ მოხერხდა.')
+      setDisputeError(errorMessage(err, 'ფაილის ატვირთვა ვერ მოხერხდა.'))
     } finally {
       setDisputeBusy(false)
-      event.currentTarget.value = ''
+      input.value = ''
     }
   }
 
@@ -228,7 +240,7 @@ export default function OrderDetail() {
       setMessages((prev) => [...prev, message])
       setDraftMessage('')
     } catch (err) {
-      setChatError(err instanceof ApiError ? err.message : 'შეტყობინების გაგზავნა ვერ მოხერხდა.')
+      setChatError(errorMessage(err, 'შეტყობინების გაგზავნა ვერ მოხერხდა.'))
     } finally {
       setSendingMessage(false)
     }
@@ -240,8 +252,11 @@ export default function OrderDetail() {
     try {
       await action()
       await reload()
+      // Accepting a delivery releases escrow to the seller, cancelling refunds the buyer — either
+      // way the viewer's own WaveCoin balance may just have changed, so re-sync the topbar.
+      await refresh()
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'მოქმედება ვერ შესრულდა.')
+      setActionError(errorMessage(err, 'მოქმედება ვერ შესრულდა.'))
     } finally {
       setBusy(false)
     }
@@ -255,7 +270,7 @@ export default function OrderDetail() {
       const { key } = await api.getOrderKey(id)
       setRevealedKey(key)
     } catch (err) {
-      setRevealError(err instanceof ApiError ? err.message : 'გასაღების ჩვენება ვერ მოხერხდა.')
+      setRevealError(errorMessage(err, 'გასაღების ჩვენება ვერ მოხერხდა.'))
     } finally {
       setRevealing(false)
     }
@@ -268,37 +283,55 @@ export default function OrderDetail() {
       const conversation = await api.startDirectConversation(otherUserId)
       router.push(`/messages?conversation=${conversation.id}`)
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'საუბრის დაწყება ვერ მოხერხდა.')
+      setActionError(errorMessage(err, 'საუბრის დაწყება ვერ მოხერხდა.'))
     } finally {
       setBusy(false)
     }
   }
 
-  const uploadFile = async (event: FormEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0]
+  const uploadFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget
+    const file = input.files?.[0]
     if (!file || !id) return
     await runAction(() => api.addDeliveryFile(id, file))
-    event.currentTarget.value = ''
+    input.value = ''
+  }
+
+  const copyKey = async () => {
+    if (!revealedKey) return
+    try {
+      await navigator.clipboard.writeText(revealedKey)
+      setKeyCopied(true)
+      setTimeout(() => setKeyCopied(false), 2000)
+    } catch {
+      setRevealError('კოპირება ვერ მოხერხდა — მონიშნეთ გასაღები და დააკოპირეთ ხელით.')
+    }
   }
 
   const submitReview = async (event: FormEvent) => {
     event.preventDefault()
     if (!id) return
+    setReviewError('')
+    const body = reviewBody.trim()
+    if (body && body.length < 10) {
+      setReviewError('კომენტარი უნდა იყოს მინიმუმ 10 სიმბოლო (ან დატოვეთ ცარიელი).')
+      return
+    }
     setActionError('')
     setBusy(true)
     try {
-      await api.createReview({ orderId: id, rating: reviewRating, body: reviewBody || undefined })
+      await api.createReview({ orderId: id, rating: reviewRating, body: body || undefined })
       setReviewSubmitted(true)
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'შეფასების გაგზავნა ვერ მოხერხდა.')
+      setActionError(errorMessage(err, 'შეფასების გაგზავნა ვერ მოხერხდა.'))
     } finally {
       setBusy(false)
     }
   }
 
-  if (loading) {
+  if (loading || (checked && !me)) {
     return (
-      <Layout>
+      <Layout title="შეკვეთა" noIndex>
         <div className="page">
           <div className="page-inner empty-state">იტვირთება…</div>
         </div>
@@ -308,7 +341,7 @@ export default function OrderDetail() {
 
   if (error || !order) {
     return (
-      <Layout>
+      <Layout title="შეკვეთა" noIndex>
         <div className="page">
           <div className="page-inner empty-state">{error || 'შეკვეთა ვერ მოიძებნა.'}</div>
         </div>
@@ -320,7 +353,7 @@ export default function OrderDetail() {
   const isSeller = me?.id === order.seller.id
 
   return (
-    <Layout>
+    <Layout title={`შეკვეთა ${order.orderNumber}`} noIndex>
       <div className="page">
         <div className="page-inner" style={{ maxWidth: 760 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
@@ -373,15 +406,26 @@ export default function OrderDetail() {
           {isBuyer && order.listing.type === ListingType.DigitalKey && (
             <div className="order-section">
               <h2>გასაღები</h2>
-              {revealError && <div className="status-text status-error">{revealError}</div>}
+              {revealError && <div className="status-text status-error" role="alert">{revealError}</div>}
               {revealedKey ? (
-                <p className="note" style={{ fontFamily: 'monospace', fontSize: 16, userSelect: 'all' }}>
-                  {revealedKey}
-                </p>
+                <div className="key-reveal">
+                  <code aria-label="თქვენი გასაღები">{revealedKey}</code>
+                  <button type="button" className="button" onClick={copyKey}>
+                    {keyCopied ? 'დაკოპირდა ✓' : 'კოპირება'}
+                  </button>
+                  <button type="button" className="button" onClick={() => setRevealedKey(null)}>
+                    დამალვა
+                  </button>
+                </div>
               ) : (
-                <button type="button" className="button" disabled={revealing} onClick={revealKey}>
-                  {revealing ? 'მიმდინარეობს…' : 'გასაღების ჩვენება'}
-                </button>
+                <>
+                  <p className="note" style={{ marginTop: 0 }}>
+                    გასაღები მხოლოდ თქვენთვის ჩანს. ნახეთ და შეინახეთ უსაფრთხო ადგილას.
+                  </p>
+                  <button type="button" className="button" disabled={revealing} onClick={revealKey}>
+                    {revealing ? 'მიმდინარეობს…' : 'გასაღების ჩვენება'}
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -419,7 +463,7 @@ export default function OrderDetail() {
             )}
             {isSeller && (order.status === OrderStatus.InProgress || order.status === OrderStatus.Delivered) && (
               <div style={{ marginTop: 12 }}>
-                <input type="file" onChange={uploadFile} disabled={busy} />
+                <input type="file" aria-label="მიწოდების ფაილის ატვირთვა" onChange={uploadFile} disabled={busy} />
               </div>
             )}
           </div>
@@ -427,7 +471,7 @@ export default function OrderDetail() {
           <div className="order-section">
             <h2>დისკუსია</h2>
             <div className="chat-panel">
-              <div className="chat-messages">
+              <div className="chat-messages" role="log" aria-live="polite" aria-label="შეკვეთის დისკუსია">
                 {messages.length === 0 ? (
                   <p className="note" style={{ margin: 0 }}>
                     შეტყობინებები ჯერ არ არის.
@@ -462,6 +506,7 @@ export default function OrderDetail() {
                 <input
                   className="input"
                   placeholder="დაწერეთ შეტყობინება…"
+                  aria-label="შეტყობინება"
                   value={draftMessage}
                   onChange={(event) => setDraftMessage(event.target.value)}
                   disabled={sendingMessage}
@@ -481,7 +526,7 @@ export default function OrderDetail() {
           {(isBuyer || isSeller || isSuperAdmin) && (
             <div className="order-section">
               <h2>დავა</h2>
-              {disputeError && <div className="status-text status-error">{disputeError}</div>}
+              {disputeError && <div className="status-text status-error" role="alert">{disputeError}</div>}
 
               {dispute ? (
                 <>
@@ -518,6 +563,7 @@ export default function OrderDetail() {
                           <input
                             className="input"
                             placeholder="დაწერეთ შეტყობინება…"
+                            aria-label="შეტყობინება დავაზე"
                             value={disputeDraftMessage}
                             onChange={(event) => setDisputeDraftMessage(event.target.value)}
                             disabled={disputeBusy}
@@ -552,7 +598,7 @@ export default function OrderDetail() {
                       dispute.status !== DisputeStatus.Resolved &&
                       dispute.status !== DisputeStatus.Closed && (
                         <div style={{ marginTop: 8 }}>
-                          <input type="file" onChange={uploadDisputeEvidence} disabled={disputeBusy} />
+                          <input type="file" aria-label="მტკიცებულების ატვირთვა" onChange={uploadDisputeEvidence} disabled={disputeBusy} />
                         </div>
                       )}
                   </div>
@@ -613,30 +659,30 @@ export default function OrderDetail() {
           )}
 
           {actionError && (
-            <div className="status-text status-error" style={{ marginTop: 16 }}>
+            <div className="status-text status-error" role="alert" style={{ marginTop: 16 }}>
               {actionError}
             </div>
           )}
 
           <div className="order-actions">
             {isSeller && order.status === OrderStatus.Paid && (
-              <button className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.startOrder(order.id))}>
+              <button type="button" className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.startOrder(order.id))}>
                 სამუშაოს დაწყება
               </button>
             )}
             {isSeller && order.status === OrderStatus.InProgress && (
-              <button className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.deliverOrder(order.id))}>
+              <button type="button" className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.deliverOrder(order.id))}>
                 მიწოდებულად მონიშვნა
               </button>
             )}
             {isBuyer && order.status === OrderStatus.Paid && (
-              <button className="button" disabled={busy} onClick={() => runAction(() => api.cancelOrderAsBuyer(order.id))}>
+              <button type="button" className="button" disabled={busy} onClick={() => runAction(() => api.cancelOrderAsBuyer(order.id))}>
                 გაუქმება
               </button>
             )}
             {isSeller && (order.status === OrderStatus.Paid || order.status === OrderStatus.InProgress) && (
               <form
-                style={{ display: 'flex', gap: 8 }}
+                className="chat-form-row"
                 onSubmit={(event) => {
                   event.preventDefault()
                   runAction(() => api.cancelOrderAsSeller(order.id, cancelReason))
@@ -645,6 +691,7 @@ export default function OrderDetail() {
                 <input
                   className="input"
                   placeholder="გაუქმების მიზეზი"
+                  aria-label="გაუქმების მიზეზი"
                   value={cancelReason}
                   onChange={(event) => setCancelReason(event.target.value)}
                   required
@@ -656,11 +703,11 @@ export default function OrderDetail() {
             )}
             {isBuyer && order.status === OrderStatus.Delivered && (
               <>
-                <button className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.acceptDelivery(order.id))}>
+                <button type="button" className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.acceptDelivery(order.id))}>
                   მიღების დადასტურება
                 </button>
                 <form
-                  style={{ display: 'flex', gap: 8 }}
+                  className="chat-form-row"
                   onSubmit={(event) => {
                     event.preventDefault()
                     runAction(() => api.requestRevision(order.id, revisionReason))
@@ -669,6 +716,7 @@ export default function OrderDetail() {
                   <input
                     className="input"
                     placeholder="რა უნდა შესწორდეს?"
+                    aria-label="რა უნდა შესწორდეს"
                     value={revisionReason}
                     onChange={(event) => setRevisionReason(event.target.value)}
                     required
@@ -710,13 +758,18 @@ export default function OrderDetail() {
                     placeholder="მინიმუმ 10 სიმბოლო (არასავალდებულო)"
                   />
                 </div>
+                {reviewError && (
+                  <div className="status-text status-error" role="alert">
+                    {reviewError}
+                  </div>
+                )}
                 <button className="button glow-on-hover" type="submit" disabled={busy}>
                   გაგზავნა
                 </button>
               </form>
             </div>
           )}
-          {reviewSubmitted && <p className="status-text status-success">მადლობა შეფასებისთვის!</p>}
+          {reviewSubmitted && <p className="status-text status-success" role="status">მადლობა შეფასებისთვის!</p>}
         </div>
       </div>
     </Layout>

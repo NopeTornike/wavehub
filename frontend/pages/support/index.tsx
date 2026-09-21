@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type { AdminTicketSummary } from '@wavehub/shared-types'
 import { TicketCategory, TicketStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 const CATEGORY_LABELS: Record<TicketCategory, string> = {
@@ -55,7 +55,7 @@ export default function SupportIndex() {
         if (!cancelled) setTickets(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ბილეთების ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ბილეთების ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -73,14 +73,14 @@ export default function SupportIndex() {
       const ticket = await api.createTicket({ subject, category, description })
       router.push(`/support/${ticket.id}`)
     } catch (err) {
-      setCreateError(err instanceof ApiError ? err.message : 'ბილეთის შექმნა ვერ მოხერხდა.')
+      setCreateError(errorMessage(err, 'ბილეთის შექმნა ვერ მოხერხდა.'))
     } finally {
       setCreating(false)
     }
   }
 
   return (
-    <Layout>
+    <Layout title="დახმარება" noIndex>
       <div className="detail-page">
         <div className="detail-title-block">
           <p className="section-kicker">დახმარების ცენტრი</p>
@@ -90,7 +90,7 @@ export default function SupportIndex() {
 
         <form className="detail-section detail-summary-card" onSubmit={createTicket} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <h2>ახალი ბილეთი</h2>
-          {createError && <div className="status-text status-error">{createError}</div>}
+          {createError && <div className="status-text status-error" role="alert">{createError}</div>}
           <div className="form-group">
             <label htmlFor="subject">თემა</label>
             <input id="subject" className="input" value={subject} onChange={(e) => setSubject(e.target.value)} required minLength={3} />
@@ -114,7 +114,7 @@ export default function SupportIndex() {
           </button>
         </form>
 
-        {error && <div className="status-text status-error">{error}</div>}
+        {error && <div className="status-text status-error" role="alert">{error}</div>}
 
         <section className="detail-section detail-summary-card">
           <h2>ჩემი ბილეთები</h2>

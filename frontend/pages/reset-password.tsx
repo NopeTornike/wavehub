@@ -1,7 +1,9 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState, type FormEvent } from 'react'
-import { api, ApiError } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
+import PageHead from '../components/PageHead'
 
 // Mirrors backend/src/auth/password-policy.ts — keep these in sync if that changes.
 const PASSWORD_MIN_LENGTH = 8
@@ -45,9 +47,7 @@ export default function ResetPassword() {
       setConfirmPassword('')
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : 'ბმულის ვადა ამოიწურა ან არასწორია — გთხოვთ თავიდან მოითხოვოთ პაროლის აღდგენა.',
+        errorMessage(err, 'ბმულის ვადა ამოიწურა ან არასწორია — გთხოვთ თავიდან მოითხოვოთ პაროლის აღდგენა.'),
       )
     } finally {
       setSubmitting(false)
@@ -56,10 +56,11 @@ export default function ResetPassword() {
 
   return (
     <main className="auth-page-shell">
+      <PageHead title="ახალი პაროლი" description="დააყენეთ ახალი პაროლი თქვენი WaveHub ანგარიშისთვის." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
         <div className="auth-card-top">
-          <Link className="auth-brand" href="/" aria-label="Back to WaveHub">
-            <img src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" />
+          <Link className="auth-brand" href="/" aria-label="WaveHub — მთავარი გვერდი">
+            <Image src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" width={600} height={310} priority />
           </Link>
         </div>
         <div className="auth-card-head">

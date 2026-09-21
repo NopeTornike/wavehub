@@ -53,8 +53,15 @@ export default function NotificationBell() {
         setOpen(false)
       }
     }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
     document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [open])
 
   const openNotification = async (notification: PublicNotification) => {
@@ -89,14 +96,20 @@ export default function NotificationBell() {
         className="notification-bell-trigger"
         type="button"
         onClick={() => setOpen((value) => !value)}
-        aria-label="შეტყობინებები"
+        aria-label={unreadCount > 0 ? `შეტყობინებები (${unreadCount} წაუკითხავი)` : 'შეტყობინებები'}
+        aria-haspopup="true"
+        aria-expanded={open}
       >
-        🔔
-        {unreadCount > 0 && <span className="notification-bell-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+        <span aria-hidden="true">🔔</span>
+        {unreadCount > 0 && (
+          <span className="notification-bell-badge" aria-hidden="true">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
       </button>
 
       {open && (
-        <div className="notification-panel">
+        <div className="notification-panel" role="region" aria-label="შეტყობინებები">
           <div className="notification-panel-header">
             <strong style={{ fontSize: '0.9rem' }}>შეტყობინებები</strong>
             <button type="button" onClick={markAllRead}>

@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicTicket } from '@wavehub/shared-types'
 import { TicketCategory, TicketStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 const CATEGORY_LABELS: Record<TicketCategory, string> = {
@@ -53,7 +53,7 @@ export default function SupportTicketDetail() {
         if (!cancelled) setTicket(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ბილეთის ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ბილეთის ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -73,14 +73,14 @@ export default function SupportTicketDetail() {
       setTicket(updated)
       setDraft('')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'პასუხის გაგზავნა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'პასუხის გაგზავნა ვერ მოხერხდა.'))
     } finally {
       setSending(false)
     }
   }
 
   return (
-    <Layout>
+    <Layout title="მხარდაჭერის ბილეთი" noIndex>
       <div className="detail-page">
         {loading ? (
           <div className="marketplace-empty">იტვირთება…</div>
@@ -97,7 +97,7 @@ export default function SupportTicketDetail() {
               </p>
             </div>
 
-            {error && <div className="status-text status-error">{error}</div>}
+            {error && <div className="status-text status-error" role="alert">{error}</div>}
 
             <section className="detail-section detail-reviews-card">
               <div className="chat-panel">

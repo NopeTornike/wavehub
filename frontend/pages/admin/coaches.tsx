@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AdminCoachSummary } from '@wavehub/shared-types'
 import { VerificationStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 const VERIFICATION_LABELS: Record<VerificationStatus, string> = {
   [VerificationStatus.NotVerified]: 'დაუდასტურებელი',
@@ -26,7 +26,7 @@ export default function AdminCoaches() {
         setPending(p)
         setAll(a)
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.'))
+      .catch((err) => setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.')))
       .finally(() => setLoading(false))
   }
 
@@ -41,7 +41,7 @@ export default function AdminCoaches() {
         setAll(a)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -57,7 +57,7 @@ export default function AdminCoaches() {
       await api.adminApproveCoach(id)
       reload()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'დამტკიცება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'დამტკიცება ვერ მოხერხდა.'))
     } finally {
       setBusyId(null)
     }
@@ -71,7 +71,7 @@ export default function AdminCoaches() {
       await api.adminRejectCoach(id, reason)
       reload()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'უარყოფა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'უარყოფა ვერ მოხერხდა.'))
     } finally {
       setBusyId(null)
     }
@@ -84,18 +84,18 @@ export default function AdminCoaches() {
       else await api.adminSuspendCoach(coach.id)
       reload()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'მოქმედება ვერ შესრულდა.')
+      setError(errorMessage(err, 'მოქმედება ვერ შესრულდა.'))
     } finally {
       setBusyId(null)
     }
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="მწვრთნელები">
       <h1 className="page-title">მწვრთნელები</h1>
       <p className="page-subtitle">ვერიფიკაციის მოთხოვნები და აქტიური მწვრთნელები</p>
 
-      {error && <div className="status-text status-error">{error}</div>}
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
 
       {loading ? (
         <div className="empty-state">იტვირთება…</div>

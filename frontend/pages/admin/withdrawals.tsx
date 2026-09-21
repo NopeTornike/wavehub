@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AdminWithdrawRequestSummary } from '@wavehub/shared-types'
 import { WithdrawMethod, WithdrawStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 const METHOD_LABELS: Record<WithdrawMethod, string> = {
   [WithdrawMethod.BankTransfer]: 'საბანკო გადარიცხვა',
@@ -27,7 +27,7 @@ export default function AdminWithdrawals() {
         if (!cancelled) setItems(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -51,18 +51,18 @@ export default function AdminWithdrawals() {
       await api.adminProcessWithdrawal(id, status, note)
       setItems((prev) => prev.filter((item) => item.id !== id))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'მოქმედება ვერ შესრულდა.')
+      setError(errorMessage(err, 'მოქმედება ვერ შესრულდა.'))
     } finally {
       setBusyId(null)
     }
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="გატანები">
       <h1 className="page-title">გატანის მოთხოვნები</h1>
       <p className="page-subtitle">გადარიცხეთ ხელით და მონიშნეთ როგორც შესრულებული, ან უარყავით</p>
 
-      {error && <div className="status-text status-error">{error}</div>}
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
 
       {loading ? (
         <div className="empty-state">იტვირთება…</div>

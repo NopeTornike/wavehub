@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { AdminDisputeSummary } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 // List-only — resolving a dispute needs the full evidence/message thread, which already exists on
 // the order detail page (frontend/pages/orders/[id].tsx). This page's job is just "which orders
@@ -22,7 +22,7 @@ export default function AdminDisputes() {
         if (!cancelled) setItems(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -33,11 +33,11 @@ export default function AdminDisputes() {
   }, [])
 
   return (
-    <AdminLayout>
+    <AdminLayout title="დავები">
       <h1 className="page-title">ღია დავები</h1>
       <p className="page-subtitle">გადაწყვეტა შესაძლებელია შესაბამისი შეკვეთის გვერდზე (მხოლოდ Super Admin)</p>
 
-      {error && <div className="status-text status-error">{error}</div>}
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
 
       {loading ? (
         <div className="empty-state">იტვირთება…</div>

@@ -15,6 +15,8 @@ import type {
   PublicWithdrawRequest,
   PublicNotification,
   ListingType,
+  ListingStatus,
+  VerificationStatus,
   WithdrawMethod,
   WithdrawStatus,
   DisputeResolution,
@@ -51,6 +53,25 @@ import type {
   SubscriptionPerks,
 } from '@wavehub/shared-types'
 
+// Raw Listing entity as returned to its own seller by GET /listings/mine, POST /listings and
+// POST /listings/:id/submit (not a Public* shape — see the comment above listMyListings). Only the
+// fields the seller pages actually read are declared.
+export interface MyListing {
+  id: string
+  type: ListingType
+  status: ListingStatus
+  title: string
+  priceWaveCoin: number | null
+  rejectionReason?: string | null
+}
+
+// Raw Coach entity as returned to its own owner by GET /coaches/mine (null when the user never
+// applied) — only the fields the apply page reads.
+export interface MyCoachApplication {
+  verificationStatus: VerificationStatus
+  rejectionReason: string | null
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 export class ApiError extends Error {
@@ -62,27 +83,127 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    // Required so the backend's httpOnly session cookie is sent/received cross-origin during
-    // local dev (frontend on :3000, backend on :4000) and in any deployment where they're on
-    // different subdomains.
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-  })
+// The exact message backend/src/auth/verified-email.guard.ts throws (403) on every money-moving /
+// marketplace-mutating route for an account still in `pending_verification`. Matched by text
+// because the guard returns a plain ForbiddenException with no machine-readable code.
+const EMAIL_NOT_VERIFIED_MESSAGE = 'Please verify your email address before doing this'
+
+export function isEmailNotVerifiedError(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 403 && err.message.includes(EMAIL_NOT_VERIFIED_MESSAGE)
+}
+
+// The backend answers in English (its messages are API-facing, not UI copy). These are the ones a
+// user can realistically hit through normal use, keyed by the exact text the backend sends;
+// anything not listed falls through unchanged rather than being swallowed.
+const KNOWN_MESSAGES: Record<string, string> = {
+  'Invalid username or password': 'არასწორი username ან პაროლი.',
+  'Username already taken': 'ეს username უკვე დაკავებულია.',
+  'Email already registered': 'ეს ელფოსტა უკვე რეგისტრირებულია.',
+  'Invalid or expired verification link': 'დადასტურების ბმული არასწორია ან ვადაგასულია.',
+  'Invalid or expired reset link': 'პაროლის აღდგენის ბმული არასწორია ან ვადაგასულია.',
+  'Not authenticated': 'გთხოვთ, გაიაროთ ავტორიზაცია.',
+  'Session expired or invalid': 'სესია ამოიწურა. გთხოვთ, ხელახლა შეხვიდეთ.',
+  'Account suspended or banned': 'თქვენი ანგარიში შეჩერებული ან დაბლოკილია.',
+  'Server error': 'სერვერის შეცდომა. სცადეთ მოგვიანებით.',
+  'Insufficient WaveCoin balance for this purchase': 'WaveCoin-ის ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
+  'Insufficient WaveCoin balance for this session': 'WaveCoin-ის ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
+  'This item is out of stock': 'ეს ნივთი ამოიწურა.',
+  'This key listing is out of stock': 'ამ განცხადების გასაღებები ამოიწურა.',
+  'You can only cancel before the seller starts work': 'გაუქმება შესაძლებელია მხოლოდ გამყიდველის მიერ მუშაობის დაწყებამდე.',
+  'You can only message users you have an order or coaching session with':
+    'მიწერა შეგიძლიათ მხოლოდ იმ მომხმარებელს, ვისთანაც შეკვეთა ან სესია გაქვთ.',
+  'This tournament is full': 'ტურნირზე ადგილები ამოიწურა.',
+  'Registration is not open for this tournament': 'ამ ტურნირზე რეგისტრაცია ღია არ არის.',
+  'You are already registered for this tournament': 'ამ ტურნირზე უკვე დარეგისტრირებული ხართ.',
+  'This coach is not currently accepting sessions': 'ეს მწვრთნელი ამჟამად სესიებს არ იღებს.',
+  'scheduledAt must be in the future': 'სესიის დრო მომავალში უნდა იყოს.',
+  'Requested amount exceeds your available balance': 'მოთხოვნილი თანხა აღემატება ხელმისაწვდომ ბალანსს.',
+  'Withdrawals are blocked while you have an active dispute': 'აქტიური დავის დროს თანხის გატანა შეზღუდულია.',
+  'You must confirm you have the legal right to resell these keys': 'დაადასტურეთ, რომ გასაღებების გაყიდვის კანონიერი უფლება გაქვთ.',
+  'File exceeds the 20MB size limit': 'ფაილი 20MB-ზე დიდია.',
+  'Image exceeds the 5MB size limit': 'სურათი 5MB-ზე დიდია.',
+  'Cover image exceeds the 5MB size limit': 'სურათი 5MB-ზე დიდია.',
+  'File type not allowed (JPG, PNG, WEBP, PDF, ZIP only)': 'ფაილის ტიპი დაუშვებელია (მხოლოდ JPG, PNG, WEBP, PDF, ZIP).',
+  'Only JPG, PNG, or WEBP images are allowed': 'დაშვებულია მხოლოდ JPG, PNG ან WEBP სურათები.',
+  'User not found': 'მომხმარებელი ვერ მოიძებნა.',
+  'Listing not found': 'განცხადება ვერ მოიძებნა.',
+  'Order not found': 'შეკვეთა ვერ მოიძებნა.',
+  'Coach not found': 'მწვრთნელი ვერ მოიძებნა.',
+  'Session not found': 'სესია ვერ მოიძებნა.',
+  'Tournament not found': 'ტურნირი ვერ მოიძებნა.',
+  'Conversation not found': 'საუბარი ვერ მოიძებნა.',
+  'Plan not found': 'გეგმა ვერ მოიძებნა.',
+  'BOG checkout could not be created.': 'გადახდის გვერდის შექმნა ვერ მოხერხდა. სცადეთ მოგვიანებით.',
+}
+
+function translateKnown(message: string): string {
+  const exact = KNOWN_MESSAGES[message]
+  if (exact) return exact
+  const minWithdrawal = /^Minimum withdrawal is (\d+(?:\.\d+)?) WaveCoin/.exec(message)
+  if (minWithdrawal) return `გატანის მინიმალური თანხაა ${minWithdrawal[1]} WaveCoin.`
+  return message
+}
+
+// Turns anything thrown by `request()` into a Georgian, user-presentable string. Every page's
+// catch block goes through this instead of reading `err.message` directly, so an unverified
+// account, a throttled request or a dead network get one consistent explanation everywhere.
+export function errorMessage(err: unknown, fallback: string): string {
+  if (isEmailNotVerifiedError(err)) {
+    return 'ამ მოქმედებისთვის საჭიროა ელფოსტის დადასტურება. გამოგზავნეთ დამადასტურებელი წერილი გვერდის ზედა ბანერიდან და გახსენით მასში მითითებული ბმული.'
+  }
+  if (err instanceof ApiError) {
+    if (err.status === 0) return 'სერვერთან დაკავშირება ვერ მოხერხდა. შეამოწმეთ ინტერნეტი და სცადეთ ხელახლა.'
+    if (err.status === 429) return 'ძალიან ბევრი მოთხოვნა. გთხოვთ, ცოტა ხანში სცადოთ ხელახლა.'
+    return err.message ? translateKnown(err.message) : fallback
+  }
+  return fallback
+}
+
+async function send(path: string, init: RequestInit): Promise<unknown> {
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      // Required so the backend's httpOnly session cookie is sent/received cross-origin during
+      // local dev (frontend on :3000, backend on :4000) and in any deployment where they're on
+      // different subdomains.
+      credentials: 'include',
+    })
+  } catch {
+    // fetch() only rejects on a network-level failure (server down, offline, CORS block) —
+    // surfaced as status 0, which errorMessage() maps to a Georgian "can't reach the server" text.
+    throw new ApiError(0, 'Network error')
+  }
 
   const data = await res.json().catch(() => ({}))
 
   if (!res.ok) {
+    // Two backend error shapes: Nest's built-in exceptions (`{ statusCode, message, error: 'Forbidden' }`
+    // — the human text is in `message`, `error` is just the HTTP status name) and this app's own
+    // `{ ok: false, error: '<text>' }` (no `message`). So `message` must win when present; reading
+    // `error` first surfaced every built-in exception as a bare "Forbidden"/"Bad Request".
     const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
-    throw new ApiError(res.status, data?.error || message || 'Request failed')
+    throw new ApiError(res.status, message || data?.error || 'Request failed')
   }
 
-  return data as T
+  return data
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return (await send(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  })) as T
+}
+
+// Multipart upload — no Content-Type header on purpose, the browser has to set the boundary itself.
+async function upload<T>(path: string, file: File): Promise<T> {
+  const form = new FormData()
+  form.append('file', file)
+  return (await send(path, { method: 'POST', body: form })) as T
 }
 
 export const api = {
@@ -172,7 +293,7 @@ export const api = {
   // `submitForReview` all return the raw TypeORM entity, not a `Public*` shape — typed `unknown`
   // here, same convention as the admin-mutation endpoints documented in frontend/CLAUDE.md (the
   // callers only care that the id/status they need is present, read via a narrow local cast).
-  listMyListings: () => request<unknown[]>('/listings/mine'),
+  listMyListings: () => request<MyListing[]>('/listings/mine'),
 
   createDigitalKeyListing: (payload: {
     categoryId: string
@@ -182,12 +303,12 @@ export const api = {
     priceWaveCoin: number
     resaleRightsAttested: true
   }) =>
-    request<unknown>('/listings', {
+    request<MyListing>('/listings', {
       method: 'POST',
       body: JSON.stringify({ ...payload, type: 'digital_key' }),
     }),
 
-  submitListingForReview: (id: string) => request<unknown>(`/listings/${id}/submit`, { method: 'POST' }),
+  submitListingForReview: (id: string) => request<MyListing>(`/listings/${id}/submit`, { method: 'POST' }),
 
   addListingKeys: (listingId: string, keys: string[]) =>
     request<{ added: number }>(`/listings/${listingId}/keys`, { method: 'POST', body: JSON.stringify({ keys }) }),
@@ -218,21 +339,7 @@ export const api = {
 
   deliverOrder: (id: string) => request<unknown>(`/orders/${id}/deliver`, { method: 'POST' }),
 
-  addDeliveryFile: async (id: string, file: File) => {
-    const form = new FormData()
-    form.append('file', file)
-    const res = await fetch(`${API_URL}/orders/${id}/delivery-files`, {
-      method: 'POST',
-      credentials: 'include',
-      body: form,
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
-      throw new ApiError(res.status, data?.error || message || 'Upload failed')
-    }
-    return data
-  },
+  addDeliveryFile: (id: string, file: File) => upload<unknown>(`/orders/${id}/delivery-files`, file),
 
   acceptDelivery: (id: string) => request<unknown>(`/orders/${id}/accept`, { method: 'POST' }),
 
@@ -292,21 +399,8 @@ export const api = {
       body: JSON.stringify({ body }),
     }),
 
-  addDisputeEvidence: async (orderId: string, file: File) => {
-    const form = new FormData()
-    form.append('file', file)
-    const res = await fetch(`${API_URL}/orders/${orderId}/dispute/evidence`, {
-      method: 'POST',
-      credentials: 'include',
-      body: form,
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
-      throw new ApiError(res.status, data?.error || message || 'Upload failed')
-    }
-    return data as PublicDispute
-  },
+  addDisputeEvidence: (orderId: string, file: File) =>
+    upload<PublicDispute>(`/orders/${orderId}/dispute/evidence`, file),
 
   // --- WaveCoin top-up via Bank of Georgia ---
   // Response shape is `{ ok: true, orderId, redirectUrl }` (see BogPaymentsController#createOrder /
@@ -461,7 +555,7 @@ export const api = {
   applyAsCoach: (payload: { gameId?: string; specialty: string; bio: string; languages?: string[]; hourlyRateWaveCoin: number }) =>
     request<unknown>('/coaches/apply', { method: 'POST', body: JSON.stringify(payload) }),
 
-  getMyCoachApplication: () => request<unknown>('/coaches/mine'),
+  getMyCoachApplication: () => request<MyCoachApplication | null>('/coaches/mine'),
 
   browseCoaches: (filters: { gameId?: string; limit?: number; offset?: number } = {}) => {
     const params = new URLSearchParams()
@@ -498,7 +592,7 @@ export const api = {
     request<AdminContentPage>('/admin/content', { method: 'POST', body: JSON.stringify(payload) }),
 
   // --- Public user profiles --- (backend/src/users/users.controller.ts)
-  getUserProfile: (username: string) => request<PublicUserProfile>(`/users/${username}`),
+  getUserProfile: (username: string) => request<PublicUserProfile>(`/users/${encodeURIComponent(username)}`),
 
   // --- Coaching sessions --- (backend/src/coaching/coaching-sessions.controller.ts)
   requestCoachingSession: (coachId: string, payload: { scheduledAt: string; durationMinutes: number; buyerMessage?: string }) =>
@@ -553,21 +647,8 @@ export const api = {
     }>,
   ) => request<PublicTournamentSummary>(`/admin/tournaments/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
 
-  adminSetTournamentCover: async (id: string, file: File) => {
-    const form = new FormData()
-    form.append('file', file)
-    const res = await fetch(`${API_URL}/admin/tournaments/${id}/cover`, {
-      method: 'POST',
-      credentials: 'include',
-      body: form,
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
-      throw new ApiError(res.status, data?.error || message || 'Upload failed')
-    }
-    return data as PublicTournamentSummary
-  },
+  adminSetTournamentCover: (id: string, file: File) =>
+    upload<PublicTournamentSummary>(`/admin/tournaments/${id}/cover`, file),
 
   adminDeleteTournament: (id: string) => request<{ ok: boolean }>(`/admin/tournaments/${id}`, { method: 'DELETE' }),
 

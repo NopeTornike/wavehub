@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { PublicCategory, PublicGame, PublicListingSummary } from '@wavehub/shared-types'
 import { ListingType } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
-import { api, ApiError } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
 
 const PAGE_SIZE = 20
 
@@ -48,7 +48,7 @@ export default function Marketplace() {
       })
       .catch((err) => {
         if (cancelled) return
-        setError(err instanceof ApiError ? err.message : 'ლისტინგების ჩატვირთვა ვერ მოხერხდა.')
+        setError(errorMessage(err, 'ლისტინგების ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -61,7 +61,7 @@ export default function Marketplace() {
   const resetOffset = () => setOffset(0)
 
   return (
-    <Layout>
+    <Layout title="მარკეტფლეისი" description="დაათვალიერეთ გეიმინგ სერვისები, ანგარიშები და გასაღებები — რანკის აწევა, კოუჩინგი და სხვა PUBG Mobile, COD Mobile, Free Fire, Mobile Legends და Roblox-ისთვის.">
       <section className="marketplace-head" aria-labelledby="marketplaceTitle">
         <div>
           <p className="section-kicker">
@@ -137,7 +137,7 @@ export default function Marketplace() {
           </div>
         </div>
 
-        {error && <div className="status-text status-error">{error}</div>}
+        {error && <div className="status-text status-error" role="alert">{error}</div>}
 
         {loading ? (
           <div className="marketplace-empty">იტვირთება…</div>

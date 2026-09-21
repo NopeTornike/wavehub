@@ -1,9 +1,10 @@
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useCallback, useEffect, useState } from 'react'
 import type { PublicSubscriptionPlan, PublicUserSubscription, SubscriptionPerks } from '@wavehub/shared-types'
 import { SubscriptionAudience, SubscriptionStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 const AUDIENCE_LABELS: Record<SubscriptionAudience, string> = {
@@ -34,34 +35,42 @@ function stateLine(s: PublicUserSubscription): string {
   if (s.status === SubscriptionStatus.Expired) return 'ამოიწურა'
   return s.cancelAtPeriodEnd || s.isGranted ? 'მოქმედებს' : 'განახლდება'
 }
+const isLive = (s: PublicUserSubscription) => s.status === SubscriptionStatus.Active || s.status === SubscriptionStatus.PastDue
 
 export default function Plans() {
-  const { user } = useAuth()
+  const router = useRouter()
+  const { user, checked } = useAuth()
   const [plans, setPlans] = useState<PublicSubscriptionPlan[]>([])
   const [mine, setMine] = useState<PublicUserSubscription[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  // BOG redirects back here with ?checkout=success|fail (see `subscribe` below). Activation itself
+  // happens later through the server-to-server callback, so "success" only means the visitor
+  // finished paying — the subscription may take a moment to show up below.
+  const checkoutResult = router.query.checkout
+
   const load = useCallback(async () => {
     try {
       const [p, m] = await Promise.all([api.listSubscriptionPlans(), user ? api.listMySubscriptions() : Promise.resolve([])])
       setPlans(p)
       setMine(m)
+      setError('')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
     } finally {
       setLoading(false)
     }
   }, [user])
 
   useEffect(() => {
+    if (!checked) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
-  }, [load])
+  }, [checked, load])
 
-  const live = (audience: SubscriptionAudience) =>
-    mine.find((s) => s.plan.audience === audience && (s.status === SubscriptionStatus.Active || s.status === SubscriptionStatus.PastDue))
+  const live = (audience: SubscriptionAudience) => mine.find((s) => s.plan.audience === audience && isLive(s))
 
   const subscribe = async (planId: string) => {
     setError('')
@@ -72,30 +81,48 @@ export default function Plans() {
       // Full-page redirect to BOG's hosted checkout (same pattern as wallet.tsx's top-up).
       window.location.assign(res.redirectUrl)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'გადახდის დაწყება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'გადახდის დაწყება ვერ მოხერხდა.'))
       setBusyId(null)
     }
   }
 
-  const cancel = async (id: string) => {
+  const cancel = async (subscription: PublicUserSubscription) => {
+    if (!window.confirm(`გავაუქმოთ „${subscription.plan.name}“? გამოწერა მოქმედი დარჩება მიმდინარე პერიოდის ბოლომდე.`)) return
     setError('')
-    setBusyId(id)
+    setBusyId(subscription.id)
     try {
-      await api.cancelSubscription(id)
+      await api.cancelSubscription(subscription.id)
       await load()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'გაუქმება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'გაუქმება ვერ მოხერხდა.'))
     } finally {
       setBusyId(null)
     }
   }
 
   return (
-    <Layout>
+    <Layout
+      title="გამოწერები"
+      description="აირჩიეთ WaveHub-ის მყიდველის წევრობა ან გამყიდველის/მწვრთნელის ხილვადობის გეგმა — საკომისიოს ფასდაკლება, გამორჩეული განცხადებები და პრიორიტეტული მხარდაჭერა."
+    >
       <div className="detail-page">
         <h1 className="page-title">გამოწერები</h1>
         <p className="page-subtitle">აირჩიეთ გეგმა — გადახდა ავტომატურად განახლდება ყოველი პერიოდის ბოლოს, გაუქმებამდე.</p>
-        {error && <div className="status-text status-error">{error}</div>}
+        {checkoutResult === 'success' && (
+          <div className="status-text status-success" role="status">
+            გადახდა მიღებულია. გამოწერა რამდენიმე წუთში გააქტიურდება — თუ ქვემოთ ჯერ არ ჩანს, განაახლეთ გვერდი.
+          </div>
+        )}
+        {checkoutResult === 'fail' && (
+          <div className="status-text status-error" role="alert">
+            გადახდა ვერ განხორციელდა. თანხა არ ჩამოგჭრიათ — სცადეთ თავიდან.
+          </div>
+        )}
+        {error && (
+          <div className="status-text status-error" role="alert">
+            {error}
+          </div>
+        )}
 
         {mine.some((s) => s.status === SubscriptionStatus.PastDue) && (
           <div className="status-text status-error" role="alert">
@@ -104,8 +131,10 @@ export default function Plans() {
         )}
 
         {mine.length > 0 && (
-          <>
-            <h2 style={{ fontSize: '1rem' }}>ჩემი გამოწერები</h2>
+          <section aria-labelledby="mySubscriptionsTitle">
+            <h2 id="mySubscriptionsTitle" style={{ fontSize: '1rem' }}>
+              ჩემი გამოწერები
+            </h2>
             <div className="order-list" style={{ marginBottom: 32 }}>
               {mine.map((s) => (
                 <div key={s.id} className="admin-row">
@@ -117,31 +146,33 @@ export default function Plans() {
                       {s.status === SubscriptionStatus.Active && s.isGranted && !s.cancelAtPeriodEnd && ' (ავტომატურად არ განახლდება)'}
                     </div>
                   </div>
-                  {(s.status === SubscriptionStatus.Active || s.status === SubscriptionStatus.PastDue) && !s.cancelAtPeriodEnd && !s.isGranted && (
+                  {isLive(s) && !s.cancelAtPeriodEnd && !s.isGranted && (
                     <div className="admin-row-actions">
-                      <button type="button" className="button" disabled={busyId === s.id} onClick={() => cancel(s.id)}>
-                        გაუქმება
+                      <button type="button" className="button" disabled={busyId === s.id} onClick={() => cancel(s)}>
+                        {busyId === s.id ? 'მიმდინარეობს…' : 'გაუქმება'}
                       </button>
                     </div>
                   )}
                 </div>
               ))}
             </div>
-          </>
+          </section>
         )}
 
         {loading ? (
           <div className="marketplace-empty">იტვირთება…</div>
         ) : plans.length === 0 ? (
-          <div className="marketplace-empty">გეგმები ჯერ არ არის დამატებული.</div>
+          <div className="marketplace-empty">{error ? 'გეგმების ჩატვირთვა ვერ მოხერხდა.' : 'გეგმები ჯერ არ არის დამატებული.'}</div>
         ) : (
           [SubscriptionAudience.Buyer, SubscriptionAudience.SellerCoach].map((audience) => {
             const group = plans.filter((p) => p.audience === audience)
             if (group.length === 0) return null
             const current = live(audience)
             return (
-              <section key={audience}>
-                <h2 style={{ fontSize: '1rem' }}>{AUDIENCE_LABELS[audience]}</h2>
+              <section key={audience} aria-labelledby={`audience-${audience}`}>
+                <h2 id={`audience-${audience}`} style={{ fontSize: '1rem' }}>
+                  {AUDIENCE_LABELS[audience]}
+                </h2>
                 <div className="plan-grid">
                   {group.map((plan) => (
                     <article key={plan.id} className="plan-card">
@@ -156,14 +187,14 @@ export default function Plans() {
                         ))}
                       </ul>
                       {!user ? (
-                        <Link className="button" href="/login" style={{ textAlign: 'center' }}>შესვლა გამოსაწერად</Link>
+                        <Link className="button" href="/login?next=/plans" style={{ textAlign: 'center' }}>შესვლა გამოსაწერად</Link>
                       ) : current ? (
                         <button type="button" className="button" disabled>
                           {current.plan.id === plan.id ? 'აქტიურია' : 'ჯერ გააუქმეთ მიმდინარე გეგმა'}
                         </button>
                       ) : (
                         <button type="button" className="button" disabled={busyId === plan.id} onClick={() => subscribe(plan.id)}>
-                          გამოწერა
+                          {busyId === plan.id ? 'გადამისამართება…' : 'გამოწერა'}
                         </button>
                       )}
                     </article>

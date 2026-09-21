@@ -1,7 +1,9 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState, type FormEvent } from 'react'
-import { api, ApiError } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
+import PageHead from '../components/PageHead'
 import { useAuth } from '../lib/auth'
 
 // `next` must be a same-origin relative path (starting with exactly one `/`) — never redirect to
@@ -41,7 +43,7 @@ export default function Login() {
       await refresh()
       router.push(safeNextPath(router.query.next))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'სერვერთან დაკავშირება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'სერვერთან დაკავშირება ვერ მოხერხდა.'))
     } finally {
       setSubmitting(false)
     }
@@ -49,10 +51,11 @@ export default function Login() {
 
   return (
     <main className="auth-page-shell">
+      <PageHead title="შესვლა" description="შედით თქვენს WaveHub ანგარიშზე." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
         <div className="auth-card-top">
-          <Link className="auth-brand" href="/" aria-label="Back to WaveHub">
-            <img src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" />
+          <Link className="auth-brand" href="/" aria-label="WaveHub — მთავარი გვერდი">
+            <Image src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" width={600} height={310} priority />
           </Link>
         </div>
 

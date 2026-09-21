@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AdminUserSummary } from '@wavehub/shared-types'
 import { UserStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 const STATUS_LABELS: Record<UserStatus, string> = {
   [UserStatus.PendingVerification]: 'დაუდასტურებელი',
@@ -25,7 +25,7 @@ export default function AdminUsers() {
     api
       .adminListUsers({ query: query || undefined, status: status || undefined })
       .then((res) => setItems(res.items))
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.'))
+      .catch((err) => setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.')))
       .finally(() => setLoading(false))
   }
 
@@ -39,7 +39,7 @@ export default function AdminUsers() {
         if (!cancelled) setItems(res.items)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -73,14 +73,14 @@ export default function AdminUsers() {
       const updated = await fn()
       setItems((prev) => prev.map((item) => (item.id === id ? updated : item)))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'მოქმედება ვერ შესრულდა.')
+      setError(errorMessage(err, 'მოქმედება ვერ შესრულდა.'))
     } finally {
       setBusyId(null)
     }
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="მომხმარებლები">
       <h1 className="page-title">მომხმარებლები</h1>
       <p className="page-subtitle">ძებნა, შეჩერება, აღდგენა და დაბლოკვა</p>
 
@@ -110,7 +110,7 @@ export default function AdminUsers() {
         </button>
       </form>
 
-      {error && <div className="status-text status-error">{error}</div>}
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
 
       {loading ? (
         <div className="empty-state">იტვირთება…</div>

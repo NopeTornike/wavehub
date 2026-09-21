@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AdminListingSummary } from '@wavehub/shared-types'
 import { ListingType } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 const TYPE_LABELS: Record<ListingType, string> = {
   [ListingType.Service]: 'სერვისი',
@@ -27,7 +27,7 @@ export default function AdminListings() {
         if (!cancelled) setItems(data)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -43,7 +43,7 @@ export default function AdminListings() {
       await api.adminApproveListing(id)
       setItems((prev) => prev.filter((item) => item.id !== id))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'დამტკიცება ვერ მოხერხდა.')
+      setError(errorMessage(err, 'დამტკიცება ვერ მოხერხდა.'))
     } finally {
       setBusyId(null)
     }
@@ -57,18 +57,18 @@ export default function AdminListings() {
       await api.adminRejectListing(id, reason)
       setItems((prev) => prev.filter((item) => item.id !== id))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'უარყოფა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'უარყოფა ვერ მოხერხდა.'))
     } finally {
       setBusyId(null)
     }
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="განცხადებები">
       <h1 className="page-title">დასამტკიცებელი განცხადებები</h1>
       <p className="page-subtitle">გამოქვეყნებამდე შემოწმებული განცხადებები</p>
 
-      {error && <div className="status-text status-error">{error}</div>}
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
 
       {loading ? (
         <div className="empty-state">იტვირთება…</div>

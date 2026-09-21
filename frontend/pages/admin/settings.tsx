@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { PublicPlatformSettings } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 
 // Super Admin only server-side (see backend/src/settings/platform-settings.controller.ts) — any
 // other role's GET/POST here 403s, surfaced via the error banner below like every other admin page.
@@ -30,7 +30,7 @@ export default function AdminSettings() {
         setMaintenanceMode(data.maintenanceMode)
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.')
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -54,19 +54,19 @@ export default function AdminSettings() {
       setSettings(updated)
       setSaved(true)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'შენახვა ვერ მოხერხდა.')
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout title="პლატფორმის პარამეტრები">
       <h1 className="page-title">პლატფორმის პარამეტრები</h1>
       <p className="page-subtitle">საკომისიო, გატანის მინიმუმი და ტექნიკური სამუშაოების რეჟიმი</p>
 
-      {error && <div className="status-text status-error">{error}</div>}
-      {saved && <div className="status-text status-success">შენახულია.</div>}
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
+      {saved && <div className="status-text status-success" role="status">შენახულია.</div>}
 
       {loading ? (
         <div className="empty-state">იტვირთება…</div>

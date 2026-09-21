@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { PublicOrderSummary } from '@wavehub/shared-types'
 import { OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import { api, ApiError } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -46,7 +46,7 @@ export default function Orders() {
       })
       .catch((err) => {
         if (cancelled) return
-        setError(err instanceof ApiError ? err.message : 'შეკვეთების ჩატვირთვა ვერ მოხერხდა.')
+        setError(errorMessage(err, 'შეკვეთების ჩატვირთვა ვერ მოხერხდა.'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -63,7 +63,7 @@ export default function Orders() {
   const totalPrice = orders.reduce((sum, order) => sum + order.priceWaveCoin, 0)
 
   return (
-    <Layout>
+    <Layout title="ჩემი შეკვეთები" noIndex>
       <section className="orders-page-head">
         <div>
           <p className="section-kicker">შეკვეთების ისტორია</p>
@@ -99,7 +99,7 @@ export default function Orders() {
           </button>
         </div>
 
-        {error && <div className="status-text status-error">{error}</div>}
+        {error && <div className="status-text status-error" role="alert">{error}</div>}
 
         {loading ? (
           <div className="orders-empty">იტვირთება…</div>
