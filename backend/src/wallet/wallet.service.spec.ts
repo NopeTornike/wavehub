@@ -43,6 +43,23 @@ function createFakeDataSource(initialUsers: Array<{ id: string; wavecoinBalance:
 describe('WalletService', () => {
   const userId = 'user-1';
 
+  describe('lockAccount', () => {
+    it('takes a pessimistic_write lock on the user row', async () => {
+      const { dataSource } = createFakeDataSource([{ id: userId, wavecoinBalance: 5 }]);
+      const wallet = new WalletService(dataSource);
+      const manager = { findOne: jest.fn(async () => ({ id: userId })) } as any;
+      await wallet.lockAccount(userId, manager);
+      expect(manager.findOne).toHaveBeenCalledWith(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
+    });
+
+    it('throws USER_NOT_FOUND for an unknown user', async () => {
+      const { dataSource } = createFakeDataSource([]);
+      const wallet = new WalletService(dataSource);
+      const manager = { findOne: jest.fn(async () => null) } as any;
+      await expect(wallet.lockAccount('ghost', manager)).rejects.toThrow('USER_NOT_FOUND');
+    });
+  });
+
   it('recordTopup credits the balance and writes an available ledger entry', async () => {
     const { dataSource, users, ledgerEntries } = createFakeDataSource([
       { id: userId, wavecoinBalance: 50 },

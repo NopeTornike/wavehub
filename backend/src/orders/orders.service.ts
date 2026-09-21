@@ -23,6 +23,7 @@ import { StorageService } from '../storage/storage.service';
 import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
+import { withTransactionRetry } from '../wallet/transaction-retry.util';
 
 const AUTO_COMPLETE_HOURS = 72;
 const ALLOWED_DELIVERY_MIME_TYPES = [
@@ -142,7 +143,13 @@ export class OrdersService {
     );
     const { feeWaveCoin, sellerReceivesWaveCoin } = calculatePlatformFee(priceWaveCoin, platformFeePercent);
 
-    const saved = await this.dataSource.transaction(async (manager) => {
+    // Retried on Postgres deadlock/serialization aborts (see wallet/transaction-retry.util.ts) —
+    // safe because everything in here is DB-only; chat/notifications run after it commits.
+    const saved = await withTransactionRetry(() => this.dataSource.transaction(async (manager) => {
+      // Lock the buyer's row BEFORE inserting the Order (whose buyerId FK takes a shared lock on
+      // that same row) — otherwise concurrent purchases by one buyer deadlock (40P01). See
+      // WalletService.lockAccount.
+      await this.wallet.lockAccount(buyerId, manager);
       const orderNumber = await this.generateOrderNumber(manager);
       const now = new Date();
 
@@ -233,7 +240,7 @@ export class OrdersService {
       }
 
       return saved;
-    });
+    }));
 
     // Chat is created and posted to outside the money-moving transaction — a chat failure must
     // never roll back a successful purchase. See `postSystemMessage` above.

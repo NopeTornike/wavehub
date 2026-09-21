@@ -175,7 +175,8 @@ Node script issuing 5 genuinely concurrent claims against 3 real rows through th
 pool (exactly 3 succeeded, 2 correctly got `affected: 0`, no double-claims), then re-verified
 against the full HTTP `purchase()` path with multiple real concurrent buyers.
 
-**A separate, pre-existing issue was found (not caused by this change, not fixed here)**: firing
+**A separate, pre-existing issue was found (not caused by this change; since FIXED 2026-09-22 —
+see `backend/src/wallet/CLAUDE.md`, lock-account-first + retry-on-deadlock)**: firing
 many truly-simultaneous purchase requests **from the same buyer account** can deadlock on
 `WalletService.debitForOrder`'s `SELECT ... FOR UPDATE` lock on that buyer's `users` row (Postgres
 error `40P01`, surfaced as a 500). Reproduced identically against an unmodified Item-listing

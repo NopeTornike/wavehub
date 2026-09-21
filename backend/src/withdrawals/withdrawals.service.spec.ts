@@ -49,6 +49,7 @@ describe('WithdrawalsService', () => {
         pendingClearance: 0,
         availableToWithdraw: options.availableToWithdraw ?? 1000,
       })),
+      lockAccount: jest.fn(),
       holdForWithdrawal: jest.fn(),
       reverseWithdrawal: jest.fn(),
     } as any;

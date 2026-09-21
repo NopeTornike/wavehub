@@ -38,6 +38,11 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   (insufficient balance), the whole transaction rolls back and the Order row never persists — there
   is deliberately no "pending_payment" order ever visible to anyone. This is why `WalletService`'s
   methods all accept an optional `manager` param (see `backend/src/wallet/CLAUDE.md`).
+  **The transaction's first statement is `WalletService.lockAccount(buyerId, manager)`** (locks the
+  buyer's `users` row before the Order insert's FK takes a shared lock on it) and the whole
+  transaction runs inside `withTransactionRetry` (retries on `40P01`/`40001`) — together these fix
+  the former same-buyer concurrent-purchase deadlock/500; don't reorder the lock after the insert.
+  See `backend/src/wallet/CLAUDE.md`.
   `OrderStatus.PendingPayment`/`Expired` exist in `@wavehub/shared-types` but are unreachable in
   `order-lifecycle.ts` on purpose — there's no server-side "awaiting payment" window to expire.
 - **`Order` always references TWO lifecycle state machines that must stay in sync manually**: its
@@ -189,7 +194,7 @@ purchases against a live Postgres instance.** See `backend/src/listings/CLAUDE.m
 for the full writeup: the race-safe claim query, the real correctness bug found and fixed in it
 during verification (a `manager.query()` return-shape misunderstanding that let the "out of stock"
 check silently never fire), the pre-existing same-buyer wallet-lock deadlock this testing also
-surfaced (unrelated to this change, flagged as a follow-up, not fixed here), and the full real
+surfaced (unrelated to this change; since fixed, see `backend/src/wallet/CLAUDE.md`), and the full real
 two-account browser click-through (create → upload keys → submit → admin-approve → two real
 purchases → two real key reveals → live balance updates → auto-pause on sellout).
 

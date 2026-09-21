@@ -10,6 +10,7 @@ import { CreateWithdrawRequestDto } from './dto/create-withdraw-request.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
+import { withTransactionRetry } from '../wallet/transaction-retry.util';
 
 const STATUS_LABELS_KA: Record<WithdrawStatus, string> = {
   [WithdrawStatus.Pending]: 'მოლოდინში',
@@ -57,7 +58,10 @@ export class WithdrawalsService {
       throw new ForbiddenException('Requested amount exceeds your available balance');
     }
 
-    const saved = await this.dataSource.transaction(async (manager) => {
+    const saved = await withTransactionRetry(() => this.dataSource.transaction(async (manager) => {
+      // Lock the seller's row before the request insert's FK takes a shared lock on it — see
+      // WalletService.lockAccount (prevents same-user 40P01 deadlocks).
+      await this.wallet.lockAccount(sellerId, manager);
       const request = manager.create(WithdrawRequest, {
         sellerId,
         amountWaveCoin: dto.amountWaveCoin,
@@ -68,7 +72,7 @@ export class WithdrawalsService {
       const savedRequest = await manager.save(request);
       await this.wallet.holdForWithdrawal(sellerId, dto.amountWaveCoin, savedRequest.id, manager);
       return savedRequest;
-    });
+    }));
 
     return this.toPublic(saved);
   }

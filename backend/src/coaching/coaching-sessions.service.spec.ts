@@ -59,6 +59,7 @@ describe('CoachingSessionsService', () => {
     } as any;
     const dataSource = { transaction: jest.fn() } as any;
     const wallet = {
+      lockAccount: jest.fn(),
       debitForSession: jest.fn(),
       releaseCoachEarnings: jest.fn(),
       refundBuyerForSession: jest.fn(),

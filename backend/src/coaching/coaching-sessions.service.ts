@@ -12,6 +12,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { calculatePlatformFee } from '../wallet/fee.util';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { withTransactionRetry } from '../wallet/transaction-retry.util';
 
 const DEFAULT_HOLD_DAYS = 7;
 
@@ -97,7 +98,10 @@ export class CoachingSessionsService {
       platformFeePercent,
     );
 
-    const saved = await this.dataSource.transaction(async (manager) => {
+    const saved = await withTransactionRetry(() => this.dataSource.transaction(async (manager) => {
+      // Lock the buyer's row before the session insert's FK takes a shared lock on it — see
+      // WalletService.lockAccount (prevents same-buyer 40P01 deadlocks).
+      await this.wallet.lockAccount(buyerId, manager);
       const session = manager.create(CoachingSession, {
         coachId: coach.id,
         buyerId,
@@ -117,7 +121,7 @@ export class CoachingSessionsService {
       await this.wallet.debitForSession(buyerId, insertedSession.id, priceWaveCoin, manager);
 
       return insertedSession;
-    }).catch((err) => {
+    })).catch((err) => {
       if (err instanceof Error && err.message === 'INSUFFICIENT_BALANCE') {
         throw new ForbiddenException('Insufficient WaveCoin balance for this session');
       }
