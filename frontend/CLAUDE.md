@@ -437,5 +437,8 @@ before trusting this in front of a real user.
 ## Subscriptions UI
 `/plans` (public plan browse grouped by audience, "my subscriptions" with cancel-at-period-end,
 subscribe → BOG redirect; checkout 503s locally without BOG credentials), `/admin/subscription-plans`
-(create + activate/deactivate; perks form covers the four known keys). `.badge-pill` renders
+(create + activate/deactivate; perks form covers the four known keys; also a manual grant form —
+user search via `adminListUsers`, plan, optional days, mandatory reason — and a live-subscriptions list with
+revoke). `/plans` shows a red past-due warning banner (perks continue during the 7-day grace) and per-state date
+labels; admin-granted subscriptions are marked "won't auto-renew" and have no user Cancel button. `.badge-pill` renders
 `profileBadge` on `/u/[username]` and coach cards/detail.

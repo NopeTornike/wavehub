@@ -44,8 +44,16 @@ export class UserSubscription {
   @Column({ default: false })
   cancelAtPeriodEnd: boolean;
 
-  @Column({ type: 'varchar' })
-  bogParentOrderId: string;
+  // NULL for a manual admin grant (no saved card): the sweep never recharges it, only expires it.
+  @Column({ type: 'varchar', nullable: true })
+  bogParentOrderId: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  grantedByAdminId: string | null;
+
+  // Set once the "about to expire" notice went out for the current period (de-dupes the hourly sweep).
+  @Column({ type: 'timestamptz', nullable: true })
+  expiryNoticeSentAt: Date | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

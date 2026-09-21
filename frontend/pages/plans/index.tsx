@@ -27,6 +27,14 @@ function perkLines(perks: SubscriptionPerks): string[] {
   return lines
 }
 
+// The date label depends on what actually happens at `currentPeriodEnd` for this state.
+function stateLine(s: PublicUserSubscription): string {
+  if (s.status === SubscriptionStatus.PastDue) return 'გადახდის ვადა'
+  if (s.status === SubscriptionStatus.Cancelled) return 'გაუქმდა'
+  if (s.status === SubscriptionStatus.Expired) return 'ამოიწურა'
+  return s.cancelAtPeriodEnd || s.isGranted ? 'მოქმედებს' : 'განახლდება'
+}
+
 export default function Plans() {
   const { user } = useAuth()
   const [plans, setPlans] = useState<PublicSubscriptionPlan[]>([])
@@ -89,6 +97,12 @@ export default function Plans() {
         <p className="page-subtitle">აირჩიეთ გეგმა — გადახდა ავტომატურად განახლდება ყოველი პერიოდის ბოლოს, გაუქმებამდე.</p>
         {error && <div className="status-text status-error">{error}</div>}
 
+        {mine.some((s) => s.status === SubscriptionStatus.PastDue) && (
+          <div className="status-text status-error" role="alert">
+            ბოლო გადახდა ვერ განხორციელდა. თქვენი პრივილეგიები ჯერ კიდევ მოქმედებს, მაგრამ თუ 7 დღის განმავლობაში გადახდა ვერ მოხერხდა, გამოწერა ამოიწურება. შეამოწმეთ ბარათზე თანხა — ავტომატურად ვცდით ხელახლა.
+          </div>
+        )}
+
         {mine.length > 0 && (
           <>
             <h2 style={{ fontSize: '1rem' }}>ჩემი გამოწერები</h2>
@@ -98,11 +112,12 @@ export default function Plans() {
                   <div className="admin-row-main">
                     <strong>{s.plan.name}</strong> <span className="note">({AUDIENCE_LABELS[s.plan.audience]})</span>
                     <div className="note" style={{ margin: 0 }}>
-                      {STATUS_LABELS[s.status]} · {s.cancelAtPeriodEnd ? 'მოქმედებს' : 'განახლდება'}: {new Date(s.currentPeriodEnd).toLocaleDateString('ka-GE')}
-                      {s.cancelAtPeriodEnd && ' (გაუქმდება პერიოდის ბოლოს)'}
+                      {STATUS_LABELS[s.status]} · {stateLine(s)}: {new Date(s.currentPeriodEnd).toLocaleDateString('ka-GE')}
+                      {s.status === SubscriptionStatus.Active && s.cancelAtPeriodEnd && ' (გაუქმდება პერიოდის ბოლოს)'}
+                      {s.status === SubscriptionStatus.Active && s.isGranted && !s.cancelAtPeriodEnd && ' (ავტომატურად არ განახლდება)'}
                     </div>
                   </div>
-                  {(s.status === SubscriptionStatus.Active || s.status === SubscriptionStatus.PastDue) && !s.cancelAtPeriodEnd && (
+                  {(s.status === SubscriptionStatus.Active || s.status === SubscriptionStatus.PastDue) && !s.cancelAtPeriodEnd && !s.isGranted && (
                     <div className="admin-row-actions">
                       <button type="button" className="button" disabled={busyId === s.id} onClick={() => cancel(s.id)}>
                         გაუქმება

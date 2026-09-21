@@ -8,6 +8,7 @@ import { SubscriptionsController } from './subscriptions.controller';
 import { PaymentsModule } from '../payments/payments.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 // One-directional import (subscriptions → payments), same shape as orders → wallet/chat elsewhere
 // — PaymentsModule has zero awareness that subscriptions exist, see PaymentsModule's own comment.
@@ -17,6 +18,7 @@ import { AdminModule } from '../admin/admin.module';
     PaymentsModule,
     AuthModule,
     AdminModule,
+    NotificationsModule,
   ],
   controllers: [SubscriptionsController],
   providers: [SubscriptionsService],

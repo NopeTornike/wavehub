@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AdminSubscriptionPlanSummary, SubscriptionPerks } from '@wavehub/shared-types'
+import type { AdminSubscriptionPlanSummary, AdminUserSubscriptionSummary, AdminUserSummary, SubscriptionPerks } from '@wavehub/shared-types'
 import { SubscriptionAudience } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, ApiError } from '../../lib/api'
@@ -35,11 +35,25 @@ export default function AdminSubscriptionPlans() {
   const [form, setForm] = useState(emptyForm)
   const [formError, setFormError] = useState('')
   const [creating, setCreating] = useState(false)
+  const [live, setLive] = useState<AdminUserSubscriptionSummary[]>([])
+  const [userQuery, setUserQuery] = useState('')
+  const [userResults, setUserResults] = useState<AdminUserSummary[]>([])
+  const [grantUser, setGrantUser] = useState<AdminUserSummary | null>(null)
+  const [grantPlanId, setGrantPlanId] = useState('')
+  const [grantDays, setGrantDays] = useState('')
+  const [grantReason, setGrantReason] = useState('')
+  const [grantMsg, setGrantMsg] = useState('')
+  const [granting, setGranting] = useState(false)
+
+  const reloadLive = () => api.adminListLiveSubscriptions().then(setLive).catch(() => undefined)
 
   const reload = () =>
     api
       .adminListSubscriptionPlans()
-      .then(setItems)
+      .then((plans) => {
+        setItems(plans)
+        void reloadLive()
+      })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'ჩატვირთვა ვერ მოხერხდა.'))
       .finally(() => setLoading(false))
 
@@ -67,6 +81,55 @@ export default function AdminSubscriptionPlans() {
       setFormError(err instanceof ApiError ? err.message : 'შექმნა ვერ მოხერხდა.')
     } finally {
       setCreating(false)
+    }
+  }
+
+  const searchUsers = async () => {
+    setGrantMsg('')
+    try {
+      const res = await api.adminListUsers({ query: userQuery.trim(), limit: 5 })
+      setUserResults(res.items)
+    } catch (err) {
+      setGrantMsg(err instanceof ApiError ? err.message : 'ძებნა ვერ მოხერხდა.')
+    }
+  }
+
+  const grant = async () => {
+    if (!grantUser || !grantPlanId) return
+    setGrantMsg('')
+    setGranting(true)
+    try {
+      await api.adminGrantSubscription({
+        userId: grantUser.id,
+        planId: grantPlanId,
+        periodDays: grantDays ? Number(grantDays) : undefined,
+        reason: grantReason.trim(),
+      })
+      setGrantMsg('გამოწერა მიენიჭა.')
+      setGrantUser(null)
+      setUserResults([])
+      setGrantReason('')
+      setGrantDays('')
+      await reloadLive()
+    } catch (err) {
+      setGrantMsg(err instanceof ApiError ? err.message : 'მინიჭება ვერ მოხერხდა.')
+    } finally {
+      setGranting(false)
+    }
+  }
+
+  const revoke = async (id: string) => {
+    const reason = window.prompt('გაუქმების მიზეზი (მინ. 3 სიმბოლო)')
+    if (!reason || reason.trim().length < 3) return
+    setBusyId(id)
+    setError('')
+    try {
+      await api.adminRevokeSubscription(id, reason.trim())
+      await reloadLive()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'გაუქმება ვერ მოხერხდა.')
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -132,6 +195,56 @@ export default function AdminSubscriptionPlans() {
               <div className="admin-row-actions">
                 <button type="button" className="button" disabled={busyId === p.id} onClick={() => toggleActive(p)}>
                   {p.isActive ? 'გამორთვა' : 'ჩართვა'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h2 style={{ fontSize: '1rem', marginTop: 32 }}>გამოწერის ხელით მინიჭება</h2>
+      <p className="note">მინიჭებულ გამოწერას ბარათი არ აქვს — ავტომატურად არ განახლდება და პერიოდის ბოლოს ვადა გაუვა.</p>
+      <div className="admin-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, marginBottom: 24 }}>
+        {grantMsg && <div className="status-text">{grantMsg}</div>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input placeholder="მომხმარებლის ძებნა (username / email)" value={userQuery} onChange={(e) => setUserQuery(e.target.value)} />
+          <button type="button" className="button" onClick={searchUsers}>ძებნა</button>
+        </div>
+        {userResults.map((u) => (
+          <button key={u.id} type="button" className="button" onClick={() => setGrantUser(u)}>
+            {u.username} · {u.email}
+          </button>
+        ))}
+        {grantUser && <div className="note">არჩეული: <strong>{grantUser.username}</strong></div>}
+        <select value={grantPlanId} onChange={(e) => setGrantPlanId(e.target.value)}>
+          <option value="">აირჩიეთ გეგმა</option>
+          {items.map((p) => (
+            <option key={p.id} value={p.id}>{p.name} ({p.audience} · {p.tier})</option>
+          ))}
+        </select>
+        <input type="number" min={1} max={3650} placeholder="ხანგრძლივობა დღეებში (ცარიელი = გეგმის პერიოდი)" value={grantDays} onChange={(e) => setGrantDays(e.target.value)} />
+        <input placeholder="მიზეზი (აუდიტის ჟურნალისთვის)" value={grantReason} onChange={(e) => setGrantReason(e.target.value)} />
+        <button type="button" className="button" disabled={granting || !grantUser || !grantPlanId || grantReason.trim().length < 3} onClick={grant}>
+          {granting ? '…' : 'მინიჭება'}
+        </button>
+      </div>
+
+      <h2 style={{ fontSize: '1rem' }}>აქტიური გამოწერები</h2>
+      {live.length === 0 ? (
+        <div className="empty-state">აქტიური გამოწერები არ არის.</div>
+      ) : (
+        <div className="order-list">
+          {live.map((s) => (
+            <div key={s.id} className="admin-row">
+              <div className="admin-row-main">
+                <strong>{s.user.username}</strong> <span className="note">{s.user.email}</span>
+                <div className="note" style={{ margin: 0 }}>
+                  {s.plan.name} · {s.status} · {s.isGranted ? 'ხელით მინიჭებული' : 'BOG'} · ვადა: {new Date(s.currentPeriodEnd).toLocaleDateString('ka-GE')}
+                </div>
+              </div>
+              <div className="admin-row-actions">
+                <button type="button" className="button" disabled={busyId === s.id} onClick={() => revoke(s.id)}>
+                  გაუქმება
                 </button>
               </div>
             </div>

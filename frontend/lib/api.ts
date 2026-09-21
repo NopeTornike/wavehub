@@ -46,6 +46,7 @@ import type {
   PublicSubscriptionPlan,
   PublicUserSubscription,
   AdminSubscriptionPlanSummary,
+  AdminUserSubscriptionSummary,
   SubscriptionAudience,
   SubscriptionPerks,
 } from '@wavehub/shared-types'
@@ -608,4 +609,12 @@ export const api = {
       isActive: boolean
     }>,
   ) => request<AdminSubscriptionPlanSummary>(`/admin/subscription-plans/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminListLiveSubscriptions: () => request<AdminUserSubscriptionSummary[]>('/admin/subscriptions'),
+
+  adminGrantSubscription: (payload: { userId: string; planId: string; periodDays?: number; reason: string }) =>
+    request<{ id: string; currentPeriodEnd: string }>('/admin/subscriptions/grant', { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminRevokeSubscription: (id: string, reason: string) =>
+    request<{ id: string; status: string }>(`/admin/subscriptions/${id}/revoke`, { method: 'POST', body: JSON.stringify({ reason }) }),
 }

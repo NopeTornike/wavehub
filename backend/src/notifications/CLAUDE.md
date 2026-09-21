@@ -75,3 +75,7 @@ the gotcha above), the `alsoEmail` transactional-email bundling (interface exist
 dedicated "all notifications" page (the bell dropdown only shows the most recent page, there's no
 `/notifications` route in `frontend/` — `listMine`'s pagination params exist but nothing beyond the
 default first page is ever requested).
+
+## Subscription hooks
+`SubscriptionsService` emits `subscription_granted|past_due|expiring|cancelled|expired` (metadata `{ subscriptionId }`,
+plus an email to the user). See `backend/src/subscriptions/CLAUDE.md` for exactly when each fires.

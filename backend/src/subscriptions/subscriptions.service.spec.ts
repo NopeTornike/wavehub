@@ -1,5 +1,5 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { SubscriptionAudience, SubscriptionStatus } from '@wavehub/shared-types';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotificationType, SubscriptionAudience, SubscriptionStatus } from '@wavehub/shared-types';
 import { SubscriptionsService } from './subscriptions.service';
 
 const DAY = 86_400_000;
@@ -16,11 +16,11 @@ function makeSub(over: Record<string, unknown> = {}) {
   return {
     id: 'sub-1', userId, planId: 'plan-1', audience: SubscriptionAudience.SellerCoach,
     status: SubscriptionStatus.Active, currentPeriodEnd: new Date(Date.now() - 1000), cancelAtPeriodEnd: false,
-    bogParentOrderId: 'parent-1', plan: makePlan(), createdAt: new Date(), ...over,
+    bogParentOrderId: 'parent-1', grantedByAdminId: null, expiryNoticeSentAt: null, plan: makePlan(), createdAt: new Date(), ...over,
   };
 }
 
-function build(opts: { plan?: any; subs?: any[]; attempts?: any[]; orderStatus?: string; chargeFails?: boolean; saveCardFails?: boolean } = {}) {
+function build(opts: { plan?: any; subs?: any[]; attempts?: any[]; orderStatus?: string; chargeFails?: boolean; saveCardFails?: boolean; notifyFails?: boolean } = {}) {
   const plan = opts.plan === undefined ? makePlan() : opts.plan;
   const subs = opts.subs ?? [];
   const attempts = opts.attempts ?? [];
@@ -44,9 +44,10 @@ function build(opts: { plan?: any; subs?: any[]; attempts?: any[]; orderStatus?:
     saveCard: jest.fn(async () => { if (opts.saveCardFails) throw new Error('nope'); }),
     chargeSavedCard: jest.fn(async () => { if (opts.chargeFails) throw new Error('declined'); return { orderId: 'bog-2' }; }),
   };
-  const users = { findById: jest.fn(async () => ({ id: userId, username: 'bob' })) };
-  const service = new SubscriptionsService(plans as any, userSubs as any, attemptRepo as any, bog as any, users as any);
-  return { service, plans, userSubs, attemptRepo, bog };
+  const users = { findById: jest.fn(async (id: string) => (id === 'missing' ? null : { id, username: 'bob', email: 'bob@example.com' })) };
+  const notifications = { emit: jest.fn(async () => { if (opts.notifyFails) throw new Error('notify down'); }) };
+  const service = new SubscriptionsService(plans as any, userSubs as any, attemptRepo as any, bog as any, users as any, notifications as any);
+  return { service, plans, userSubs, attemptRepo, bog, notifications, users };
 }
 
 describe('SubscriptionsService', () => {
@@ -179,6 +180,92 @@ describe('SubscriptionsService', () => {
       await service.sweepDueSubscriptions();
       expect(attemptRepo.save).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
       expect(userSubs.update).toHaveBeenCalledWith('sub-1', { status: SubscriptionStatus.PastDue });
+    });
+  });
+
+  describe('notifications', () => {
+    it('notifies (in-app + email) on a rejected recharge callback moving active -> past_due', async () => {
+      const recharge = { id: 't2', kind: 'recharge', userId, subscriptionId: 'sub-1', status: 'pending', createdAt: new Date() };
+      const { service, notifications } = build({ attempts: [recharge], subs: [makeSub()], orderStatus: 'rejected' });
+      await service.handleBogCallback('bog-2');
+      expect(notifications.emit).toHaveBeenCalledWith(userId, NotificationType.SubscriptionPastDue, expect.any(String), expect.any(String), { subscriptionId: 'sub-1' }, { to: 'bob@example.com', subject: expect.any(String) });
+    });
+
+    it('does not re-notify when a dispatch fails for an already past_due subscription', async () => {
+      const { service, notifications } = build({ subs: [makeSub({ status: SubscriptionStatus.PastDue, currentPeriodEnd: new Date(Date.now() - DAY) })], chargeFails: true });
+      await service.sweepDueSubscriptions();
+      expect((notifications.emit as jest.Mock).mock.calls.filter((c) => c[1] === NotificationType.SubscriptionPastDue)).toHaveLength(0);
+    });
+
+    it('notifies past_due when the first dispatch throws', async () => {
+      const { service, notifications } = build({ subs: [makeSub()], chargeFails: true });
+      await service.sweepDueSubscriptions();
+      expect((notifications.emit as jest.Mock).mock.calls.filter((c) => c[1] === NotificationType.SubscriptionPastDue)).toHaveLength(1);
+    });
+
+    it('notifies on cancel-at-period-end and on grace expiry', async () => {
+      const a = build({ subs: [makeSub({ cancelAtPeriodEnd: true })] });
+      await a.service.sweepDueSubscriptions();
+      expect((a.notifications.emit as jest.Mock).mock.calls.some((c) => c[1] === NotificationType.SubscriptionCancelled)).toBe(true);
+      const b = build({ subs: [makeSub({ status: SubscriptionStatus.PastDue, currentPeriodEnd: new Date(Date.now() - 8 * DAY) })] });
+      await b.service.sweepDueSubscriptions();
+      expect((b.notifications.emit as jest.Mock).mock.calls.some((c) => c[1] === NotificationType.SubscriptionExpired)).toBe(true);
+    });
+
+    it('never lets a notification failure break the sweep', async () => {
+      const { service, userSubs } = build({ subs: [makeSub({ cancelAtPeriodEnd: true })], notifyFails: true });
+      await expect(service.sweepDueSubscriptions()).resolves.toBeUndefined();
+      expect(userSubs.update).toHaveBeenCalledWith('sub-1', { status: SubscriptionStatus.Cancelled });
+    });
+
+    it('sends one expiry notice for non-renewing subscriptions and stamps expiryNoticeSentAt', async () => {
+      const { service, userSubs, notifications } = build({ subs: [makeSub({ currentPeriodEnd: new Date(Date.now() + DAY), bogParentOrderId: null })] });
+      // first find() (due sweep) returns the same fixture; make it not due by using a future end
+      (userSubs.find as jest.Mock).mockResolvedValueOnce([]);
+      await service.sweepDueSubscriptions();
+      expect(userSubs.update).toHaveBeenCalledWith('sub-1', { expiryNoticeSentAt: expect.any(Date) });
+      expect((notifications.emit as jest.Mock).mock.calls.some((c) => c[1] === NotificationType.SubscriptionExpiring)).toBe(true);
+    });
+  });
+
+  describe('admin grant / revoke', () => {
+    const grantDto = { userId, planId: 'plan-1', reason: 'compensation' } as any;
+
+    it('grants a subscription with no BOG parent for the plan period and notifies', async () => {
+      const { service, userSubs, notifications } = build();
+      const sub = await service.grantSubscription('admin-1', grantDto);
+      expect(userSubs.save).toHaveBeenCalledWith(expect.objectContaining({ bogParentOrderId: null, grantedByAdminId: 'admin-1', status: SubscriptionStatus.Active }));
+      expect(sub.currentPeriodEnd.getTime()).toBeGreaterThan(Date.now() + 29 * DAY);
+      expect((notifications.emit as jest.Mock).mock.calls.some((c) => c[1] === NotificationType.SubscriptionGranted)).toBe(true);
+    });
+
+    it('honours periodDays', async () => {
+      const { service } = build();
+      const sub = await service.grantSubscription('admin-1', { ...grantDto, periodDays: 5 });
+      expect(sub.currentPeriodEnd.getTime()).toBeLessThan(Date.now() + 6 * DAY);
+    });
+
+    it('rejects an unknown plan, unknown user, and an existing live subscription', async () => {
+      await expect(build({ plan: null }).service.grantSubscription('a', grantDto)).rejects.toThrow(NotFoundException);
+      await expect(build().service.grantSubscription('a', { ...grantDto, userId: 'missing' })).rejects.toThrow(NotFoundException);
+      const { service, userSubs } = build({ subs: [makeSub({ status: SubscriptionStatus.PastDue })] });
+      await expect(service.grantSubscription('a', grantDto)).rejects.toThrow(ConflictException);
+      expect(userSubs.save).not.toHaveBeenCalled();
+    });
+
+    it('the sweep expires a granted subscription at period end without ever charging', async () => {
+      const { service, userSubs, bog } = build({ subs: [makeSub({ bogParentOrderId: null })] });
+      await service.sweepDueSubscriptions();
+      expect(userSubs.update).toHaveBeenCalledWith('sub-1', { status: SubscriptionStatus.Expired });
+      expect(bog.chargeSavedCard).not.toHaveBeenCalled();
+    });
+
+    it('revokes a live subscription immediately and rejects a non-live or missing one', async () => {
+      const { service, userSubs } = build({ subs: [makeSub()] });
+      await service.revokeSubscription('sub-1');
+      expect(userSubs.update).toHaveBeenCalledWith('sub-1', { status: SubscriptionStatus.Cancelled, cancelAtPeriodEnd: false });
+      await expect(build({ subs: [makeSub({ status: SubscriptionStatus.Expired })] }).service.revokeSubscription('sub-1')).rejects.toThrow(ConflictException);
+      await expect(build().service.revokeSubscription('nope')).rejects.toThrow(NotFoundException);
     });
   });
 });

@@ -1,11 +1,12 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThanOrEqual, Repository } from 'typeorm';
+import { Between, In, IsNull, LessThanOrEqual, QueryFailedError, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
-import { SubscriptionAudience, SubscriptionStatus } from '@wavehub/shared-types';
+import { NotificationType, SubscriptionAudience, SubscriptionStatus } from '@wavehub/shared-types';
 import type {
   AdminSubscriptionPlanSummary,
+  AdminUserSubscriptionSummary,
   PublicSubscriptionPlan,
   PublicUserSubscription,
   SubscriptionPerks,
@@ -18,6 +19,8 @@ import { UpdatePlanDto } from './dto/update-plan.dto';
 import { CheckoutSubscriptionDto } from './dto/checkout-subscription.dto';
 import { BogPaymentsService } from '../payments/bog-payments.service';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { GrantSubscriptionDto } from './dto/grant-subscription.dto';
 
 // A `past_due` subscription (a declined recharge) keeps its perks for this long before the cron
 // gives up and expires it — LAUNCH_PLAN.md §3c's "a brief grace period, not an instant perk
@@ -28,6 +31,8 @@ const PAST_DUE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 // never arrive — never re-fire while a *recent* attempt might still be in flight, though, or every
 // hourly sweep would double-charge the card while BOG is simply slow to call back.
 const STUCK_ATTEMPT_MS = 24 * 60 * 60 * 1000;
+// How far ahead of a non-renewing subscription's period end the "about to expire" notice goes out.
+const EXPIRY_NOTICE_MS = 3 * 24 * 60 * 60 * 1000;
 const ACTIVE_OR_PAST_DUE = [SubscriptionStatus.Active, SubscriptionStatus.PastDue];
 
 @Injectable()
@@ -40,7 +45,48 @@ export class SubscriptionsService {
     @InjectRepository(SubscriptionChargeAttempt) private readonly attempts: Repository<SubscriptionChargeAttempt>,
     private readonly bogPayments: BogPaymentsService,
     private readonly users: UsersService,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  // Best-effort in-app notification + email — a failure here must never block the billing/admin
+  // action that triggered it (same contract as OrdersService's private `notify`).
+  private async notify(
+    userId: string,
+    type: NotificationType,
+    title: string,
+    body: string,
+    subscriptionId: string,
+  ): Promise<void> {
+    try {
+      const user = await this.users.findById(userId);
+      await this.notifications.emit(
+        userId,
+        type,
+        title,
+        body,
+        { subscriptionId },
+        user?.email ? { to: user.email, subject: title } : undefined,
+      );
+    } catch (err) {
+      this.logger.error(`Failed to notify user ${userId} about subscription ${subscriptionId}`, err as Error);
+    }
+  }
+
+  private async markPastDue(sub: { id: string; userId: string; status: SubscriptionStatus }, planName: string): Promise<void> {
+    const wasPastDue = sub.status === SubscriptionStatus.PastDue;
+    await this.userSubscriptions.update(sub.id, { status: SubscriptionStatus.PastDue });
+    // Only the active -> past_due transition notifies; the sweep re-dispatches hourly during grace
+    // and must not spam the user on every failed retry.
+    if (!wasPastDue) {
+      await this.notify(
+        sub.userId,
+        NotificationType.SubscriptionPastDue,
+        'გამოწერის გადახდა ვერ განხორციელდა',
+        `თქვენი გეგმის „${planName}“ განახლების გადახდა ვერ განხორციელდა. შეინარჩუნეთ ბარათზე საკმარისი თანხა — 7 დღის განმავლობაში ისევ ვცდით, პრივილეგიები ჯერ კიდევ მოქმედებს.`,
+        sub.id,
+      );
+    }
+  }
 
   // --- Admin plan management ---
 
@@ -97,6 +143,94 @@ export class SubscriptionsService {
       order: { createdAt: 'DESC' },
     });
     return rows.map((row) => this.toPublic(row));
+  }
+
+  // --- Admin manual grant / revoke (SuperAdmin-only at the controller) ---
+
+  async listLiveForAdmin(): Promise<AdminUserSubscriptionSummary[]> {
+    const rows = await this.userSubscriptions.find({
+      where: { status: In(ACTIVE_OR_PAST_DUE) },
+      relations: ['plan', 'user'],
+      order: { createdAt: 'DESC' },
+      take: 200,
+    });
+    return rows.map((row) => ({
+      ...this.toPublic(row),
+      user: { id: row.user.id, username: row.user.username, email: row.user.email },
+    }));
+  }
+
+  // A granted subscription has no BOG parent (`bogParentOrderId` NULL) so the sweep never recharges
+  // it — it just expires at period end. Respects the one-live-subscription-per-audience rule:
+  // rejects (409) if the user already has an active/past_due one, with the partial unique index as
+  // the race-safe backstop.
+  async grantSubscription(adminId: string, dto: GrantSubscriptionDto): Promise<UserSubscription> {
+    const plan = await this.getPlanOrThrow(dto.planId);
+    const user = await this.users.findById(dto.userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const conflict = () =>
+      new ConflictException('This user already has a live subscription for this audience — revoke it first');
+    const existing = await this.userSubscriptions.findOne({
+      where: { userId: dto.userId, audience: plan.audience, status: In(ACTIVE_OR_PAST_DUE) },
+    });
+    if (existing) {
+      throw conflict();
+    }
+
+    const days = dto.periodDays ?? plan.billingPeriodDays;
+    let saved: UserSubscription;
+    try {
+      saved = await this.userSubscriptions.save(
+        this.userSubscriptions.create({
+          userId: dto.userId,
+          planId: plan.id,
+          audience: plan.audience,
+          status: SubscriptionStatus.Active,
+          currentPeriodEnd: new Date(Date.now() + days * 86_400_000),
+          cancelAtPeriodEnd: false,
+          bogParentOrderId: null,
+          grantedByAdminId: adminId,
+          expiryNoticeSentAt: null,
+        }),
+      );
+    } catch (err) {
+      if (err instanceof QueryFailedError && (err as QueryFailedError & { code?: string }).code === '23505') {
+        throw conflict();
+      }
+      throw err;
+    }
+    await this.notify(
+      dto.userId,
+      NotificationType.SubscriptionGranted,
+      'გამოწერა გააქტიურდა',
+      `WaveHub-მა გაგიფორმათ გეგმა „${plan.name}“ ${days} დღით. ავტომატური განახლება არ არის.`,
+      saved.id,
+    );
+    return saved;
+  }
+
+  // Ends a live subscription immediately (perks stop now). For a BOG-billed one this also stops
+  // future recharges since the sweep only looks at live rows; the saved card is left untouched.
+  async revokeSubscription(subscriptionId: string): Promise<UserSubscription> {
+    const sub = await this.userSubscriptions.findOne({ where: { id: subscriptionId }, relations: ['plan'] });
+    if (!sub) {
+      throw new NotFoundException('Subscription not found');
+    }
+    if (!ACTIVE_OR_PAST_DUE.includes(sub.status)) {
+      throw new ConflictException('This subscription is not live');
+    }
+    await this.userSubscriptions.update(sub.id, { status: SubscriptionStatus.Cancelled, cancelAtPeriodEnd: false });
+    await this.notify(
+      sub.userId,
+      NotificationType.SubscriptionCancelled,
+      'გამოწერა შეწყდა',
+      `თქვენი გეგმა „${sub.plan.name}“ შეწყვიტა WaveHub-ის ადმინისტრაციამ.`,
+      sub.id,
+    );
+    sub.status = SubscriptionStatus.Cancelled;
+    return sub;
   }
 
   // Read-only API other modules call to apply a perk — e.g.
@@ -228,7 +362,12 @@ export class SubscriptionsService {
       if (attempt.status === 'pending') {
         await this.attempts.update(attempt.id, { status: 'failed' });
         if (attempt.kind === 'recharge' && attempt.subscriptionId) {
-          await this.userSubscriptions.update(attempt.subscriptionId, { status: SubscriptionStatus.PastDue });
+          const sub = await this.userSubscriptions.findOne({ where: { id: attempt.subscriptionId }, relations: ['plan'] });
+          if (sub) {
+            await this.markPastDue(sub, sub.plan.name);
+          } else {
+            await this.userSubscriptions.update(attempt.subscriptionId, { status: SubscriptionStatus.PastDue });
+          }
         }
       }
     }
@@ -263,6 +402,8 @@ export class SubscriptionsService {
         currentPeriodEnd,
         cancelAtPeriodEnd: false,
         bogParentOrderId: attempt.bogOrderId,
+        grantedByAdminId: null,
+        expiryNoticeSentAt: null,
       }),
     );
     return true;
@@ -283,6 +424,7 @@ export class SubscriptionsService {
     await this.userSubscriptions.update(sub.id, {
       status: SubscriptionStatus.Active,
       currentPeriodEnd: new Date(anchor + sub.plan.billingPeriodDays * 86_400_000),
+      expiryNoticeSentAt: null,
     });
     return true;
   }
@@ -316,15 +458,63 @@ export class SubscriptionsService {
         this.logger.error(`Failed to process due subscription ${sub.id}`, err as Error);
       }
     }
+
+    try {
+      await this.sendExpiryNotices(now);
+    } catch (err) {
+      this.logger.error('Failed to send subscription expiry notices', err as Error);
+    }
+  }
+
+  // One "about to expire" notice per period for subscriptions that will NOT auto-renew (cancelled-
+  // at-period-end, or a manual grant with no card). Auto-renewing ones aren't expiring, so no notice.
+  private async sendExpiryNotices(now: Date): Promise<void> {
+    const soon = new Date(now.getTime() + EXPIRY_NOTICE_MS);
+    const base = { status: SubscriptionStatus.Active, currentPeriodEnd: Between(now, soon), expiryNoticeSentAt: IsNull() };
+    const rows = await this.userSubscriptions.find({
+      where: [
+        { ...base, cancelAtPeriodEnd: true },
+        { ...base, bogParentOrderId: IsNull() },
+      ],
+      relations: ['plan'],
+    });
+    for (const sub of rows) {
+      await this.userSubscriptions.update(sub.id, { expiryNoticeSentAt: now });
+      await this.notify(
+        sub.userId,
+        NotificationType.SubscriptionExpiring,
+        'გამოწერა მალე ამოიწურება',
+        `თქვენი გეგმა „${sub.plan.name}“ ${sub.currentPeriodEnd.toLocaleDateString('ka-GE')}-ს ამოიწურება და აღარ განახლდება.`,
+        sub.id,
+      );
+    }
   }
 
   private async processDueSubscription(sub: UserSubscription, now: Date): Promise<void> {
     if (sub.cancelAtPeriodEnd) {
       await this.userSubscriptions.update(sub.id, { status: SubscriptionStatus.Cancelled });
+      await this.notify(
+        sub.userId,
+        NotificationType.SubscriptionCancelled,
+        'გამოწერა დასრულდა',
+        `თქვენი გეგმა „${sub.plan.name}“ გაუქმდა პერიოდის ბოლოს, როგორც მოითხოვეთ.`,
+        sub.id,
+      );
       return;
     }
-    if (sub.status === SubscriptionStatus.PastDue && now.getTime() - sub.currentPeriodEnd.getTime() > PAST_DUE_GRACE_MS) {
+    const parentOrderId = sub.bogParentOrderId;
+    const graceOver =
+      sub.status === SubscriptionStatus.PastDue && now.getTime() - sub.currentPeriodEnd.getTime() > PAST_DUE_GRACE_MS;
+    // A manual admin grant has no saved card to recharge — it simply expires at period end.
+    if (!parentOrderId || graceOver) {
       await this.userSubscriptions.update(sub.id, { status: SubscriptionStatus.Expired });
+      await this.notify(
+        sub.userId,
+        NotificationType.SubscriptionExpired,
+        'გამოწერა ამოიწურა',
+        `თქვენი გეგმა „${sub.plan.name}“ ამოიწურა და პრივილეგიები გამორთულია. შეგიძლიათ ახალი გეგმა გამოიწეროთ გვერდზე „გამოწერები“.`,
+        sub.id,
+      );
       return;
     }
 
@@ -339,7 +529,7 @@ export class SubscriptionsService {
     const transactionId = randomUUID();
     const callbackUrl = `${process.env.BACKEND_PUBLIC_URL || 'http://localhost:4000'}/subscriptions/bog-callback`;
     try {
-      const charge = await this.bogPayments.chargeSavedCard(sub.bogParentOrderId, transactionId, callbackUrl);
+      const charge = await this.bogPayments.chargeSavedCard(parentOrderId, transactionId, callbackUrl);
       await this.attempts.save(
         this.attempts.create({
           id: transactionId,
@@ -364,7 +554,7 @@ export class SubscriptionsService {
           bogOrderId: null,
         }),
       );
-      await this.userSubscriptions.update(sub.id, { status: SubscriptionStatus.PastDue });
+      await this.markPastDue(sub, sub.plan.name);
     }
   }
 
@@ -412,6 +602,7 @@ export class SubscriptionsService {
       status: sub.status,
       currentPeriodEnd: sub.currentPeriodEnd.toISOString(),
       cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+      isGranted: sub.bogParentOrderId === null,
       createdAt: sub.createdAt.toISOString(),
     };
   }
