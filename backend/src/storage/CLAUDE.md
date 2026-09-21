@@ -1,42 +1,63 @@
 # storage
 
 ## Purpose
-File storage abstraction for anything a user uploads (currently: listing images). Every caller goes
-through `StorageService.save()` so the actual backend (local disk today, real object storage later)
-can be swapped without touching call sites.
+File storage for everything a user uploads (listing images, order delivery files, dispute evidence,
+tournament covers). Every caller goes through `StorageService.save()`; the backend driver is chosen
+by `STORAGE_DRIVER`.
 
 ## Key files
-- `storage.service.ts` — `StorageService.save(buffer, originalName)`, writes to a local `uploads/`
-  directory and returns a public URL under `BACKEND_PUBLIC_URL`
-- `storage.module.ts` — exports `StorageService`
+- `storage.service.ts` — `StorageService.save(buffer, originalName, kind = 'attachment')` →
+  `{ url, contentType }`. `kind: 'image'` accepts only JPG/PNG/WEBP; `'attachment'` also accepts
+  PDF/ZIP. Drivers:
+  - **`local`** (default) — writes to `UPLOADS_DIR` (default `./uploads`; `/data/uploads` in the
+    Docker image, a named volume) and returns `${BACKEND_PUBLIC_URL}/uploads/<name>`; `app.setup.ts`
+    serves that directory at `/uploads`.
+  - **`s3`** — any S3-compatible object store (AWS S3, Cloudflare R2, Backblaze B2, Hetzner, MinIO)
+    via `s3-client.ts`: a ~100-line AWS SigV4 `PUT` over `fetch`, **no AWS SDK**. Objects go under
+    `uploads/<uuid>.<ext>` with `Cache-Control: immutable` (and `Content-Disposition: attachment`
+    for PDF/ZIP). Returns `${S3_PUBLIC_BASE_URL}/uploads/<name>` — reads never touch this server, so
+    the bucket must be publicly readable (or fronted by a CDN). Env: `S3_ENDPOINT`, `S3_REGION`,
+    `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_BASE_URL`,
+    `S3_FORCE_PATH_STYLE` (default true; false = virtual-hosted style). The service throws at
+    construction if the required ones are missing.
+- `file-sniff.ts` — `sniffFileType(buffer)`: identifies JPEG/PNG/WEBP/PDF/ZIP by magic bytes.
+- `s3-client.ts` — SigV4 signer (`signPutObject`, unit-tested) + `putObject`.
+- `storage.module.ts` — exports `StorageService`.
+- `storage.spec.ts` — sniffing, local driver, path-traversal/disguised-file rejection, signer.
 
 ## Data model
-None — writes to the filesystem (`<repo>/backend/uploads/`, gitignored), not the database.
+None — files only. Callers persist the returned `url` (and `contentType`) in their own tables.
 
 ## Conventions & gotchas
-- **This is explicitly NOT production-ready.** Local disk storage breaks the moment there's more
-  than one server instance (each instance has its own disk, so an image uploaded to instance A is
-  404 from instance B) and doesn't survive a redeploy on most hosting platforms (ephemeral
-  filesystem). This was a known open item in the build plan (S3 vs R2 vs local, deferred pending a
-  real infra decision) — local disk was chosen to unblock Phase 3 (Listings) without waiting on
-  that decision, not because it's the intended final answer.
-- **Before any real deployment**: swap `StorageService`'s internals for a real object-storage SDK
-  call (S3-compatible — AWS S3, Cloudflare R2, Backblaze B2 are all reasonable). Because every
-  caller goes through the `save()` method and its `StoredFile { url }` return shape, this should be
-  a contained change inside this one file, not a call-site-by-call-site migration.
-- Files are served via `app.useStaticAssets()` in `main.ts` at `/uploads/*` — a real object-storage
-  swap should keep returning a directly-fetchable URL (a signed URL or a public bucket URL) so
-  callers don't need to change how they use the result.
-- No virus/malware scanning exists (the source spec calls for it under chat/dispute file uploads;
-  listing images aren't explicitly called out, but the principle applies to any user upload). Not
-  built — flag this if file upload surface grows beyond listing images (e.g. delivery files, dispute
-  evidence in later phases) before this becomes a real attack surface at scale.
+- **Never trust the client's filename or Content-Type.** `save()` sniffs the bytes and derives both
+  the extension and the stored content type from what it finds; the object name is always a fresh
+  UUID, so `../` tricks in a filename are inert. A file that isn't a recognised type → HTTP 415.
+  Before this, callers checked `file.mimetype` and kept `originalname`'s extension, so `evil.html`
+  labelled `image/png` was stored and served as `text/html` from the API origin (stored XSS). Call
+  sites still keep their own mimetype/size checks (cheap, give friendlier errors) but the sniff is
+  the real gate. Callers persist `stored.contentType`, not `file.mimetype`.
+- **Local files are served hardened** (`app.setup.ts`): `X-Content-Type-Options: nosniff`, a
+  `Content-Security-Policy: default-src 'none'; sandbox`, immutable caching, and
+  `Content-Disposition: attachment` for anything that isn't a jpg/png/webp. Defence in depth on top
+  of the sniff.
+- **Local disk is single-server only**: it survives restarts (named volume, included in
+  `scripts/backup.sh`) but not a server loss, and won't work with more than one backend instance.
+  Use `s3` for anything else.
+- **Body size limits**: multer per-route limits (5 MB images, 20 MB attachments) + Caddy's 25 MB
+  `request_body` cap. Upload routes are also rate-limited (`common/throttle.ts` `UPLOAD_THROTTLE`).
+- Uploading to S3 fails closed: a provider error is logged (status only) and the client gets a
+  generic 503; nothing is recorded in the database.
+- No malware/virus scanning (the source spec asks for it on chat/dispute uploads). Type is validated
+  by content, but a malicious-yet-valid PDF/ZIP is possible; ZIPs are served as downloads only.
+- Switching drivers later doesn't migrate existing files; old rows keep their old absolute URLs.
 
 ## Related modules
-- `backend/src/listings/` — the only current caller (`ListingsService.addImage`).
-- Future `backend/src/orders/` (delivery files) and `backend/src/disputes/` (evidence uploads) will
-  likely be callers too — reuse this service rather than reimplementing file handling per module.
+- `backend/src/listings/`, `orders/`, `disputes/`, `tournaments/` — the callers.
+- `backend/src/app.setup.ts` — serves `/uploads` for the local driver.
+- `backend/src/config/production-config.ts` — validates the `s3` settings in production.
 
 ## Status
-Functional for local dev only. Needs a real object-storage backend and a decision on which provider
-before any real deployment — see the gotcha above.
+Local driver verified end to end in the e2e suite (real upload, disguised-html rejection, served
+headers). The S3 driver's signer is unit-tested against the SigV4 spec (signing-key vector from
+AWS's docs + a cross-check with an independent implementation) but **has never been run against a
+real S3/R2/B2 endpoint** — do a real upload during launch verification.

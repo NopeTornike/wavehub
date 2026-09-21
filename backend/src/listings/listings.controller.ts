@@ -1,3 +1,5 @@
+import { UPLOAD_THROTTLE } from '../common/throttle';
+import { Throttle } from '@nestjs/throttler';
 import {
   Body,
   Controller,
@@ -147,6 +149,7 @@ export class ListingsController {
   }
 
   @Post('listings/:id/images')
+  @Throttle(UPLOAD_THROTTLE)
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }))
   addImage(

@@ -1,3 +1,5 @@
+import { CREATE_THROTTLE } from '../common/throttle';
+import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { CoachingSessionsService } from './coaching-sessions.service';
@@ -11,6 +13,7 @@ export class CoachingSessionsController {
   constructor(private readonly sessions: CoachingSessionsService) {}
 
   @Post('coaches/:id/sessions')
+  @Throttle(CREATE_THROTTLE)
   @UseGuards(VerifiedEmailGuard)
   request(@CurrentUserId() buyerId: string, @Param('id') coachId: string, @Body() dto: RequestSessionDto) {
     return this.sessions.request(buyerId, coachId, dto);

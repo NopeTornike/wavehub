@@ -1,3 +1,5 @@
+import { CREATE_THROTTLE, MESSAGE_THROTTLE } from '../common/throttle';
+import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -13,6 +15,7 @@ export class SupportController {
   constructor(private readonly support: SupportService) {}
 
   @Post()
+  @Throttle(CREATE_THROTTLE)
   create(@CurrentUserId() userId: string, @Body() dto: CreateTicketDto) {
     return this.support.createTicket(userId, dto);
   }
@@ -28,6 +31,7 @@ export class SupportController {
   }
 
   @Post('mine/:id/reply')
+  @Throttle(MESSAGE_THROTTLE)
   reply(@CurrentUserId() userId: string, @Param('id') id: string, @Body() dto: ReplyTicketDto) {
     return this.support.reply(userId, id, dto.body);
   }

@@ -309,7 +309,7 @@ export class OrdersService {
       orderId: order.id,
       uploadedBy: sellerId,
       fileUrl: stored.url,
-      fileType: file.mimetype,
+      fileType: stored.contentType ?? file.mimetype,
     });
     const saved = await this.deliveryFiles.save(record);
     await this.postSystemMessage(orderId, 'გამყიდველმა ატვირთა ფაილი.');

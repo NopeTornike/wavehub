@@ -439,3 +439,11 @@ before trusting this in front of a real user.
 subscribe → BOG redirect; checkout 503s locally without BOG credentials), `/admin/subscription-plans`
 (create + activate/deactivate; perks form covers the four known keys). `.badge-pill` renders
 `profileBadge` on `/u/[username]` and coach cards/detail.
+
+## Production API URL
+`NEXT_PUBLIC_API_URL` is inlined at **build** time (`frontend/Dockerfile` build arg). In the
+production Caddy layout it is `https://<domain>/api` — same origin as the site, so the `credentials:
+'include'` session cookie is first-party and CORS is never exercised. Changing it means rebuilding the
+image. During Maintenance Mode a refused write surfaces the API's 503 text through `ApiError` (the
+frontend has no dedicated banner; `GET /health` exposes `maintenance` for a future one). See
+`docs/DEPLOY.md`.

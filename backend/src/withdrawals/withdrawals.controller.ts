@@ -1,3 +1,5 @@
+import { CREATE_THROTTLE } from '../common/throttle';
+import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { Transform } from 'class-transformer';
@@ -51,6 +53,7 @@ export class WithdrawalsController {
   }
 
   @Post('withdrawals')
+  @Throttle(CREATE_THROTTLE)
   @UseGuards(VerifiedEmailGuard)
   request(@CurrentUserId() sellerId: string, @Body() dto: CreateWithdrawRequestDto) {
     return this.withdrawals.request(sellerId, dto);

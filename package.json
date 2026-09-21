@@ -13,7 +13,7 @@
   },
   "scripts": {
     "backend:dev": "npm run start:dev -w backend",
-    "backend:build": "npm run build -w backend",
+    "backend:build": "npm run shared:build && npm run build -w backend",
     "backend:start": "npm run start -w backend",
     "backend:lint": "npm run lint -w backend",
     "backend:test": "npm run test -w backend",
@@ -22,6 +22,8 @@
     "frontend:build": "npm run build -w frontend",
     "frontend:start": "npm run start -w frontend",
     "frontend:lint": "npm run lint -w frontend",
-    "backend:test:e2e": "npm run test:e2e -w backend"
+    "backend:test:e2e": "npm run test:e2e -w backend",
+    "shared:build": "npm run build -w packages/shared-types",
+    "backend:migrate:prod": "npm run migration:run:prod -w backend"
   }
 }

@@ -1,6 +1,7 @@
+import { CREATE_THROTTLE } from '../common/throttle';
 import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Logger, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
-import { SkipThrottle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
@@ -36,6 +37,7 @@ export class SubscriptionsController {
   }
 
   @Post('subscriptions/checkout')
+  @Throttle(CREATE_THROTTLE)
   @UseGuards(AuthGuard, VerifiedEmailGuard)
   checkout(@CurrentUserId() userId: string, @Body() dto: CheckoutSubscriptionDto) {
     return this.subscriptions.startCheckout(userId, dto);

@@ -3,7 +3,8 @@
 ## Purpose
 Enums and API shapes shared between the NestJS backend and the Next.js frontend, so the two apps
 can't silently drift on things like order/dispute/wallet status values. Types only — no business
-logic, no runtime dependencies, no build step (consumed as TS source directly via the npm workspace).
+logic, no runtime dependencies. Consumed as TS source in dev/test/frontend; compiled to `dist/` only for the
+production backend image (see the `exports` gotcha below).
 
 ## Key files
 - `src/index.ts` — everything lives in this one file for now; split into multiple files only if it
@@ -16,9 +17,17 @@ entities and migrations are the actual source of truth for (see each domain modu
 ## Conventions & gotchas
 - Enum string values here MUST match the corresponding Postgres check-constraint/enum values exactly
   — if a migration changes an enum's underlying values, update this file in the same change.
-- No build step: both `backend` (ts-node/tsc) and `frontend` (Next.js) resolve `.ts` source directly
-  through the workspace symlink. Don't add a compiled `dist/` output unless a consumer genuinely needs
-  pre-built JS (e.g. a non-TS runtime) — it's unnecessary complexity otherwise.
+- **Source in dev, compiled JS only for the production backend.** `main`/`types` point at
+  `src/index.ts`, and both `ts-node`/jest and Next.js resolve that TypeScript directly through the
+  workspace symlink. But plain `node` (the production `node backend/dist/main.js`) cannot load
+  TypeScript — the compiled backend crashed with `SyntaxError: Unexpected token 'export'` on its
+  first import (found by actually running the built artifact during the launch-readiness pass; the
+  Docker image had never worked). Fix: `exports` maps a custom condition `wavehub-node-prod` to
+  `dist/index.js` (built by `npm run build -w packages/shared-types`, which `npm run backend:build`
+  runs first), and production starts node with `--conditions=wavehub-node-prod` (`backend`'s `start`
+  and `migration:run:prod` scripts, `backend/docker-entrypoint.sh`). The condition name is
+  deliberately unusual — a bundler's built-in `production` condition would have made Next.js pick the
+  (unbuilt) `dist` too. `dist/` is gitignored.
 - Keep this package to types/enums only. If you're tempted to add a helper function here, ask whether
   it belongs in the specific backend/frontend module instead.
 - **`Public*` interfaces (`PublicListingSummary`, `PublicListingDetail`, `PublicSeller`,

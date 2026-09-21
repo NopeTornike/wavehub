@@ -71,7 +71,7 @@ export class TournamentsService {
     if (file.size > MAX_COVER_BYTES) {
       throw new ForbiddenException('Cover image exceeds the 5MB size limit');
     }
-    const stored = await this.storage.save(file.buffer, file.originalname);
+    const stored = await this.storage.save(file.buffer, file.originalname, 'image');
     await this.tournaments.update(id, { coverImageUrl: stored.url });
     return this.getOrThrow(id);
   }

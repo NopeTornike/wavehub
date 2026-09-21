@@ -2,7 +2,8 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KeyInventoryStatus, ListingStatus, ListingType } from '@wavehub/shared-types';
-import type { AdminListingSummary, SellerListingKeySummary } from '@wavehub/shared-types';
+import type { AdminListingSummary, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
+import { User } from '../users/user.entity';
 import { Listing } from './listing.entity';
 import { ListingImage } from './listing-image.entity';
 import { ServiceDetails } from './service-details.entity';
@@ -17,6 +18,21 @@ import { CreatePackageDto } from './dto/create-package.dto';
 import { BrowseListingsDto } from './dto/browse-listings.dto';
 import { StorageService } from '../storage/storage.service';
 import { encryptKeyValue } from './key-encryption.util';
+
+// The joined `seller` relation is a full User row (email, wallet balance, admin role, moderation
+// reason...). Anything public must go through this projection — the shared `PublicSeller` type
+// always promised exactly these fields, but the raw entity was being serialized instead (found by
+// the response-privacy sweep in backend/test/security.e2e-spec.ts).
+function toPublicSeller(seller: User): PublicSeller {
+  return {
+    id: seller.id,
+    username: seller.username,
+    firstName: seller.firstName,
+    lastName: seller.lastName,
+    sellerRatingAvg: seller.sellerRatingAvg,
+    sellerRatingCount: seller.sellerRatingCount,
+  };
+}
 
 const MAX_IMAGES_PER_LISTING = 5;
 const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -135,7 +151,7 @@ export class ListingsService {
   // in one batched follow-up query so cards can always show a price.
   async browseActive(
     filters: BrowseListingsDto,
-  ): Promise<{ items: Array<Listing & { startingPriceWaveCoin: number | null }>; total: number }> {
+  ): Promise<{ items: Array<Omit<Listing, 'seller'> & { seller: PublicSeller; startingPriceWaveCoin: number | null }>; total: number }> {
     const qb = this.listings
       .createQueryBuilder('listing')
       .leftJoinAndSelect('listing.seller', 'seller')
@@ -220,6 +236,7 @@ export class ListingsService {
 
     const withStartingPrice = items.map((item) => ({
       ...item,
+      seller: toPublicSeller(item.seller),
       stockQuantity: item.type === ListingType.DigitalKey ? availableCountByListing.get(item.id) ?? 0 : item.stockQuantity,
       startingPriceWaveCoin:
         item.type === ListingType.Item || item.type === ListingType.DigitalKey
@@ -255,6 +272,7 @@ export class ListingsService {
       ]);
       return {
         ...listing,
+        seller: toPublicSeller(listing.seller),
         packages,
         requirementsSchema: details?.requirementsSchema ?? [],
         faq: details?.faq ?? [],
@@ -265,11 +283,11 @@ export class ListingsService {
       const availableCount = await this.keyInventory.count({
         where: { listingId: id, status: KeyInventoryStatus.Available },
       });
-      return { ...listing, packages: [], stockQuantity: availableCount };
+      return { ...listing, seller: toPublicSeller(listing.seller), packages: [], stockQuantity: availableCount };
     }
 
     const itemDetails = await this.itemDetails.findOne({ where: { listingId: id } });
-    return { ...listing, packages: [], itemAttributes: itemDetails?.attributes ?? {} };
+    return { ...listing, seller: toPublicSeller(listing.seller), packages: [], itemAttributes: itemDetails?.attributes ?? {} };
   }
 
   async addPackage(sellerId: string, listingId: string, dto: CreatePackageDto): Promise<Package> {
@@ -316,7 +334,7 @@ export class ListingsService {
       throw new ForbiddenException(`A listing can have at most ${MAX_IMAGES_PER_LISTING} images`);
     }
 
-    const stored = await this.storage.save(file.buffer, file.originalname);
+    const stored = await this.storage.save(file.buffer, file.originalname, 'image');
     const image = this.images.create({ listingId, url: stored.url, sortOrder: existingCount });
     return this.images.save(image);
   }

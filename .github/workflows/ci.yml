@@ -71,3 +71,42 @@ jobs:
       # in the ROOT package.json specifically — a workspace member's own `overrides` field is
       # silently ignored by npm. See CLAUDE.md's Security section for why that matters here.
       - run: npm audit --omit=dev
+
+  # Builds both production images and validates the production compose file on every PR, then boots
+  # the whole stack (minus Caddy) against a throwaway Postgres and waits for the backend healthcheck
+  # — i.e. proves the compiled backend really starts, migrations apply on boot, and /health is green.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate production compose file
+        run: |
+          cat > .env <<'ENVEOF'
+          DOMAIN=ci.example.com
+          ACME_EMAIL=ci@example.com
+          FRONTEND_URL=https://ci.example.com
+          BACKEND_PUBLIC_URL=https://ci.example.com/api
+          CORS_ORIGIN=https://ci.example.com
+          NEXT_PUBLIC_API_URL=https://ci.example.com/api
+          POSTGRES_PASSWORD=ci-only-postgres-password-1234
+          JWT_SECRET=ci-only-jwt-secret-0123456789abcdef0123456789abcdef
+          KEY_ENCRYPTION_SECRET=a3f1c9e7b5d38f6a4c2e0b8d6f4a2c0e9b7d5f3a1c8e6b4d2f0a9c7e5b3d1f8a
+          EMAIL_PROVIDER=console
+          ENVEOF
+          docker compose -f docker-compose.yml config > /dev/null
+          docker compose -f docker-compose.local.yml config > /dev/null
+      - name: Build images
+        run: docker compose -f docker-compose.yml build backend frontend
+      - name: Boot postgres + backend and wait for healthy
+        run: |
+          docker compose -f docker-compose.yml up -d postgres backend
+          for i in $(seq 1 30); do
+            status="$(docker inspect --format '{{.State.Health.Status}}' "$(docker compose -f docker-compose.yml ps -q backend)")"
+            echo "backend health: $status"
+            [ "$status" = "healthy" ] && exit 0
+            sleep 5
+          done
+          docker compose -f docker-compose.yml logs backend
+          exit 1
+      - if: always()
+        run: docker compose -f docker-compose.yml down -v

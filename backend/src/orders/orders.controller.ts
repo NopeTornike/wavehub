@@ -1,3 +1,5 @@
+import { CREATE_THROTTLE, MESSAGE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
+import { Throttle } from '@nestjs/throttler';
 import {
   Body,
   Controller,
@@ -27,6 +29,7 @@ export class OrdersController {
   constructor(private readonly orders: OrdersService) {}
 
   @Post()
+  @Throttle(CREATE_THROTTLE)
   @UseGuards(VerifiedEmailGuard)
   purchase(@CurrentUserId() buyerId: string, @Body() dto: PurchaseOrderDto) {
     return this.orders.purchase(buyerId, dto);
@@ -68,6 +71,7 @@ export class OrdersController {
   }
 
   @Post(':id/delivery-files')
+  @Throttle(UPLOAD_THROTTLE)
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }))
   addDeliveryFile(
     @CurrentUserId() sellerId: string,
@@ -115,6 +119,7 @@ export class OrdersController {
   }
 
   @Post(':id/messages')
+  @Throttle(MESSAGE_THROTTLE)
   sendMessage(@CurrentUserId() userId: string, @Param('id') id: string, @Body() dto: SendMessageDto) {
     return this.orders.sendMessage(userId, id, dto.body);
   }
