@@ -10,6 +10,7 @@ const cartTotal = document.getElementById('cartTotal');
 const cartSummaryCount = document.getElementById('cartSummaryCount');
 const checkoutButton = document.getElementById('checkoutButton');
 const checkoutStatus = document.getElementById('checkoutStatus');
+const translate = text => window.wavehubTranslate?.(text) || text;
 const profileButton = document.getElementById('profileButton');
 const profileDropdown = document.getElementById('profileDropdown');
 const profileAvatar = document.getElementById('profileAvatar');
@@ -176,11 +177,11 @@ function renderProfile() {
   if (profileAvatar) profileAvatar.textContent = initials;
   if (profilePanelAvatar) profilePanelAvatar.textContent = initials;
   if (profileUsername) profileUsername.textContent = username;
-  if (profileMeta) profileMeta.textContent = isSignedIn ? 'Signed in' : 'Not signed in';
+  if (profileMeta) profileMeta.textContent = translate(isSignedIn ? 'Signed in' : 'Not signed in');
   if (profileFullName) profileFullName.textContent = displayName;
   if (profileHandle) profileHandle.textContent = isSignedIn ? `@${username}` : '@guest';
   if (accountUsername) accountUsername.textContent = username;
-  if (accountName) accountName.textContent = isSignedIn ? displayName : 'Not signed in';
+  if (accountName) accountName.textContent = isSignedIn ? displayName : translate('Not signed in');
   if (accountId) accountId.textContent = getShortId(user?.id);
   if (accountLoggedIn) accountLoggedIn.textContent = formatLoginTime(session?.loggedInAt);
 
@@ -200,7 +201,8 @@ function renderOnlineCount() {
     return;
   }
 
-  onlineCount.textContent = `${Math.floor(Math.random() * (23 - 2 + 1)) + 2} online`;
+  const onlineLabel = localStorage.getItem('wavehub.language') === 'en' ? 'online' : 'ონლაინ';
+  onlineCount.textContent = `${Math.floor(Math.random() * (23 - 2 + 1)) + 2} ${onlineLabel}`;
 }
 
 function getFilteredCartItems() {
@@ -239,7 +241,7 @@ function renderCart() {
 
   if (cartEmpty) {
     cartEmpty.hidden = items.length > 0;
-    cartEmpty.textContent = allItems.length ? 'No cart products match your search.' : 'Cart is empty.';
+    cartEmpty.textContent = translate(allItems.length ? 'No cart products match your search.' : 'Cart is empty.');
   }
 
   items.forEach((item) => {
@@ -278,13 +280,13 @@ function renderCart() {
 
     const openLink = document.createElement('a');
     openLink.href = item.detailUrl || '#';
-    openLink.textContent = 'View';
+    openLink.textContent = translate('View');
 
     const removeButton = document.createElement('button');
     removeButton.className = 'cart-remove-button';
     removeButton.type = 'button';
     removeButton.dataset.cartItemId = item.id;
-    removeButton.textContent = 'Delete';
+    removeButton.textContent = translate('Delete');
 
     actions.append(openLink, removeButton);
     row.append(thumb, copy, actions);
@@ -353,7 +355,7 @@ checkoutButton?.addEventListener('click', () => {
   if (!user?.username) {
     if (checkoutStatus) {
       checkoutStatus.className = 'seller-status error';
-      checkoutStatus.textContent = 'Please log in before checkout.';
+      checkoutStatus.textContent = translate('Please log in before checkout.');
     }
     setProfileOpen(true);
     profileButton?.focus();
@@ -374,7 +376,7 @@ checkoutButton?.addEventListener('click', () => {
 
   if (checkoutStatus) {
     checkoutStatus.className = 'seller-status success';
-    checkoutStatus.textContent = 'Checkout request is ready. Sellers will confirm the order details.';
+    checkoutStatus.textContent = translate('Checkout request is ready. Sellers will confirm the order details.');
   }
 });
 

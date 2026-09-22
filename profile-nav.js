@@ -6,6 +6,7 @@
   const sellerReviewsKey = 'wavehub.sellerReviews';
   const walletsKey = 'wavehub.wallets';
   const notificationSeenKey = 'wavehub.notificationSeen';
+  const translate = text => window.wavehubTranslate?.(text) || text;
   const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
   let notificationPanel = null;
   let serverMessages = [];
@@ -532,8 +533,8 @@
         items.push({
           id: `message:${message.id}`,
           type: 'message',
-          title: `New message from @${message.fromUsername}`,
-          text: message.body || 'Open the conversation to reply.',
+          title: `${translate('New message from')} @${message.fromUsername}`,
+          text: message.body || translate('Open the conversation to reply.'),
           date: message.createdAt,
           unread: !message.readAt,
           href: `messages.html?to=${encodeURIComponent(message.fromUsername)}`,
@@ -547,8 +548,8 @@
           items.push({
             id: `purchase:${purchase.id}:buyer`,
             type: 'order',
-            title: 'Order update',
-            text: `${purchase.status || 'Checkout request'} · ${purchase.items?.length || 0} item(s)`,
+            title: translate('Order update'),
+            text: `${translate(purchase.status || 'Checkout request')} · ${purchase.items?.length || 0} ${translate('item(s)')}`,
             date: purchase.purchasedAt || purchase.createdAt,
             href: 'orders.html',
           });
@@ -561,8 +562,8 @@
           items.push({
             id: `purchase:${purchase.id}:seller`,
             type: 'sale',
-            title: 'New order received',
-            text: sellerItems.map((item) => item.title).filter(Boolean).join(', ') || 'A buyer placed an order.',
+            title: translate('New order received'),
+            text: sellerItems.map((item) => item.title).filter(Boolean).join(', ') || translate('A buyer placed an order.'),
             date: purchase.purchasedAt || purchase.createdAt,
             href: 'orders.html',
           });
@@ -601,7 +602,7 @@
     if (!user?.username || notifications.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'notification-center-empty';
-      empty.textContent = user?.username ? 'No notifications yet.' : 'Log in to see notifications.';
+      empty.textContent = translate(user?.username ? 'No notifications yet.' : 'Log in to see notifications.');
       list.appendChild(empty);
       return;
     }
