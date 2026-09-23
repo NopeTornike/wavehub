@@ -258,6 +258,43 @@ of writing).
    cat /etc/opendkim/keys/your-domain/wh2026.txt   # the DKIM DNS record, see step 4
    ```
 
+   **Fifth gotcha, only shows up on an actual reboot, not a manual `restart`**: Debian/Ubuntu's
+   `postfix.service` unit is a no-op wrapper (`Type=oneshot`, `ExecStart=/bin/true`) — the real
+   daemon is started by `/usr/sbin/postfix start` from elsewhere, and on this setup that script's
+   own exit code is unreliable (it can report failure — or, from `postfix status`, "not running"
+   — while the daemon is actually up and listening fine). Trusted at face value, this means a real
+   reboot can leave systemd believing postfix started when the mail daemon never actually launched
+   (found by literally rebooting and checking — `systemctl status` said "active", `ps aux` showed
+   nothing). Fix: override the unit to verify the real listening socket instead of trusting the
+   script's exit code:
+   ```bash
+   sudo tee /usr/local/sbin/postfix-start-wrapper.sh > /dev/null <<'EOF'
+   #!/bin/sh
+   /usr/sbin/postfix start >/dev/null 2>&1 || true
+   for i in 1 2 3 4 5 6 7 8 9 10; do
+     ss -tln | grep -q '172.28.0.1:25' && exit 0
+     sleep 1
+   done
+   echo "postfix did not come up listening on 172.28.0.1:25 within 10s" >&2
+   exit 1
+   EOF
+   sudo chmod +x /usr/local/sbin/postfix-start-wrapper.sh
+   sudo mkdir -p /etc/systemd/system/postfix.service.d
+   sudo tee /etc/systemd/system/postfix.service.d/override.conf > /dev/null <<'EOF'
+   [Service]
+   Type=oneshot
+   RemainAfterExit=yes
+   ExecStart=
+   ExecStart=/usr/local/sbin/postfix-start-wrapper.sh
+   ExecStop=/usr/sbin/postfix stop
+   ExecReload=/usr/sbin/postfix reload
+   EOF
+   sudo systemctl daemon-reload
+   ```
+   **Verify this by actually rebooting**, not just `systemctl restart` — the failure mode only
+   shows up across a real cold boot: `sudo reboot`, wait, then `systemctl is-active postfix` AND
+   `sudo ss -tlnp | grep :25` (both must be true; don't trust the first alone).
+
 4. **Add three DNS TXT records** (the `p=` value is every quoted chunk from `wh2026.txt`
    concatenated, no spaces):
    | Host | Value |

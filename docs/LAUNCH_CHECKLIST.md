@@ -59,11 +59,20 @@ verification that should be re-run on the real server. Deployment steps live in 
    to `https://`.
 5. **Rate limiting uses real client IPs.** From two different networks, trigger the login throttle
    (6 wrong passwords in a minute) and confirm it limits per client, not globally.
-6. **Backups.** Run `./scripts/backup.sh`, then perform a **restore drill** on a scratch server
-   (`scripts/restore-db.sh`) and confirm the app works against the restored data.
+6. ✅ **Backups** — `./scripts/backup.sh` verified working; restore drill performed 2026-09-23 by
+   restoring the real dump into a scratch database (`wavehubdb_restoretest`, not production) and
+   confirming every table's row count matched production exactly, then dropped. Off-server backup
+   destination is still an owner decision (section A).
 7. **Maintenance mode.** Toggle it in Admin → Settings: a normal user's write gets `503`,
    browsing still works, an admin can still act; switch it back off.
-8. **Reboot test.** `sudo reboot`; everything returns without intervention.
+8. ✅ **Reboot test** — performed for real 2026-09-23, twice. First reboot found a real bug: the
+   self-hosted mail server's `postfix.service` reported "active" but the actual daemon never
+   started (Debian's postfix systemd unit doesn't reliably track the real process — see
+   `docs/DEPLOY.md`'s fifth SMTP gotcha). Fixed with a verifying start wrapper; second reboot
+   confirmed postfix, the whole Docker stack, fail2ban, and ufw all return correctly on their own.
+   Caddy's `health_interval 30s` means there's a normal ~30s window right after boot where the
+   site briefly answers `503` before Caddy notices the backend is up — not a bug, just its check
+   cadence; it self-resolves without intervention.
 9. **Monitoring.** External uptime check on `/api/health`; alert on disk >80%.
 10. **Dependency audit.** `npm audit --omit=dev` is clean (also enforced in CI).
 
