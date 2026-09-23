@@ -50,3 +50,11 @@
 		reverse_proxy frontend:3000
 	}
 }
+
+# www.DOMAIN gets its own cert and a permanent redirect to the bare domain — without this block
+# Caddy has no certificate for the www host at all, so a browser hitting www gets a raw TLS
+# handshake failure (not even an HTTP redirect) instead of landing on the site. Only add the www
+# A/AAAA record in DNS if you want this to resolve; if you don't, this block is inert.
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
