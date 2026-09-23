@@ -99,12 +99,25 @@ predating this pivot, see `backend/src/listings/CLAUDE.md`), so porting it isn't
 task, it's new seller-dashboard feature work — still not built, no task tracks it yet; (b) the
 public seller-profile viewer half **is now built**: `pages/u/[username].tsx`, backed by the new
 `GET /users/:username` (`backend/src/users/users.controller.ts`, actually declared in
-`ListingsModule` — see that module's `CLAUDE.md`). Reuses `.public-profile-hero`/
-`.public-profile-stats` from `profile.html`, but only the 3 stat tiles this app can back with real
-data (Rating, Public listings, Member since) — the prototype's own version also shows "Orders
-received" and "Buyer reviews" tiles and a marketplace-activity rank panel, none of which this app
-computes; left out rather than faked. Wired from the two places a username was already shown as
-plain text: the listing-detail seller card and the coach-profile seller card (both now `Link`s to
+`ListingsModule` — see that module's `CLAUDE.md`). Reuses `.public-profile-frame`/
+`.public-profile-hero`/`.public-profile-stats` from `profile.html` (2026-09 re-check against the
+current, much-grown `profile.html`, which has since gained an avatar ring, a rank-panel aside, an
+About/game-preference overview, an achievement badge grid, a rating-distribution "performance"
+section, full listings/reviews sub-sections, and a footer "Message" button — none of that is
+ported: no backing fields exist for the bio/game-preference/achievement/rating-distribution data,
+no public "list this seller's listings/reviews" endpoint exists without a backend change, the rank
+panel is the prototype's own client-computed score, not real data, and a generic "Message this
+seller" button would be misleading since Direct messaging is transacted-users-only per
+LAUNCH_PLAN.md §4 — root CLAUDE.md rule #6 governs all of these). Renders **4** (not the
+prototype's 5) stat tiles this app can back with real data — Rating, Public listings, Buyer
+reviews, Member since — via a `.public-profile-stats-4` CSS class applied alongside
+`.public-profile-stats` on the same element (only "Completed orders" has no backing field, so it's
+the one tile dropped). That class overrides just the 5-tile source rules' column count and the
+`:nth-child`/`:last-child` border/span logic that actually differs for 4 items — see the comment
+above `.public-profile-stats-4` in `global.css` for exactly which breakpoints needed real
+overrides (only one did) and why; verify any future tile-count change against live computed
+styles, not just by re-reading the CSS, per that comment. Wired from the two places a username was
+already shown as plain text: the listing-detail seller card and the coach-profile seller card (both now `Link`s to
 `/u/[username]`) — `orders/index.tsx`'s counterpart username and `listings/[id].tsx`'s review
 author aren't linked yet, low-value follow-ups if this page proves useful.
 `support/index.tsx` and `support/[id].tsx` (support ticketing) have no static-prototype reference

@@ -10968,6 +10968,34 @@ body.public-profile-view .main-panel {
   line-height: 1;
 }
 
+.public-profile-stats .public-profile-rating-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+}
+
+.public-profile-rating-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.public-profile-stats .public-profile-reviews-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+}
+
+.public-profile-reviews-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .public-profile-stats article div {
   min-width: 0;
   display: grid;
@@ -10987,6 +11015,22 @@ body.public-profile-view .main-panel {
   font-size: 10px;
   letter-spacing: 0;
   text-transform: none;
+}
+
+/* `.public-profile-stats-4` — pages/u/[username].tsx real-data variant: the static prototype's
+   `.public-profile-stats` always has 5 tiles (Rating/Completed orders/Public listings/Buyer
+   reviews/Member since), but `PublicUserProfile` can only back 4 of those with real data
+   ("Completed orders" has no backing field — root CLAUDE.md rule #6). Applied alongside
+   `.public-profile-stats` on the same element; overrides just the column count at the base and
+   each breakpoint, plus whatever `:nth-child`/`:last-child` border-and-span logic the fixed
+   5-tile source rules assume actually differs for 4 items, so a 4-item grid doesn't leave an
+   orphaned empty cell or a stray divider line. The desktop/~1050px/~430px breakpoints turn out to
+   need only the column-count change — their existing 5-tile border rules degrade correctly for 4
+   items on their own (verify this against the live computed styles if the tile count ever
+   changes again, not just by re-reading this CSS — see the ~700px block below for the one
+   breakpoint that did need real overrides, and why). */
+.public-profile-stats-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .public-profile-overview {
@@ -11552,6 +11596,19 @@ body.public-profile-view .main-panel {
     grid-column: 1 / -1;
     border-right: 0;
     border-bottom: 0;
+  }
+
+  /* -4 variant: 4 items in this 2-column layout means 2 full rows (no odd item-5 left over to
+     span the full width), so undo the 5-tile last-child's row-3-spanning trick — item 4 is just
+     the ordinary bottom-right tile. Item 3 (row 2, column 1) is now the end of the grid too and
+     shouldn't carry a divider for a row that doesn't exist below it, unlike the 5-tile version
+     where item 3 sits mid-grid above a real row 3. */
+  .public-profile-stats-4 article:nth-child(3) {
+    border-bottom: 0;
+  }
+
+  .public-profile-stats-4 article:last-child {
+    grid-column: auto;
   }
 
   .public-profile-score-wrap,

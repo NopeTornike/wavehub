@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <filter id="pinkGlow" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="heartPink" x1="12" y1="12" x2="52" y2="55" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff55ad"/><stop offset="1" stop-color="#ff0068"/>
+    </linearGradient>
+  </defs>
+  <path d="M32 55S8 41.4 8 22.8C8 14.6 14 9 21.6 9c4.8 0 8.3 2.5 10.4 6.1C34.1 11.5 37.6 9 42.4 9 50 9 56 14.6 56 22.8 56 41.4 32 55 32 55Z" stroke="url(#heartPink)" stroke-width="5" stroke-linejoin="round" filter="url(#pinkGlow)"/>
+</svg>
