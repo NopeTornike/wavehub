@@ -56,7 +56,7 @@ describe('EmailService', () => {
 
     const svc = new EmailService();
     expect(createTransport).toHaveBeenCalledWith(
-      expect.objectContaining({ host: 'host.docker.internal', port: 587, secure: false, auth: undefined }),
+      expect.objectContaining({ host: 'host.docker.internal', port: 587, secure: false, ignoreTLS: true, auth: undefined }),
     );
     await svc.send('user@example.com', 'Subject', 'Body');
     expect(sendMail).toHaveBeenCalledWith({
@@ -86,7 +86,7 @@ describe('EmailService', () => {
     const createTransport = jest.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail: jest.fn() } as any);
     new EmailService();
     expect(createTransport).toHaveBeenCalledWith(
-      expect.objectContaining({ host: 'smtp.example.com', port: 465, secure: true, auth: { user: 'user', pass: 'pass' } }),
+      expect.objectContaining({ host: 'smtp.example.com', port: 465, secure: true, ignoreTLS: false, auth: { user: 'user', pass: 'pass' } }),
     );
   });
 

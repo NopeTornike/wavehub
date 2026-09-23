@@ -52,10 +52,23 @@ export class EmailService {
         process.env.SMTP_USER && process.env.SMTP_PASSWORD
           ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
           : undefined;
+      // No auth configured = talking to a same-network, unauthenticated relay (the documented
+      // self-hosted-Postfix case, restricted to the docker subnet server-side — see
+      // docs/DEPLOY.md's "Self-hosted SMTP"), not an arbitrary host over the public internet.
+      // Postfix advertises opportunistic STARTTLS there using its own self-signed cert, which
+      // Node's default CA store doesn't trust — nodemailer would otherwise refuse the connection
+      // outright (found running this exact setup: every send failed with "self-signed
+      // certificate", not from anything reaching the real destination). Skip STARTTLS entirely
+      // for that hop; it's a private, trusted, single-host link — the internet-facing delivery
+      // leg is Postfix's own onward hop to the recipient's real MX, which still negotiates TLS
+      // normally and is unaffected by this. An authenticated relay (SMTP_USER/PASSWORD set) is a
+      // real external hop and keeps full default TLS verification.
+      const ignoreTLS = !auth;
       this.smtpTransport = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port,
         secure: process.env.SMTP_SECURE === 'true', // true = implicit TLS (465); false = plaintext/STARTTLS (587, 25)
+        ignoreTLS,
         auth,
         connectionTimeout: SEND_TIMEOUT_MS,
         greetingTimeout: SEND_TIMEOUT_MS,
