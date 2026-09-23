@@ -59,7 +59,23 @@ None.
 Resend driver implemented and unit-tested with a mocked `fetch`; **never exercised against the real
 Resend API** (no account/key available when written) — send a real verification email as part of
 the launch checklist. SMTP driver implemented and unit-tested with a mocked `nodemailer` transport;
-verified end-to-end against a real self-hosted Postfix (see `docs/DEPLOY.md`'s "Self-hosted SMTP")
-including actual DNS/deliverability setup — see that doc's step 7 for how to check where a
-production deployment's mail is actually landing (inbox/spam/rejected), since that's specific to
-each server's IP reputation and can't be verified once and assumed forever.
+**verified end-to-end for real** against a self-hosted Postfix, scoring a perfect **10/10** on
+mail-tester.com (SPF pass, DKIM pass, not blocklisted, SpamAssassin score effectively 0) — see
+`docs/DEPLOY.md`'s "Self-hosted SMTP". Getting there took **four** real, separately-found
+infrastructure bugs, none of which produced anything louder than `EmailService`'s own quiet
+retry-and-log-domain-only warning — every failure was invisible until someone actually checked
+whether the email arrived, never from an error surfaced to a caller:
+1. `host.docker.internal:host-gateway` resolved to Docker's default bridge gateway, not this
+   compose network's actual gateway — fixed by pinning the network's subnet (`docker-compose.yml`).
+2. `ufw`'s default-deny-incoming blocked the container→host hop on port 25, even from the Docker
+   bridge — fixed with a narrow `ufw allow from <pinned-subnet> to any port 25`.
+3. nodemailer refused Postfix's self-signed opportunistic STARTTLS cert on that same local hop —
+   fixed with `ignoreTLS` for the unauthenticated-relay case (`email.service.ts`).
+4. OpenDKIM had no `InternalHosts` configured, so it treated the backend container's IP as an
+   untrusted external sender and silently declined to sign on its behalf (correct default
+   security behavior, just needed explicit trust) — fixed with `/etc/opendkim/TrustedHosts`
+   listing the pinned docker subnet.
+
+See `docs/DEPLOY.md` step 7 for how to (re-)check where a production deployment's mail is actually
+landing — specific to each server's IP/domain reputation, not a one-time check that stays valid
+forever.

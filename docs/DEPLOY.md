@@ -197,6 +197,15 @@ of writing).
    sudo postconf -e "non_smtpd_milters = inet:127.0.0.1:8891"
    ```
 
+   **`ufw` blocks this hop too, by default, silently.** `ufw`'s default-deny-incoming policy
+   applies to traffic arriving on the Docker bridge interface, not just the public one — a
+   container connecting to a host-listening port (like Postfix here) counts as "incoming" from
+   `ufw`'s point of view and gets dropped with no error either side sees, only a UFW BLOCK line in
+   `/var/log/ufw.log` if you go looking. Allow exactly this one hop, nothing wider:
+   ```bash
+   sudo ufw allow from 172.28.0.0/16 to any port 25 proto tcp comment 'backend -> local Postfix relay'
+   ```
+
 3. **Generate a DKIM key and wire up OpenDKIM.** Three gotchas that will otherwise cost you an hour:
    the key directory must be owned by the `opendkim` user with no group/other write bit or the
    daemon refuses to trust it as "unsafe"; `opendkim.conf` needs an explicit `UserID opendkim:opendkim`
@@ -228,6 +237,22 @@ of writing).
    EOF
    echo 'd /run/opendkim 0750 opendkim opendkim -' | sudo tee /etc/tmpfiles.d/opendkim.conf
    sudo systemd-tmpfiles --create /etc/tmpfiles.d/opendkim.conf
+   ```
+
+   **Fourth gotcha, easy to miss because nothing errors**: without `InternalHosts`, OpenDKIM
+   treats the backend container's IP as an untrusted external sender and silently declines to
+   sign on its behalf (correct default — it's refusing to become an open DKIM-signing relay for
+   arbitrary senders) — you'll see mail actually deliver (Postfix logs `status=sent`) but every
+   message arrives unsigned, and a spam checker will flag it as "not fully authenticated." Fix:
+   ```bash
+   sudo tee /etc/opendkim/TrustedHosts > /dev/null <<'EOF'
+   127.0.0.1
+   localhost
+   172.28.0.0/16
+   *.your-domain
+   EOF
+   sudo chown opendkim:opendkim /etc/opendkim/TrustedHosts
+   sudo sed -i '/^Domain/a InternalHosts            /etc/opendkim/TrustedHosts' /etc/opendkim.conf
    sudo systemctl restart opendkim postfix
    sudo systemctl is-active opendkim postfix   # both must say "active"
    cat /etc/opendkim/keys/your-domain/wh2026.txt   # the DKIM DNS record, see step 4
@@ -269,10 +294,14 @@ of writing).
    > If you ever change the pinned subnet, update both places together.
 
 7. **Actually test delivery**, don't assume it worked because Postfix accepted the message locally —
-   register a real test account and check whether the verification email lands in inbox, spam, or
-   not at all. [mail-tester.com](https://www.mail-tester.com) gives a real SPF/DKIM/DMARC/blocklist
-   score if you send it a test message directly. Give SPF/DKIM/DMARC/PTR a few minutes to propagate
-   before testing (`dig +short TXT your-domain`, `dig +short TXT wh2026._domainkey.your-domain`,
+   [mail-tester.com](https://www.mail-tester.com) gives you a throwaway `@srv1.mail-tester.com`
+   address; register a real (throwaway) account on your own site using that address as the email,
+   so the test exercises the real code path (`EmailService` → nodemailer → Postfix → real MX), not
+   a hand-sent message. Then load `mail-tester.com/<your-test-id>` for a real SPF/DKIM/DMARC/
+   blocklist/spam score — this repo's own setup scored a clean 10/10 once all four gotchas above
+   were fixed; a lower score almost always means one of them is still unresolved on your server,
+   not that the code itself is wrong. Give SPF/DKIM/DMARC/PTR a few minutes to propagate first
+   (`dig +short TXT your-domain`, `dig +short TXT wh2026._domainkey.your-domain`,
    `dig +short -x <server-ip>`).
 
 A fresh IP with no sending history will still land in spam at first even with everything above
