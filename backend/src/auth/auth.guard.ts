@@ -35,7 +35,13 @@ export class AuthGuard implements CanActivate {
     }
 
     const user = await this.users.findStatusById(userId);
-    if (!user || user.status === UserStatus.Suspended || user.status === UserStatus.Banned) {
+    // A validly-signed cookie whose user row no longer exists (e.g. a deleted account) is a stale
+    // session, not a suspension — 401 so the client re-prompts login instead of showing a
+    // misleading "suspended or banned" message for something that isn't either.
+    if (!user) {
+      throw new UnauthorizedException('Session expired or invalid');
+    }
+    if (user.status === UserStatus.Suspended || user.status === UserStatus.Banned) {
       throw new ForbiddenException('Account suspended or banned');
     }
 

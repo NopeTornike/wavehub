@@ -30,9 +30,9 @@ describe('AuthGuard', () => {
     await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });
 
-  it('rejects when the user from the token no longer exists', async () => {
+  it('rejects with 401 (not "suspended") when the user from the token no longer exists', async () => {
     const { guard, context } = build('good-token', { sub: 'user-1' }, null);
-    await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });
 
   it('rejects a suspended user even with a valid, unexpired token', async () => {

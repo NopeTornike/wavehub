@@ -37,8 +37,9 @@ directly, to keep one place owning "how do I fetch a user."
   expiry. If that becomes a real requirement, that's the point to add a session table or a
   denylist — don't build around the gap by inventing something ad hoc in another module.
 - `AuthGuard` verifies the JWT's signature/expiry, then does one lightweight `UsersService
-  .findStatusById()` lookup (id + status columns only) and rejects with 403 if the account is
-  `suspended`/`banned` — added when admin suspend/ban became a real reachable action
+  .findStatusById()` lookup (id + status columns only): 401 if the row no longer exists (a stale
+  session, e.g. a deleted account — not a suspension, don't conflate the two error codes) and 403
+  if the account is `suspended`/`banned` — added when admin suspend/ban became a real reachable action
   (`backend/src/users/admin-users.controller.ts`), since a ban is meaningless if the banned user's
   existing session cookie keeps working for up to 7 more days. This adds one small DB round-trip to
   every guarded request; that's accepted as the cost of a ban actually taking effect immediately.
