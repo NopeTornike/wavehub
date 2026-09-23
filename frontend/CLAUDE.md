@@ -555,6 +555,12 @@ seed a listing, walk a full buyer+seller journey through `/marketplace` → `/or
 before trusting this in front of a real user.
 
 ## Subscriptions UI
+`/plans` also moved off the legacy `.page-title`/`.page-subtitle`/`.admin-row` bridge classes
+2026-09-24 onto the same `.detail-page` + `.detail-title-block` + `.detail-section` language as the
+other net-new own-data pages (subscriptions have no static-prototype page either); the "my
+subscriptions" rows use `.orders-list`/`.order-card` with `.order-thumb` holding the plan's
+initials and the cancel button in `.order-side`. `.plan-grid`/`.plan-card` are unchanged.
+
 `/plans` (public plan browse grouped by audience, "my subscriptions" with cancel-at-period-end,
 subscribe → BOG redirect; checkout 503s locally without BOG credentials), `/admin/subscription-plans`
 (create + activate/deactivate; perks form covers the four known keys; also a manual grant form —

@@ -105,9 +105,16 @@ export default function Plans() {
       title="გამოწერები"
       description="აირჩიეთ WaveHub-ის მყიდველის წევრობა ან გამყიდველის/მწვრთნელის ხილვადობის გეგმა — საკომისიოს ფასდაკლება, გამორჩეული განცხადებები და პრიორიტეტული მხარდაჭერა."
     >
+      {/* Subscriptions are net-new (LAUNCH_PLAN.md §3) with no static-prototype page to port from,
+          so this follows the same `.detail-page` + `.detail-title-block` + `.detail-section`
+          language as the app's other own-data pages, replacing the legacy `.page-title`/
+          `.page-subtitle`/`.admin-row` bridge classes this page still mixed in. */}
       <div className="detail-page">
-        <h1 className="page-title">გამოწერები</h1>
-        <p className="page-subtitle">აირჩიეთ გეგმა — გადახდა ავტომატურად განახლდება ყოველი პერიოდის ბოლოს, გაუქმებამდე.</p>
+        <div className="detail-title-block">
+          <p className="section-kicker">წევრობა</p>
+          <h1>გამოწერები</h1>
+          <p>აირჩიეთ გეგმა — გადახდა ავტომატურად განახლდება ყოველი პერიოდის ბოლოს, გაუქმებამდე.</p>
+        </div>
         {checkoutResult === 'success' && (
           <div className="status-text status-success" role="status">
             გადახდა მიღებულია. გამოწერა რამდენიმე წუთში გააქტიურდება — თუ ქვემოთ ჯერ არ ჩანს, განაახლეთ გვერდი.
@@ -131,28 +138,37 @@ export default function Plans() {
         )}
 
         {mine.length > 0 && (
-          <section aria-labelledby="mySubscriptionsTitle">
-            <h2 id="mySubscriptionsTitle" style={{ fontSize: '1rem' }}>
-              ჩემი გამოწერები
-            </h2>
-            <div className="order-list" style={{ marginBottom: 32 }}>
+          <section className="detail-section" aria-labelledby="mySubscriptionsTitle">
+            <h2 id="mySubscriptionsTitle">ჩემი გამოწერები</h2>
+            <div className="orders-list">
               {mine.map((s) => (
-                <div key={s.id} className="admin-row">
-                  <div className="admin-row-main">
-                    <strong>{s.plan.name}</strong> <span className="note">({AUDIENCE_LABELS[s.plan.audience]})</span>
-                    <div className="note" style={{ margin: 0 }}>
-                      {STATUS_LABELS[s.status]} · {stateLine(s)}: {new Date(s.currentPeriodEnd).toLocaleDateString('ka-GE')}
+                // `.order-card` as a div, not a Link — a subscription row has a cancel action
+                // rather than a detail page. `.order-thumb` takes the plan's initial, the same
+                // no-image fallback coaching-sessions/index.tsx uses.
+                <div key={s.id} className="order-card">
+                  <span className="order-thumb" aria-hidden="true">
+                    {s.plan.name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="order-copy">
+                    <div>
+                      <span className="order-status">{STATUS_LABELS[s.status]}</span>
+                    </div>
+                    <strong>
+                      {s.plan.name} <span className="note">({AUDIENCE_LABELS[s.plan.audience]})</span>
+                    </strong>
+                    <span className="note" style={{ margin: 0 }}>
+                      {stateLine(s)}: {new Date(s.currentPeriodEnd).toLocaleDateString('ka-GE')}
                       {s.status === SubscriptionStatus.Active && s.cancelAtPeriodEnd && ' (გაუქმდება პერიოდის ბოლოს)'}
                       {s.status === SubscriptionStatus.Active && s.isGranted && !s.cancelAtPeriodEnd && ' (ავტომატურად არ განახლდება)'}
-                    </div>
+                    </span>
                   </div>
-                  {isLive(s) && !s.cancelAtPeriodEnd && !s.isGranted && (
-                    <div className="admin-row-actions">
+                  <div className="order-side">
+                    {isLive(s) && !s.cancelAtPeriodEnd && !s.isGranted && (
                       <button type="button" className="button" disabled={busyId === s.id} onClick={() => cancel(s)}>
                         {busyId === s.id ? 'მიმდინარეობს…' : 'გაუქმება'}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -169,10 +185,8 @@ export default function Plans() {
             if (group.length === 0) return null
             const current = live(audience)
             return (
-              <section key={audience} aria-labelledby={`audience-${audience}`}>
-                <h2 id={`audience-${audience}`} style={{ fontSize: '1rem' }}>
-                  {AUDIENCE_LABELS[audience]}
-                </h2>
+              <section key={audience} className="detail-section" aria-labelledby={`audience-${audience}`}>
+                <h2 id={`audience-${audience}`}>{AUDIENCE_LABELS[audience]}</h2>
                 <div className="plan-grid">
                   {group.map((plan) => (
                     <article key={plan.id} className="plan-card">
