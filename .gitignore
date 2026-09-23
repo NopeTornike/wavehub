@@ -4,6 +4,8 @@ dist/
 *.tsbuildinfo
 *.log
 .env
+.env.bak-*
+.env.*.bak
 data/
 
 backend/node_modules/
