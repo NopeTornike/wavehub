@@ -52,15 +52,30 @@ sudo dpkg-reconfigure -plow unattended-upgrades
 sudo systemctl enable --now fail2ban
 ```
 
-Harden SSH (key-only login) in `/etc/ssh/sshd_config.d/99-hardening.conf`, **after confirming your
-key works in a second terminal**:
+Harden SSH in a drop-in that sorts **before** any cloud-init-provided one (see the gotcha below) —
+`/etc/ssh/sshd_config.d/00-wavehub-hardening.conf`, **after confirming your key works in a second
+terminal**:
 
 ```
 PasswordAuthentication no
+KbdInteractiveAuthentication no
 PermitRootLogin no
+X11Forwarding no
+AllowTcpForwarding no
+MaxAuthTries 3
+ClientAliveInterval 300
+ClientAliveCountMax 2
 ```
 
-`sudo systemctl reload ssh`.
+`sudo sshd -t && sudo systemctl reload ssh` (the `-t` syntax-checks the config first — never reload
+a config you haven't checked, on a connection you can't afford to lose).
+
+> **Gotcha, found deploying this exact server**: some providers' cloud images (OVH's does) ship
+> their own `NN-cloud-init.conf` drop-in that sets `PasswordAuthentication yes` — sshd's `Include`
+> processes `sshd_config.d/*.conf` in filename order and the **first** occurrence of a directive
+> wins, so a `99-*.conf` sorts *after* a `50-cloud-init.conf` and silently loses. Name your drop-in
+> `00-*.conf` so it's read first, and verify with `sudo sshd -T | grep passwordauthentication` —
+> it must say `no`, not just "the file I wrote says no."
 
 > ufw does **not** filter ports that Docker publishes. That is why `docker-compose.yml` publishes
 > only Caddy's 80/443 and nothing else — never add `ports:` to `postgres`, `backend` or `frontend`.
