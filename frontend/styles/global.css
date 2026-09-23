@@ -2574,13 +2574,22 @@ button {
   min-height: 100vh;
 }
 
+/* Deliberately diverges from the static prototype's styles.css here (see frontend/CLAUDE.md):
+   auth.html keeps login+register as one card with JS show/hide, so its height never changes and
+   `place-items: center` never moves anything. This app instead has two real Next.js routes
+   (/login, /register) — a full navigation between them — and Register's form is visibly taller
+   (6 fields vs. Login's 2). With vertical centering, that height difference made the whole card
+   (including the logo/title/tabs above the form) visibly jump up or down when switching between
+   them. Anchoring to a fixed top offset instead keeps the logo/title/tabs in the same place on
+   both pages; only the form below grows/shrinks. */
 .auth-page-shell {
   position: relative;
   z-index: 1;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 64px 24px;
 }
 
 .auth-card {

@@ -208,7 +208,13 @@ scope for the UI pivot. Revisit only if bulk purchase becomes a real product dec
   SWIFT, PayPal and Wise both just ask for an email) with a list of the seller's own requests and a
   cancel button on `Pending` ones (`api.cancelWithdrawal`), and a raw transaction history list
   (`api.listWalletTransactions`)
-- `pages/login.tsx`, `pages/register.tsx` — auth forms. `login.tsx` supports a `?next=` query param
+- `pages/login.tsx`, `pages/register.tsx` — auth forms. `styles/global.css`'s `.auth-page-shell`
+  deliberately anchors to a fixed top offset (`align-items: flex-start` + top padding) instead of
+  the static prototype's `place-items: center` — the prototype keeps login+register as one card
+  with JS show/hide (height never changes), but this app is two real routes, and Register's form
+  (6 fields) is visibly taller than Login's (2); with true centering, navigating between them
+  visibly moved the logo/title/tabs up and down. Found live on production, fixed 2026-09.
+  `login.tsx` supports a `?next=` query param
   (validated with `safeNextPath` — must be a same-origin relative path starting with exactly one
   `/`, never an absolute/protocol-relative URL, to avoid an open redirect) and pushes there on
   successful login; other pages link to `/login?next=/wherever` when they need to force a login
