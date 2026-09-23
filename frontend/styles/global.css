@@ -11436,8 +11436,14 @@ body.public-profile-view .main-panel {
   }
 
   .public-profile-avatar {
+    /* A duplicate, later-in-source rule for the same class (see the ~1050px breakpoint and its
+       fix above) — this one was the one actually winning the cascade and was still setting an
+       explicit height, silently defeating that earlier aspect-ratio fix. Equal width/height here
+       happens to be internally consistent on its own, but aspect-ratio is more robust against a
+       future edit to just one of the two, so use the same pattern for both duplicate rules. */
     width: 128px;
-    height: 128px;
+    aspect-ratio: 1;
+    height: auto;
   }
 
   .public-profile-rank-panel {
