@@ -139,6 +139,119 @@ half-migrated.
 Caddy obtains the certificate on the first request to your domain; watch
 `docker compose logs -f caddy` for `certificate obtained successfully`.
 
+## 5b. Self-hosted SMTP (alternative to Resend)
+
+Skip this section if using `EMAIL_PROVIDER=resend`. Running your own mail server gets you real email
+without a third-party account, but **deliverability is on you** — without every piece below, most of
+what you send lands in spam or gets rejected outright by Gmail/Outlook. This is genuinely more
+fragile than a dedicated provider; only do it if you have a specific reason to avoid one.
+
+**Prerequisite**: confirm outbound port 25 isn't blocked — `timeout 5 bash -c '</dev/tcp/smtp.gmail.com/25' && echo open || echo blocked`.
+Some cloud providers block it by default and require a support ticket to open it (OVH does not, as
+of writing).
+
+1. **Install Postfix + OpenDKIM** (host-level, not in Docker — needs to bind to a privileged-ish
+   port range other services shouldn't share, and DKIM key material shouldn't live in an image):
+   ```bash
+   sudo apt -y install postfix opendkim opendkim-tools mailutils
+   # postfix installer prompts: "Internet Site", mailname = your domain
+   ```
+
+2. **Configure Postfix to relay only from this server's own Docker network — never a public open
+   relay.** Get the compose network's subnet first (`docker network inspect wavehub_default --format
+   '{{range .IPAM.Config}}{{.Subnet}} gw={{.Gateway}}{{end}}'`), then:
+   ```bash
+   sudo postconf -e "myhostname = mail.your-domain"
+   sudo postconf -e "mydomain = your-domain"
+   sudo postconf -e "myorigin = your-domain"
+   # Only loopback + the docker bridge gateway — never the public interface. Sending only, never
+   # receiving; ufw already has no rule for 25 either, so it's unreachable from the internet twice over.
+   sudo postconf -e "inet_interfaces = 127.0.0.1, <docker-gateway-ip>"
+   sudo postconf -e "inet_protocols = ipv4"
+   sudo postconf -e "mydestination = localhost"
+   sudo postconf -e "mynetworks = 127.0.0.0/8, <docker-subnet>"
+   sudo postconf -e "smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination"
+   sudo postconf -e "smtp_tls_security_level = may"
+   sudo postconf -e "smtpd_tls_security_level = may"
+   sudo postconf -e "milter_default_action = accept"
+   sudo postconf -e "milter_protocol = 6"
+   sudo postconf -e "smtpd_milters = inet:127.0.0.1:8891"
+   sudo postconf -e "non_smtpd_milters = inet:127.0.0.1:8891"
+   ```
+
+3. **Generate a DKIM key and wire up OpenDKIM.** Three gotchas that will otherwise cost you an hour:
+   the key directory must be owned by the `opendkim` user with no group/other write bit or the
+   daemon refuses to trust it as "unsafe"; `opendkim.conf` needs an explicit `UserID opendkim:opendkim`
+   or it never drops root privileges and the same "unsafe" check trips again; and it needs an explicit
+   `PidFile` matching systemd's `PIDFile=` or the service times out waiting for a PID file that gets
+   written somewhere systemd never looks.
+   ```bash
+   sudo mkdir -p /etc/opendkim/keys/your-domain
+   cd /etc/opendkim/keys/your-domain
+   sudo opendkim-genkey -b 2048 -d your-domain -s wh2026 -v
+   sudo chown -R opendkim:opendkim /etc/opendkim/keys
+   sudo chmod 750 /etc/opendkim/keys /etc/opendkim/keys/your-domain
+   sudo chmod 640 /etc/opendkim/keys/your-domain/wh2026.private
+
+   sudo tee /etc/opendkim.conf > /dev/null <<'EOF'
+   Domain                  your-domain
+   KeyFile                 /etc/opendkim/keys/your-domain/wh2026.private
+   Selector                wh2026
+   Socket                  inet:8891@127.0.0.1
+   PidFile                 /run/opendkim/opendkim.pid
+   Syslog                  yes
+   UMask                   022
+   Mode                    sv
+   UserID                  opendkim:opendkim
+   SubDomains              no
+   AutoRestart             yes
+   AutoRestartRate         10/1h
+   OversignHeaders         From
+   EOF
+   echo 'd /run/opendkim 0750 opendkim opendkim -' | sudo tee /etc/tmpfiles.d/opendkim.conf
+   sudo systemd-tmpfiles --create /etc/tmpfiles.d/opendkim.conf
+   sudo systemctl restart opendkim postfix
+   sudo systemctl is-active opendkim postfix   # both must say "active"
+   cat /etc/opendkim/keys/your-domain/wh2026.txt   # the DKIM DNS record, see step 4
+   ```
+
+4. **Add three DNS TXT records** (the `p=` value is every quoted chunk from `wh2026.txt`
+   concatenated, no spaces):
+   | Host | Value |
+   |---|---|
+   | `@` | `v=spf1 ip4:<this-server's-IP> -all` |
+   | `wh2026._domainkey` | `v=DKIM1; h=sha256; k=rsa; p=<the concatenated key>` |
+   | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:you@your-domain; pct=100` |
+
+5. **Set the PTR (reverse DNS) record** for the server's IP to `mail.your-domain` — in your VPS
+   provider's control panel, not DNS. A mismatched or default PTR (e.g. `vps-xxxx.provider.net`) is
+   one of the strongest spam signals there is; SPF/DKIM alone won't save you without it.
+
+6. **Point the backend at it.** `docker-compose.yml`'s `backend` service already has
+   `extra_hosts: host.docker.internal:host-gateway`, so the container can reach Postfix on the host
+   without knowing the bridge's actual gateway IP:
+   ```
+   EMAIL_PROVIDER=smtp
+   SMTP_HOST=host.docker.internal
+   SMTP_PORT=25
+   SMTP_SECURE=false
+   # SMTP_USER / SMTP_PASSWORD stay empty — mynetworks trusts the docker subnet, no auth needed.
+   EMAIL_FROM="WaveHub <no-reply@your-domain>"
+   ```
+   `docker compose up -d backend` (no rebuild needed for an env-only change).
+
+7. **Actually test delivery**, don't assume it worked because Postfix accepted the message locally —
+   register a real test account and check whether the verification email lands in inbox, spam, or
+   not at all. [mail-tester.com](https://www.mail-tester.com) gives a real SPF/DKIM/DMARC/blocklist
+   score if you send it a test message directly. Give SPF/DKIM/DMARC/PTR a few minutes to propagate
+   before testing (`dig +short TXT your-domain`, `dig +short TXT wh2026._domainkey.your-domain`,
+   `dig +short -x <server-ip>`).
+
+A fresh IP with no sending history will still land in spam at first even with everything above
+correct — mailbox providers build reputation over time from consistent, low-complaint sending. This
+is the real, unavoidable tradeoff against a dedicated provider like Resend, which already has that
+reputation built up.
+
 ## 6. Smoke test
 
 ```bash

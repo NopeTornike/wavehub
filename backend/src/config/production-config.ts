@@ -56,12 +56,15 @@ export function collectProductionConfigProblems(env: NodeJS.ProcessEnv): string[
 
   const emailProvider = (env.EMAIL_PROVIDER || '').toLowerCase();
   if (!emailProvider) {
-    problems.push('EMAIL_PROVIDER must be set explicitly (resend, or console to knowingly disable real email)');
+    problems.push('EMAIL_PROVIDER must be set explicitly (resend, smtp, or console to knowingly disable real email)');
   } else if (emailProvider === 'resend') {
     if (!env.RESEND_API_KEY) problems.push('RESEND_API_KEY is required when EMAIL_PROVIDER=resend');
     if (!env.EMAIL_FROM) problems.push('EMAIL_FROM is required when EMAIL_PROVIDER=resend');
+  } else if (emailProvider === 'smtp') {
+    if (!env.SMTP_HOST) problems.push('SMTP_HOST is required when EMAIL_PROVIDER=smtp');
+    if (!env.EMAIL_FROM) problems.push('EMAIL_FROM is required when EMAIL_PROVIDER=smtp');
   } else if (emailProvider !== 'console') {
-    problems.push(`EMAIL_PROVIDER "${emailProvider}" is not supported (use resend or console)`);
+    problems.push(`EMAIL_PROVIDER "${emailProvider}" is not supported (use resend, smtp, or console)`);
   }
 
   const storageDriver = (env.STORAGE_DRIVER || 'local').toLowerCase();

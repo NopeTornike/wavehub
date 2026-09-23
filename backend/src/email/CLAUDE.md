@@ -11,6 +11,14 @@ Sends transactional emails (verification, password reset). One method, two drive
     SDK/dependency. Needs `RESEND_API_KEY` and `EMAIL_FROM` (a sender on a domain verified in
     Resend) — constructing the service throws if either is missing. 10 s timeout; one retry on a
     network error/5xx, none on a 4xx (our request is wrong; retrying can't help).
+  - **`smtp`** — any SMTP relay via `nodemailer` (the one real dependency this module carries —
+    hand-rolling STARTTLS/AUTH/MIME correctly risks header-injection-class bugs; a maintained
+    library earns its place). Needs `SMTP_HOST`; `SMTP_PORT` defaults to 587, `SMTP_SECURE` to
+    `false` (STARTTLS). `SMTP_USER`/`SMTP_PASSWORD` are optional — leave both unset for an
+    unauthenticated relay restricted to a trusted network (e.g. a self-hosted Postfix on the same
+    server — see `docs/DEPLOY.md`'s "Self-hosted SMTP" section for the full setup, including why
+    SPF/DKIM/DMARC/PTR all matter and what happens without them). Same one-retry,
+    domain-only-logging contract as `resend`.
   - **`console`** — logs instead of sending. Default when `EMAIL_PROVIDER` is unset *outside*
     production. Development logs the full body (so you can copy the verification link); with
     `NODE_ENV=production` it logs only the recipient's **domain** and the subject, never the body
@@ -32,9 +40,13 @@ None.
   fails the boot otherwise) — `console` is allowed only as a conscious opt-in for smoke tests,
   since with it nobody can ever verify an account.
 - Every caller (currently `backend/src/auth/auth.service.ts`) goes through `EmailService.send()`;
-  don't let call sites reach for a provider directly. To add a provider (Postmark, SES, SMTP), add a
+  don't let call sites reach for a provider directly. To add a provider (Postmark, SES), add a
   branch in the constructor + `send()` and extend `production-config.ts` and
   `.env.production.example`.
+- `docker-compose.yml`'s `backend` service has `extra_hosts: host.docker.internal:host-gateway` so
+  `SMTP_HOST=host.docker.internal` reaches a relay running on the host itself (outside Docker) —
+  needed because a self-hosted Postfix belongs at the host level (DKIM key material, binding a
+  port other services might want), not baked into an app image.
 - The e2e harness (`backend/test/helpers.ts`) replaces `EmailService.prototype.send` to capture
   verification links, so e2e never hits a provider.
 - Sending domain DNS (SPF/DKIM/DMARC) is an owner task — `docs/LAUNCH_CHECKLIST.md`.
@@ -46,4 +58,8 @@ None.
 ## Status
 Resend driver implemented and unit-tested with a mocked `fetch`; **never exercised against the real
 Resend API** (no account/key available when written) — send a real verification email as part of
-the launch checklist.
+the launch checklist. SMTP driver implemented and unit-tested with a mocked `nodemailer` transport;
+verified end-to-end against a real self-hosted Postfix (see `docs/DEPLOY.md`'s "Self-hosted SMTP")
+including actual DNS/deliverability setup — see that doc's step 7 for how to check where a
+production deployment's mail is actually landing (inbox/spam/rejected), since that's specific to
+each server's IP reputation and can't be verified once and assumed forever.

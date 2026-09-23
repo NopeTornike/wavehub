@@ -1,3 +1,4 @@
+import nodemailer from 'nodemailer';
 import { EmailService } from './email.service';
 
 describe('EmailService', () => {
@@ -35,6 +36,58 @@ describe('EmailService', () => {
     expect(() => new EmailService()).toThrow(/RESEND_API_KEY/);
     process.env.EMAIL_PROVIDER = 'smtp2go';
     expect(() => new EmailService()).toThrow(/Unsupported EMAIL_PROVIDER/);
+  });
+
+  it('requires SMTP_HOST and EMAIL_FROM for smtp', () => {
+    process.env.EMAIL_PROVIDER = 'smtp';
+    delete process.env.SMTP_HOST;
+    expect(() => new EmailService()).toThrow(/SMTP_HOST/);
+  });
+
+  it('sends via nodemailer for smtp, retries once on failure, then gives up without throwing', async () => {
+    process.env.EMAIL_PROVIDER = 'smtp';
+    process.env.SMTP_HOST = 'host.docker.internal';
+    process.env.EMAIL_FROM = 'WaveHub <no-reply@example.com>';
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASSWORD;
+
+    const sendMail = jest.fn().mockResolvedValueOnce(undefined);
+    const createTransport = jest.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail } as any);
+
+    const svc = new EmailService();
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ host: 'host.docker.internal', port: 587, secure: false, auth: undefined }),
+    );
+    await svc.send('user@example.com', 'Subject', 'Body');
+    expect(sendMail).toHaveBeenCalledWith({
+      from: 'WaveHub <no-reply@example.com>',
+      to: 'user@example.com',
+      subject: 'Subject',
+      text: 'Body',
+    });
+
+    sendMail.mockReset().mockRejectedValue(new Error('connection refused'));
+    const svc2 = new EmailService();
+    const err = jest.spyOn((svc2 as any).logger, 'error').mockImplementation(() => undefined);
+    jest.spyOn((svc2 as any).logger, 'warn').mockImplementation(() => undefined);
+    await expect(svc2.send('u@example.com', 's', 'b')).resolves.toBeUndefined();
+    expect(sendMail).toHaveBeenCalledTimes(2); // one retry
+    expect(err).toHaveBeenCalled();
+  });
+
+  it('passes SMTP_USER/SMTP_PASSWORD as auth when both are set', () => {
+    process.env.EMAIL_PROVIDER = 'smtp';
+    process.env.SMTP_HOST = 'smtp.example.com';
+    process.env.SMTP_PORT = '465';
+    process.env.SMTP_SECURE = 'true';
+    process.env.SMTP_USER = 'user';
+    process.env.SMTP_PASSWORD = 'pass';
+    process.env.EMAIL_FROM = 'a@b.com';
+    const createTransport = jest.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail: jest.fn() } as any);
+    new EmailService();
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ host: 'smtp.example.com', port: 465, secure: true, auth: { user: 'user', pass: 'pass' } }),
+    );
   });
 
   it('posts to the Resend API with a bearer token', async () => {

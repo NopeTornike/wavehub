@@ -60,6 +60,25 @@ describe('production config validation', () => {
     expect(collectProductionConfigProblems({ ...GOOD_ENV, EMAIL_PROVIDER: 'console', RESEND_API_KEY: undefined })).toEqual([]);
   });
 
+  it('requires SMTP_HOST and EMAIL_FROM when EMAIL_PROVIDER=smtp', () => {
+    const problems = collectProductionConfigProblems({
+      ...GOOD_ENV,
+      EMAIL_PROVIDER: 'smtp',
+      RESEND_API_KEY: undefined,
+      EMAIL_FROM: undefined,
+    });
+    expect(problems.join('\n')).toMatch(/SMTP_HOST[\s\S]*EMAIL_FROM|EMAIL_FROM[\s\S]*SMTP_HOST/);
+    expect(
+      collectProductionConfigProblems({
+        ...GOOD_ENV,
+        EMAIL_PROVIDER: 'smtp',
+        RESEND_API_KEY: undefined,
+        SMTP_HOST: 'host.docker.internal',
+        EMAIL_FROM: 'no-reply@example.com',
+      }),
+    ).toEqual([]);
+  });
+
   it('requires the S3 settings when STORAGE_DRIVER=s3', () => {
     const problems = collectProductionConfigProblems({ ...GOOD_ENV, STORAGE_DRIVER: 's3' });
     expect(problems.join('\n')).toMatch(/S3_BUCKET[\s\S]*S3_ACCESS_KEY_ID[\s\S]*S3_SECRET_ACCESS_KEY[\s\S]*S3_PUBLIC_BASE_URL/);

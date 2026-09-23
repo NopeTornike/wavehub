@@ -85,9 +85,14 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:?set CORS_ORIGIN (https://your-domain) in .env}
       TRUST_PROXY: "1" # exactly one proxy hop: Caddy
       # --- email ---
-      EMAIL_PROVIDER: ${EMAIL_PROVIDER:?set EMAIL_PROVIDER (resend, or console) in .env}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:?set EMAIL_PROVIDER (resend, smtp, or console) in .env}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       # --- file storage ---
       STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
       UPLOADS_DIR: /data/uploads
@@ -109,6 +114,11 @@ services:
       - uploads:/data/uploads
     expose:
       - "4000"
+    # Only meaningful when EMAIL_PROVIDER=smtp and SMTP_HOST=host.docker.internal — lets the
+    # container reach a mail relay (e.g. Postfix) running on the HOST itself, outside Docker.
+    # "host-gateway" resolves to whatever the current bridge gateway IP is; harmless when unused.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     stop_grace_period: 30s # lets in-flight requests/transactions finish on SIGTERM
     logging: *default-logging
 
