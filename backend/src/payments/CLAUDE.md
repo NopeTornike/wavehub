@@ -58,6 +58,14 @@ to actually credit a balance — this module never touches `users.wavecoinBalanc
 - The BOG public key and API endpoints referenced here were fetched from
   `https://api.bog.ge/docs/en/payments/` on 2026-07-15. If BOG's docs have changed since, re-verify
   before trusting this module against production traffic — don't assume it's still current forever.
+- **Every order-creation/charge call needs an `Accept-Language: ka` header, not a body field.**
+  Found against real production BOG (2026-09-23, first-ever real-credential test): omitting it
+  entirely made BOG reject the request with `"Invalid language *"` — their server appears to fall
+  back to reading the default `Accept: */*` header instead and choking on the literal `*`. Their
+  own docs' example request body doesn't mention this at all; it's covered on a separate docs page
+  about the header only. `BOG_LANGUAGE_HEADER` in `bog-payments.service.ts` is the one place this is
+  set — every new BOG call that creates/affects a checkout must spread it into its headers, and
+  `bog-payments.service.spec.ts` locks this in so it can't silently regress again.
 - **`successUrl`/`failUrl` are validated same-origin against `FRONTEND_URL`** before being sent to
   BOG (`assertSameOriginAsFrontend`). BOG redirects the buyer's browser to one of these after
   payment — an unvalidated redirect target here is a real open-redirect, and one that follows an
@@ -79,15 +87,18 @@ to actually credit a balance — this module never touches `users.wavecoinBalanc
   and id.
 
 ## Status
-Both endpoints are implemented and unit-tested at the signature-verification layer
-(`bog-signature.util.spec.ts`). Not verified against BOG's real sandbox/production API — no live BOG
-credentials or a reachable public callback URL were available in the environment this was built in
-(BOG can only call back to a publicly reachable HTTPS URL; `BACKEND_PUBLIC_URL=localhost` won't
-receive anything without a tunnel). Before relying on this in production: get real BOG sandbox
-credentials, confirm the callback body's actual full shape against a real test payment (the fields
-used here — `body.order_id`, and `order_status.key`/`external_order_id` from the receipt endpoint —
-are drawn from BOG's public docs, not observed from a real payload), and confirm the public key is
-still current.
+2026-09-23: **real production BOG credentials are now configured** (`BOG_CLIENT_ID`/`BOG_CLIENT_SECRET`
+in the server's `.env`, never in git — see `docs/DEPLOY.md`). Verified against the real API: OAuth
+client-credentials token exchange succeeds (HTTP 200, real bearer token), and `POST
+/payments/bog/create-order` was exercised through the real deployed app end-to-end — this is what
+surfaced the `Accept-Language` bug above; after the fix, order creation against real BOG succeeds
+and returns a real checkout redirect URL. **Not yet verified**: completing an actual checkout with a
+real card (would move real money — deliberately not done by an agent; needs the account owner to
+do it manually and confirm the callback fires and credits WaveCoin correctly), and the callback body's
+exact real shape (still inferred from BOG's docs, `body.order_id` / `order_status.key`/
+`external_order_id`, not yet observed from a real payload since no real payment has completed).
+Signature verification is unit-tested (`bog-signature.util.spec.ts`); the public key has not been
+independently reconfirmed against BOG's current published key since 2026-07-15.
 
 ## Subscription billing additions
 `BogPaymentsService` also exposes `createSubscriptionOrder`, `saveCard(orderId)` and

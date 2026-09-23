@@ -1,5 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
+// BOG's order-creation API reads the checkout page's display language from this HTTP header, not
+// from a body field — found the hard way against real production BOG (their docs' body-schema
+// example doesn't mention it at all): omitting it entirely made BOG reject the request with
+// "Invalid language *", apparently falling back to reading our default `Accept: */*` header
+// instead and choking on the literal `*`. The whole app is Georgian-first, so `ka` always.
+const BOG_LANGUAGE_HEADER = { 'Accept-Language': 'ka' } as const;
+
 type CreateWavecoinOrderInput = {
   amountGel: number;
   wavecoins: number;
@@ -41,6 +48,7 @@ export class BogPaymentsService {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
+        ...BOG_LANGUAGE_HEADER,
       },
       body: JSON.stringify({
         callback_url: input.callbackUrl,
@@ -94,6 +102,7 @@ export class BogPaymentsService {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
+        ...BOG_LANGUAGE_HEADER,
       },
       body: JSON.stringify({
         callback_url: input.callbackUrl,
@@ -173,6 +182,7 @@ export class BogPaymentsService {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
+          ...BOG_LANGUAGE_HEADER,
         },
         body: JSON.stringify({ callback_url: callbackUrl, external_order_id: externalOrderId }),
       },
