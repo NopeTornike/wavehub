@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { PublicTournamentSummary } from '@wavehub/shared-types'
 import { TournamentStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
+import { CalendarGlyph, PlayersGlyph } from '../../components/TournamentStatIcons'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
@@ -15,9 +16,12 @@ const STATUS_LABELS: Record<TournamentStatus, string> = {
 
 type Tab = 'general' | 'prize' | 'rules'
 
+// '★' matches the rating-star glyph used everywhere else on the site (marketplace/listing/coach
+// rating pills) — swapped in for the previous '♛' (chess queen), which didn't read as "prize" at
+// a glance and was the only chess piece in an otherwise glyph-free icon language.
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'general', icon: 'ⓘ', label: 'ზოგადი' },
-  { id: 'prize', icon: '♛', label: 'პრიზი' },
+  { id: 'prize', icon: '★', label: 'პრიზი' },
   { id: 'rules', icon: '▤', label: 'წესები' },
 ]
 
@@ -146,14 +150,18 @@ export default function TournamentDetail() {
             </span>
           </div>
           <div>
-            <b aria-hidden="true">□</b>
+            <b aria-hidden="true">
+              <CalendarGlyph />
+            </b>
             <span>
               <small>თარიღი</small>
               <strong>{startDate}</strong>
             </span>
           </div>
           <div>
-            <b aria-hidden="true">♙</b>
+            <b aria-hidden="true">
+              <PlayersGlyph />
+            </b>
             <span>
               <small>მოთამაშეები</small>
               <strong>
@@ -163,7 +171,7 @@ export default function TournamentDetail() {
             </span>
           </div>
           <div>
-            <b aria-hidden="true">♛</b>
+            <b aria-hidden="true">★</b>
             <span>
               <small>პრიზი</small>
               <strong className="is-pink">{tournament.prize}</strong>
@@ -219,7 +227,7 @@ export default function TournamentDetail() {
         {tab === 'prize' && (
           <section className="tournament-detail-panel active" id="td-panel-prize" role="tabpanel" aria-labelledby="td-tab-prize">
             <div className="td-simple-panel">
-              <span aria-hidden="true">♛</span>
+              <span aria-hidden="true">★</span>
               <div>
                 <h2>პრიზი</h2>
                 <strong>{tournament.prize}</strong>

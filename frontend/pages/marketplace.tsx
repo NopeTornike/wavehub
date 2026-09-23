@@ -174,13 +174,7 @@ export default function Marketplace() {
                       {listing.category.name}
                       {listing.game && ` · ${listing.game.name}`}
                     </span>
-                    {listing.ratingCount > 0 ? (
-                      <span className="rating-pill">★ {listing.ratingAvg}</span>
-                    ) : (
-                      <span className="rating-pill" style={{ color: 'var(--text-secondary)' }}>
-                        —
-                      </span>
-                    )}
+                    {listing.ratingCount > 0 && <span className="rating-pill">★ {listing.ratingAvg}</span>}
                   </div>
                 </Link>
               ))}

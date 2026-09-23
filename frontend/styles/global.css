@@ -6307,6 +6307,12 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
   .public-profile-avatar {
     width: 100%;
     max-width: 120px;
+    /* The desktop rule sets a fixed height (e.g. 88px) that doesn't track this fluid width, which
+       stretched the circular avatar into a visible oval on phone widths — aspect-ratio keeps it a
+       true circle/square at any resolved width instead of relying on two properties staying in
+       sync by coincidence. */
+    aspect-ratio: 1;
+    height: auto;
   }
 
   .public-profile-hero {
@@ -11879,13 +11885,20 @@ body.public-profile-view .main-panel {
   position: absolute;
   top: -4px;
   right: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
   color: #fff;
   font-size: 0.65rem;
   font-weight: 700;
+  line-height: 1;
   border-radius: 999px;
-  padding: 1px 5px;
+  /* Equal min-width/min-height (not padding + text-align alone) keeps a single-digit count a true
+     circle instead of a squashed oval; a 2+ digit count still grows into a pill via the padding. */
   min-width: 16px;
+  min-height: 16px;
+  padding: 0 4px;
   text-align: center;
 }
 

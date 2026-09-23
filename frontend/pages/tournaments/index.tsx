@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { PublicTournamentSummary } from '@wavehub/shared-types'
 import { TournamentStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
+import { CalendarGlyph, PlayersGlyph } from '../../components/TournamentStatIcons'
 import { api, errorMessage } from '../../lib/api'
 
 const STATUS_LABELS: Record<TournamentStatus, string> = {
@@ -133,17 +134,21 @@ export default function Tournaments() {
                       <p className="tournament-card-description">{tournament.description}</p>
                       <div className="tournament-card-facts">
                         <span>
-                          <b aria-hidden="true">▣</b>
+                          <b aria-hidden="true">
+                            <CalendarGlyph />
+                          </b>
                           <strong>{new Date(tournament.startDate).toLocaleDateString('ka-GE', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
                           <small>დაწყება</small>
                         </span>
                         <span>
-                          <b aria-hidden="true">♛</b>
+                          <b aria-hidden="true">★</b>
                           <strong>{tournament.prize}</strong>
                           <small>პრიზი</small>
                         </span>
                         <span>
-                          <b aria-hidden="true">♙</b>
+                          <b aria-hidden="true">
+                            <PlayersGlyph />
+                          </b>
                           <strong>
                             {tournament.registeredCount} / {tournament.maxPlayers}
                           </strong>
