@@ -117,10 +117,8 @@ export default function ManageDigitalKeyListing() {
   if (!user || loading) {
     return (
       <Layout title={title} noIndex>
-        <div className="page">
-          <div className="page-inner">
-            <div className="empty-state">იტვირთება…</div>
-          </div>
+        <div className="detail-page">
+          <div className="marketplace-empty">იტვირთება…</div>
         </div>
       </Layout>
     )
@@ -129,12 +127,12 @@ export default function ManageDigitalKeyListing() {
   if (!listing) {
     return (
       <Layout title={title} noIndex>
-        <div className="page">
-          <div className="page-inner">
-            <Link href="/sell/digital-keys">← ჩემი განცხადებები</Link>
-            <div className="status-text status-error" role="alert" style={{ marginTop: 12 }}>
-              {error || 'განცხადება ვერ მოიძებნა.'}
-            </div>
+        <div className="detail-page">
+          <Link className="detail-back-link" href="/sell/digital-keys">
+            ← ჩემი განცხადებები
+          </Link>
+          <div className="status-text status-error" role="alert">
+            {error || 'განცხადება ვერ მოიძებნა.'}
           </div>
         </div>
       </Layout>
@@ -146,37 +144,43 @@ export default function ManageDigitalKeyListing() {
 
   return (
     <Layout title={`${listing.title} — ${title}`} noIndex>
-      <div className="page">
-        <div className="page-inner">
-          <Link href="/sell/digital-keys">← ჩემი განცხადებები</Link>
-          <h1 className="page-title" style={{ marginTop: 12 }}>
-            {listing.title}
-          </h1>
-          <p className="page-subtitle">
+      {/* Same net-new-page rationale as sell/digital-keys/index.tsx — `.detail-page` +
+          `.detail-title-block` + `.detail-section`, replacing the legacy `.page`/`.page-inner`/
+          `.page-title`/`.admin-row` bridge classes. */}
+      <div className="detail-page">
+        <Link className="detail-back-link" href="/sell/digital-keys">
+          ← ჩემი განცხადებები
+        </Link>
+
+        <div className="detail-title-block">
+          <p className="section-kicker">გასაღებების მართვა</p>
+          <h1>{listing.title}</h1>
+          <p>
             სტატუსი: {LISTING_STATUS_LABELS[listing.status] ?? listing.status} · ფასი: {listing.priceWaveCoin} WC · ხელმისაწვდომი გასაღები: {availableCount}
           </p>
+        </div>
 
-          {error && (
-            <div className="status-text status-error" role="alert">
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="status-text status-error" role="alert">
+            {error}
+          </div>
+        )}
 
-          {canSubmit && (
-            <div className="admin-row" style={{ marginBottom: 24 }}>
-              <div className="admin-row-main">
-                <strong>{listing.status === ListingStatus.Rejected ? 'უარყოფილია — გაასწორეთ და თავიდან გაგზავნეთ' : 'გასაგზავნია განსახილველად'}</strong>
-                <span className="note" style={{ margin: 0 }}>
-                  გამოაქვეყნეთ განცხადება მას შემდეგ, რაც დაამატებთ გასაღებებს.
-                  {listing.status === ListingStatus.Rejected && listing.rejectionReason && ` მიზეზი: ${listing.rejectionReason}`}
-                </span>
-              </div>
-              <button type="button" className="button" disabled={submitting || availableCount === 0} onClick={submitForReview}>
-                {submitting ? 'იგზავნება…' : 'გაგზავნა განხილვისთვის'}
-              </button>
-            </div>
-          )}
+        {canSubmit && (
+          <section className="detail-section">
+            <h2>{listing.status === ListingStatus.Rejected ? 'უარყოფილია — გაასწორეთ და თავიდან გაგზავნეთ' : 'გასაგზავნია განსახილველად'}</h2>
+            <p className="note">
+              გამოაქვეყნეთ განცხადება მას შემდეგ, რაც დაამატებთ გასაღებებს.
+              {listing.status === ListingStatus.Rejected && listing.rejectionReason && ` მიზეზი: ${listing.rejectionReason}`}
+            </p>
+            <button type="button" className="detail-buy-button" disabled={submitting || availableCount === 0} onClick={submitForReview}>
+              {submitting ? 'იგზავნება…' : 'გაგზავნა განხილვისთვის'}
+            </button>
+          </section>
+        )}
 
+        <section className="detail-section">
+          <h2>გასაღებების დამატება</h2>
           <form
             className="stack-form"
             onSubmit={(event) => {
@@ -184,7 +188,6 @@ export default function ManageDigitalKeyListing() {
               void uploadKeys()
             }}
           >
-            <h2>გასაღებების დამატება</h2>
             {uploadError && (
               <div className="status-text status-error" role="alert">
                 {uploadError}
@@ -201,37 +204,47 @@ export default function ManageDigitalKeyListing() {
                 autoComplete="off"
               />
             </label>
-            <button type="submit" className="button" disabled={uploading}>
+            <button type="submit" className="detail-buy-button" disabled={uploading}>
               {uploading ? 'იტვირთება…' : 'გასაღებების ატვირთვა'}
             </button>
           </form>
+        </section>
 
-          <h2 style={{ fontSize: '1rem' }}>ინვენტარი ({keys.length})</h2>
+        <section className="detail-section">
+          <h2>ინვენტარი ({keys.length})</h2>
           {keys.length === 0 ? (
-            <div className="empty-state">გასაღებები ჯერ არ დამატებულა.</div>
+            <div className="orders-empty">გასაღებები ჯერ არ დამატებულა.</div>
           ) : (
-            <div className="order-list">
+            <div className="orders-list">
               {keys.map((k) => (
-                <div key={k.id} className="admin-row">
-                  <div className="admin-row-main">
-                    <strong>{KEY_STATUS_LABELS[k.status] ?? k.status}</strong>
+                // `.order-card` is a div here, not a Link — a key row has a destructive action
+                // rather than a detail page to open. Never renders the key itself: the seller UI
+                // only ever shows status + timestamps (see backend/src/listings/CLAUDE.md).
+                <div key={k.id} className="order-card">
+                  <span className="order-thumb" aria-hidden="true">
+                    🔑
+                  </span>
+                  <div className="order-copy">
+                    <div>
+                      <span className="order-status">{KEY_STATUS_LABELS[k.status] ?? k.status}</span>
+                    </div>
                     <span className="note" style={{ margin: 0 }}>
                       დამატებულია: {new Date(k.createdAt).toLocaleString('ka-GE')}
                       {k.soldAt && ` · გაყიდულია: ${new Date(k.soldAt).toLocaleString('ka-GE')}`}
                     </span>
                   </div>
-                  {k.status === KeyInventoryStatus.Available && (
-                    <div className="admin-row-actions">
+                  <div className="order-side">
+                    {k.status === KeyInventoryStatus.Available && (
                       <button type="button" className="button" disabled={busyKeyId === k.id} onClick={() => removeKey(k.id)}>
                         წაშლა
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </Layout>
   )

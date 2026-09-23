@@ -92,10 +92,8 @@ export default function MyDigitalKeyListings() {
   if (!user) {
     return (
       <Layout title="ჩემი გასაღებების განცხადებები" noIndex>
-        <div className="page">
-          <div className="page-inner">
-            <div className="empty-state">იტვირთება…</div>
-          </div>
+        <div className="detail-page">
+          <div className="marketplace-empty">იტვირთება…</div>
         </div>
       </Layout>
     )
@@ -103,13 +101,22 @@ export default function MyDigitalKeyListings() {
 
   return (
     <Layout title="ჩემი გასაღებების განცხადებები" noIndex>
-      <div className="page">
-        <div className="page-inner">
-          <h1 className="page-title">ჩემი გასაღებების განცხადებები</h1>
-          <p className="page-subtitle">Steam-ის (ან სხვა) აქტივაციის გასაღებების გაყიდვა</p>
+      {/* Steam Keys is net-new (LAUNCH_PLAN.md §2d) with no static-prototype page to port from, so
+          this follows the design language already established for the app's other own-data pages
+          (support/*, coaching-sessions/[id], pages/[slug]): `.detail-page` +
+          `.detail-title-block` + `.detail-section` cards, and the `.order-card` row shape from
+          orders/index.tsx for the listing list — replacing the legacy `.page`/`.page-inner`/
+          `.page-title`/`.admin-row` bridge classes this page used before. */}
+      <div className="detail-page">
+        <div className="detail-title-block">
+          <p className="section-kicker">გაყიდვა</p>
+          <h1>ჩემი გასაღებების განცხადებები</h1>
+          <p>Steam-ის (ან სხვა) აქტივაციის გასაღებების გაყიდვა</p>
+        </div>
 
+        <section className="detail-section">
+          <h2>ახალი განცხადება</h2>
           <form className="stack-form" onSubmit={create}>
-            <h2>ახალი განცხადება</h2>
             {createError && (
               <div className="status-text status-error" role="alert">
                 {createError}
@@ -155,36 +162,46 @@ export default function MyDigitalKeyListings() {
               <input type="checkbox" checked={attested} onChange={(e) => setAttested(e.target.checked)} />
               <span>ვადასტურებ, რომ მაქვს ამ გასაღებების ხელახალი გაყიდვის კანონიერი უფლება.</span>
             </label>
-            <button type="submit" className="button" disabled={creating}>
+            <button type="submit" className="detail-buy-button" disabled={creating}>
               {creating ? 'იქმნება…' : 'განცხადების შექმნა'}
             </button>
           </form>
+        </section>
 
-          <h2 style={{ fontSize: '1rem' }}>ჩემი განცხადებები</h2>
+        <section className="detail-section">
+          <h2>ჩემი განცხადებები</h2>
           {error && (
             <div className="status-text status-error" role="alert">
               {error}
             </div>
           )}
           {loading ? (
-            <div className="empty-state">იტვირთება…</div>
+            <div className="marketplace-empty">იტვირთება…</div>
           ) : listings.length === 0 ? (
-            <div className="empty-state">განცხადებები ჯერ არ გაქვთ.</div>
+            <div className="orders-empty">განცხადებები ჯერ არ გაქვთ.</div>
           ) : (
-            <div className="order-list">
+            <div className="orders-list">
               {listings.map((listing) => (
-                <Link key={listing.id} href={`/sell/digital-keys/${listing.id}`} className="admin-row">
-                  <div className="admin-row-main">
+                <Link key={listing.id} href={`/sell/digital-keys/${listing.id}`} className="order-card">
+                  {/* No cover image on a digital-key listing — `.order-thumb` takes initials here,
+                      the same fallback coaching-sessions/index.tsx uses. */}
+                  <span className="order-thumb" aria-hidden="true">
+                    {listing.title.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="order-copy">
+                    <div>
+                      <span className="order-status">{LISTING_STATUS_LABELS[listing.status] ?? listing.status}</span>
+                    </div>
                     <strong>{listing.title}</strong>
-                    <span className="note" style={{ margin: 0 }}>
-                      {LISTING_STATUS_LABELS[listing.status] ?? listing.status} · {listing.priceWaveCoin} WC
-                    </span>
+                  </div>
+                  <div className="order-side">
+                    <strong>{listing.priceWaveCoin} WC</strong>
                   </div>
                 </Link>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </Layout>
   )

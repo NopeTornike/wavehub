@@ -249,6 +249,16 @@ scope for the UI pivot. Revisit only if bulk purchase becomes a real product dec
   `listMyListings`/`createDigitalKeyListing`/`submitListingForReview` in `lib/api.ts` are typed
   `unknown` (raw TypeORM entity responses, same convention as the admin-mutation endpoints
   documented below) rather than a `Public*` shape.
+  **Both pages moved off the legacy `.page`/`.page-inner`/`.page-title`/`.admin-row`/`.empty-state`
+  bridge classes 2026-09-24.** Steam Keys is net-new with no static-prototype page to port from, so
+  they now follow the design language already established for the app's other own-data pages —
+  `.detail-page` + `.detail-title-block` (+ `.section-kicker`) + `.detail-section` cards, with the
+  list rows using `.orders-list`/`.order-card`+`.order-thumb`/`.order-copy`/`.order-side` from
+  `orders/index.tsx`. On `[id].tsx` the `.order-card` is a plain `div`, not a `Link` (a key row has
+  a destructive action, not a detail page), and `.order-thumb` holds a glyph/initials since neither
+  a key nor a key listing has a cover image — the same fallback `coaching-sessions/index.tsx` uses.
+  The key inventory still never renders the key value itself (verified in the browser: the uploaded
+  key strings appear nowhere in the page text), matching `backend/src/listings/CLAUDE.md`.
 - `pages/wallet.tsx` — full wallet view: the derived balance breakdown (`api.getWalletBalance`
   — available/pending-clearance/earned/withdrawn, see `backend/src/withdrawals/CLAUDE.md` for how
   each number is computed), a WaveCoin top-up form (`api.createBogTopupOrder`, redirects the
