@@ -173,18 +173,21 @@ of writing).
    ```
 
 2. **Configure Postfix to relay only from this server's own Docker network — never a public open
-   relay.** Get the compose network's subnet first (`docker network inspect wavehub_default --format
-   '{{range .IPAM.Config}}{{.Subnet}} gw={{.Gateway}}{{end}}'`), then:
+   relay.** `docker-compose.yml` pins the compose network to `172.28.0.0/16` (gateway
+   `172.28.0.1`) specifically so this step has a fixed, known address instead of whatever Docker
+   would otherwise auto-assign — see that file's `networks:` block for why that matters (the
+   gotcha in step 6 below is exactly what happens if you skip pinning it):
    ```bash
    sudo postconf -e "myhostname = mail.your-domain"
    sudo postconf -e "mydomain = your-domain"
    sudo postconf -e "myorigin = your-domain"
-   # Only loopback + the docker bridge gateway — never the public interface. Sending only, never
-   # receiving; ufw already has no rule for 25 either, so it's unreachable from the internet twice over.
-   sudo postconf -e "inet_interfaces = 127.0.0.1, <docker-gateway-ip>"
+   # Only loopback + the pinned docker bridge gateway — never the public interface. Sending only,
+   # never receiving; ufw already has no rule for 25 either, so it's unreachable from the internet
+   # twice over.
+   sudo postconf -e "inet_interfaces = 127.0.0.1, 172.28.0.1"
    sudo postconf -e "inet_protocols = ipv4"
    sudo postconf -e "mydestination = localhost"
-   sudo postconf -e "mynetworks = 127.0.0.0/8, <docker-subnet>"
+   sudo postconf -e "mynetworks = 127.0.0.0/8, 172.28.0.0/16"
    sudo postconf -e "smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination"
    sudo postconf -e "smtp_tls_security_level = may"
    sudo postconf -e "smtpd_tls_security_level = may"
@@ -242,9 +245,8 @@ of writing).
    provider's control panel, not DNS. A mismatched or default PTR (e.g. `vps-xxxx.provider.net`) is
    one of the strongest spam signals there is; SPF/DKIM alone won't save you without it.
 
-6. **Point the backend at it.** `docker-compose.yml`'s `backend` service already has
-   `extra_hosts: host.docker.internal:host-gateway`, so the container can reach Postfix on the host
-   without knowing the bridge's actual gateway IP:
+6. **Point the backend at it.** `docker-compose.yml`'s `backend` service has a **static**
+   `extra_hosts: host.docker.internal:172.28.0.1` entry:
    ```
    EMAIL_PROVIDER=smtp
    SMTP_HOST=host.docker.internal
@@ -254,6 +256,17 @@ of writing).
    EMAIL_FROM="WaveHub <no-reply@your-domain>"
    ```
    `docker compose up -d backend` (no rebuild needed for an env-only change).
+
+   > **Gotcha, found running this exact setup**: Docker's `extra_hosts: host.docker.internal:
+   > host-gateway` special value resolves to the gateway of Docker's own **default** bridge
+   > network (typically `172.17.0.1`), not necessarily the gateway of the specific compose
+   > network your containers are actually attached to — and a container isn't attached to the
+   > default bridge at all unless something explicitly puts it there. The result: every SMTP send
+   > timed out silently (caught by `EmailService`'s own never-throw design, so nothing looked
+   > broken until someone actually checked whether an email arrived — see step 7, don't skip it).
+   > Fix: pin the compose network's subnet explicitly (already done in `docker-compose.yml`) and
+   > point `extra_hosts` at that pinned gateway's literal IP instead of the `host-gateway` alias.
+   > If you ever change the pinned subnet, update both places together.
 
 7. **Actually test delivery**, don't assume it worked because Postfix accepted the message locally —
    register a real test account and check whether the verification email lands in inbox, spam, or

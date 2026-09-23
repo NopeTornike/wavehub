@@ -116,9 +116,14 @@ services:
       - "4000"
     # Only meaningful when EMAIL_PROVIDER=smtp and SMTP_HOST=host.docker.internal — lets the
     # container reach a mail relay (e.g. Postfix) running on the HOST itself, outside Docker.
-    # "host-gateway" resolves to whatever the current bridge gateway IP is; harmless when unused.
+    # Deliberately a STATIC IP, not the "host-gateway" magic value: that alias resolves to
+    # Docker's own default bridge gateway (typically 172.17.0.1), not this compose network's
+    # gateway — a real bug found testing self-hosted SMTP end to end (the container could never
+    # route to it, every send silently timed out). 172.28.0.1 is this network's gateway, pinned
+    # by the `networks:` block at the bottom of this file — keep both in sync if you ever change
+    # the pinned subnet there.
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:172.28.0.1"
     stop_grace_period: 30s # lets in-flight requests/transactions finish on SIGTERM
     logging: *default-logging
 
@@ -145,3 +150,17 @@ volumes:
   uploads:
   caddy_data:
   caddy_config:
+
+networks:
+  # Pinned subnet — Docker otherwise auto-assigns compose's default network the next free
+  # 172.1[7-9x].0.0/16 block, which depends on creation order among every Docker network on the
+  # host and is NOT what `extra_hosts: host.docker.internal:host-gateway` resolves to (found the
+  # hard way: that alias resolves to Docker's own default bridge gateway, typically 172.17.0.1,
+  # which this container isn't even attached to — only this compose network is). Pinning the
+  # subnet here and pointing backend's static `host.docker.internal` entry (below) at its gateway
+  # keeps self-hosted SMTP (see backend/src/email/CLAUDE.md) reachable regardless of what else is
+  # running on the host.
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
