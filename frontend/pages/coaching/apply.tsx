@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicGame } from '@wavehub/shared-types'
@@ -79,13 +80,29 @@ export default function ApplyAsCoach() {
 
   return (
     <Layout title="გახდი მწვრთნელი" description="გახდით ვერიფიცირებული მწვრთნელი WaveHub-ზე და გაყიდეთ სესიები." noIndex>
-      <div className="page">
-        <div className="page-inner">
-          <h1 className="page-title">გახდი მწვრთნელი</h1>
-          <p className="page-subtitle">შეავსეთ განაცხადი — განიხილება ადმინისტრაციის მიერ</p>
+      {/* The static prototype has NO coach-application page or "become a coach" CTA anywhere
+          (checked against the current `main`: coaching.html, coach-book-session.html,
+          coach-standards.html, coaches-data.js — none of them has one), so there is nothing to
+          port 1:1 here. Aligned instead with the design language the rest of the coaching section
+          now really uses — `.coaching-body` for the `--coach-*` variables, `.coach-profile-shell`
+          as the page container, `.coach-profile-back`, `.coach-heading-row` (same page-head idiom
+          as coaching/index.tsx) and a `.coach-info-card` around the form — replacing the legacy
+          `.page`/`.page-inner`/`.page-title` bridge classes this page used before. */}
+      <div className="coaching-body">
+        <div className="coach-profile-shell">
+          <Link className="coach-profile-back" href="/coaching">
+            <span aria-hidden="true">&lt;</span> მწვრთნელების სიაში დაბრუნება
+          </Link>
+
+          <div className="coach-heading-row">
+            <div>
+              <h1>გახდი მწვრთნელი</h1>
+              <p>შეავსეთ განაცხადი — განიხილება ადმინისტრაციის მიერ</p>
+            </div>
+          </div>
 
           {!user || loadingExisting ? (
-            <div className="empty-state">იტვირთება…</div>
+            <div className="coach-empty">იტვირთება…</div>
           ) : (
             <>
               {(submitted || status === VerificationStatus.Pending) && (
@@ -105,7 +122,8 @@ export default function ApplyAsCoach() {
               )}
 
               {showForm && (
-                <form className="stack-form" style={{ marginTop: 16 }} onSubmit={submit}>
+                <article className="coach-info-card coach-apply-card">
+                <form className="stack-form" onSubmit={submit}>
                   {error && (
                     <div className="status-text status-error" role="alert">
                       {error}
@@ -134,10 +152,11 @@ export default function ApplyAsCoach() {
                     ფასი საათში (WC)
                     <input type="number" min={1} step={1} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value))} required />
                   </label>
-                  <button type="submit" className="button glow-on-hover" disabled={submitting}>
+                  <button type="submit" className="coach-book-primary" disabled={submitting}>
                     {submitting ? 'იგზავნება…' : 'განაცხადის გაგზავნა'}
                   </button>
                 </form>
+                </article>
               )}
             </>
           )}

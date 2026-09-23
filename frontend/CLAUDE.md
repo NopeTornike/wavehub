@@ -109,8 +109,16 @@ Two further things worth knowing about the coaching pages generally:
   slider, rank/availability/language selects) isn't backed by the real API at all — `browseCoaches`
   only supports a `gameId` filter. Used `.coach-game-tabs` (a real prototype class, single-game
   filter) instead of trying to fake the rest.
-`coaching/apply.tsx` (the coach-application form) is untouched — no static-prototype page for it
-exists either, and it's a plain form with no strong design-system opinion to port.
+`coaching/apply.tsx` (the coach-application form) was moved onto the coaching section's real design
+language 2026-09-24. There is still **no** coach-application page or "become a coach" CTA anywhere
+in the static prototype (re-checked against the current `main`: `coaching.html`,
+`coach-book-session.html`, `coach-standards.html`, `coaches-data.js` — none has one), so this is
+explicitly not a 1:1 port; it just stops using the legacy `.page`/`.page-inner`/`.page-title`
+bridge classes and adopts `.coaching-body` + `.coach-profile-shell` + `.coach-profile-back` +
+`.coach-heading-row` (the same page-head idiom as `coaching/index.tsx`) with the form inside a
+`.coach-info-card.coach-apply-card`, submit button `.coach-book-primary`. `.coach-apply-card` caps
+the form at 720px inside the 1180px shell; the `.stack-form` chrome-strip rule it relies on is
+shared with the booking panel (see `global.css`).
 `coaching/[id].tsx`'s "book a session" button is no longer a disabled placeholder (2026-09-16) —
 it's a real form (date/time/duration/optional message) wired to the new
 `backend/src/coaching/` session-booking endpoints, and `pages/coaching-sessions/{index,[id]}.tsx`

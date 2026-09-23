@@ -13235,12 +13235,21 @@ body.public-profile-view .main-panel {
    against `.stack-form`'s (0,1,0), so this wins on specificity regardless of source order. The row
    is gated to >820px because the panel is a single narrow column on phones, where the plain
    stacked `.stack-form` layout is already correct. */
-.coach-booking-panel .stack-form {
+.coach-booking-panel .stack-form,
+.coach-info-card .stack-form {
   margin-bottom: 0;
   border: 0;
   border-radius: 0;
   background: none;
   padding: 0;
+}
+
+/* pages/coaching/apply.tsx — the coach-application form. The static prototype has no
+   coach-application page at all, so this is not a 1:1 port; it just reuses the coaching section's
+   real `.coach-info-card` as the form's container. Capped because an application form stretched to
+   the full 1180px shell reads as a wall of full-width inputs. */
+.coach-apply-card {
+  max-width: 720px;
 }
 
 @media (min-width: 821px) {
