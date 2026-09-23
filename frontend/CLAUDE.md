@@ -62,10 +62,41 @@ needs a `.order-thumb` child) or keep `.legacy-order-card`.
 equivalent in the static prototype at all (no seller-payout or order-detail page exists there) —
 left on legacy classes, not part of this pivot's scope.
 `coaching/index.tsx` (now uses `.coach-heading-row`/`.coach-game-tabs`/`.coach-result-row`/
-`.coach-grid`/`.coach-card` from `coaching.html`) and `coaching/[id].tsx` (reuses the listing
-detail page's `.detail-*` classes, since no coach-profile page exists in the prototype at all —
-`coach-book-session.html` is a large ~1100-line booking-flow mock for a feature this app doesn't
-have yet, not a profile page) are also done. Two things worth knowing:
+`.coach-grid`/`.coach-card` from `coaching.html`) and `coaching/[id].tsx` are also done.
+
+**`coaching/[id].tsx` was re-ported 2026-09-24 — the note that used to live here ("reuses the
+listing detail page's `.detail-*` classes, since no coach-profile page exists in the prototype at
+all") is now WRONG and was the exact drift this re-check was looking for.** `coach-book-session.html`
+has since grown into a real coach-profile page (`<title>WaveHub - Coach Profile</title>`, body class
+`coach-detail-body`, ~1230-line `coach-book-session.js` rendering a `.coach-profile-shell`), the
+same way `profile.html` had. The page now uses the prototype's own design system —
+`.coach-profile-shell`/`.coach-profile-back`/`.coach-profile-hero`/`.coach-profile-portrait`/
+`.coach-profile-title-row`/`.coach-verified-mark`/`.coach-profile-badges`/`.coach-score-panels
+.single`/`.coach-info-grid`+`.coach-games-card`+`.coach-languages-card`/`.coach-booking-panel`+
+`.coach-starting-price`+`.coach-book-primary` — all of which were already present in `global.css`
+from the original design-pivot copy. Things worth knowing if you touch it again:
+- **What was omitted and why** is written out as a long comment block at the top of the page's JSX
+  (rule #6 — online/availability pill, "Wave Score", the 4 `.coach-profile-metrics` tiles, intro
+  video, quote, coaching-style/expertise/achievements cards, the Overview/Reviews tabs and review
+  list, the availability calendar, "Message Coach", "Add to Wishlist", similar-coaches). Every one
+  needs a field `Coach`/`PublicCoachDetail` doesn't have. The live github.io reference already
+  hides several of them itself via `.coach-detail-body`.
+- **`.coach-detail-body` is deliberately NOT applied.** Every rule in it is either a `display:none`
+  for a section this page doesn't render anyway or a layout tweak the base rules already give — and
+  it additionally hides `.coach-starting-price`, which here carries the coach's real hourly rate.
+- Two new CSS variant classes were needed, both documented inline in `global.css` next to the rule:
+  `.coach-info-grid-auto` (the source sheet hard-codes three columns for a fixed five-card layout;
+  this page has two real cards) and a `.coach-booking-panel .stack-form` block (strips
+  `.stack-form`'s standalone-card chrome and lays the booking fields out as a row).
+- **A real bug this found, worth remembering as the pattern:** `@media (max-width: 1120px) {
+  .coach-info-card:first-child, .coach-info-card:nth-child(3) { grid-column: 1 / -1 } }` is written
+  for the prototype's five-card ORDER (card 1 = wide "About", card 3 = "Expertise"). With two cards
+  those positions are Games and Languages, so the Games card span-hijacked the entire row —
+  measured 825px vs the Languages card's 266px — across the whole 701–1120px band, while 1440px
+  looked perfect. It was invisible in the CSS source and only showed up in live computed styles at
+  900px. Re-measure at several widths, not just your default one, whenever a ported page renders a
+  different number of children than the prototype does.
+Two further things worth knowing about the coaching pages generally:
 - `coaching.html` itself lives outside `.app-shell` entirely — its own standalone
   `.coach-page`/`.coach-topbar`/`.coach-shell` shell with no sidebar, and its `--coach-*` CSS
   custom properties (colors, line colors) are scoped to a `.coaching-body` class the prototype

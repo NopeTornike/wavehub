@@ -13187,3 +13187,75 @@ body.public-profile-view .main-panel {
 .marketplace-head h1 {
   overflow-wrap: anywhere;
 }
+
+/* `.coach-info-grid-auto` — pages/coaching/[id].tsx real-data variant of the static prototype's
+   `.coach-info-grid`. The prototype's coach profile fills that grid with five cards (About /
+   Coaching Style / Expertise / Games / Languages) and every source rule therefore hard-codes three
+   columns. This app can only back two of those cards with real data (Games, Languages — the other
+   three need fields `Coach`/`PublicCoachDetail` doesn't have; see the comment block in that page),
+   and a 2-card row in a fixed 3-column grid leaves ~27% of the row as dead space with both cards
+   squeezed left. `repeat(auto-fit, ...)` instead of a hard `repeat(2, ...)` so it also degrades
+   correctly if only ONE card renders (a coach with no game set, or no languages).
+
+   CASCADE: this must stay AFTER the `.coach-info-grid` rule in the "Coaching detail page reference
+   layout" block (~line 10162) — equal specificity, so source order decides, and that later rule is
+   the one that actually wins on desktop, not the base rule at ~line 8388. It is wrapped in
+   `min-width: 821px` on purpose: the existing `@media (max-width: 820px)` and the `.coaching-body`
+   `@media (max-width: 700px)` rules already collapse this grid to a single column and are the
+   correct mobile behaviour, and an ungated rule here would sit later in the file and silently
+   override both. Verified against live computed styles at 1440/1100/900/820/700/375px.
+
+   The `grid-column: auto` reset below is NOT redundant — it fixes a real bug found by measuring
+   live computed styles at 900px (not by reading this CSS). The source sheet carries
+   `@media (max-width: 1120px) { .coach-info-card:first-child, .coach-info-card:nth-child(3) {
+   grid-column: 1 / -1 } }`, which is written for the prototype's fixed FIVE-card order, where card
+   1 is the wide "About" blurb and card 3 is "Expertise" — both of which genuinely want a full row.
+   In this page's two-card order those positions are Games and Languages, so the Games card
+   silently span-hijacked the whole row (measured: 825px vs the Languages card's 266px) everywhere
+   in the 701–1120px band. Equal specificity to that rule (0,2,0), so it wins purely on being later
+   in the file; keep it after it. Left ungated because `grid-column: auto` is already the correct
+   value at every other width. */
+.coach-info-grid-auto > .coach-info-card {
+  grid-column: auto;
+}
+
+@media (min-width: 821px) {
+  .coach-info-grid-auto {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
+/* The coach-profile booking form reuses `.stack-form`'s field/label/input styling (this app's
+   established form convention — see frontend/CLAUDE.md), but `.stack-form` is itself a standalone
+   CARD: it carries its own border, background, padding and `margin-bottom: 32px`. Dropped inside
+   `.coach-booking-panel` that rendered as a card nested in a card, with every input stretched to
+   the panel's full width (measured: 996px inputs in a 1092px panel). Strip the chrome and lay the
+   fields out as a row instead, so the panel reads like the prototype's horizontal
+   `.coach-booking-main` bar rather than a tall stack. `.coach-booking-panel .stack-form` is (0,2,0)
+   against `.stack-form`'s (0,1,0), so this wins on specificity regardless of source order. The row
+   is gated to >820px because the panel is a single narrow column on phones, where the plain
+   stacked `.stack-form` layout is already correct. */
+.coach-booking-panel .stack-form {
+  margin-bottom: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: 0;
+}
+
+@media (min-width: 821px) {
+  .coach-booking-panel .stack-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    align-items: end;
+    gap: 16px;
+  }
+
+  /* The free-text message, the status lines and the submit button each take a whole row; only the
+     short date/time/duration controls belong side by side. */
+  .coach-booking-panel .stack-form > .field-wide,
+  .coach-booking-panel .stack-form > .coach-book-primary,
+  .coach-booking-panel .stack-form > .coach-booking-status {
+    grid-column: 1 / -1;
+  }
+}
