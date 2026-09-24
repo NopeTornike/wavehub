@@ -30,6 +30,11 @@ export class DirectMessagesController {
     return this.chat.listMyDirectConversations(userId);
   }
 
+  @Get('unread-count')
+  async unreadCount(@CurrentUserId() userId: string): Promise<{ count: number }> {
+    return { count: await this.chat.countUnreadDirect(userId) };
+  }
+
   @Get(':id/messages')
   listMessages(@CurrentUserId() userId: string, @Param('id') id: string) {
     return this.chat.listDirectMessages(id, userId);

@@ -415,6 +415,8 @@ export interface PublicConversationSummary {
   otherUser: { id: string; username: string };
   lastMessage: { body: string; createdAt: string; senderId: string | null } | null;
   createdAt: string;
+  // Messages the other participant sent that the viewer hasn't opened yet (status != 'seen').
+  unreadCount: number;
 }
 
 // --- Dispute response shapes ---
@@ -887,3 +889,36 @@ export interface AdminSubscriptionPlanSummary extends PublicSubscriptionPlan {
 export interface AdminUserSubscriptionSummary extends PublicUserSubscription {
   user: { id: string; username: string; email: string };
 }
+
+// --- Community / site-shell shapes (backend/src/community/) ---
+// Real replacements for the static prototype's client-side counters: "N online" in the sidebar,
+// per-game listing counts on the home grid and marketplace menu, and the profile dropdown's
+// "Wave rank" tier — all computed server-side from real rows, never randomised.
+
+export interface OnlineStats {
+  // Distinct accounts that made an authenticated request in the last ONLINE_WINDOW_MINUTES.
+  count: number;
+}
+
+export interface GameListingCount {
+  gameId: string;
+  slug: string;
+  name: string;
+  activeListingCount: number;
+}
+
+export interface WaveRank {
+  score: number; // 0..1000
+  tierIndex: number; // 0..9, index into WAVE_RANK_TIERS
+  name: string;
+  nextName: string;
+  level: number; // tierIndex + 1
+  progressToNext: number; // 0..100
+}
+
+// Same tier names/thresholds as the prototype's profile-nav.js `waveRanks`.
+export const WAVE_RANK_TIERS: ReadonlyArray<readonly [string, number]> = [
+  ['Wave Spark', 0], ['Wave Scout', 70], ['Wave Rider', 140], ['Wave Surfer', 220],
+  ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580],
+  ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000],
+];

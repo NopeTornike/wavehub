@@ -44,6 +44,15 @@ describe('ChatService', () => {
         rows.push(row);
         return row;
       }),
+      // Chainable stand-in for the unread-count / mark-seen queries: execute() is a no-op, getCount()
+      // counts rows not yet `seen` (the real SQL filters are covered by the e2e suite).
+      createQueryBuilder: jest.fn(() => {
+        const chain: any = {};
+        ['update', 'set', 'where', 'andWhere', 'innerJoin'].forEach((m) => (chain[m] = jest.fn(() => chain)));
+        chain.execute = jest.fn(async () => ({ affected: 0 }));
+        chain.getCount = jest.fn(async () => rows.filter((r) => r.status !== 'seen').length);
+        return chain;
+      }),
       _rows: rows,
     };
   }

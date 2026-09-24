@@ -3,28 +3,32 @@ import { useRouter } from 'next/router'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import Footer from './Footer'
+import MobileBottomNav from './MobileBottomNav'
 import VerifyEmailBanner from './VerifyEmailBanner'
 import PageHead from './PageHead'
 
-// Matches index.html's <div class="app-shell"><aside class="sidebar">...<main class="main-panel">
-// structure — see root-level styles.css (copied into frontend/styles/global.css) for the CSS this
-// depends on. Mobile sidebar visibility is driven by a `sidebar-open` class on <body> (matching
-// script.js's `setSidebarOpen`), not a class on the sidebar itself — kept as a real DOM
-// side-effect here since that's what the copied CSS's `body.sidebar-open .sidebar` selector
-// expects, rather than inventing a different mechanism.
+// The static prototype's page skeleton: <div class="app-shell"> holding the sidebar, scrim and
+// <main class="main-panel"> (topbar first), with the site footer and the phone bottom-nav as
+// siblings AFTER the app shell — exactly where site-footer.js / profile-nav.js append them, since
+// the prototype's CSS targets `.app-shell > .sidebar`, `.app-shell > .scrim` etc. directly.
 //
-// `title`/`description` feed the page's <title>/meta tags via PageHead (every page passes its own;
-// the site name is appended there, so callers only supply the page-specific part).
+// `bodyClass` is the page's <body class> in the prototype (e.g. `home-page`, `wallet-page`,
+// `coaching-body`, `steam-keys-page`) — a lot of its CSS is scoped by it, so each page passes its
+// own. `sidebar-open` (the drawer state) is set on <body> too, matching script.js#setSidebarOpen.
+//
+// `title`/`description` feed <title>/meta via PageHead (the site name is appended there).
 export default function Layout({
   children,
   title,
   description,
   noIndex,
+  bodyClass,
 }: {
   children: ReactNode
   title?: string
   description?: string
   noIndex?: boolean
+  bodyClass?: string
 }) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -37,11 +41,16 @@ export default function Layout({
   }, [sidebarOpen])
 
   useEffect(() => {
-    // Closes the mobile sidebar on navigation — a real external-event response (route change),
-    // not a derived-state anti-pattern, but the lint rule can't tell the difference.
+    const classes = (bodyClass ?? '').split(/\s+/).filter(Boolean)
+    classes.forEach((c) => document.body.classList.add(c))
+    return () => classes.forEach((c) => document.body.classList.remove(c))
+  }, [bodyClass])
+
+  useEffect(() => {
+    // Closes the drawer on navigation — a response to an external event (route change).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSidebarOpen(false)
-  }, [router.pathname])
+  }, [router.asPath])
 
   useEffect(() => {
     if (!sidebarOpen) return
@@ -53,18 +62,21 @@ export default function Layout({
   }, [sidebarOpen])
 
   return (
-    <div className="app-shell">
+    <>
       <PageHead title={title} description={description} noIndex={noIndex} />
       <a className="skip-link" href="#main-content">
         გადასვლა მთავარ შიგთავსზე
       </a>
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <main className="main-panel" id="main-content" tabIndex={-1}>
-        <Topbar onMenuClick={() => setSidebarOpen((v) => !v)} sidebarOpen={sidebarOpen} />
-        <VerifyEmailBanner />
-        {children}
-        <Footer />
-      </main>
-    </div>
+      <div className="app-shell">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <main className="main-panel" id="main-content" tabIndex={-1}>
+          <Topbar onMenuClick={() => setSidebarOpen((v) => !v)} sidebarOpen={sidebarOpen} />
+          <VerifyEmailBanner />
+          {children}
+        </main>
+      </div>
+      <Footer />
+      <MobileBottomNav />
+    </>
   )
 }

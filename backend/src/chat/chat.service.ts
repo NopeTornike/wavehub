@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConversationType, MessageType, NotificationType } from '@wavehub/shared-types';
+import { ConversationType, MessageStatus, MessageType, NotificationType } from '@wavehub/shared-types';
 import type { PublicConversationSummary, PublicMessage } from '@wavehub/shared-types';
 import { Conversation } from './conversation.entity';
 import { Message } from './message.entity';
@@ -171,8 +171,29 @@ export class ChatService {
     return Promise.all(rows.map((conversation) => this.toConversationSummary(conversation, userId)));
   }
 
+  // Total unread across the viewer's Direct conversations — the topbar/sidebar message badge.
+  async countUnreadDirect(userId: string): Promise<number> {
+    return this.messages
+      .createQueryBuilder('m')
+      .innerJoin(Conversation, 'c', 'c.id = m.conversationId')
+      .where('c.type = :type', { type: ConversationType.Direct })
+      .andWhere('(c.buyerId = :userId OR c.sellerId = :userId)', { userId })
+      .andWhere('m.senderId IS NOT NULL AND m.senderId != :userId', { userId })
+      .andWhere('m.status != :seen', { seen: MessageStatus.Seen })
+      .getCount();
+  }
+
   async listDirectMessages(conversationId: string, userId: string): Promise<PublicMessage[]> {
     const conversation = await this.getDirectConversationForParticipant(conversationId, userId);
+    // Opening the thread is what "reads" it: the other participant's messages become `seen`.
+    await this.messages
+      .createQueryBuilder()
+      .update(Message)
+      .set({ status: MessageStatus.Seen })
+      .where('conversationId = :conversationId', { conversationId: conversation.id })
+      .andWhere('senderId IS NOT NULL AND senderId != :userId', { userId })
+      .andWhere('status != :seen', { seen: MessageStatus.Seen })
+      .execute();
     const rows = await this.messages.find({
       where: { conversationId: conversation.id },
       relations: ['sender'],
@@ -210,9 +231,15 @@ export class ChatService {
 
   private async toConversationSummary(conversation: Conversation, viewerId: string): Promise<PublicConversationSummary> {
     const otherUserId = conversation.buyerId === viewerId ? conversation.sellerId : conversation.buyerId;
-    const [otherUser, lastMessage] = await Promise.all([
+    const [otherUser, lastMessage, unreadCount] = await Promise.all([
       this.users.findOne({ where: { id: otherUserId }, select: ['id', 'username'] }),
       this.messages.findOne({ where: { conversationId: conversation.id }, order: { createdAt: 'DESC' } }),
+      this.messages
+        .createQueryBuilder('m')
+        .where('m.conversationId = :id', { id: conversation.id })
+        .andWhere('m.senderId = :otherUserId', { otherUserId })
+        .andWhere('m.status != :seen', { seen: MessageStatus.Seen })
+        .getCount(),
     ]);
     return {
       id: conversation.id,
@@ -221,6 +248,7 @@ export class ChatService {
         ? { body: lastMessage.body, createdAt: lastMessage.createdAt.toISOString(), senderId: lastMessage.senderId }
         : null,
       createdAt: conversation.createdAt.toISOString(),
+      unreadCount,
     };
   }
 

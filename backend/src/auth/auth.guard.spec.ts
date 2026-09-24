@@ -11,7 +11,7 @@ describe('AuthGuard', () => {
         return verifyResult;
       }),
     } as any;
-    const users = { findStatusById: jest.fn(async () => statusUser) } as any;
+    const users = { findStatusById: jest.fn(async () => statusUser), touchLastSeen: jest.fn(async () => undefined) } as any;
     const guard = new AuthGuard(sessions, users);
 
     const request: any = { cookies: cookieToken !== undefined ? { [SESSION_COOKIE_NAME]: cookieToken } : {} };

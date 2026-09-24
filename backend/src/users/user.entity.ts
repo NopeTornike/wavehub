@@ -64,4 +64,10 @@ export class User {
   // every moderation action still lives in audit_logs; this is only ever the latest one.
   @Column({ type: 'varchar', nullable: true })
   moderationReason: string | null;
+
+  // Stamped by AuthGuard (at most once a minute per account — UsersService#touchLastSeen) and only
+  // ever read as an aggregate count for the sidebar's "N online" pill (backend/src/community/). Never
+  // exposed per-user in any public response.
+  @Column({ type: 'timestamptz', nullable: true })
+  lastSeenAt: Date | null;
 }

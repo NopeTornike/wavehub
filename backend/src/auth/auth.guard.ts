@@ -47,6 +47,8 @@ export class AuthGuard implements CanActivate {
 
     request.userId = userId;
     request.userStatus = user.status;
+    // Best-effort presence stamp for the "N online" count — never allowed to fail the request.
+    this.users.touchLastSeen(userId).catch(() => undefined);
     return true;
   }
 }

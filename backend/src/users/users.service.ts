@@ -20,6 +20,19 @@ export class UsersService {
     return this.repo.findOne({ where: { id }, select: ['id', 'status'] });
   }
 
+  // One conditional UPDATE, not a read-then-write: the WHERE clause makes it a no-op when the stamp
+  // is under a minute old, so the per-request cost for an active session is a single indexed
+  // lookup that touches no rows.
+  async touchLastSeen(id: string): Promise<void> {
+    await this.repo
+      .createQueryBuilder()
+      .update(User)
+      .set({ lastSeenAt: () => 'now()' })
+      .where('id = :id', { id })
+      .andWhere(`("lastSeenAt" IS NULL OR "lastSeenAt" < now() - interval '60 seconds')`)
+      .execute();
+  }
+
   findByUsername(username: string) {
     return this.repo.findOne({ where: { username } });
   }

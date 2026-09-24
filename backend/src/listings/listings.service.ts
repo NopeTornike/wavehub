@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { KeyInventoryStatus, ListingStatus, ListingType } from '@wavehub/shared-types';
 import type { AdminListingSummary, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
@@ -165,9 +165,22 @@ export class ListingsService {
     }
     if (filters.gameId) {
       qb.andWhere('listing.gameId = :gameId', { gameId: filters.gameId });
+    } else if (filters.game) {
+      qb.andWhere('game.slug = :gameSlug', { gameSlug: filters.game });
     }
     if (filters.type) {
       qb.andWhere('listing.type = :type', { type: filters.type });
+    }
+    const search = filters.q?.trim();
+    if (search) {
+      const pattern = `%${search.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+      qb.andWhere(
+        new Brackets((w) => {
+          w.where('listing.title ILIKE :search', { search: pattern })
+            .orWhere('listing.description ILIKE :search', { search: pattern })
+            .orWhere('game.name ILIKE :search', { search: pattern });
+        }),
+      );
     }
 
     // `featuredListings` perk boost (LAUNCH_PLAN.md §3b) — read live via a join to
@@ -195,6 +208,9 @@ export class ListingsService {
       // resolution (used to decide whether DISTINCT/pagination needs adjusting) chokes on a raw
       // boolean/CASE expression passed directly, but orders correctly by a plain addSelect alias.
       .addSelect('CASE WHEN "sellerPlan"."id" IS NOT NULL THEN 1 ELSE 0 END', 'featured_boost');
+    if (filters.featured) {
+      qb.andWhere('"sellerPlan"."id" IS NOT NULL');
+    }
 
     const [items, total] = await qb
       .orderBy('featured_boost', 'DESC')

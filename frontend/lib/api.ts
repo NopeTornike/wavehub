@@ -1,5 +1,8 @@
 import type {
   AuthMeResponse,
+  GameListingCount,
+  OnlineStats,
+  WaveRank,
   PublicUser,
   PublicCategory,
   PublicGame,
@@ -266,7 +269,13 @@ export const api = {
   browseListings: (filters: {
     categoryId?: string
     gameId?: string
+    // Game slug (e.g. `cs2`) — ignored server-side when gameId is also set.
+    game?: string
     type?: ListingType
+    // Case-insensitive search over title/description/game name.
+    q?: string
+    // Only listings from sellers with the featuredListings subscription perk.
+    featured?: boolean
     limit?: number
     offset?: number
   } = {}) => {
@@ -375,6 +384,8 @@ export const api = {
 
   listDirectConversations: () => request<PublicConversationSummary[]>('/direct-messages'),
 
+  getUnreadDirectMessageCount: () => request<{ count: number }>('/direct-messages/unread-count'),
+
   listDirectMessages: (conversationId: string) => request<PublicMessage[]>(`/direct-messages/${conversationId}/messages`),
 
   sendDirectMessage: (conversationId: string, body: string) =>
@@ -441,6 +452,13 @@ export const api = {
     request<PublicNotification>(`/notifications/${id}/read`, { method: 'POST' }),
 
   markAllNotificationsRead: () => request<{ ok: true }>('/notifications/read-all', { method: 'POST' }),
+
+  // --- Site shell / community --- (backend/src/community/)
+  getOnlineStats: () => request<OnlineStats>('/stats/online'),
+
+  getGameListingCounts: () => request<GameListingCount[]>('/stats/games'),
+
+  getMyWaveRank: () => request<WaveRank>('/me/wave-rank'),
 
   // --- Admin panel --- (backend/src/admin/, plus admin-only routes on each domain module).
   // Server-side role checks are the real enforcement (AdminGuard/@RequireAdminRole) — the
