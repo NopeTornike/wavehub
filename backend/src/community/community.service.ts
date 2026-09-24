@@ -100,17 +100,30 @@ export class CommunityService {
     return rows.map((row) => ({ gameId: row.gameId, slug: row.slug, name: row.name, activeListingCount: row.count }));
   }
 
+  // Coaching counts like the marketplace: a completed session is a sale for the coach and a
+  // purchase for the student, and a session review counts like a seller review.
   async waveRank(userId: string): Promise<WaveRank> {
     const [row] = await this.db.query(
-      `SELECT
+      `WITH coach AS (SELECT "id" FROM "coaches" WHERE "userId" = $1)
+       SELECT
          (SELECT count(*) FROM "listings" WHERE "sellerId" = $1 AND "status" IN ('active', 'paused'))::int AS listings,
-         (SELECT count(*) FROM "orders" WHERE "sellerId" = $1 AND "status" = 'completed')::int AS sold,
-         (SELECT count(*) FROM "orders" WHERE "buyerId" = $1 AND "status" = 'completed')::int AS bought,
-         (SELECT count(*) FROM "reviews" WHERE "sellerId" = $1 AND "status" = 'published')::int AS reviews,
+         (
+           (SELECT count(*) FROM "orders" WHERE "sellerId" = $1 AND "status" = 'completed')
+           + (SELECT count(*) FROM "coaching_sessions" WHERE "coachId" IN (SELECT "id" FROM coach) AND "status" = 'completed')
+         )::int AS sold,
+         (
+           (SELECT count(*) FROM "orders" WHERE "buyerId" = $1 AND "status" = 'completed')
+           + (SELECT count(*) FROM "coaching_sessions" WHERE "buyerId" = $1 AND "status" = 'completed')
+         )::int AS bought,
+         (
+           (SELECT count(*) FROM "reviews" WHERE "sellerId" = $1 AND "status" = 'published')
+           + (SELECT count(*) FROM "coaching_session_reviews" WHERE "coachId" IN (SELECT "id" FROM coach))
+         )::int AS reviews,
          (
            (SELECT count(*) FROM "listings" WHERE "sellerId" = $1 AND "createdAt" > now() - interval '30 days')
            + (SELECT count(*) FROM "orders" WHERE ("sellerId" = $1 OR "buyerId" = $1) AND "status" = 'completed' AND "completedAt" > now() - interval '30 days')
            + (SELECT count(*) FROM "reviews" WHERE "sellerId" = $1 AND "status" = 'published' AND "createdAt" > now() - interval '30 days')
+           + (SELECT count(*) FROM "coaching_sessions" WHERE ("buyerId" = $1 OR "coachId" IN (SELECT "id" FROM coach)) AND "status" = 'completed' AND "updatedAt" > now() - interval '30 days')
          )::int AS "recentEvents"`,
       [userId],
     );

@@ -17,6 +17,8 @@ import { useShell } from '../../lib/shell'
 //   - the prototype's invented tags ("Fast Responder", "Top 1%") — the card's tag row carries real
 //     ones: "Verified Coach" (every listed coach is verified), the plan badge, the languages.
 // The avatar's green dot shows only when the coach is actually online (seen in the last 5 minutes).
+// Rank is coach-entered; response time is the coach's measured median (docs/design-mockups/06);
+// "Fast Responder" / "Top Rated" tags appear only when earned (≤10 min median / ≥4.8 from 5+ reviews).
 // The topbar search filters the loaded page by name / specialty / game, as coaching.js does.
 
 const PER_PAGE = 8
@@ -192,7 +194,7 @@ export default function CoachingDirectory() {
                 </h1>
                 <p>
                   იპოვე შესაფერისი ქოუჩი თამაშის დონის ასამაღლებლად · <Link href="/coaching/apply">გახდი ქოუჩი</Link> ·{' '}
-                  <Link href="/coaching-sessions">ჩემი სესიები</Link>
+                  <Link href="/coaching-sessions">ჩემი სესიები</Link> · <Link href="/coaching/profile">ქოუჩის პროფილი</Link>
                 </p>
               </div>
               <div className="coach-sort-row">
@@ -272,6 +274,12 @@ export default function CoachingDirectory() {
                       </div>
                       <div className="coach-card-copy">
                         <h2>{name}</h2>
+                        {coach.rank && (
+                          <p className="coach-rank-line">
+                            <span className="coach-rank-dot" aria-hidden="true"></span>
+                            <span>{coach.rank}</span>
+                          </p>
+                        )}
                         <p className="coach-rating-line">
                           {coach.ratingAvg ? (
                             <>
@@ -281,6 +289,11 @@ export default function CoachingDirectory() {
                             'შეფასების გარეშე'
                           )}
                         </p>
+                        {coach.responseMinutes !== null && (
+                          <p className="coach-session-meta">
+                            საშ. პასუხის დრო: ~{coach.responseMinutes < 60 ? `${coach.responseMinutes} წთ` : `${Math.round(coach.responseMinutes / 60)} სთ`}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -302,7 +315,9 @@ export default function CoachingDirectory() {
                     </div>
 
                     <div className="coach-card-tags">
+                      {coach.responseMinutes !== null && coach.responseMinutes <= 10 && <span className="fast">Fast Responder</span>}
                       <span className="standard">Verified Coach</span>
+                      {coach.ratingAvg && Number(coach.ratingAvg) >= 4.8 && coach.ratingCount >= 5 && <span className="sessions">Top Rated</span>}
                       {coach.profileBadge && <span className="sessions">★ {coach.profileBadge}</span>}
                       {coach.languages.map((lang) => (
                         <span key={lang} className="language">
@@ -318,6 +333,13 @@ export default function CoachingDirectory() {
               ქოუჩი ვერ მოიძებნა.
             </div>
             {result === null && <div className="coach-empty">იტვირთება…</div>}
+
+            {result !== null && result.total > 0 && page >= totalPages && (
+              <div className="coach-empty wc-end">
+                <strong>მეტი ქოუჩი ვერ მოიძებნა</strong>
+                <span>ახალი ქოუჩები მალე შემოგვიერთდებიან.</span>
+              </div>
+            )}
 
             <nav className="coach-pagination" aria-label="ქოუჩების გვერდები" hidden={totalPages <= 1}>
               <button type="button" aria-label="წინა გვერდი" disabled={page === 1} onClick={() => setPage(page - 1)}>

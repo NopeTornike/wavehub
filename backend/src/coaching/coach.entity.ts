@@ -41,6 +41,23 @@ export class Coach {
   @Column({ type: 'integer' })
   hourlyRateWaveCoin: number;
 
+  // Coach-entered profile content (docs/design-mockups/14): in-game rank, an intro video link
+  // (YouTube/Vimeo only), a short quote, coaching-style bullet points and further games they teach.
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  rank: string | null;
+
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  videoUrl: string | null;
+
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  quote: string | null;
+
+  @Column({ type: 'text', array: true, default: '{}' })
+  coachingStyle: string[];
+
+  @Column({ type: 'uuid', array: true, default: '{}' })
+  extraGameIds: string[];
+
   @Column({ type: 'varchar', default: VerificationStatus.Pending })
   verificationStatus: VerificationStatus;
 
@@ -53,9 +70,8 @@ export class Coach {
   @Column({ type: 'varchar', default: CoachStatus.Active })
   status: CoachStatus;
 
-  // Populated once reviews exist for coaching sessions (not built yet, see CLAUDE.md) — same
-  // "pragmatic stopgap, recomputed by whichever service owns the aggregate" precedent as
-  // User.sellerRatingAvg/Listing.ratingAvg.
+  // Recomputed from coaching_session_reviews whenever a buyer reviews a completed session
+  // (CoachingSessionsService#review) — same stored-aggregate precedent as Listing.ratingAvg.
   @Column({ type: 'numeric', precision: 3, scale: 2, nullable: true })
   ratingAvg: string | null;
 

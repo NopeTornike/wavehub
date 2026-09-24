@@ -1,12 +1,14 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CoachStatus, CoachingSessionStatus, NotificationType, VerificationStatus } from '@wavehub/shared-types';
-import type { PublicCoachingSession } from '@wavehub/shared-types';
+import type { PublicCoachReview, PublicCoachingSession } from '@wavehub/shared-types';
 import { CoachingSession } from './coaching-session.entity';
 import { Coach } from './coach.entity';
 import { RequestSessionDto } from './dto/request-session.dto';
+import { ReviewSessionDto } from './dto/review-session.dto';
+import { CoachingSessionReview } from './coaching-session-review.entity';
 import { assertValidSessionTransition } from './coaching-session-lifecycle';
 import { WalletService } from '../wallet/wallet.service';
 import { calculatePlatformFee } from '../wallet/fee.util';
@@ -23,6 +25,7 @@ export class CoachingSessionsService {
   constructor(
     @InjectRepository(CoachingSession) private readonly sessions: Repository<CoachingSession>,
     @InjectRepository(Coach) private readonly coaches: Repository<Coach>,
+    @InjectRepository(CoachingSessionReview) private readonly reviews: Repository<CoachingSessionReview>,
     private readonly dataSource: DataSource,
     private readonly wallet: WalletService,
     private readonly platformSettings: PlatformSettingsService,
@@ -167,6 +170,40 @@ export class CoachingSessionsService {
       throw new ForbiddenException('Not a participant in this session');
     }
     return this.toPublic(session);
+  }
+
+  // The buyer's review of a completed session — once per session (unique sessionId). Recomputes the
+  // coach's rating aggregate in the same transaction, with the coach row locked so two reviews
+  // landing together can't both write a stale average.
+  async review(sessionId: string, buyerId: string, dto: ReviewSessionDto): Promise<PublicCoachReview> {
+    const session = await this.getJoinedOrThrow(sessionId);
+    if (session.buyerId !== buyerId) throw new ForbiddenException('Only the buyer can review this session');
+    if (session.status !== CoachingSessionStatus.Completed) throw new ConflictException('Only a completed session can be reviewed');
+    try {
+      const saved = await this.dataSource.transaction(async (manager) => {
+        await manager.findOne(Coach, { where: { id: session.coachId }, lock: { mode: 'pessimistic_write' } });
+        const row = await manager.save(
+          manager.create(CoachingSessionReview, { sessionId, coachId: session.coachId, buyerId, rating: dto.rating, body: dto.body?.trim() || null }),
+        );
+        const [agg] = await manager.query(
+          `SELECT round(avg("rating")::numeric, 2) AS avg, count(*)::int AS n FROM "coaching_session_reviews" WHERE "coachId" = $1`,
+          [session.coachId],
+        );
+        await manager.update(Coach, { id: session.coachId }, { ratingAvg: agg.avg, ratingCount: agg.n });
+        return row;
+      });
+      return { id: saved.id, rating: saved.rating, body: saved.body, buyerUsername: session.buyer.username, createdAt: saved.createdAt.toISOString() };
+    } catch (err) {
+      if ((err as { code?: string }).code === '23505') throw new ConflictException('You already reviewed this session');
+      throw err;
+    }
+  }
+
+  async getReview(sessionId: string, userId: string): Promise<PublicCoachReview | null> {
+    const session = await this.getJoinedOrThrow(sessionId);
+    if (session.buyerId !== userId && session.coach.userId !== userId) throw new ForbiddenException('Not a participant in this session');
+    const row = await this.reviews.findOne({ where: { sessionId } });
+    return row ? { id: row.id, rating: row.rating, body: row.body, buyerUsername: session.buyer.username, createdAt: row.createdAt.toISOString() } : null;
   }
 
   // The unlocked status check in complete()/cancel() is only a fast path: two concurrent calls (a

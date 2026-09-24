@@ -33,7 +33,12 @@ describe('CoachesService', () => {
       }),
     } as any;
 
-    const service = new CoachesService(repo, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any);
+    const games = { find: jest.fn(async () => []), count: jest.fn(async () => 0) } as any;
+    const favorites = {} as any;
+    const reviews = {} as any;
+    const community = { waveRank: jest.fn(async () => ({ score: 0, name: 'Rookie' })) } as any;
+    const dataSource = { query: jest.fn(async () => []) } as any;
+    const service = new CoachesService(repo, games, favorites, reviews, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any, community, dataSource);
     return { service, repo, rows };
   }
 

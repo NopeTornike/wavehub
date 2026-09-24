@@ -575,6 +575,8 @@ export enum CoachStatus {
 
 export interface PublicCoachSummary {
   id: string;
+  // The coach's user id (same exposure as PublicSeller.id) — for "Message Coach".
+  userId: string;
   username: string;
   firstName: string;
   lastName: string;
@@ -592,10 +594,56 @@ export interface PublicCoachSummary {
   // Seen (made an authenticated request) within the community online window — real presence, not
   // a decoration.
   online: boolean;
+  // Coach-entered in-game rank (e.g. "Conqueror").
+  rank: string | null;
+  // Median minutes the coach took to answer a new message over the last 90 days (order + direct
+  // chats); null until there are at least 3 answered messages to measure.
+  responseMinutes: number | null;
+  completedSessions: number;
+}
+
+export interface PublicCoachGame {
+  id: string;
+  name: string;
+  slug: string;
+  main: boolean;
 }
 
 export interface PublicCoachDetail extends PublicCoachSummary {
   bio: string;
+  videoUrl: string | null;
+  quote: string | null;
+  coachingStyle: string[];
+  games: PublicCoachGame[];
+  // Distinct buyers of completed sessions, completed sessions, and completed / (completed +
+  // cancelled) as a percentage (null before any session finished either way).
+  stats: { students: number; sessions: number; successRate: number | null };
+  // The coach account's Wave rank (community/ — same formula as the topbar), scaled to 0–100.
+  waveScore: { score: number; tier: string };
+}
+
+export interface PublicCoachReview {
+  id: string;
+  rating: number;
+  body: string | null;
+  buyerUsername: string;
+  createdAt: string;
+}
+
+// GET coaches/mine/profile — what the coach can edit on their profile.
+export interface MyCoachProfile {
+  id: string;
+  gameId: string | null;
+  specialty: string;
+  bio: string;
+  languages: string[];
+  hourlyRateWaveCoin: number;
+  rank: string | null;
+  videoUrl: string | null;
+  quote: string | null;
+  coachingStyle: string[];
+  extraGameIds: string[];
+  verificationStatus: VerificationStatus;
 }
 
 // What CoachesService.listPendingVerification() / listAll() return for the admin queue.

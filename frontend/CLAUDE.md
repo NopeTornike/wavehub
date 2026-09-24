@@ -49,6 +49,12 @@ section wins.
   (rendered by `listings/[id].tsx` for digital keys: gallery with arrows/thumbs/trailer link, badges,
   rating + sold, price with the seller's "was" price, facts grid, tabs, "You may also like"). CSS
   blocks `sg-` and `sd-` at the end of `global.css`.
+- **Coaching (docs/design-mockups 06/14)**: `coaching/index.tsx` cards show the coach's rank,
+  measured response time and earned tags; `coaching/[id].tsx` is the mockup-14 profile (online pill,
+  badges, Wave Score + rating, four real metrics, Overview / Student Review tabs, intro video with its
+  YouTube thumbnail, quote, style, games, languages, Book / Message / Wishlist with the booking form);
+  `coaching/profile.tsx` is the coach's editor; `components/SessionReview.tsx` on
+  `coaching-sessions/[id]` lets the buyer review a completed session.
 - **Rule #6 decisions in the port** (each also commented in its page): no fake prize splits / demo
   teams / anti-cheat claims on tournaments; no fake coach rank, response time, "Top 1%" tags or
   always-on online dot (the dot is real presence now); Steam detail shows real rating/stock/seller

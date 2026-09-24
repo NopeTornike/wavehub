@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Coach } from './coach.entity';
 import { CoachingSession } from './coaching-session.entity';
+import { CoachingSessionReview } from './coaching-session-review.entity';
+import { CoachFavorite } from './coach-favorite.entity';
 import { Game } from '../listings/game.entity';
 import { CoachesService } from './coaches.service';
 import { CoachesController } from './coaches.controller';
@@ -13,16 +15,18 @@ import { WalletModule } from '../wallet/wallet.module';
 import { SettingsModule } from '../settings/settings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { CommunityModule } from '../community/community.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Coach, CoachingSession, Game]),
+    TypeOrmModule.forFeature([Coach, CoachingSession, CoachingSessionReview, CoachFavorite, Game]),
     AuthModule,
     AdminModule,
     WalletModule,
     SettingsModule,
     NotificationsModule,
     SubscriptionsModule,
+    CommunityModule,
   ],
   controllers: [CoachesController, CoachingSessionsController],
   providers: [CoachesService, CoachingSessionsService],

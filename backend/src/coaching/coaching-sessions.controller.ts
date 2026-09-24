@@ -4,6 +4,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } f
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { CoachingSessionsService } from './coaching-sessions.service';
 import { RequestSessionDto } from './dto/request-session.dto';
+import { ReviewSessionDto } from './dto/review-session.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
 
@@ -38,6 +39,18 @@ export class CoachingSessionsController {
   @HttpCode(HttpStatus.OK)
   complete(@CurrentUserId() userId: string, @Param('id') id: string) {
     return this.sessions.complete(id, userId);
+  }
+
+  @Get('coaching-sessions/:id/review')
+  getReview(@CurrentUserId() userId: string, @Param('id') id: string) {
+    return this.sessions.getReview(id, userId);
+  }
+
+  @Post('coaching-sessions/:id/review')
+  @Throttle(CREATE_THROTTLE)
+  @UseGuards(VerifiedEmailGuard)
+  review(@CurrentUserId() userId: string, @Param('id') id: string, @Body() dto: ReviewSessionDto) {
+    return this.sessions.review(id, userId, dto);
   }
 
   @Post('coaching-sessions/:id/cancel')

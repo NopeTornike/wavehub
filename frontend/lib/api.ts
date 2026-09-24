@@ -41,6 +41,8 @@ import type {
   PublicSavedReply,
   PublicCoachSummary,
   PublicCoachDetail,
+  PublicCoachReview,
+  MyCoachProfile,
   AdminCoachSummary,
   PublicCoachingSession,
   PublicContentPage,
@@ -174,6 +176,11 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'This is a team tournament — register a team': 'ეს გუნდური ტურნირია — დაარეგისტრირეთ გუნდი.',
   'The tournament has started — contact support to withdraw': 'ტურნირი დაწყებულია — გასასვლელად მიმართეთ მხარდაჭერას.',
   'Match not found': 'მატჩი ვერ მოიძებნა.',
+  'You already reviewed this session': 'ეს სესია უკვე შეაფასეთ.',
+  'Only a completed session can be reviewed': 'შეფასება შესაძლებელია მხოლოდ დასრულებული სესიისთვის.',
+  'You are not a coach': 'თქვენ ქოუჩის პროფილი არ გაქვთ.',
+  'The video must be a YouTube or Vimeo link': 'ვიდეო უნდა იყოს YouTube ან Vimeo ბმული.',
+  'Unknown game': 'უცნობი თამაში.',
   'The original price must be a whole number above the current price': 'ძველი ფასი უნდა იყოს მთელი რიცხვი და აღემატებოდეს მიმდინარე ფასს.',
   'Image not found': 'სურათი ვერ მოიძებნა.',
   'Team not found': 'გუნდი ვერ მოიძებნა.',
@@ -727,6 +734,25 @@ export const api = {
   completeCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/complete`, { method: 'POST' }),
 
   cancelCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/cancel`, { method: 'POST' }),
+
+  // --- Coach profile content, reviews, favourites (docs/design-mockups 06/14) ---
+  getMyCoachProfile: () => request<MyCoachProfile>('/coaches/mine/profile'),
+
+  updateMyCoachProfile: (payload: Partial<Omit<MyCoachProfile, 'id' | 'verificationStatus'>>) =>
+    request<MyCoachProfile>('/coaches/mine/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  listCoachReviews: (coachId: string) => request<PublicCoachReview[]>(`/coaches/${coachId}/reviews`),
+
+  getCoachingSessionReview: (sessionId: string) => request<PublicCoachReview | null>(`/coaching-sessions/${sessionId}/review`),
+
+  reviewCoachingSession: (sessionId: string, payload: { rating: number; body?: string }) =>
+    request<PublicCoachReview>(`/coaching-sessions/${sessionId}/review`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  listFavoriteCoachIds: () => request<string[]>('/me/coach-favorites/ids'),
+
+  favoriteCoach: (coachId: string) => request<{ ok: boolean }>(`/coaches/${coachId}/favorite`, { method: 'POST' }),
+
+  unfavoriteCoach: (coachId: string) => request<{ ok: boolean }>(`/coaches/${coachId}/favorite`, { method: 'DELETE' }),
 
   // --- Tournaments --- (backend/src/tournaments/tournaments.controller.ts)
   browseTournaments: (filters: { gameId?: string; status?: TournamentStatus; limit?: number; offset?: number } = {}) => {

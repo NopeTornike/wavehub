@@ -44,3 +44,9 @@ online window), `packages/shared-types` (`OnlineStats`, `GameListingCount`, `Sel
 ## Status
 Built and verified against the local Postgres in the 2026-09-24 1:1 design port (sidebar counter,
 home game counts, topbar Wave rank all render real numbers).
+
+## 2026-09-24
+Wave rank counts coaching too: a completed session is a sale for the coach and a purchase for the
+student, a session review counts like a seller review, and completed sessions in the last 30 days
+are recent events. `CommunityService` is exported (coach profiles show the coach's rank as a
+0–100 "Wave Score").

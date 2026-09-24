@@ -195,3 +195,25 @@ boost still first, then `coach.id` as a stable tiebreak for paging). Invalid val
 `ONLINE_WINDOW_MINUTES`; the directory's green avatar dot renders only when it's true (it used to
 be always on — a fabricated signal, rule #6). Rank / availability / service-type filters from the
 prototype are not built: coaches have no such data.
+
+## 2026-09-24 profiles, reviews, favourites (docs/design-mockups 06/14)
+Migration `1784355000000-CoachProfilesReviewsFavorites`.
+- **Coach-entered profile content**: `rank`, `videoUrl` (YouTube/Vimeo `https://` only —
+  `COACH_VIDEO_URL`), `quote`, `coachingStyle` (≤6 × 2–60 chars), `extraGameIds` (≤4, must exist,
+  main game dropped). `GET/PATCH coaches/mine/profile` (`UpdateCoachProfileDto`; languages are
+  two-letter codes, ≤6 — `ApplyCoachDto` now enforces the same). Frontend `/coaching/profile`.
+- **Session reviews** (`coaching-session-review.entity.ts`, `coaching_session_reviews`, unique per
+  session, rating 1–5 CHECK): `POST coaching-sessions/:id/review` (buyer only, completed only, once →
+  409), `GET coaching-sessions/:id/review` (participants), `GET coaches/:id/reviews` (public, buyer
+  username only). Creating one recomputes `coaches.ratingAvg/ratingCount` in the same transaction
+  with the coach row locked — these columns were never populated before.
+- **Favourites** (`coach_favorites`): `GET me/coach-favorites/ids`, `POST/DELETE coaches/:id/favorite`
+  (idempotent).
+- **Computed facts** on the public shapes: `completedSessions`; detail `stats` (distinct students,
+  completed sessions, success rate = completed / (completed + cancelled)); `responseMinutes` —
+  median minutes to answer a new message in the coach's order + direct chats over 90 days (SQL with
+  `lag()` turns + `LATERAL` first reply; null below 3 samples); `waveScore` = the coach account's
+  community Wave rank / 10 (CoachingModule imports CommunityModule). `userId` is on the summary for
+  "Message Coach" (same exposure as `PublicSeller.id`).
+- Frontend tags only when earned: "Fast Responder" (median ≤10 min), "Top Rated" (≥4.8 from ≥5
+  reviews). Tests: `test/coach-profiles.e2e-spec.ts`.

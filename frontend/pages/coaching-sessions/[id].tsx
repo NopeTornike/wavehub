@@ -6,6 +6,7 @@ import { CoachingSessionStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import SessionReview from '../../components/SessionReview'
 
 const STATUS_LABELS: Record<CoachingSessionStatus, string> = {
   [CoachingSessionStatus.Scheduled]: 'დაგეგმილია',
@@ -182,6 +183,7 @@ export default function CoachingSessionDetail() {
             </p>
           </section>
         )}
+        {session.status === CoachingSessionStatus.Completed && (isBuyer || isCoach) && <SessionReview sessionId={session.id} canReview={isBuyer} />}
       </div>
     </Layout>
   )

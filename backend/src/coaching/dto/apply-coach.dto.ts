@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsOptional, IsString, IsUUID, Length, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, Min } from 'class-validator';
 
 export class ApplyCoachDto {
   @IsOptional()
@@ -15,10 +15,12 @@ export class ApplyCoachDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @ArrayMaxSize(6)
+  @Matches(/^[a-z]{2}$/, { each: true, message: 'Languages must be two-letter codes' })
   languages?: string[];
 
   @IsInt()
   @Min(1)
+  @Max(100000)
   hourlyRateWaveCoin: number;
 }

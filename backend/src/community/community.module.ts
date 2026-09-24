@@ -7,5 +7,6 @@ import { CommunityService } from './community.service';
   imports: [AuthModule],
   controllers: [CommunityController],
   providers: [CommunityService],
+  exports: [CommunityService],
 })
 export class CommunityModule {}

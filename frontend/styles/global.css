@@ -18992,3 +18992,17 @@ body:not(.home-page) .mobile-header-auth { display: none !important; }
 /* Single-column grid pages: pin the track to the container so a wide child (carousels, tables)
    can't size the column past the phone width. */
 .sd-page, .sg-page, .wt-page, .wt-board { grid-template-columns: minmax(0, 1fr); }
+.coach-empty.wc-end { min-height: 120px; gap: 4px; align-content: center; text-align: center; }
+.coach-empty.wc-end strong { color: #fff; font-size: 16px; }
+.coach-profile-badge img { vertical-align: -3px; margin-right: 6px; }
+.coach-book-secondary.is-saved { border-color: #ff2f8f; color: #ff6fae; }
+.wc-stars { display: flex; gap: 6px; }
+.wc-stars button { border: 0; background: none; color: rgba(255, 194, 51, .3); font-size: 30px; line-height: 1; cursor: pointer; }
+.wc-stars button.on { color: #ffc233; }
+.wc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.wc-chips button { min-height: 36px; border: 1px solid rgba(120, 130, 170, .3); border-radius: 999px; color: #e6e8f0; background: rgba(10, 12, 24, .85); padding: 0 14px; font: inherit; font-size: 13px; cursor: pointer; }
+.wc-chips button.active { border-color: #ff2f8f; color: white; background: rgba(255, 47, 143, .25); }
+/* Coach profile (docs/design-mockups/14) tweaks on the prototype classes. */
+.wc-profile a.coach-video-preview { display: block; background-color: #0d111c; }
+.wc-profile .coach-book-secondary:not(.coach-message-secondary)::before { content: "♡"; width: auto; height: auto; background: none; filter: none; color: #fff; font-size: 20px; line-height: 1; }
+.wc-profile .coach-book-secondary.is-saved::before { content: "♥"; color: #ff2f8f; }

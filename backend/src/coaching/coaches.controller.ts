@@ -1,11 +1,12 @@
 import { CREATE_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AdminRole } from '@wavehub/shared-types';
 import { CoachesService } from './coaches.service';
 import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { RejectCoachDto } from './dto/reject-coach.dto';
 import { BrowseCoachesDto } from './dto/browse-coaches.dto';
+import { UpdateCoachProfileDto } from './dto/update-coach-profile.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
 import { AdminGuard } from '../admin/admin-role.guard';
@@ -40,6 +41,24 @@ export class CoachesController {
     return this.coaches.findMine(userId);
   }
 
+  @Get('coaches/mine/profile')
+  @UseGuards(AuthGuard)
+  getMyProfile(@CurrentUserId() userId: string) {
+    return this.coaches.getMyProfile(userId);
+  }
+
+  @Patch('coaches/mine/profile')
+  @UseGuards(AuthGuard)
+  updateMyProfile(@CurrentUserId() userId: string, @Body() dto: UpdateCoachProfileDto) {
+    return this.coaches.updateMyProfile(userId, dto);
+  }
+
+  @Get('me/coach-favorites/ids')
+  @UseGuards(AuthGuard)
+  favoriteIds(@CurrentUserId() userId: string) {
+    return this.coaches.favoriteIds(userId);
+  }
+
   @Get('coaches')
   browse(@Query() query: BrowseCoachesDto) {
     return this.coaches.browseVerified(query);
@@ -64,6 +83,24 @@ export class CoachesController {
   @Get('coaches/:id')
   findOne(@Param('id') id: string) {
     return this.coaches.findPublicById(id);
+  }
+
+  @Get('coaches/:id/reviews')
+  listReviews(@Param('id') id: string) {
+    return this.coaches.listReviews(id);
+  }
+
+  @Post('coaches/:id/favorite')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  addFavorite(@CurrentUserId() userId: string, @Param('id') id: string) {
+    return this.coaches.addFavorite(userId, id);
+  }
+
+  @Delete('coaches/:id/favorite')
+  @UseGuards(AuthGuard)
+  removeFavorite(@CurrentUserId() userId: string, @Param('id') id: string) {
+    return this.coaches.removeFavorite(userId, id);
   }
 
   @Post('coaches/:id/approve')
