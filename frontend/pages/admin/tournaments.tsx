@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { PublicGame, PublicTournamentSummary } from '@wavehub/shared-types'
-import { TournamentStatus } from '@wavehub/shared-types'
+import { TOURNAMENT_DETAIL_KEYS, TournamentStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 
@@ -18,6 +18,13 @@ const emptyForm = {
   status: TournamentStatus.Upcoming as TournamentStatus,
   startDate: '',
   maxPlayers: 64,
+  details: {} as Record<string, string>,
+  rules: '',
+}
+
+// Only the filled-in details are sent (empty ones show "To be announced" on the public page).
+function cleanDetails(details: Record<string, string>) {
+  return Object.fromEntries(Object.entries(details).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v))
 }
 
 type TournamentForm = typeof emptyForm
@@ -95,6 +102,26 @@ function TournamentFields({
           <input id={`${idPrefix}-max`} type="number" min={2} step={1} value={form.maxPlayers} onChange={(e) => onChange({ ...form, maxPlayers: Number(e.target.value) })} required />
         </label>
       </div>
+      <details className="field">
+        <summary>ტურნირის დეტალები (არასავალდებულო — ცარიელი ველი საჯაროდ ჩანს როგორც „To be announced“)</summary>
+        <div className="stack-form-grid">
+          {TOURNAMENT_DETAIL_KEYS.map(([key, label]) => (
+            <label key={key} className="field" htmlFor={`${idPrefix}-d-${key}`}>
+              {label}
+              <input
+                id={`${idPrefix}-d-${key}`}
+                maxLength={160}
+                value={form.details[key] ?? ''}
+                onChange={(e) => onChange({ ...form, details: { ...form.details, [key]: e.target.value } })}
+              />
+            </label>
+          ))}
+        </div>
+        <label className="field" htmlFor={`${idPrefix}-rules`}>
+          წესები
+          <textarea id={`${idPrefix}-rules`} rows={4} maxLength={5000} value={form.rules} onChange={(e) => onChange({ ...form, rules: e.target.value })} />
+        </label>
+      </details>
     </>
   )
 }
@@ -165,6 +192,8 @@ export default function AdminTournaments() {
         status: form.status,
         startDate: form.startDate,
         maxPlayers: form.maxPlayers,
+        details: cleanDetails(form.details),
+        rules: form.rules.trim() || undefined,
       })
       setForm(emptyForm)
       await reload()
@@ -186,6 +215,8 @@ export default function AdminTournaments() {
       status: t.status,
       startDate: t.startDate.slice(0, 10),
       maxPlayers: t.maxPlayers,
+      details: { ...(t.details ?? {}) },
+      rules: t.rules ?? '',
     })
   }
 
@@ -208,6 +239,8 @@ export default function AdminTournaments() {
         status: editForm.status,
         startDate: editForm.startDate,
         maxPlayers: editForm.maxPlayers,
+        details: cleanDetails(editForm.details),
+        rules: editForm.rules.trim(),
       })
       setEditingId(null)
       await reload()

@@ -354,6 +354,8 @@ export interface FaqEntry {
 // fields (description, packages, type-specific extras).
 export interface PublicListingDetail extends PublicListingSummary {
   description: string;
+  // The seller's completed orders across all their listings (detail page's seller strip).
+  sellerCompletedOrders: number;
   packages: PublicPackage[];
   requirementsSchema?: RequirementField[];
   faq?: FaqEntry[];
@@ -376,6 +378,11 @@ export interface PublicOrderListingRef {
   id: string;
   title: string;
   type: ListingType;
+  // For the order card's thumbnail/meta line: the listing's game (null for a game-less listing) and
+  // its first approved image (null → the page shows the game's cover art).
+  gameName: string | null;
+  gameSlug: string | null;
+  imageUrl: string | null;
 }
 
 export interface PublicOrderPackageRef {
@@ -573,16 +580,22 @@ export interface PublicCoachSummary {
   lastName: string;
   specialty: string;
   gameName: string | null;
+  gameSlug: string | null;
   hourlyRateWaveCoin: number;
   ratingAvg: string | null;
   ratingCount: number;
   // Active Seller/Coach plan's profileBadge perk, if any.
   profileBadge: string | null;
+  // Two-letter codes the coach listed (e.g. `ka`, `en`).
+  languages: string[];
+  avatarUrl: string | null;
+  // Seen (made an authenticated request) within the community online window — real presence, not
+  // a decoration.
+  online: boolean;
 }
 
 export interface PublicCoachDetail extends PublicCoachSummary {
   bio: string;
-  languages: string[];
 }
 
 // What CoachesService.listPendingVerification() / listAll() return for the admin queue.
@@ -861,7 +874,29 @@ export interface PublicTournamentSummary {
   registeredCount: number;
   coverImageUrl: string | null;
   createdAt: string;
+  // Admin-entered facts (keys: TOURNAMENT_DETAIL_KEYS); missing ones show "To be announced".
+  details: Record<string, string>;
+  rules: string | null;
 }
+
+// The facts the prototype's tournament page shows, in its order, with its labels.
+export const TOURNAMENT_DETAIL_KEYS: ReadonlyArray<readonly [key: string, label: string]> = [
+  ['format', 'Format'],
+  ['mode', 'Mode'],
+  ['region', 'Region / Server'],
+  ['platform', 'პლატფორმა'],
+  ['checkInTime', 'Check-in Time'],
+  ['startTime', 'Start Time'],
+  ['registrationDeadline', 'Registration Deadline'],
+  ['entryFee', 'შესვლის საფასური'],
+  ['teamSize', 'Team Size'],
+  ['minimumRank', 'Minimum Rank'],
+  ['bracketType', 'Bracket Type'],
+  ['matches', 'Matches'],
+  ['whoCanJoin', 'Who Can Join'],
+  ['communication', 'Communication'],
+  ['organizer', 'Organizer'],
+];
 
 export type PublicTournamentDetail = PublicTournamentSummary;
 

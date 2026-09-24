@@ -8,6 +8,7 @@ import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { BrowseCoachesDto } from './dto/browse-coaches.dto';
 import { assertValidVerificationTransition } from './coach-lifecycle';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { ONLINE_WINDOW_MINUTES } from '../community/community.service';
 
 @Injectable()
 export class CoachesService {
@@ -80,10 +81,33 @@ export class CoachesService {
     if (filters.gameId) {
       qb.andWhere('coach.gameId = :gameId', { gameId: filters.gameId });
     }
+    if (filters.gameIds?.length) {
+      qb.andWhere('coach.gameId IN (:...gameIds)', { gameIds: filters.gameIds });
+    }
+    if (filters.maxRate) {
+      qb.andWhere('coach.hourlyRateWaveCoin <= :maxRate', { maxRate: filters.maxRate });
+    }
+    if (filters.language) {
+      qb.andWhere(':language = ANY(coach.languages)', { language: filters.language });
+    }
+
+    qb.orderBy('featured_boost', 'DESC');
+    switch (filters.sort) {
+      case 'price_asc':
+        qb.addOrderBy('coach.hourlyRateWaveCoin', 'ASC');
+        break;
+      case 'price_desc':
+        qb.addOrderBy('coach.hourlyRateWaveCoin', 'DESC');
+        break;
+      case 'reviews':
+        qb.addOrderBy('coach.ratingCount', 'DESC');
+        break;
+      default:
+        qb.addOrderBy('coach.ratingAvg', 'DESC', 'NULLS LAST').addOrderBy('coach.ratingCount', 'DESC');
+    }
 
     const [rows, total] = await qb
-      .orderBy('featured_boost', 'DESC')
-      .addOrderBy('coach.ratingAvg', 'DESC', 'NULLS LAST')
+      .addOrderBy('coach.id', 'ASC')
       .take(filters.limit ?? 20)
       .skip(filters.offset ?? 0)
       .getManyAndCount();
@@ -164,15 +188,21 @@ export class CoachesService {
       lastName: coach.user.lastName,
       specialty: coach.specialty,
       gameName: coach.game?.name ?? null,
+      gameSlug: coach.game?.slug ?? null,
       hourlyRateWaveCoin: coach.hourlyRateWaveCoin,
       ratingAvg: coach.ratingAvg,
       ratingCount: coach.ratingCount,
       profileBadge,
+      languages: coach.languages ?? [],
+      avatarUrl: coach.user.avatarUrl ?? null,
+      // Same "online" definition as the community online counter (last authenticated request within
+      // ONLINE_WINDOW_MINUTES) — the only real presence signal there is.
+      online: isRecentlySeen(coach.user.lastSeenAt),
     };
   }
 
   private toDetail(coach: Coach, profileBadge: string | null): PublicCoachDetail {
-    return { ...this.toSummary(coach, profileBadge), bio: coach.bio, languages: coach.languages };
+    return { ...this.toSummary(coach, profileBadge), bio: coach.bio };
   }
 
   private toAdminSummary(coach: Coach): AdminCoachSummary {
@@ -195,4 +225,8 @@ export class CoachesService {
     if (!coach) throw new NotFoundException('Coach not found');
     return coach;
   }
+}
+
+function isRecentlySeen(lastSeenAt: Date | null | undefined): boolean {
+  return !!lastSeenAt && Date.now() - lastSeenAt.getTime() < ONLINE_WINDOW_MINUTES * 60_000;
 }

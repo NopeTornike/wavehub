@@ -215,3 +215,8 @@ means every listing type's purchase flow (not just DigitalKey) now updates the h
 `purchase()` snapshots `SubscriptionsService.effectiveFeePercent(listing.sellerId, baseFee)` — the
 seller's plan `platformFeeDiscountPercent` (percentage points, floored at 0) off the global fee.
 Verified live: base 10%, discount 3 → snapshot 7; in-flight orders keep their snapshot.
+
+## 2026-09 order card fields
+`PublicOrderSummary.listing` now also has `gameName`, `gameSlug` and `imageUrl` (the listing's first
+approved image) so the orders page can render the prototype's `.order-thumb` without an N+1; the
+three list/detail queries join `listing.game` + `listing.images`.

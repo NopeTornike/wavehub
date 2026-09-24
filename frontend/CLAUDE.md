@@ -1,5 +1,51 @@
 # frontend
 
+## Current state (2026-09-24 — read this first; it supersedes older notes below)
+The app is now a **1:1 port of Tornike's current `main` design** (`b300d78`, 2026-09-22) on real
+data. Where the narrative further down contradicts this section (e.g. "no cart page", "no seller
+create flow", `NotificationBell`, the Rules tab being static copy, `.detail-*` policy pages), this
+section wins.
+- **Design source of truth**: `styles/global.css` = the prototype's `styles.css` (3-way merged, asset
+  URLs made absolute) + this app's additions appended at the end, each with a comment saying why;
+  `public/assets/` mirrors the prototype's `assets/`. Compare against the live
+  `nopetornike.github.io/wavehub/*.html` pages at the same viewport, not just the source.
+- **Shell**: `Layout` → `Sidebar` (with real online count), `Topbar` (language switcher, messages/
+  cart/notification badges, Wave-rank profile menu, avatar photo), `Footer`, `MobileBottomNav`,
+  `NotificationCenter`. Shared state: `lib/shell.tsx` (`useShell`: unread counts, online count,
+  Wave rank, games), `lib/cart.tsx` (browser-local cart), `lib/favorites.tsx` (server favourites),
+  `lib/i18n.tsx` (EN↔KA DOM translator using the prototype's own dictionary + `i18n-ka-en.app.json`).
+  `Layout` props: `bodyClass` (the prototype's `<body class>` — e.g. `wallet-page`,
+  `policy-page-body`, `steam-detail-page`; many rules are scoped to it), `mainClass`, `topbarAction`,
+  and `pageSearch` (the topbar box filters the current page instead of searching the marketplace,
+  as on the prototype's orders/wallet/coaching pages).
+- **Ported pages** (prototype file → route): `index.html` → `/`; `marketplace.html` →
+  `/marketplace` (+ seller modal `components/SellerModal.tsx`); `detail.html` → `/listings/[id]`
+  (digital keys render `steam-game-detail.html`'s layout instead); `cart.html` → `/cart` (one real
+  order per unit, live re-pricing); favourites → `/favorites`; `steam-keys.html` → `/steam-keys`;
+  `about.html` → `/about`; `profile.html` → `/profile` (Settings) and `/u/[username]` (public);
+  `orders.html` → `/orders` (both sides' summary, cards, "My Listings" panel); `wallet.html` →
+  `/wallet` (summary cards, category tabs that really filter, plus a withdrawal bar/list the
+  prototype lacks); `messages.html` → `/messages`; `tournaments.html` / `tournament-detail.html` →
+  `/tournaments`, `/tournaments/[id]` (pre-join layout); `coaching.html` → `/coaching` (filter panel,
+  sort, grid/list, pagination — server-side); `coach-book-session.html` → `/coaching/[id]`;
+  `auth.html` → the 5 auth pages (`components/AuthCardTop.tsx`); the 10 policy pages →
+  `/pages/[slug]` (parses the CMS text into the policy layout — format in
+  `backend/src/content/CLAUDE.md`).
+- **Shared pieces**: `components/ProductCard.tsx` (showcase/plain cards, `listingKind`,
+  `listingPrice`), `components/MyListings.tsx` (seller listing panel + edit modal, used by
+  `/profile` and `/orders`), `components/RecordCard.tsx`, `lib/games.ts` (`gameCover`/`gameTile`/
+  `gameIcon` by slug), `lib/game-details.json` (per-game detail-form fields), `lib/labels.ts`
+  (`LISTING_TYPE_LABELS`, order/session/listing status labels).
+- **Rule #6 decisions in the port** (each also commented in its page): no fake prize splits / demo
+  teams / anti-cheat claims on tournaments; no fake coach rank, response time, "Top 1%" tags or
+  always-on online dot (the dot is real presence now); Steam detail shows real rating/stock/seller
+  instead of "4.9 · Verified game key"; wallet "Total Purchased" = real BOG top-ups.
+- **Local verification**: dev-mode hydration stalls in the in-app browser pane after the first
+  navigation; use the `wavehub-frontend-prod` launch config (build + `next start`) and restart it to
+  pick up changes. Re-check pages at 1280px and ≤800px — several prototype rules are tuned to a
+  fixed child count (see the coach-profile note below) or fixed column minimums (the tournament
+  register bar overflowed below ~1450px on the prototype too; fixed at the end of `global.css`).
+
 ## Purpose
 The Next.js app — **this is the one real frontend going forward** (confirmed decision, see root
 `CLAUDE.md`). The static HTML/JS prototype at the repo root is UI/UX reference only; port ideas from

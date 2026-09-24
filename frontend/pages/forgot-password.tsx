@@ -1,7 +1,7 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { useState, type FormEvent } from 'react'
 import { api, errorMessage } from '../lib/api'
+import AuthCardTop from '../components/AuthCardTop'
 import PageHead from '../components/PageHead'
 
 export default function ForgotPassword() {
@@ -37,11 +37,7 @@ export default function ForgotPassword() {
     <main className="auth-page-shell">
       <PageHead title="პაროლის აღდგენა" description="მოითხოვეთ პაროლის აღდგენის ბმული ელფოსტაზე." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
-        <div className="auth-card-top">
-          <Link className="auth-brand" href="/" aria-label="WaveHub — მთავარი გვერდი">
-            <Image src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" width={600} height={310} priority />
-          </Link>
-        </div>
+        <AuthCardTop />
         <div className="auth-card-head">
           <p className="section-kicker">WaveHub account</p>
           <h1 id="authTitle">პაროლის აღდგენა</h1>

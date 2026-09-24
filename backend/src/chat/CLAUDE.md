@@ -148,3 +148,8 @@ relative to the viewer" resolution.
 to discover a transacted-but-never-contacted-yet counterpart except from an order/session detail
 page's "Message" button (there's no "search for a user to message" flow, deliberately — messaging
 only ever starts from a concrete order/session, matching the "transacted users only" gate).
+
+## 2026-09 unread direct messages
+`GET /direct-messages/unread-count` (`countUnreadDirect`) feeds the topbar/sidebar message badge;
+opening a thread (`listDirectMessages`) marks the other side's messages seen, and the conversation
+summaries carry `unreadCount`.

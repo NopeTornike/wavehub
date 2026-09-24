@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/router'
 import Sidebar from './Sidebar'
-import Topbar from './Topbar'
+import Topbar, { type TopbarSearch } from './Topbar'
 import Footer from './Footer'
 import MobileBottomNav from './MobileBottomNav'
 import VerifyEmailBanner from './VerifyEmailBanner'
@@ -25,6 +25,7 @@ export default function Layout({
   bodyClass,
   topbarAction,
   mainClass,
+  pageSearch,
 }: {
   children: ReactNode
   title?: string
@@ -36,6 +37,8 @@ export default function Layout({
   topbarAction?: ReactNode
   // Extra classes on <main class="main-panel"> (e.g. the About page's `about-main-panel`).
   mainClass?: string
+  // The topbar search box filters this page instead of searching the marketplace (see Topbar).
+  pageSearch?: TopbarSearch
 }) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -77,7 +80,7 @@ export default function Layout({
       <div className="app-shell">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className={`main-panel${mainClass ? ` ${mainClass}` : ''}`} id="main-content" tabIndex={-1}>
-          <Topbar onMenuClick={() => setSidebarOpen((v) => !v)} sidebarOpen={sidebarOpen} action={topbarAction} />
+          <Topbar onMenuClick={() => setSidebarOpen((v) => !v)} sidebarOpen={sidebarOpen} action={topbarAction} pageSearch={pageSearch} />
           <VerifyEmailBanner />
           {children}
         </main>

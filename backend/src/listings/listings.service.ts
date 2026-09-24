@@ -366,7 +366,13 @@ export class ListingsService {
       throw new NotFoundException('Listing not found');
     }
     void this.listings.increment({ id }, 'viewsCount', 1);
-    const favoriteCount = await this.favorites.count({ where: { listingId: id } });
+    const [favoriteCount, [{ sellerCompletedOrders }]] = await Promise.all([
+      this.favorites.count({ where: { listingId: id } }),
+      this.listings.query(
+        `SELECT count(*)::int AS "sellerCompletedOrders" FROM "orders" WHERE "sellerId" = $1 AND "status" = 'completed'`,
+        [listing.sellerId],
+      ),
+    ]);
 
     if (listing.type === ListingType.Service) {
       const [packages, details] = await Promise.all([
@@ -381,6 +387,7 @@ export class ListingsService {
         faq: details?.faq ?? [],
         itemAttributes: null,
         favoriteCount,
+        sellerCompletedOrders,
       };
     }
 
@@ -388,11 +395,11 @@ export class ListingsService {
       const availableCount = await this.keyInventory.count({
         where: { listingId: id, status: KeyInventoryStatus.Available },
       });
-      return { ...listing, seller: toPublicSeller(listing.seller), packages: [], stockQuantity: availableCount, itemAttributes: null, favoriteCount };
+      return { ...listing, seller: toPublicSeller(listing.seller), packages: [], stockQuantity: availableCount, itemAttributes: null, favoriteCount, sellerCompletedOrders };
     }
 
     const itemDetails = await this.itemDetails.findOne({ where: { listingId: id } });
-    return { ...listing, seller: toPublicSeller(listing.seller), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount };
+    return { ...listing, seller: toPublicSeller(listing.seller), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount, sellerCompletedOrders };
   }
 
   async addPackage(sellerId: string, listingId: string, dto: CreatePackageDto): Promise<Package> {

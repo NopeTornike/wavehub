@@ -1,7 +1,7 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { api, errorMessage } from '../lib/api'
+import AuthCardTop from '../components/AuthCardTop'
 import PageHead from '../components/PageHead'
 import { useAuth } from '../lib/auth'
 
@@ -159,11 +159,7 @@ export default function Register() {
     <main className="auth-page-shell">
       <PageHead title="რეგისტრაცია" description="შექმენით WaveHub ანგარიში და დაიწყეთ გაყიდვა ან შეძენა." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
-        <div className="auth-card-top">
-          <Link className="auth-brand" href="/" aria-label="WaveHub — მთავარი გვერდი">
-            <Image src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" width={600} height={310} priority />
-          </Link>
-        </div>
+        <AuthCardTop />
 
         <div className="auth-card-head">
           <p className="section-kicker">WaveHub account</p>

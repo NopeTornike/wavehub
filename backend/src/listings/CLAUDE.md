@@ -199,3 +199,32 @@ listings/orders-local patch. See `backend/src/wallet/CLAUDE.md`.
 Seller-Coach plan whose `perks.featuredListings` is true sorts first — live, no cached flag. The
 `GET users/:username` profile now returns `profileBadge` too. `ListingsModule` imports
 `SubscriptionsModule`. See `backend/src/subscriptions/CLAUDE.md`.
+
+## 2026-09 design-port additions (supersede the Status gaps above)
+Added while porting the prototype's marketplace/seller flow 1:1 (commits `fee10df` and the follow-up):
+- **Generic seller create flow exists now** (the "no create page for Service/Item" note above is
+  stale): the marketplace "Become a seller" modal (`frontend/components/SellerModal.tsx`) creates
+  Item listings (accounts / skins) with up to **6** images (`MAX_IMAGES_PER_LISTING`) and a
+  per-game `attributes` object.
+- **`itemAttributes`** — `CreateListingDto.attributes`, validated by
+  `dto/item-attributes.validator.ts` (`@IsItemAttributes`): plain object, ≤40 keys matching
+  `/^[a-zA-Z][a-zA-Z0-9_]{0,39}$/`, `__proto__`/`constructor`/`prototype` refused, string values
+  ≤300 chars, finite numbers ≤1e9, booleans. Rendered by the detail page's game-specific and
+  Access & Delivery grids. Reused by `tournaments/` for `details`.
+- **Revising a live listing**: `PATCH /listings/:id` (`dto/update-listing.dto.ts`) — an Active or
+  Paused listing goes back to `PendingReview` (lifecycle now allows Active/Paused → PendingReview);
+  editing while already `PendingReview` is a 409. `DELETE /listings/:id` only for a listing with no
+  orders (409 "pause it instead" otherwise; an FK 23503 race also maps to 409).
+- **Favourites**: `listing_favorites` (`listing-favorite.entity.ts`, registered in `app.module.ts`
+  **and** `data-source.ts` — missing either gives `No metadata for "ListingFavorite"`),
+  `GET me/favorites`, `GET me/favorites/ids`, `POST/DELETE listings/:id/favorite`;
+  summaries carry `favoriteCount`.
+- **Browse**: `q` (escaped ILIKE on title/description), `game` (slug), `featured`, and `sort`
+  (`newest|oldest|price_asc|price_desc`, price = item price or the cheapest package).
+- `findPublicById` adds `sellerCompletedOrders` (the detail page's completed-orders tile).
+- `GET/PATCH me/profile` + `POST me/avatar` (`users/profile.controller.ts`) are declared in this
+  module (it already has the User repo + StorageService) — see `users/CLAUDE.md`.
+- Item categories `accounts` / `skins` (migration `1784350000000-FavoritesAndItemCategories` moved
+  item listings off the service categories).
+- A **digital-key** listing renders the prototype's `steam-game-detail.html` layout on
+  `/listings/[id]` (frontend only; same buy/cart/favourite calls).

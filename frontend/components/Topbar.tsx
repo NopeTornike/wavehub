@@ -54,7 +54,22 @@ function MenuIcon({ paths, circle }: { paths: string; circle?: [number, number, 
 const SETTINGS_PATH =
   'M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z'
 
-export default function Topbar({ onMenuClick, sidebarOpen, action }: { onMenuClick: () => void; sidebarOpen: boolean; action?: ReactNode }) {
+// A page that filters its own content from the topbar search box (orders.html's "Search orders,
+// games or users..."): the box then drives that page's filter live instead of submitting to
+// /marketplace.
+export type TopbarSearch = { value: string; onChange: (value: string) => void; placeholder: string; label: string }
+
+export default function Topbar({
+  onMenuClick,
+  sidebarOpen,
+  action,
+  pageSearch,
+}: {
+  onMenuClick: () => void
+  sidebarOpen: boolean
+  action?: ReactNode
+  pageSearch?: TopbarSearch
+}) {
   const router = useRouter()
   const { user, checked, logout } = useAuth()
   const { count: cartCount } = useCart()
@@ -141,20 +156,37 @@ export default function Topbar({ onMenuClick, sidebarOpen, action }: { onMenuCli
         <img src="/assets/logo-wavehubx-main.png" alt="WaveHubX" />
       </Link>
 
-      <form className="search-box" role="search" aria-label="ძიება" onSubmit={submitSearch}>
-        <span className="search-icon" aria-hidden="true">
-          /
-        </span>
-        <input
-          id="marketSearch"
-          type="search"
-          placeholder="მოძებნე თამაშები, სერვისები ან მოთამაშეები..."
-          autoComplete="off"
-          maxLength={100}
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-      </form>
+      {pageSearch ? (
+        <form className="search-box" role="search" aria-label={pageSearch.label} onSubmit={(event) => event.preventDefault()}>
+          <span className="search-icon" aria-hidden="true">
+            /
+          </span>
+          <input
+            id="pageSearch"
+            type="search"
+            placeholder={pageSearch.placeholder}
+            autoComplete="off"
+            maxLength={100}
+            value={pageSearch.value}
+            onChange={(event) => pageSearch.onChange(event.target.value)}
+          />
+        </form>
+      ) : (
+        <form className="search-box" role="search" aria-label="ძიება" onSubmit={submitSearch}>
+          <span className="search-icon" aria-hidden="true">
+            /
+          </span>
+          <input
+            id="marketSearch"
+            type="search"
+            placeholder="მოძებნე თამაშები, სერვისები ან მოთამაშეები..."
+            autoComplete="off"
+            maxLength={100}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </form>
+      )}
 
       <div className="top-actions">
         <LanguageSwitcher />

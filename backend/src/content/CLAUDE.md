@@ -82,3 +82,13 @@ should keep following that same one-line-per-block convention rather than pastin
 Not built: rich-text editing, HTML sanitization, page history/versioning, or any of the broader
 banners/news/categories/promo-code "Content Management" scope from SPECIFICATION.md §5.13 (Phase
 11f, still ahead).
+
+## 2026-09 rendering + two new pages
+Migration `1784351000000-PaymentAndWalletPolicyPages` adds `payment-policy` and `wallet-policy`
+(inserted `ON CONFLICT DO NOTHING`, describing how the platform really works; still need the
+owner's legal review). The public renderer (`frontend/pages/pages/[slug].tsx`) now uses the
+prototype's policy-page design and **parses the plain-text body**: blank-line-separated blocks; a
+first all-caps `WAVEHUBX …` line is dropped (the title is shown instead); a single short line with no
+closing punctuation is a section heading (`"3 Heading"` keeps its number, unnumbered ones are
+numbered in order); lines starting `– `/`- `/`• ` become list items; a short `Label:` line is bold;
+text before the first heading is the hero intro. Admins editing a page should keep to that shape.

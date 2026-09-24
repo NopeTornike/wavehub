@@ -108,3 +108,17 @@ deliberately cross-origin already (see `CORS_ORIGIN` right below that line). Thi
 every previously-"verified" image-upload feature in this app (listing photos, coach profile
 photos) has silently never rendered in a real browser until now — worth a quick re-check next time
 any of those pages are touched, since their own `CLAUDE.md` Status sections don't mention this.
+
+## 2026-09 details + rules (supersedes "no per-tournament rules field")
+Migration `1784353000000-TournamentDetails`: `details` jsonb (default `{}`) and `rules` text.
+`details` is validated with listings' `@IsItemAttributes` (same bounds) and its known keys/labels
+are `TOURNAMENT_DETAIL_KEYS` in shared-types (format, mode, region, platform, checkInTime,
+startTime, registrationDeadline, entryFee, teamSize, minimumRank, bracketType, matches, whoCanJoin,
+communication, organizer — the prototype's pre-join facts). `rules` ≤5000 chars, one rule per line.
+Admin create/edit (`/admin/tournaments`) has a collapsible details form + rules textarea; the public
+detail page (`tournaments/[id].tsx`, the prototype's pre-join layout) shows "To be announced" for any
+unset fact, Entry Fee defaults to free, and the Rules tab lists the real rules (or the prototype's
+"not published yet" line). Its Prize tab shows the real prize only and the Teams tab the real
+registration count — the prototype's invented prize split and demo teams are not ported (rule #6).
+Note: sending `{"details": {"__proto__": ...}}` is stripped by class-transformer and so saves `{}` —
+harmless (no pollution), just clears the details.

@@ -141,11 +141,12 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'User not found': 'მომხმარებელი ვერ მოიძებნა.',
   'Listing not found': 'განცხადება ვერ მოიძებნა.',
   'Order not found': 'შეკვეთა ვერ მოიძებნა.',
-  'Coach not found': 'მწვრთნელი ვერ მოიძებნა.',
+  'Coach not found': 'ქოუჩი ვერ მოიძებნა.',
   'Session not found': 'სესია ვერ მოიძებნა.',
   'Tournament not found': 'ტურნირი ვერ მოიძებნა.',
   'Conversation not found': 'საუბარი ვერ მოიძებნა.',
   'Plan not found': 'გეგმა ვერ მოიძებნა.',
+  'Page not found': 'გვერდი ვერ მოიძებნა.',
   'BOG checkout could not be created.': 'გადახდის გვერდის შექმნა ვერ მოხერხდა. სცადეთ მოგვიანებით.',
 }
 
@@ -635,7 +636,9 @@ export const api = {
 
   getMyCoachApplication: () => request<MyCoachApplication | null>('/coaches/mine'),
 
-  browseCoaches: (filters: { gameId?: string; limit?: number; offset?: number } = {}) => {
+  browseCoaches: (
+    filters: { gameId?: string; gameIds?: string; maxRate?: number; language?: string; sort?: string; limit?: number; offset?: number } = {},
+  ) => {
     const params = new URLSearchParams()
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== '') params.set(key, String(value))
@@ -710,6 +713,8 @@ export const api = {
     status?: TournamentStatus
     startDate: string
     maxPlayers: number
+    details?: Record<string, string>
+    rules?: string
   }) => request<PublicTournamentSummary>('/admin/tournaments', { method: 'POST', body: JSON.stringify(payload) }),
 
   adminUpdateTournament: (
@@ -722,6 +727,8 @@ export const api = {
       status: TournamentStatus
       startDate: string
       maxPlayers: number
+      details: Record<string, string>
+      rules: string
     }>,
   ) => request<PublicTournamentSummary>(`/admin/tournaments/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
 

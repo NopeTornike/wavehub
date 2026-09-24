@@ -32,6 +32,10 @@ export function gameTile(slug: string | null | undefined): string | null {
   return (slug && GAME_ART[slug]?.tile) || null
 }
 
+export function gameIcon(slug: string | null | undefined): string | null {
+  return (slug && GAME_ART[slug]?.icon) || null
+}
+
 // The prototype shows game names in caps on the home grid (e.g. "CALL OF DUTY MOBILE").
 export function gameDisplayName(name: string): string {
   return name.toUpperCase()

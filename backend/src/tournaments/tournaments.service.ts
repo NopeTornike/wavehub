@@ -40,6 +40,8 @@ export class TournamentsService {
       maxPlayers: tournament.maxPlayers,
       registeredCount,
       coverImageUrl: tournament.coverImageUrl,
+      details: tournament.details ?? {},
+      rules: tournament.rules ?? null,
       createdAt: tournament.createdAt.toISOString(),
     };
   }
@@ -53,6 +55,8 @@ export class TournamentsService {
       status: dto.status ?? TournamentStatus.Upcoming,
       startDate: dto.startDate,
       maxPlayers: dto.maxPlayers,
+      details: dto.details ?? {},
+      rules: dto.rules?.trim() || null,
     });
     return this.tournaments.save(tournament);
   }

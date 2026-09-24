@@ -107,3 +107,14 @@ only a direct DB update.
 ## Profile badge
 `GET users/:username` (in `users.controller.ts`) returns `profileBadge` from the user's active
 Seller/Coach plan, falling back to their Buyer plan, else `null`.
+
+## 2026-09 profile fields (supersedes "fields added later" in Status)
+- `lastSeenAt` (timestamptz) — written by `AuthGuard` via `touchLastSeen()` (conditional UPDATE,
+  ≤1 write/user/minute, failures swallowed). Feeds `community/`'s online counter and the coach
+  card's `online` flag. Never returned by any public user route.
+- `bio` (varchar 300), `avatarUrl`, `mainGameIds` (uuid[], ≤2) — migration
+  `1784352000000-UserProfileFields`. Edited through `GET/PATCH me/profile` and `POST me/avatar`
+  (`profile.controller.ts`, declared in `ListingsModule`; avatar upload is byte-sniffed by
+  `StorageService`, so HTML-as-PNG is a 415). Username is not editable there (400).
+- `GET /users/:username` now also returns `bio`, `avatarUrl`, `mainGames`; `toPublicUser` carries
+  `avatarUrl` (the topbar shows the photo).

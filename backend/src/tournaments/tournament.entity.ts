@@ -40,6 +40,15 @@ export class Tournament {
   @Column({ type: 'varchar', nullable: true })
   coverImageUrl: string | null;
 
+  // Admin-entered facts shown on the tournament page (format, mode, region, platform, times,
+  // deadline, entry fee, team size, minimum rank, bracket, matches, eligibility, communication,
+  // organizer) — a flat string bag, see TOURNAMENT_DETAIL_KEYS in shared-types.
+  @Column({ type: 'jsonb', default: {} })
+  details: Record<string, string>;
+
+  @Column({ type: 'text', nullable: true })
+  rules: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

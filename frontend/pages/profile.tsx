@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { useEffect, useState, type FormEvent } from 'react'
-import { ListingStatus, ListingType, type MyProfile, type PublicCoachingSession, type PublicOrderSummary } from '@wavehub/shared-types'
+import { type MyProfile, type PublicCoachingSession, type PublicOrderSummary } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
-import { api, errorMessage, type MyListing } from '../lib/api'
+import MyListings from '../components/MyListings'
+import RecordCard from '../components/RecordCard'
+import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { gameCover } from '../lib/games'
-import { LISTING_STATUS_LABELS, ORDER_STATUS_LABELS, SESSION_STATUS_LABELS } from '../lib/labels'
+import { ORDER_STATUS_LABELS, SESSION_STATUS_LABELS } from '../lib/labels'
 import { useShell } from '../lib/shell'
 
 // The prototype's profile.html in its signed-in "control" layout (Settings) and its signed-out
@@ -31,35 +32,6 @@ function initials(first?: string, last?: string, username?: string) {
   return source.trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
 }
 
-function RecordCard(props: {
-  href: string
-  image?: string | null
-  fallback: string
-  title: string
-  meta: string
-  footer: string
-  actions?: React.ReactNode
-}) {
-  return (
-    <article className="profile-record-card">
-      <Link
-        className="profile-record-thumb"
-        href={props.href}
-        aria-label={`Open ${props.title}`}
-        style={props.image ? { backgroundImage: `linear-gradient(180deg, rgba(5, 8, 19, 0.08), rgba(5, 8, 19, 0.45)), url("${props.image}")` } : undefined}
-      >
-        {props.image ? '' : props.fallback}
-      </Link>
-      <div className="profile-record-copy">
-        <strong>{props.title}</strong>
-        <span>{props.meta}</span>
-        <small>{props.footer}</small>
-        {props.actions && <div className="profile-record-actions">{props.actions}</div>}
-      </div>
-    </article>
-  )
-}
-
 export default function Profile() {
   const { user, checked, refresh, logout } = useAuth()
   const { games } = useShell()
@@ -68,12 +40,9 @@ export default function Profile() {
   const [form, setForm] = useState({ firstName: '', lastName: '', bio: '', mainGameIds: [] as string[] })
   const [status, setStatus] = useState<Status>({ kind: '', text: '' })
   const [saving, setSaving] = useState(false)
-  const [listings, setListings] = useState<MyListing[]>([])
+  const [listingCount, setListingCount] = useState(0)
   const [sessions, setSessions] = useState<PublicCoachingSession[]>([])
   const [purchases, setPurchases] = useState<PublicOrderSummary[]>([])
-  const [listingStatus, setListingStatus] = useState<Status>({ kind: '', text: '' })
-  const [editing, setEditing] = useState<MyListing | null>(null)
-  const [editForm, setEditForm] = useState({ title: '', description: '', price: '' })
   const [resending, setResending] = useState(false)
 
   useEffect(() => {
@@ -85,7 +54,6 @@ export default function Profile() {
         setForm({ firstName: p.firstName, lastName: p.lastName, bio: p.bio ?? '', mainGameIds: p.mainGameIds })
       })
       .catch(() => undefined)
-    api.listMyListings().then(setListings).catch(() => setListings([]))
     Promise.all([api.listMySessionsAsBuyer().catch(() => []), api.listMySessionsAsCoach().catch(() => [])]).then(([asBuyer, asCoach]) => {
       const all = new Map<string, PublicCoachingSession>()
       ;[...asBuyer, ...asCoach].forEach((s) => all.set(s.id, s))
@@ -99,7 +67,7 @@ export default function Profile() {
     document.getElementById('verification')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [profile])
 
-  const recordCount = listings.length + sessions.length + purchases.length
+  const recordCount = listingCount + sessions.length + purchases.length
 
   const toggleGame = (id: string) =>
     setForm((current) => {
@@ -143,39 +111,6 @@ export default function Profile() {
     } catch (err) {
       setStatus({ kind: 'error', text: errorMessage(err, 'ფოტოს ატვირთვა ვერ მოხერხდა.') })
     }
-  }
-
-  const reloadListings = () => api.listMyListings().then(setListings).catch(() => undefined)
-
-  const listingAction = async (run: () => Promise<unknown>, done: string) => {
-    setListingStatus({ kind: 'pending', text: 'მუშავდება…' })
-    try {
-      await run()
-      await reloadListings()
-      setListingStatus({ kind: 'success', text: done })
-    } catch (err) {
-      setListingStatus({ kind: 'error', text: errorMessage(err, 'მოქმედება ვერ შესრულდა.') })
-    }
-  }
-
-  const saveEdit = async (event: FormEvent) => {
-    event.preventDefault()
-    if (!editing) return
-    const payload: { title?: string; description?: string; priceWaveCoin?: number } = {}
-    if (editForm.title.trim() !== editing.title) payload.title = editForm.title.trim()
-    if (editing.description !== undefined && editForm.description.trim() !== editing.description) payload.description = editForm.description.trim()
-    if (editing.type !== ListingType.Service && Number(editForm.price) !== editing.priceWaveCoin) payload.priceWaveCoin = Math.floor(Number(editForm.price))
-    if (Object.keys(payload).length === 0) {
-      setEditing(null)
-      return
-    }
-    await listingAction(
-      () => api.updateListing(editing.id, payload),
-      editing.status === ListingStatus.Active || editing.status === ListingStatus.Paused
-        ? 'ცვლილებები შენახულია — განცხადება ხელახლა გადის შემოწმებას.'
-        : 'ცვლილებები შენახულია.',
-    )
-    setEditing(null)
   }
 
   const resendVerification = async () => {
@@ -342,76 +277,7 @@ export default function Profile() {
             </div>
           </form>
 
-          <section className="profile-record-section" aria-labelledby="profileListingsTitle">
-            <div className="section-heading">
-              <div>
-                <p className="section-kicker">გამყიდველი</p>
-                <h2 id="profileListingsTitle">ჩემი განცხადებები</h2>
-              </div>
-              <Link className="secondary-seller-action" href="/marketplace">
-                განცხადების დამატება
-              </Link>
-            </div>
-            <p className={`seller-status${listingStatus.kind ? ` ${listingStatus.kind}` : ''}`} aria-live="polite">
-              {listingStatus.text}
-            </p>
-            <div className="profile-record-grid" id="profileListings">
-              {listings.map((listing) => (
-                <RecordCard
-                  key={listing.id}
-                  href={listing.status === ListingStatus.Active ? `/listings/${listing.id}` : listing.type === ListingType.DigitalKey ? `/sell/digital-keys/${listing.id}` : '/profile'}
-                  image={gameCover(listing.game?.slug, listing.images?.[0]?.url ?? null)}
-                  fallback={(listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
-                  title={listing.title}
-                  meta={`${listing.game?.name ?? 'WaveHub'} / ${LISTING_STATUS_LABELS[listing.status]}`}
-                  footer={`${listing.priceWaveCoin ?? '—'} WC / ${formatDate(listing.createdAt)}${listing.rejectionReason ? ` / ${listing.rejectionReason}` : ''}`}
-                  actions={
-                    <>
-                      {listing.status !== ListingStatus.PendingReview && (
-                        <button
-                          className="profile-record-action"
-                          type="button"
-                          onClick={() => {
-                            setEditing(listing)
-                            setEditForm({ title: listing.title, description: listing.description ?? '', price: String(listing.priceWaveCoin ?? '') })
-                          }}
-                        >
-                          Edit
-                        </button>
-                      )}
-                      {listing.status === ListingStatus.Active && (
-                        <button className="profile-record-action" type="button" onClick={() => void listingAction(() => api.pauseListing(listing.id), 'განცხადება შეჩერდა.')}>
-                          Pause
-                        </button>
-                      )}
-                      {listing.status === ListingStatus.Paused && (
-                        <button className="profile-record-action" type="button" onClick={() => void listingAction(() => api.unpauseListing(listing.id), 'განცხადება კვლავ აქტიურია.')}>
-                          Resume
-                        </button>
-                      )}
-                      {(listing.status === ListingStatus.Draft || listing.status === ListingStatus.Rejected) && (
-                        <button className="profile-record-action" type="button" onClick={() => void listingAction(() => api.submitListingForReview(listing.id), 'გაიგზავნა შესამოწმებლად.')}>
-                          Submit
-                        </button>
-                      )}
-                      <button
-                        className="profile-record-action danger"
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(`წავშალოთ „${listing.title}“?`)) void listingAction(() => api.deleteListing(listing.id), 'განცხადება წაიშალა.')
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </>
-                  }
-                />
-              ))}
-            </div>
-            <div className="marketplace-empty" hidden={listings.length > 0}>
-              განცხადებები ჯერ არ არის.
-            </div>
-          </section>
+          <MyListings gridId="profileListings" onCount={setListingCount} />
 
           <section className="profile-record-section" aria-labelledby="profileSessionsTitle">
             <div className="section-heading">
@@ -468,55 +334,6 @@ export default function Profile() {
             </div>
           </section>
         </section>
-      )}
-
-      {editing && (
-        <div className="seller-modal" role="dialog" aria-modal="true" aria-labelledby="editListingTitle">
-          <div className="seller-modal-panel listing-builder-panel">
-            <div className="seller-modal-head">
-              <div>
-                <p className="section-kicker">განცხადების რედაქტირება</p>
-                <h2 id="editListingTitle">{editing.title}</h2>
-              </div>
-              <button className="seller-close-button" type="button" aria-label="Close" onClick={() => setEditing(null)}>
-                x
-              </button>
-            </div>
-            <form className="seller-form listing-builder-form" onSubmit={saveEdit}>
-              <section className="listing-builder-section">
-                <div className="listing-builder-grid">
-                  <label>
-                    <span>სათაური *</span>
-                    <input type="text" minLength={5} maxLength={100} required value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
-                  </label>
-                  {editing.type !== ListingType.Service && (
-                    <label>
-                      <span>ფასი (WC) *</span>
-                      <input type="number" min={1} step={1} required value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} />
-                    </label>
-                  )}
-                  <label className="seller-description-field">
-                    <span>აღწერა *</span>
-                    <textarea minLength={50} maxLength={5000} required value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
-                    <small>
-                      {editing.status === ListingStatus.Active || editing.status === ListingStatus.Paused
-                        ? 'აქტიური განცხადების რედაქტირების შემდეგ ის ხელახლა გადის შემოწმებას.'
-                        : 'ცვლილებები შეინახება დრაფტში.'}
-                    </small>
-                  </label>
-                </div>
-              </section>
-              <div className="seller-modal-actions listing-builder-actions">
-                <button className="secondary-seller-action" type="button" onClick={() => setEditing(null)}>
-                  გაუქმება
-                </button>
-                <button className="seller-submit-button" type="submit">
-                  შენახვა
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
     </Layout>
   )

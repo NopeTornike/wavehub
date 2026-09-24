@@ -1,7 +1,13 @@
-import { CoachingSessionStatus, KeyInventoryStatus, ListingStatus, OrderStatus } from '@wavehub/shared-types'
+import { CoachingSessionStatus, KeyInventoryStatus, ListingStatus, ListingType, OrderStatus } from '@wavehub/shared-types'
 
 // Georgian display labels for shared-types enums, so a page never renders a raw enum value
 // ("pending_review") to a user.
+export const LISTING_TYPE_LABELS: Record<ListingType, string> = {
+  [ListingType.Service]: 'სერვისი',
+  [ListingType.Item]: 'ანგარიში / სკინი',
+  [ListingType.DigitalKey]: 'Steam გასაღები',
+}
+
 export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
   [ListingStatus.Draft]: 'დრაფტი',
   [ListingStatus.PendingReview]: 'განხილვაშია',

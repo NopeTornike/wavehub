@@ -52,6 +52,7 @@ runbook is `docs/DEPLOY.md` and the go-live checklist is `docs/LAUNCH_CHECKLIST.
 | `backend/src/content/` | Static/legal page CMS (10 pages: About/Contact/Terms/Privacy/Refund/Delivery/Disputes/Community/Coach & Seller Standards) — admin-edited, publicly rendered, real copy | `backend/src/content/CLAUDE.md` |
 | `backend/src/tournaments/` | Admin-posted tournaments, self-service registration — no bracket/matchmaking/prize-payout automation | `backend/src/tournaments/CLAUDE.md` |
 | `backend/src/subscriptions/` | BOG-billed Buyer / Seller-Coach membership plans, jsonb perks (fee discount, featured, priority support, badge), hourly recharge sweep | `backend/src/subscriptions/CLAUDE.md` |
+| `backend/src/community/` | Public shell aggregates (online count, per-game listing counts, seller ranks) + the user's Wave rank | `backend/src/community/CLAUDE.md` |
 | `backend/src/common/` | Cross-cutting runtime: global exception filter, PII-free request log, `/health`, throttle presets | `backend/src/common/CLAUDE.md` |
 | `backend/src/config/` | Production boot-time config validation (refuses dev defaults in `NODE_ENV=production`) | `backend/src/config/CLAUDE.md` |
 | `packages/shared-types/` | Enums/DTOs shared between backend and frontend | `packages/shared-types/CLAUDE.md` |

@@ -184,3 +184,14 @@ problem in practice.
 ahead of rating and attaches `profileBadge` via one batched `getActivePerksForUsers` per page;
 `findPublicById` attaches it for the detail. `CoachingSessionsService.request` uses
 `SubscriptionsService.effectiveFeePercent(coach.userId, base)` for the snapshotted fee %.
+
+## 2026-09 directory filters + presence
+`GET /coaches` (`BrowseCoachesDto`) gained the prototype filter panel's real filters: `gameIds`
+(comma-separated uuids, ≤20), `maxRate` (hourly rate ceiling), `language` (two-letter code matched
+against `languages`), `sort` (`rating` default | `price_asc` | `price_desc` | `reviews`; featured
+boost still first, then `coach.id` as a stable tiebreak for paging). Invalid values are 400s.
+`PublicCoachSummary` now carries `gameSlug`, `languages` (moved up from the detail shape),
+`avatarUrl` and `online` — the last is `user.lastSeenAt` within `community/`'s
+`ONLINE_WINDOW_MINUTES`; the directory's green avatar dot renders only when it's true (it used to
+be always on — a fabricated signal, rule #6). Rank / availability / service-type filters from the
+prototype are not built: coaches have no such data.

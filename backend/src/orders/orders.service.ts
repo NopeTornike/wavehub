@@ -9,6 +9,7 @@ import { Order } from './order.entity';
 import { OrderDeliveryFile } from './order-delivery-file.entity';
 import { Listing } from '../listings/listing.entity';
 import { Package } from '../listings/package.entity';
+import type { ListingImage } from '../listings/listing-image.entity';
 import { ServiceDetails } from '../listings/service-details.entity';
 import { ItemDetails } from '../listings/item-details.entity';
 import { ListingKeyInventory } from '../listings/listing-key-inventory.entity';
@@ -387,7 +388,7 @@ export class OrdersService {
   async findMineAsBuyer(buyerId: string): Promise<PublicOrderSummary[]> {
     const orders = await this.orders.find({
       where: { buyerId },
-      relations: ['listing', 'package', 'buyer', 'seller'],
+      relations: ['listing', 'listing.game', 'listing.images', 'package', 'buyer', 'seller'],
       order: { createdAt: 'DESC' },
     });
     return orders.map((order) => this.toSummary(order));
@@ -396,7 +397,7 @@ export class OrdersService {
   async findMineAsSeller(sellerId: string): Promise<PublicOrderSummary[]> {
     const orders = await this.orders.find({
       where: { sellerId },
-      relations: ['listing', 'package', 'buyer', 'seller'],
+      relations: ['listing', 'listing.game', 'listing.images', 'package', 'buyer', 'seller'],
       order: { createdAt: 'DESC' },
     });
     return orders.map((order) => this.toSummary(order));
@@ -405,7 +406,7 @@ export class OrdersService {
   async findForParticipant(userId: string, orderId: string): Promise<PublicOrderDetail> {
     const order = await this.orders.findOne({
       where: { id: orderId },
-      relations: ['listing', 'package', 'buyer', 'seller'],
+      relations: ['listing', 'listing.game', 'listing.images', 'package', 'buyer', 'seller'],
     });
     if (!order) {
       throw new NotFoundException('Order not found');
@@ -439,7 +440,14 @@ export class OrdersService {
       id: order.id,
       orderNumber: order.orderNumber,
       status: order.status,
-      listing: { id: order.listing.id, title: order.listing.title, type: order.listing.type },
+      listing: {
+        id: order.listing.id,
+        title: order.listing.title,
+        type: order.listing.type,
+        gameName: order.listing.game?.name ?? null,
+        gameSlug: order.listing.game?.slug ?? null,
+        imageUrl: firstApprovedImageUrl(order.listing.images),
+      },
       package: order.package ? { id: order.package.id, name: order.package.name } : null,
       buyer: {
         id: order.buyer.id,
@@ -639,4 +647,12 @@ export class OrdersService {
     }
     return order;
   }
+}
+
+// The order card's thumbnail (orders.html's `.order-thumb`): the listing's first approved image, or
+// null so the page falls back to the game's cover art.
+function firstApprovedImageUrl(images: ListingImage[] | undefined): string | null {
+  const approved = (images ?? []).filter((image) => image.moderationStatus === 'approved');
+  approved.sort((a, b) => a.sortOrder - b.sortOrder);
+  return approved[0]?.url ?? null;
 }

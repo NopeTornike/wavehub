@@ -18444,3 +18444,47 @@ input, select, textarea { min-width: 0; max-width: 100%; }
     grid-column: 1 / -1;
   }
 }
+
+/* Tournament pre-join register bar: the source sheet's column minimums (58 + 360 + 245 + 245 + 350px)
+   add up to wider than the content column below ~1450px viewports, so the Register button
+   overflowed the bar's right edge (it does on the prototype too). Same proportions, no minimums;
+   the ≤800px layout is handled just below. */
+@media (min-width: 801px) {
+  .prejoin-page .prejoin-register { grid-template-columns: 58px minmax(0, 1.35fr) minmax(0, .72fr) minmax(0, .72fr) minmax(0, 1fr) !important; }
+}
+/* …and below 801px the source's later un-scoped `!important` column rules override its own stacked
+   phone layout, pushing the bar (and Register button) ~850px wide. Re-assert the stacked layout. */
+@media (max-width: 800px) {
+  .prejoin-page .prejoin-register { grid-template-columns: 48px minmax(0, 1fr) !important; }
+}
+
+/* Steam key detail: `.steam-detail { margin: auto }` stops the grid item stretching, so it sized to
+   its widest content (the tab bar, whose buttons don't wrap below 850px) — ~760px on a phone. Fill the
+   column instead; the tab bar scrolls horizontally as intended. */
+.main-panel > .steam-detail { width: 100%; min-width: 0; }
+.steam-detail-info { min-width: 0; }
+@media (max-width: 850px) { .steam-detail-top { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 520px) { .steam-buy-box dl { grid-template-columns: 1fr; } .steam-buy-box h1 { font-size: 26px; overflow-wrap: anywhere; } }
+
+/* Wallet withdrawal bar — the seller-payout counterpart of the prototype's top-up bar (wallet.html
+   has no payout UI). Same dashed bar; the field count varies with the payout method (1 or 3
+   detail fields), so the columns auto-fit instead of the top-up bar's fixed five, and <select>
+   gets the bar's input styling. Stacks with the top-up bar's own breakpoints below 620px. */
+.wallet-page .wallet-withdraw-panel { margin-top: 14px; grid-template-columns: 220px repeat(auto-fit, minmax(150px, 1fr)); }
+.wallet-buy-panel select { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; outline: none; color: var(--text); background: rgba(0, 0, 0, 0.26); padding: 0 12px; font: inherit; }
+.wallet-buy-panel select:focus { border-color: rgba(255, 47, 143, 0.62); box-shadow: 0 0 0 3px rgba(255, 47, 143, 0.12); }
+.wallet-page .wallet-history-section + .wallet-history-section { margin-top: 18px; }
+@media (max-width: 620px) { .wallet-page .wallet-withdraw-panel { grid-template-columns: 1fr; } }
+
+/* Coach directory, on real data: `.coach-empty` sets display:grid, which beat the [hidden]
+   attribute, so "no coaches found" showed under a full grid (also visible on the prototype). A real
+   coach specialty is free text and often longer than the prototype's short service names
+   ("Diamond Coach"), so the pill truncates instead of pushing past the card edge. */
+.coach-empty[hidden] { display: none; }
+.coach-service-pill { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; line-height: 22px; }
+
+/* The mobile header logo and sign-in cluster exist only on the prototype's index.html (body.home-page); its phone
+   media rule shows `.mobile-header-brand` unscoped. The shared Topbar renders it on every page, so
+   outside the home page it took the search box's grid slot and pushed the actions onto extra rows. */
+body:not(.home-page) .mobile-header-brand,
+body:not(.home-page) .mobile-header-auth { display: none !important; }

@@ -1,5 +1,6 @@
-import { IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, MaxLength, Min } from 'class-validator';
 import { TournamentStatus } from '@wavehub/shared-types';
+import { IsItemAttributes } from '../../listings/dto/item-attributes.validator';
 
 export class CreateTournamentDto {
   @IsUUID()
@@ -27,4 +28,14 @@ export class CreateTournamentDto {
   @IsInt()
   @Min(2)
   maxPlayers: number;
+
+  // Keys from TOURNAMENT_DETAIL_KEYS (shared-types); flat short strings, validated like item attributes.
+  @IsOptional()
+  @IsItemAttributes()
+  details?: Record<string, string>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  rules?: string;
 }

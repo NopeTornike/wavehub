@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState, type FormEvent } from 'react'
 import { api, errorMessage } from '../lib/api'
+import AuthCardTop from '../components/AuthCardTop'
 import PageHead from '../components/PageHead'
 
 // Mirrors backend/src/auth/password-policy.ts — keep these in sync if that changes.
@@ -58,11 +58,7 @@ export default function ResetPassword() {
     <main className="auth-page-shell">
       <PageHead title="ახალი პაროლი" description="დააყენეთ ახალი პაროლი თქვენი WaveHub ანგარიშისთვის." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
-        <div className="auth-card-top">
-          <Link className="auth-brand" href="/" aria-label="WaveHub — მთავარი გვერდი">
-            <Image src="/assets/logo-wavehubx-cropped.png" alt="WaveHubX" width={600} height={310} priority />
-          </Link>
-        </div>
+        <AuthCardTop />
         <div className="auth-card-head">
           <p className="section-kicker">WaveHub account</p>
           <h1 id="authTitle">ახალი პაროლის დაყენება</h1>
