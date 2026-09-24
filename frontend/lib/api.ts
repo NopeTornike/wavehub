@@ -96,7 +96,8 @@ export interface MyListing {
   description?: string
   createdAt?: string
   game?: { name: string; slug: string } | null
-  images?: Array<{ url: string }>
+  images?: Array<{ id: string; url: string }>
+  itemAttributes?: ItemAttributes | null
 }
 
 // Raw Coach entity as returned to its own owner by GET /coaches/mine (null when the user never
@@ -173,6 +174,8 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'This is a team tournament — register a team': 'ეს გუნდური ტურნირია — დაარეგისტრირეთ გუნდი.',
   'The tournament has started — contact support to withdraw': 'ტურნირი დაწყებულია — გასასვლელად მიმართეთ მხარდაჭერას.',
   'Match not found': 'მატჩი ვერ მოიძებნა.',
+  'The original price must be a whole number above the current price': 'ძველი ფასი უნდა იყოს მთელი რიცხვი და აღემატებოდეს მიმდინარე ფასს.',
+  'Image not found': 'სურათი ვერ მოიძებნა.',
   'Team not found': 'გუნდი ვერ მოიძებნა.',
   'Conversation not found': 'საუბარი ვერ მოიძებნა.',
   'Plan not found': 'გეგმა ვერ მოიძებნა.',
@@ -317,7 +320,9 @@ export const api = {
     q?: string
     // Only listings from sellers with the featuredListings subscription perk.
     featured?: boolean
-    sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc'
+    sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'popular'
+    // Steam games: a STEAM_GENRES key.
+    genre?: string
     limit?: number
     offset?: number
   } = {}) => {
@@ -353,6 +358,7 @@ export const api = {
     description: string
     priceWaveCoin: number
     resaleRightsAttested: true
+    attributes?: ItemAttributes
   }) =>
     request<MyListing>('/listings', {
       method: 'POST',
@@ -396,6 +402,9 @@ export const api = {
   uploadAvatar: (file: File) => upload<MyProfile>('/me/avatar', file),
 
   uploadListingImage: (listingId: string, file: File) => upload<{ id: string; url: string }>(`/listings/${listingId}/images`, file),
+
+  removeListingImage: (listingId: string, imageId: string) =>
+    request<{ ok: boolean }>(`/listings/${listingId}/images/${imageId}`, { method: 'DELETE' }),
 
   // --- Favourites --- (backend/src/listings — `me/favorites*`, `listings/:id/favorite`)
   listFavorites: () => request<PublicListingSummary[]>('/me/favorites'),

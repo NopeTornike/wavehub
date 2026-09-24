@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { ListingFavorite } from './listing-favorite.entity';
@@ -69,6 +69,7 @@ export class ListingsService {
         `${dto.type === ListingType.Item ? 'Item' : 'Digital key'} listings require priceWaveCoin`,
       );
     }
+    assertCompareAtPrice(dto.attributes, dto.priceWaveCoin ?? null);
     if (dto.type === ListingType.DigitalKey && dto.resaleRightsAttested !== true) {
       throw new ForbiddenException('You must confirm you have the legal right to resell these keys');
     }
@@ -96,22 +97,36 @@ export class ListingsService {
           faq: [],
         }),
       );
-    } else if (dto.type === ListingType.Item) {
+    } else if (dto.type === ListingType.Item || dto.type === ListingType.DigitalKey) {
+      // Digital keys use the same row for the seller-entered Steam game facts (attributes only;
+      // their stock lives in listing_key_inventory).
       await this.itemDetails.save(
         this.itemDetails.create({
           listingId: saved.id,
           attributes: dto.attributes ?? {},
-          isUnique: dto.isUnique ?? true,
+          isUnique: dto.type === ListingType.Item ? (dto.isUnique ?? true) : false,
         }),
       );
     }
-    // DigitalKey: no 1:1 details row — see listing-key-inventory.entity.ts instead.
 
     return saved;
   }
 
-  async findMine(sellerId: string): Promise<Listing[]> {
-    return this.listings.find({ where: { sellerId }, relations: ['game', 'images'], order: { createdAt: 'DESC' } });
+  // The seller's own listings (any status), with the attributes they entered so edit forms can be
+  // pre-filled.
+  async findMine(sellerId: string): Promise<Array<Listing & { itemAttributes: Record<string, unknown> | null }>> {
+    const rows = await this.listings.find({ where: { sellerId }, relations: ['game', 'images'], order: { createdAt: 'DESC' } });
+    const ids = rows.filter((row) => row.type !== ListingType.Service).map((row) => row.id);
+    const details = ids.length ? await this.itemDetails.find({ where: { listingId: In(ids) }, select: ['listingId', 'attributes'] }) : [];
+    const byId = new Map(details.map((d) => [d.listingId, d.attributes]));
+    return rows.map((row) => Object.assign(row, { itemAttributes: row.type === ListingType.Service ? null : (byId.get(row.id) ?? {}) }));
+  }
+
+  async removeImage(sellerId: string, listingId: string, imageId: string): Promise<{ ok: true }> {
+    await this.getOwnedListing(sellerId, listingId);
+    const result = await this.images.delete({ id: imageId, listingId });
+    if (!result.affected) throw new NotFoundException('Image not found');
+    return { ok: true };
   }
 
   // Backs the public seller-profile page (backend/src/users/users.controller.ts) — only counts
@@ -174,6 +189,12 @@ export class ListingsService {
     if (filters.type) {
       qb.andWhere('listing.type = :type', { type: filters.type });
     }
+    if (filters.genre) {
+      qb.andWhere(
+        `EXISTS (SELECT 1 FROM "item_details" d WHERE d."listingId" = "listing"."id" AND d."attributes"->>'genre' = :genre)`,
+        { genre: filters.genre },
+      );
+    }
     const search = filters.q?.trim();
     if (search) {
       const pattern = `%${search.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
@@ -226,6 +247,8 @@ export class ListingsService {
       qb.orderBy('sort_price', 'ASC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
     } else if (filters.sort === 'price_desc') {
       qb.orderBy('sort_price', 'DESC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
+    } else if (filters.sort === 'popular') {
+      qb.orderBy('listing.ordersCount', 'DESC').addOrderBy('listing.createdAt', 'DESC');
     } else {
       qb.orderBy('featured_boost', 'DESC').addOrderBy('listing.isFeatured', 'DESC').addOrderBy('listing.createdAt', 'DESC');
     }
@@ -274,7 +297,7 @@ export class ListingsService {
     }
 
     const ids = items.map((item) => item.id);
-    const itemListingIds = items.filter((item) => item.type === ListingType.Item).map((i) => i.id);
+    const itemListingIds = items.filter((item) => item.type !== ListingType.Service).map((i) => i.id);
     const [attributeRows, favoriteRows] = await Promise.all([
       itemListingIds.length > 0
         ? this.itemDetails.find({ where: { listingId: In(itemListingIds) }, select: ['listingId', 'attributes'] })
@@ -300,7 +323,7 @@ export class ListingsService {
         item.type === ListingType.Item || item.type === ListingType.DigitalKey
           ? item.priceWaveCoin
           : minPriceByListing.get(item.id) ?? null,
-      itemAttributes: item.type === ListingType.Item ? attributesByListing.get(item.id) ?? {} : null,
+      itemAttributes: item.type !== ListingType.Service ? attributesByListing.get(item.id) ?? {} : null,
       favoriteCount: favoritesByListing.get(item.id) ?? 0,
     }));
   }
@@ -395,7 +418,16 @@ export class ListingsService {
       const availableCount = await this.keyInventory.count({
         where: { listingId: id, status: KeyInventoryStatus.Available },
       });
-      return { ...listing, seller: toPublicSeller(listing.seller), packages: [], stockQuantity: availableCount, itemAttributes: null, favoriteCount, sellerCompletedOrders };
+      const keyDetails = await this.itemDetails.findOne({ where: { listingId: id } });
+      return {
+        ...listing,
+        seller: toPublicSeller(listing.seller),
+        packages: [],
+        stockQuantity: availableCount,
+        itemAttributes: keyDetails?.attributes ?? {},
+        favoriteCount,
+        sellerCompletedOrders,
+      };
     }
 
     const itemDetails = await this.itemDetails.findOne({ where: { listingId: id } });
@@ -462,9 +494,10 @@ export class ListingsService {
     if (dto.priceWaveCoin !== undefined && listing.type === ListingType.Service) {
       throw new ForbiddenException('Service listings are priced by their packages');
     }
-    if (dto.attributes !== undefined && listing.type !== ListingType.Item) {
-      throw new ForbiddenException('Only item listings have attributes');
+    if (dto.attributes !== undefined && listing.type === ListingType.Service) {
+      throw new ForbiddenException('Only item and key listings have attributes');
     }
+    assertCompareAtPrice(dto.attributes, dto.priceWaveCoin ?? listing.priceWaveCoin);
     if (dto.title !== undefined) listing.title = dto.title;
     if (dto.description !== undefined) listing.description = dto.description;
     if (dto.priceWaveCoin !== undefined) listing.priceWaveCoin = dto.priceWaveCoin;
@@ -474,7 +507,11 @@ export class ListingsService {
     }
     const saved = await this.listings.save(listing);
     if (dto.attributes !== undefined) {
-      await this.itemDetails.update({ listingId }, { attributes: dto.attributes });
+      // Key listings created before they carried attributes have no details row yet.
+      const updated = await this.itemDetails.update({ listingId }, { attributes: dto.attributes });
+      if (!updated.affected) {
+        await this.itemDetails.save(this.itemDetails.create({ listingId, attributes: dto.attributes, isUnique: false }));
+      }
     }
     return saved;
   }
@@ -606,5 +643,16 @@ export class ListingsService {
       throw new ForbiddenException("This listing doesn't belong to you");
     }
     return listing;
+  }
+}
+
+// A seller-entered "was" price (attributes.compareAtPrice) is shown struck through with a discount
+// %, so it must be a whole number above the real price — otherwise it would advertise a discount
+// that doesn't exist.
+function assertCompareAtPrice(attributes: Record<string, unknown> | undefined, price: number | null | undefined) {
+  const compareAt = attributes?.compareAtPrice;
+  if (compareAt === undefined || compareAt === null || compareAt === '') return;
+  if (typeof compareAt !== 'number' || !Number.isInteger(compareAt) || !price || compareAt <= price) {
+    throw new BadRequestException('The original price must be a whole number above the current price');
   }
 }

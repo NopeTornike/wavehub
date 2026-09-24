@@ -1,216 +1,220 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useMemo, useState } from 'react'
-import { ListingType, type PublicListingSummary } from '@wavehub/shared-types'
+import { Fragment, useEffect, useState } from 'react'
+import { ListingType, STEAM_GENRES, type PublicListingSummary } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import { api, errorMessage } from '../lib/api'
-import { useFavorites } from '../lib/favorites'
+import { useAuth } from '../lib/auth'
 import { gameCover } from '../lib/games'
+import { TIcon } from '../lib/tournaments'
 
-// The prototype's steam-keys.html store page (body.steam-keys-page: heading, search + sort, chip
-// row, card grid, mobile featured strip, store footer), on the platform's real digital-key
-// listings. Differences, all because the prototype's catalogue is a hardcoded list:
-//   - the chip row filters by the real games that have keys (the prototype's genre chips have no
-//     backing data — keys don't carry a genre)
-//   - "Popular" = real completed-order count; price/title sorts are real
-//   - stock badge = the live count of unsold keys; ♡ = a real favourite
-//   - sellers get the same topbar button style as the marketplace's, into the real key-upload flow
-/* eslint-disable @next/next/no-img-element */
+// docs/design-mockups/04-steam-games-list.jpg: title, search, sort, genre chips, a row of large
+// cards then a row of compact ones, and pagination — over the platform's real digital-key
+// listings. Card facts are real: stock = unsold keys, tagline/genre = what the seller entered,
+// "Popular" = completed orders. Search, genre, sort and paging are server-side.
 
-type Sort = 'popular' | 'price-low' | 'price-high' | 'title'
+type Sort = 'popular' | 'newest' | 'price_asc' | 'price_desc'
+const PER_PAGE = 12
+const LARGE = 5
 
-function price(listing: PublicListingSummary) {
-  return listing.priceWaveCoin ?? listing.startingPriceWaveCoin ?? 0
+function pageList(total: number, active: number): number[] {
+  if (total <= 6) return Array.from({ length: total }, (_, i) => i + 1)
+  return [...new Set([1, active - 1, active, active + 1, total])].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b)
 }
 
-function KeyCard({ listing }: { listing: PublicListingSummary }) {
-  const { isFavorite, toggle } = useFavorites()
-  const saved = isFavorite(listing.id)
-  const cover = gameCover(listing.game?.slug, listing.images[0]?.url ?? null)
+function SteamCard({ listing, size }: { listing: PublicListingSummary; size: 'lg' | 'sm' }) {
+  const attrs = listing.itemAttributes ?? {}
+  const cover = listing.images[0]?.url ?? gameCover(listing.game?.slug)
   const inStock = (listing.stockQuantity ?? 0) > 0
+  const price = listing.priceWaveCoin ?? listing.startingPriceWaveCoin ?? 0
+  const href = `/listings/${listing.id}`
   return (
-    <article className="steam-game-card">
-      <div
-        className="steam-game-cover"
-        style={cover ? { backgroundImage: `linear-gradient(180deg,transparent,rgba(5,8,16,.65)),url('${cover}')` } : undefined}
-      >
-        <span>
-          <img src="/assets/steam-logo.png" alt="" />
-          Steam გასაღები
+    <article className={`sg-card ${size}${inStock ? '' : ' out'}`}>
+      <Link className="sg-cover" href={href} style={cover ? { backgroundImage: `url('${cover}')` } : undefined} aria-label={listing.title}>
+        <span className="sg-pill">
+          <img src="/assets/steam-logo.png" alt="" /> STEAM KEY
         </span>
-        <b className={`steam-stock ${inStock ? 'stock' : 'out'}`}>{inStock ? 'მარაგშია' : 'ამოიწურა'}</b>
-        <button type="button" className={saved ? 'saved' : ''} aria-label={`Save ${listing.title}`} aria-pressed={saved} onClick={() => void toggle(listing.id)}>
-          {saved ? '♥' : '♡'}
-        </button>
-      </div>
-      <div className="steam-game-info">
-        <h2>{listing.title}</h2>
-        <p>{listing.game?.name ?? 'Steam'}</p>
-        <div className="steam-game-price">
-          <strong>
-            {price(listing)} <small>WC</small>
-          </strong>
-          <Link href={`/listings/${listing.id}`}>See Details</Link>
+        <span className={`sg-stock${inStock ? '' : ' out'}`}>
+          <i aria-hidden="true"></i>
+          {inStock ? 'მარაგშია' : 'ამოიწურა'}
+        </span>
+        {!cover && <img className="sg-cover-logo" src="/assets/steam-logo.png" alt="" />}
+      </Link>
+      <div className="sg-body">
+        <strong>{listing.title}</strong>
+        <span>{attrs.tagline ? String(attrs.tagline) : listing.game?.name ?? 'Steam'}</span>
+        <div className="sg-foot">
+          <b>{price} WC</b>
+          <Link className="sg-details" href={href} aria-disabled={!inStock}>
+            დეტალები <TIcon name="arrow" />
+          </Link>
         </div>
       </div>
     </article>
   )
 }
 
-export default function SteamKeys() {
+export default function SteamGames() {
   const router = useRouter()
-  const [items, setItems] = useState<PublicListingSummary[] | null>(null)
-  const [error, setError] = useState('')
+  const { user } = useAuth()
+  const [query, setQuery] = useState('')
   const [search, setSearch] = useState('')
+  const [genre, setGenre] = useState('')
   const [sort, setSort] = useState<Sort>('popular')
-  const [game, setGame] = useState('all')
+  const [page, setPage] = useState(1)
+  const [result, setResult] = useState<{ items: PublicListingSummary[]; total: number } | null>(null)
+  const [error, setError] = useState('')
+
+  // Debounced search box.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(query.trim())
+      setPage(1)
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [query])
 
   useEffect(() => {
+    let cancelled = false
     api
-      .browseListings({ type: ListingType.DigitalKey, limit: 100 })
-      .then((res) => setItems(res.items))
-      .catch((err) => {
-        setItems([])
-        setError(errorMessage(err, 'გასაღებების ჩატვირთვა ვერ მოხერხდა.'))
+      .browseListings({ type: ListingType.DigitalKey, q: search || undefined, genre: genre || undefined, sort, limit: PER_PAGE, offset: (page - 1) * PER_PAGE })
+      .then((res) => {
+        if (cancelled) return
+        setResult(res)
+        setError('')
       })
-  }, [])
+      .catch((err) => {
+        if (cancelled) return
+        setResult({ items: [], total: 0 })
+        setError(errorMessage(err, 'თამაშების ჩატვირთვა ვერ მოხერხდა.'))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [search, genre, sort, page])
 
-  const games = useMemo(() => {
-    const seen = new Map<string, string>()
-    ;(items ?? []).forEach((listing) => {
-      if (listing.game) seen.set(listing.game.slug, listing.game.name)
-    })
-    return [...seen.entries()]
-  }, [items])
-
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    const list = (items ?? []).filter(
-      (listing) =>
-        (game === 'all' || listing.game?.slug === game) &&
-        (!q || listing.title.toLowerCase().includes(q) || (listing.game?.name ?? '').toLowerCase().includes(q)),
-    )
-    const sorted = [...list]
-    if (sort === 'price-low') sorted.sort((a, b) => price(a) - price(b))
-    else if (sort === 'price-high') sorted.sort((a, b) => price(b) - price(a))
-    else if (sort === 'title') sorted.sort((a, b) => a.title.localeCompare(b.title))
-    else sorted.sort((a, b) => b.ordersCount - a.ordersCount)
-    return sorted
-  }, [items, game, search, sort])
-
-  const featured = (items ?? []).filter((listing) => (listing.stockQuantity ?? 0) > 0).slice(0, 3)
+  const items = result?.items ?? []
+  const large = page === 1 ? items.slice(0, LARGE) : []
+  const small = page === 1 ? items.slice(LARGE) : items
+  const totalPages = Math.max(1, Math.ceil((result?.total ?? 0) / PER_PAGE))
 
   return (
-    <Layout
-      title="Steam გასაღებები"
-      description="ციფრული გასაღებები და კოდები მყისიერი მიწოდებით — WaveHubX Steam გასაღებები."
-      bodyClass="steam-keys-page"
-      topbarAction={
-        <button className="seller-button" type="button" onClick={() => router.push('/sell/digital-keys')}>
-          გასაღებების გაყიდვა
-        </button>
-      }
-    >
-      <section className="steam-store" id="steamGames">
-        <header className="steam-store-heading">
-          <div>
-            <h1>Steam თამაშები</h1>
-            <p>აღმოაჩინე თამაშები. მიიღე გასაღები. დაიწყე თამაში.</p>
-          </div>
-          <a href="#steamGrid">
-            ყველა თამაშის ნახვა <span>→</span>
-          </a>
+    <Layout title="Steam თამაშები" description="Steam-ის აქტივაციის გასაღებები WaveHubX-ზე — მყისიერი მიწოდება, ესქროუ დაცვა.">
+      <section className="sg-page">
+        <div className="sg-top">
+          <button
+            type="button"
+            className="sg-back"
+            onClick={() => {
+              if (window.history.length > 1) router.back()
+              else router.push('/')
+            }}
+          >
+            <TIcon name="back" /> უკან
+          </button>
+          {user && (
+            <Link className="wt-head-link" href="/sell/digital-keys">
+              გასაღებების გაყიდვა
+            </Link>
+          )}
+        </div>
+        <header className="sg-head">
+          <h1>Steam თამაშები</h1>
+          <p>შეიძინე საყვარელი თამაშები საუკეთესო ფასად. მყისიერი მიწოდება, ესქროუ დაცვა.</p>
         </header>
 
-        <section className="steam-catalog-toolbar" aria-label="Steam თამაშების ფილტრები">
-          <label>
+        <div className="sg-toolbar">
+          <label className="sg-search">
+            <TIcon name="search" />
             <span className="sr-only">თამაშების ძიება</span>
-            <input id="steamSearch" type="search" placeholder="მოძებნე თამაშები..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input type="search" placeholder="მოძებნე თამაშები..." value={query} onChange={(e) => setQuery(e.target.value)} maxLength={100} />
           </label>
-          <label className="steam-sort-label">
-            დალაგება{' '}
-            <select id="steamSort" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+          <label className="sg-sort">
+            <span>დალაგება</span>
+            <select
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value as Sort)
+                setPage(1)
+              }}
+            >
               <option value="popular">პოპულარული</option>
-              <option value="price-low">ფასი: დაბლიდან მაღლისკენ</option>
-              <option value="price-high">ფასი: მაღლიდან დაბლისკენ</option>
-              <option value="title">სათაური</option>
+              <option value="newest">უახლესი</option>
+              <option value="price_asc">ფასი ↑</option>
+              <option value="price_desc">ფასი ↓</option>
             </select>
           </label>
-          <div className="steam-genres" id="steamGenres">
-            <button className={game === 'all' ? 'active' : undefined} type="button" onClick={() => setGame('all')}>
-              ყველა
+        </div>
+
+        <div className="sg-genres" role="group" aria-label="ჟანრი">
+          {[['', 'ყველა'] as const, ...STEAM_GENRES].map(([key, label]) => (
+            <button
+              key={key || 'all'}
+              type="button"
+              className={genre === key ? 'active' : undefined}
+              aria-pressed={genre === key}
+              onClick={() => {
+                setGenre(key)
+                setPage(1)
+              }}
+            >
+              {label}
             </button>
-            {games.map(([slug, name]) => (
-              <button key={slug} className={game === slug ? 'active' : undefined} type="button" onClick={() => setGame(slug)}>
-                {name}
-              </button>
-            ))}
-          </div>
-        </section>
+          ))}
+        </div>
 
         {error && (
-          <p className="status-text status-error" role="alert">
+          <p className="seller-status error" role="alert">
             {error}
           </p>
         )}
-
-        <div className="steam-games-grid" id="steamGrid">
-          {items === null ? (
-            <p className="marketplace-empty">იტვირთება…</p>
-          ) : visible.length === 0 ? (
-            <p className="marketplace-empty">გასაღებები ვერ მოიძებნა.</p>
-          ) : (
-            visible.map((listing) => <KeyCard key={listing.id} listing={listing} />)
-          )}
-        </div>
-      </section>
-
-      <section className="featured-items" aria-labelledby="featuredItemsTitle">
-        <header className="featured-items-heading">
-          <div className="featured-items-title">
-            <span className="featured-items-spark" aria-hidden="true">
-              <svg viewBox="0 0 32 32" fill="none"><path d="M16 2.5 18.9 13l10.6 3-10.6 3L16 29.5 13.1 19 2.5 16l10.6-3L16 2.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><path d="m24.5 4 .9 3.1 3.1.9-3.1.9-.9 3.1-.9-3.1-3.1-.9 3.1-.9.9-3.1Z" fill="currentColor" /></svg>
-            </span>
-            <h2 id="featuredItemsTitle">რჩეული ნივთები</h2>
+        {result === null ? (
+          <div className="marketplace-empty">იტვირთება…</div>
+        ) : items.length === 0 ? (
+          <div className="wt-empty">
+            <img src="/assets/steam-logo.png" alt="" width={44} height={44} style={{ filter: 'invert(1)', opacity: 0.6 }} />
+            <strong>თამაშები ვერ მოიძებნა</strong>
+            <p>{search || genre ? 'სცადე სხვა ძიება ან ჟანრი.' : 'გამყიდველების მიერ დამატებული Steam გასაღებები აქ გამოჩნდება.'}</p>
           </div>
-          <a href="#steamGrid">
-            ყველას ნახვა <span aria-hidden="true">→</span>
-          </a>
-        </header>
-        <div className="featured-items-grid">
-          {featured.map((listing) => {
-            const cover = gameCover(listing.game?.slug, listing.images[0]?.url ?? null)
-            return (
-              <Link key={listing.id} className="featured-item-card" href={`/listings/${listing.id}`}>
-                <span className="featured-item-save" aria-hidden="true">
-                  ♡
-                </span>
-                <span className="mobile-featured-product-image" style={cover ? { backgroundImage: `url("${cover}")` } : undefined}></span>
-                <strong>{listing.title}</strong>
-                <small>მყისიერი აქტივაცია</small>
-                <b>{price(listing)} WC</b>
-              </Link>
-            )
-          })}
-        </div>
-      </section>
+        ) : (
+          <>
+            {large.length > 0 && (
+              <div className="sg-grid lg">
+                {large.map((listing) => (
+                  <SteamCard key={listing.id} listing={listing} size="lg" />
+                ))}
+              </div>
+            )}
+            {small.length > 0 && (
+              <div className="sg-grid sm">
+                {small.map((listing) => (
+                  <SteamCard key={listing.id} listing={listing} size="sm" />
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
-      <footer className="steam-store-footer">
-        <Link href="/">
-          <img src="/assets/favicon.png" alt="" />
-          <span>
-            <strong>WaveHub</strong>
-            <small>© {new Date().getFullYear()} WaveHub. All rights reserved.</small>
-          </span>
-        </Link>
-        <p>ითამაშე მეტი. გადაიხადე ნაკლები.</p>
-        <div>
-          <span>Facebook</span>
-          <span>Instagram</span>
-          <span>TikTok</span>
-          <span>Discord</span>
-        </div>
-      </footer>
+        {totalPages > 1 && (
+          <nav className="sg-pages" aria-label="გვერდები">
+            <button type="button" aria-label="წინა" disabled={page === 1} onClick={() => setPage(page - 1)}>
+              <TIcon name="chevronLeft" />
+            </button>
+            {pageList(totalPages, page).map((p, i, list) => (
+              <Fragment key={p}>
+                {i > 0 && p - list[i - 1] > 1 && <span aria-hidden="true">…</span>}
+                <button type="button" className={p === page ? 'active' : undefined} aria-current={p === page ? 'page' : undefined} onClick={() => setPage(p)}>
+                  {p}
+                </button>
+              </Fragment>
+            ))}
+            <button type="button" aria-label="შემდეგი" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+              <TIcon name="chevron" />
+            </button>
+          </nav>
+        )}
+      </section>
     </Layout>
   )
 }

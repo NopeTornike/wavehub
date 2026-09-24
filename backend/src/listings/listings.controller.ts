@@ -206,6 +206,12 @@ export class ListingsController {
     return this.listings.addImage(sellerId, listingId, file);
   }
 
+  @Delete('listings/:id/images/:imageId')
+  @UseGuards(AuthGuard)
+  removeImage(@CurrentUserId() sellerId: string, @Param('id') listingId: string, @Param('imageId') imageId: string) {
+    return this.listings.removeImage(sellerId, listingId, imageId);
+  }
+
   // Admin-only — see SPECIFICATION.md §5.13.4 (Marketplace & Coaching Ops Manager: "approve/reject"
   // listings) and §5.13.1 (Super Admin's unrestricted access covers it too, via AdminGuard's
   // implicit SuperAdmin bypass — not listed explicitly here since it's never worth repeating).

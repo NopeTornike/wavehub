@@ -228,3 +228,21 @@ Added while porting the prototype's marketplace/seller flow 1:1 (commits `fee10d
   item listings off the service categories).
 - A **digital-key** listing renders the prototype's `steam-game-detail.html` layout on
   `/listings/[id]` (frontend only; same buy/cart/favourite calls).
+
+## 2026-09-24 Steam games (docs/design-mockups 04/05)
+- **Digital-key listings now have an `item_details` row too** (attributes only, `isUnique=false`) —
+  the "DigitalKey has no details table" note above is stale. Keys' stock still lives in
+  `listing_key_inventory`. Attributes are the seller-entered Steam facts (`STEAM_GENRES` in
+  shared-types): `tagline`, `genre`, `region`, `edition`, `language`, `compareAtPrice`, `trailerUrl`.
+  A key listing created before this has no row; `update()` inserts one on first attribute save.
+- **`compareAtPrice` rule** (`assertCompareAtPrice`, create + update): a whole number strictly above
+  the listing price, else 400 — the UI shows it struck through with a discount %, so it must never
+  advertise a discount that doesn't exist.
+- Browse: `genre` (must be a `STEAM_GENRES` key; `EXISTS` on `item_details.attributes->>'genre'`) and
+  `sort=popular` (`ordersCount` desc). `findMine` returns `itemAttributes` so edit forms prefill.
+- `DELETE listings/:id/images/:imageId` (owner only; 404 once gone). Seller UI:
+  `frontend/pages/sell/digital-keys/[id].tsx` (facts + photos), `components/SteamFactsFields.tsx`.
+- Trailer links are only rendered when they match YouTube/Vimeo `https://` (frontend `TRAILER_URL`),
+  opened with `rel="noopener noreferrer nofollow"`.
+- Tests: `listings.service.spec.ts` (key details row, compare-at rule), `test/steam.e2e-spec.ts`.
+

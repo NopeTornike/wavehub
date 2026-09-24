@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ListingStatus, ListingType } from '@wavehub/shared-types';
 import { ListingsService } from './listings.service';
 
@@ -137,7 +137,7 @@ describe('ListingsService.createDraft', () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it('creates a digital key listing with no ItemDetails/ServiceDetails row when both requirements are met', async () => {
+  it('creates a digital key listing with an attributes-only details row (Steam game facts) when both requirements are met', async () => {
     const { service, listings, itemDetails, serviceDetails } = build();
 
     const listing = await service.createDraft(sellerId, {
@@ -153,9 +153,17 @@ describe('ListingsService.createDraft', () => {
     expect(listing.priceWaveCoin).toBe(100);
     expect(listing.stockQuantity).toBeNull();
     expect(listing.resaleRightsAttestedAt).toBeInstanceOf(Date);
-    expect(itemDetails.save).not.toHaveBeenCalled();
+    expect(itemDetails.save).toHaveBeenCalledWith(expect.objectContaining({ attributes: {}, isUnique: false }));
     expect(serviceDetails.save).not.toHaveBeenCalled();
     expect(listings.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a compare-at ("was") price that is not above the real price', async () => {
+    const { service } = build();
+    const base = { type: ListingType.DigitalKey, categoryId: 'cat-1', title: 'A valid title here', description: 'A'.repeat(60), priceWaveCoin: 100, resaleRightsAttested: true };
+    await expect(service.createDraft(sellerId, { ...base, attributes: { compareAtPrice: 100 } } as any)).rejects.toThrow(BadRequestException);
+    await expect(service.createDraft(sellerId, { ...base, attributes: { compareAtPrice: '150' } } as any)).rejects.toThrow(BadRequestException);
+    await expect(service.createDraft(sellerId, { ...base, attributes: { compareAtPrice: 150, genre: 'rpg' } } as any)).resolves.toBeDefined();
   });
 });
 

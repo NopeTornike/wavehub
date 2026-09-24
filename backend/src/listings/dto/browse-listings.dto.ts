@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from 'class-validator';
-import { ListingType } from '@wavehub/shared-types';
+import { ListingType, STEAM_GENRES } from '@wavehub/shared-types';
 
 export class BrowseListingsDto {
   @IsOptional()
@@ -39,9 +39,15 @@ export class BrowseListingsDto {
 
   // The prototype's sort menu. Default (`newest`) keeps the featured-perk boost first; the explicit
   // sorts are exactly what they say. A service's price is its cheapest package.
+  // `popular` = most completed orders first.
   @IsOptional()
-  @IsIn(['newest', 'oldest', 'price_asc', 'price_desc'])
-  sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc';
+  @IsIn(['newest', 'oldest', 'price_asc', 'price_desc', 'popular'])
+  sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'popular';
+
+  // Steam games (digital keys): the seller-entered genre attribute.
+  @IsOptional()
+  @IsIn(STEAM_GENRES.map(([key]) => key))
+  genre?: string;
 
   @IsOptional()
   @Transform(({ value }) => Number(value))

@@ -44,6 +44,11 @@ section wins.
   "Tournaments v2" block (`wt-` prefix) near the end of `global.css`; the detail tabs reuse the
   prototype's `.prejoin-*`/`.prize-*`/`.team-*`/`.rule-*` rules. The prototype's team rows use a
   stock portrait sprite for members — overridden to initials (rule #6).
+- **Steam games (docs/design-mockups 04/05)**: `pages/steam-keys.tsx` (search, genre chips, sort,
+  5 large + 7 compact cards, pagination — all server-side) and `components/SteamGameDetail.tsx`
+  (rendered by `listings/[id].tsx` for digital keys: gallery with arrows/thumbs/trailer link, badges,
+  rating + sold, price with the seller's "was" price, facts grid, tabs, "You may also like"). CSS
+  blocks `sg-` and `sd-` at the end of `global.css`.
 - **Rule #6 decisions in the port** (each also commented in its page): no fake prize splits / demo
   teams / anti-cheat claims on tournaments; no fake coach rank, response time, "Top 1%" tags or
   always-on online dot (the dot is real presence now); Steam detail shows real rating/stock/seller

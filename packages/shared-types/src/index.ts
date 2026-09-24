@@ -986,6 +986,22 @@ export interface PublicTournamentSummary {
   prizes: TournamentPrizes;
 }
 
+// Seller-entered Steam game facts on a digital-key listing (docs/design-mockups 04/05), stored in the
+// listing's attributes: tagline, genre (a STEAM_GENRES key), region, edition, language,
+// compareAtPrice (the "was" price — must be above the real price) and trailerUrl (YouTube/Vimeo).
+export const STEAM_GENRES: ReadonlyArray<readonly [key: string, label: string]> = [
+  ['action', 'Action'],
+  ['adventure', 'Adventure'],
+  ['rpg', 'RPG'],
+  ['shooter', 'Shooter'],
+  ['strategy', 'Strategy'],
+  ['sports', 'Sports'],
+  ['simulation', 'Simulation'],
+  ['racing', 'Racing'],
+  ['horror', 'Horror'],
+  ['indie', 'Indie'],
+];
+
 // The facts the prototype's tournament page shows, in its order, with its labels.
 export const TOURNAMENT_DETAIL_KEYS: ReadonlyArray<readonly [key: string, label: string]> = [
   ['format', 'Format'],

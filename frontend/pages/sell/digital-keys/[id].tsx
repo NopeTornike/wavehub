@@ -7,6 +7,7 @@ import Layout from '../../../components/Layout'
 import { api, errorMessage, type MyListing } from '../../../lib/api'
 import { KEY_STATUS_LABELS, LISTING_STATUS_LABELS } from '../../../lib/labels'
 import { useAuth } from '../../../lib/auth'
+import SteamFactsFields, { EMPTY_STEAM_FACTS, steamFactsFrom, steamFactsToAttributes } from '../../../components/SteamFactsFields'
 
 // Mirrors AddListingKeysDto: 1–500 keys per request, each 4–200 characters.
 const MAX_KEYS_PER_UPLOAD = 500
@@ -26,6 +27,10 @@ export default function ManageDigitalKeyListing() {
   const [uploadError, setUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [busyKeyId, setBusyKeyId] = useState<string | null>(null)
+  const [facts, setFacts] = useState(EMPTY_STEAM_FACTS)
+  const [factsStatus, setFactsStatus] = useState<{ kind: '' | 'error' | 'success'; text: string }>({ kind: '', text: '' })
+  const [savingFacts, setSavingFacts] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
 
   useEffect(() => {
     if (checked && !user) {
@@ -40,6 +45,7 @@ export default function ManageDigitalKeyListing() {
     return Promise.all([api.listMyListings().then((rows) => rows.find((row) => row.id === id) ?? null), api.listListingKeys(id)])
       .then(([found, keyRows]) => {
         setListing(found)
+        setFacts(steamFactsFrom(found?.itemAttributes))
         setKeys(keyRows)
         setError('')
       })
@@ -112,6 +118,57 @@ export default function ManageDigitalKeyListing() {
     }
   }
 
+  const saveFacts = async () => {
+    if (!id || !listing) return
+    const attributes = steamFactsToAttributes(facts, listing.priceWaveCoin ?? 0)
+    if (typeof attributes === 'string') return setFactsStatus({ kind: 'error', text: attributes })
+    setSavingFacts(true)
+    try {
+      await api.updateListing(id, { attributes })
+      await reload()
+      setFactsStatus({
+        kind: 'success',
+        text: listing.status === ListingStatus.Active || listing.status === ListingStatus.Paused ? 'შენახულია — განცხადება ხელახლა გადის შემოწმებას.' : 'შენახულია.',
+      })
+    } catch (err) {
+      setFactsStatus({ kind: 'error', text: errorMessage(err, 'შენახვა ვერ მოხერხდა.') })
+    } finally {
+      setSavingFacts(false)
+    }
+  }
+
+  const addPhotos = async (files: FileList | null) => {
+    if (!id || !files || files.length === 0) return
+    setPhotoBusy(true)
+    setFactsStatus({ kind: '', text: '' })
+    try {
+      for (const file of Array.from(files)) {
+        if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+          throw new Error('ფოტო უნდა იყოს PNG, JPG ან WEBP, მაქსიმუმ 5MB.')
+        }
+        await api.uploadListingImage(id, file)
+      }
+      await reload()
+    } catch (err) {
+      setFactsStatus({ kind: 'error', text: err instanceof Error && !('status' in err) ? err.message : errorMessage(err, 'ფოტოს ატვირთვა ვერ მოხერხდა.') })
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  const removePhoto = async (imageId: string) => {
+    if (!id) return
+    setPhotoBusy(true)
+    try {
+      await api.removeListingImage(id, imageId)
+      await reload()
+    } catch (err) {
+      setFactsStatus({ kind: 'error', text: errorMessage(err, 'წაშლა ვერ მოხერხდა.') })
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
   const title = 'გასაღებების მართვა'
 
   if (!user || loading) {
@@ -178,6 +235,43 @@ export default function ManageDigitalKeyListing() {
             </button>
           </section>
         )}
+
+        <section className="detail-section">
+          <h2>თამაშის დეტალები და ფოტოები</h2>
+          <p className="note">ჩანს Steam თამაშების გვერდზე. პირველი ფოტო — ქავერი (მაქს. 6).</p>
+          <div className="steam-photo-grid">
+            {(listing.images ?? []).map((img) => (
+              <figure key={img.id} style={{ backgroundImage: `url("${img.url}")` }}>
+                <button type="button" aria-label="ფოტოს წაშლა" disabled={photoBusy} onClick={() => void removePhoto(img.id)}>
+                  ×
+                </button>
+              </figure>
+            ))}
+            {(listing.images?.length ?? 0) < 6 && (
+              <label className="steam-photo-add">
+                <input type="file" accept="image/png,image/jpeg,image/webp" multiple disabled={photoBusy} onChange={(e) => void addPhotos(e.target.files)} />
+                <span>{photoBusy ? '…' : '+ ფოტო'}</span>
+              </label>
+            )}
+          </div>
+          <form
+            className="stack-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void saveFacts()
+            }}
+          >
+            <SteamFactsFields facts={facts} onChange={setFacts} />
+            {factsStatus.text && (
+              <p className={`seller-status ${factsStatus.kind}`} role={factsStatus.kind === 'error' ? 'alert' : undefined}>
+                {factsStatus.text}
+              </p>
+            )}
+            <button type="submit" className="detail-buy-button" disabled={savingFacts}>
+              {savingFacts ? 'ინახება…' : 'დეტალების შენახვა'}
+            </button>
+          </form>
+        </section>
 
         <section className="detail-section">
           <h2>გასაღებების დამატება</h2>

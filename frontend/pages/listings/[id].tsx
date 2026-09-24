@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react'
 import type { PublicListingDetail, PublicReview } from '@wavehub/shared-types'
 import { ListingType } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
+import SteamGameDetail from '../../components/SteamGameDetail'
 import { accountStatusLabel, listingKind } from '../../components/ProductCard'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
-import { useCart } from '../../lib/cart'
 import { useFavorites } from '../../lib/favorites'
-import { GAME_ART, gameCover } from '../../lib/games'
+import { GAME_ART } from '../../lib/games'
 import GAME_DETAILS from '../../lib/game-details.json'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
@@ -54,8 +54,6 @@ export default function ListingDetail() {
   const { id } = router.query as { id?: string }
   const { user: me, refresh } = useAuth()
   const { isFavorite, toggle } = useFavorites()
-  const cart = useCart()
-  const [steamTab, setSteamTab] = useState<'overview' | 'activation' | 'requirements' | 'reviews'>('overview')
 
   const [listing, setListing] = useState<PublicListingDetail | null>(null)
   const [reviews, setReviews] = useState<PublicReview[]>([])
@@ -215,201 +213,19 @@ export default function ListingDetail() {
   }
 
   if (listing.type === ListingType.DigitalKey) {
-    // steam-game-detail.html (the page the prototype's Steam Keys cards open), on real data. The
-    // prototype's hard-coded "4.9 · Verified game key", Global region, Standard Edition and
-    // Multi-Language facts are replaced by what the listing really has (rating, stock, seller,
-    // completed sales, seller-entered region); System Requirements points to Steam instead of
-    // inventing specs.
-    const cover = gameCover(slug, listing.images[0]?.url ?? null)
-    const inCart = cart.has(listing.id)
-    const addToCart = () =>
-      cart.add({
-        listingId: listing.id,
-        title: listing.title,
-        priceWaveCoin: listing.priceWaveCoin ?? 0,
-        imageUrl: cover,
-        gameName: listing.game?.name ?? null,
-        sellerUsername: listing.seller.username,
-        type: 'digital_key',
-      })
-    const tabs: Array<[typeof steamTab, string]> = [
-      ['overview', 'მიმოხილვა'],
-      ['activation', 'აქტივაციის ინსტრუქცია'],
-      ['requirements', 'სისტემური მოთხოვნები'],
-      ['reviews', `შეფასებები (${listing.ratingCount})`],
-    ]
     return (
-      <Layout title={listing.title} description={listing.description.slice(0, 160)} bodyClass="steam-detail-page">
-        <section className="steam-detail" id="steamDetail">
-          <Link className="steam-detail-back" href="/steam-keys">
-            ← Steam თამაშებზე დაბრუნება
-          </Link>
-          <section className="steam-detail-top">
-            <div className="steam-gallery">
-              <div
-                className="steam-detail-cover"
-                id="gameCover"
-                style={cover ? { backgroundImage: `linear-gradient(180deg,transparent,rgba(4,8,16,.55)),url('${cover}')` } : { display: 'grid', placeItems: 'center' }}
-              >
-                {!cover && <img src="/assets/steam-logo.png" alt="" style={{ width: 96, opacity: 0.35, filter: 'invert(1)' }} />}
-              </div>
-            </div>
-            <article className="steam-buy-box">
-              <div className="steam-badges">
-                <span>
-                  <img src="/assets/steam-logo.png" alt="" />
-                  Steam Key
-                </span>
-                <b id="gameStock" style={inStock ? undefined : { color: '#ff617d' }}>
-                  {inStock ? 'მარაგშია' : 'ამოიწურა'}
-                </b>
-                <span>მყისიერი მიწოდება</span>
-              </div>
-              <h1 id="gameTitle">{listing.title}</h1>
-              <p id="gameDescription">{listing.game?.name ?? 'Steam'}</p>
-              <div className="steam-rating">
-                {rating !== null ? `★ ${rating.toFixed(1)}` : '☆'}
-                <span>{rating !== null ? `${listing.ratingCount} შეფასება` : 'შეფასებები ჯერ არ არის'}</span>
-              </div>
-              <strong className="steam-detail-price" id="gamePrice">
-                {listing.priceWaveCoin ?? 0} WC
-              </strong>
-              <dl>
-                <div>
-                  <dt>პლატფორმა</dt>
-                  <dd>Steam</dd>
-                </div>
-                <div>
-                  <dt>მიწოდება</dt>
-                  <dd>მყისიერი</dd>
-                </div>
-                <div>
-                  <dt>რეგიონი</dt>
-                  <dd id="gameRegion">{attrs.region ? String(attrs.region) : 'მითითებული არ არის'}</dd>
-                </div>
-                <div>
-                  <dt>მარაგი</dt>
-                  <dd id="gameStockInfo">{listing.stockQuantity ?? 0}</dd>
-                </div>
-                <div>
-                  <dt>გამყიდველი</dt>
-                  <dd>
-                    <Link href={`/u/${listing.seller.username}`}>@{listing.seller.username}</Link>
-                  </dd>
-                </div>
-                <div>
-                  <dt>გაყიდული</dt>
-                  <dd>{listing.ordersCount}</dd>
-                </div>
-              </dl>
-              <div className="steam-buy-actions">
-                <button id="buyNow" type="button" disabled={purchasing || !inStock || isOwnListing} onClick={() => void buy()}>
-                  {purchasing ? 'მუშავდება…' : isOwnListing ? 'თქვენი განცხადება' : 'ახლავე ყიდვა'}
-                </button>
-                <button id="addCart" type="button" disabled={!inStock || isOwnListing || inCart} onClick={addToCart}>
-                  {inCart ? 'კალათაშია ✓' : 'კალათაში დამატება'}
-                </button>
-              </div>
-              <div className="steam-detail-actions">
-                <button id="addWishlist" type="button" aria-pressed={saved} onClick={() => void toggleFavorite()}>
-                  {saved ? '♥ სურვილების სიაშია' : '♡ სურვილების სიაში დამატება'}
-                </button>
-                <button type="button" onClick={() => void share()}>
-                  გაზიარება
-                </button>
-              </div>
-              {notEnoughBalance && !isOwnListing && inStock && (
-                <p className="seller-status error">
-                  ბალანსი არ არის საკმარისი — <Link href="/wallet">შეავსეთ საფულე</Link>.
-                </p>
-              )}
-              <p className={`seller-status${status.kind ? ` ${status.kind}` : ''}`} aria-live="polite">
-                {status.text || 'გასაღების ნახვის შემდეგ თანხა არ ბრუნდება.'}
-              </p>
-            </article>
-          </section>
-
-          <section className="steam-detail-info">
-            <nav>
-              {tabs.map(([key, label]) => (
-                <button key={key} type="button" className={steamTab === key ? 'active' : undefined} aria-pressed={steamTab === key} onClick={() => setSteamTab(key)}>
-                  {label}
-                </button>
-              ))}
-            </nav>
-            <div className="steam-detail-info-grid">
-              {steamTab === 'overview' && (
-                <>
-                  <article>
-                    <h2>თამაშის შესახებ</h2>
-                    <p id="gameAbout" style={{ whiteSpace: 'pre-line' }}>
-                      {listing.description}
-                    </p>
-                  </article>
-                  <article>
-                    <h2>რას მიიღებთ</h2>
-                    <ul>
-                      <li>Steam-ის აქტივაციის გასაღები</li>
-                      <li id="gameEditionInfo">{listing.title}</li>
-                      <li>მყისიერი მიწოდება WaveHubX-ის შეკვეთის გვერდზე</li>
-                    </ul>
-                  </article>
-                  <article>
-                    <h2>როგორ ხდება აქტივაცია</h2>
-                    <ol>
-                      <li>გადაიხადეთ WaveCoin-ით</li>
-                      <li>გასაღები მაშინვე გამოჩნდება შეკვეთის გვერდზე</li>
-                      <li>გაააქტიურეთ Steam-ზე და ისიამოვნეთ</li>
-                    </ol>
-                  </article>
-                  <article>
-                    <h2>მნიშვნელოვანი ინფორმაცია</h2>
-                    <ul>
-                      <li>რეგიონი: {attrs.region ? String(attrs.region) : 'გამყიდველს არ მიუთითებია — გადაამოწმეთ ყიდვამდე.'}</li>
-                      <li>გასაღების ნახვის ან აქტივაციის შემდეგ თანხა არ ბრუნდება.</li>
-                      <li>მიწოდება იმართება თქვენი WaveHubX შეკვეთის გვერდიდან.</li>
-                    </ul>
-                  </article>
-                </>
-              )}
-              {steamTab === 'activation' && (
-                <article>
-                  <h2>აქტივაციის ინსტრუქცია</h2>
-                  <ol>
-                    <li>გახსენით Steam-ის აპლიკაცია და შედით ანგარიშზე.</li>
-                    <li>მენიუში აირჩიეთ „Games“ → „Activate a Product on Steam…“.</li>
-                    <li>ჩასვით შეკვეთის გვერდზე მიღებული გასაღები და დაადასტურეთ.</li>
-                    <li>თამაში დაემატება თქვენს ბიბლიოთეკას.</li>
-                  </ol>
-                </article>
-              )}
-              {steamTab === 'requirements' && (
-                <article>
-                  <h2>სისტემური მოთხოვნები</h2>
-                  <p>სისტემური მოთხოვნები იხილეთ თამაშის ოფიციალურ Steam-ის გვერდზე — ისინი განსხვავდება თამაშისა და გამოცემის მიხედვით.</p>
-                </article>
-              )}
-              {steamTab === 'reviews' && (
-                <article>
-                  <h2>შეფასებები</h2>
-                  {reviews.length === 0 ? (
-                    <p>შეფასებები ჯერ არ არის.</p>
-                  ) : (
-                    <ul>
-                      {reviews.map((review) => (
-                        <li key={review.id}>
-                          {'★'.repeat(review.rating)}
-                          {'☆'.repeat(5 - review.rating)} @{review.buyer.username} — {review.body || 'კომენტარის გარეშე'}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
-              )}
-            </div>
-          </section>
-        </section>
-      </Layout>
+      <SteamGameDetail
+        listing={listing}
+        reviews={reviews}
+        saved={saved}
+        purchasing={purchasing}
+        status={status}
+        isOwnListing={isOwnListing}
+        notEnoughBalance={notEnoughBalance}
+        onBuy={() => void buy()}
+        onFavorite={() => void toggleFavorite()}
+        onShare={() => void share()}
+      />
     )
   }
 

@@ -7,6 +7,7 @@ import Layout from '../../../components/Layout'
 import { api, errorMessage, type MyListing } from '../../../lib/api'
 import { LISTING_STATUS_LABELS } from '../../../lib/labels'
 import { useAuth } from '../../../lib/auth'
+import SteamFactsFields, { EMPTY_STEAM_FACTS, steamFactsToAttributes } from '../../../components/SteamFactsFields'
 
 // Steam Keys (LAUNCH_PLAN.md §2d). No generic "create any listing" page exists yet for Service/Item
 // (see frontend/CLAUDE.md) — this is scoped to DigitalKey listings specifically, matching the plan's
@@ -28,6 +29,7 @@ export default function MyDigitalKeyListings() {
   const [description, setDescription] = useState('')
   const [priceWaveCoin, setPriceWaveCoin] = useState(10)
   const [attested, setAttested] = useState(false)
+  const [facts, setFacts] = useState(EMPTY_STEAM_FACTS)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
@@ -72,6 +74,8 @@ export default function MyDigitalKeyListings() {
     if (description.trim().length < 50 || description.trim().length > 5000) return setCreateError('აღწერა უნდა იყოს 50–5000 სიმბოლო.')
     if (!Number.isInteger(priceWaveCoin) || priceWaveCoin < 1) return setCreateError('ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 WC.')
     if (!attested) return setCreateError('საჭიროა დაადასტუროთ გასაღებების ხელახალი გაყიდვის უფლება.')
+    const attributes = steamFactsToAttributes(facts, priceWaveCoin)
+    if (typeof attributes === 'string') return setCreateError(attributes)
     setCreating(true)
     try {
       const listing = await api.createDigitalKeyListing({
@@ -81,6 +85,7 @@ export default function MyDigitalKeyListings() {
         description: description.trim(),
         priceWaveCoin,
         resaleRightsAttested: true,
+        attributes,
       })
       router.push(`/sell/digital-keys/${listing.id}`)
     } catch (err) {
@@ -158,6 +163,7 @@ export default function MyDigitalKeyListings() {
               ფასი (WC) <small>ერთი გასაღების ფასი</small>
               <input type="number" min={1} step={1} value={priceWaveCoin} onChange={(e) => setPriceWaveCoin(Number(e.target.value))} required />
             </label>
+            <SteamFactsFields facts={facts} onChange={setFacts} />
             <label className="field check">
               <input type="checkbox" checked={attested} onChange={(e) => setAttested(e.target.checked)} />
               <span>ვადასტურებ, რომ მაქვს ამ გასაღებების ხელახალი გაყიდვის კანონიერი უფლება.</span>
