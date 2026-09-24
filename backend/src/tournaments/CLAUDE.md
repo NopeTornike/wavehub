@@ -1,5 +1,45 @@
 # tournaments
 
+## Current model (2026-09-24 — supersedes the "first version" description below)
+Built for docs/design-mockups 01–03, 07, 08, 10, 11, 13. Staff post a tournament, **teams** register,
+staff **verify teams** and **record matches** (scores + per-player stats). Still no automated
+matchmaking/bracket generation or prize payout — everything shown is what staff or captains entered.
+- **Teams** (`tournament-team.entity.ts`, `tournament_teams`): every registration is a team.
+  `tournaments.teamSize` (1 = solo). Solo: `POST tournaments/:id/register` creates a verified
+  one-player team named after the user. Squad: `POST tournaments/:id/teams` (`RegisterTeamDto`:
+  name, tag, coachName, `members` = exactly `teamSize` in-game names, no duplicates) — the caller
+  is the captain, the team starts `pending`. Team names are unique per tournament
+  (case-insensitive index); one team per captain per tournament. The captain's
+  `tournament_registrations` row carries `teamId` (ON DELETE CASCADE), so "my tournaments" stays one
+  query. `POST tournaments/:id/teams/mine/logo` (byte-sniffed image, 2MB), `POST
+  tournaments/:id/withdraw` (only while `open`/`upcoming`). Capacity = `maxPlayers` players
+  (= `floor(maxPlayers/teamSize)` teams); rejected teams don't count.
+- **Registration runs in a transaction with `SELECT … FOR UPDATE` on the tournament row** — the old
+  count-then-insert could overfill a tournament under concurrent requests (e2e
+  `tournaments.e2e-spec.ts` fires 5 parallel registrations at a 2-player tournament).
+- **Matches** (`tournament-match.entity.ts`, `tournament_matches`): stage
+  (group/round/quarterfinal/semifinal/final), groupName, roundLabel, teamA/teamB (must belong to the
+  tournament, not the same team; ON DELETE SET NULL → shows "TBD"), map, bestOf, scheduledAt,
+  status (scheduled/live/completed), scoreA/B, `stats` jsonb `{a,b: {coach, players:[{name, kills,
+  kd, damage, rating, assists, mvp}]}}` (bounded nested DTOs, missing stats stored as null).
+- **Prize breakdown**: `tournaments.prizes` jsonb (`TournamentPrizes`: places with amount + rewards,
+  specialRewards, note) via nested `PrizesDto`.
+- **Rules**: still text, one rule per line, rendered as "Title: description".
+- **Status** gained `in_progress`. `teamSize` can't change once teams exist (409).
+- Public: `GET tournaments/:id/teams` (pending + verified; captain *username* only),
+  `GET tournaments/:id/matches`, `GET tournaments/:id/matches/:matchId`. Own:
+  `GET me/tournaments` (`MyTournamentEntry[]`), `GET me/tournament-matches` (matches of the caller's
+  teams — captain only; squad members are in-game names, not linked accounts). Admin (same
+  `TOURNAMENT_MANAGEMENT_ROLES`, all audit-logged): `GET admin/tournaments/:id/teams`,
+  `POST admin/tournaments/:id/teams/:teamId/status`, `POST/POST/DELETE admin/tournaments/:id/matches[/:matchId]`.
+- Migration `1784354000000-TournamentTeamsAndMatches` (moves existing registrations into verified
+  one-player teams).
+- Frontend: `/tournaments`, `/tournaments/mine`, `/tournaments/hub`, `/tournaments/[id]`,
+  `/tournaments/[id]/matches`, `/tournaments/[id]/matches/[matchId]`, admin
+  `components/admin/TournamentOps.tsx` — see `frontend/CLAUDE.md`.
+- Tests: `tournaments.service.spec.ts` (17 unit), `test/tournaments.e2e-spec.ts` (roster/capacity/
+  verification/privacy, matches, team-size lock, concurrency).
+
 ## Purpose
 Admin-posted tournaments that users browse and self-register into. LAUNCH_PLAN.md §2b's confirmed
 "right first version": no bracket/matchmaking engine, no automated prize payout — an admin creates

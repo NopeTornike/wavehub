@@ -1,9 +1,10 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { TournamentStatus } from '@wavehub/shared-types';
+import type { TournamentPrizes } from '@wavehub/shared-types';
 import { Game } from '../listings/game.entity';
 
-// Admin-managed tournament announcements — see CLAUDE.md for the deliberate scope cut (no
-// automated bracket/matchmaking/prize-payout, just post + register).
+// Admin-managed tournaments — teams register, staff verify teams and record matches/results (see
+// CLAUDE.md). No automated matchmaking or prize payout.
 @Entity('tournaments')
 export class Tournament {
   @PrimaryGeneratedColumn('uuid')
@@ -48,6 +49,13 @@ export class Tournament {
 
   @Column({ type: 'text', nullable: true })
   rules: string | null;
+
+  // Players per team; 1 = solo. Capacity is `maxPlayers` players = floor(maxPlayers / teamSize) teams.
+  @Column({ type: 'integer', default: 1 })
+  teamSize: number;
+
+  @Column({ type: 'jsonb', default: { places: [], specialRewards: [], note: null } })
+  prizes: TournamentPrizes;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

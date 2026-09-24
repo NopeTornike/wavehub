@@ -13,6 +13,11 @@ import { AdminGuard } from '../admin/admin-role.guard';
 import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
+import { Throttle } from '@nestjs/throttler';
+import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
+import { RegisterTeamDto } from './dto/register-team.dto';
+import { TeamStatusDto } from './dto/team-status.dto';
+import { MatchDto } from './dto/match.dto';
 
 // Same trio as backend/src/coaching/coaches.controller.ts's COACH_MANAGEMENT_ROLES — tournaments
 // aren't in SPECIFICATION.md at all (genuinely new scope, see LAUNCH_PLAN.md §2b), so there's no
@@ -45,11 +50,65 @@ export class TournamentsController {
     return this.tournaments.findPublicById(id);
   }
 
+  @Get('tournaments/:id/teams')
+  listTeams(@Param('id') id: string) {
+    return this.tournaments.listTeams(id);
+  }
+
+  @Get('tournaments/:id/matches')
+  listMatches(@Param('id') id: string) {
+    return this.tournaments.listMatches(id);
+  }
+
+  @Get('tournaments/:id/matches/:matchId')
+  getMatch(@Param('id') id: string, @Param('matchId') matchId: string) {
+    return this.tournaments.getMatch(id, matchId);
+  }
+
+  // Solo tournaments (teamSize 1).
   @Post('tournaments/:id/register')
   @HttpCode(HttpStatus.OK)
+  @Throttle(CREATE_THROTTLE)
   @UseGuards(AuthGuard, VerifiedEmailGuard)
   register(@CurrentUserId() userId: string, @Param('id') id: string) {
     return this.tournaments.register(id, userId);
+  }
+
+  // Squad tournaments: the caller becomes the team captain.
+  @Post('tournaments/:id/teams')
+  @Throttle(CREATE_THROTTLE)
+  @UseGuards(AuthGuard, VerifiedEmailGuard)
+  registerTeam(@CurrentUserId() userId: string, @Param('id') id: string, @Body() dto: RegisterTeamDto) {
+    return this.tournaments.registerTeam(id, userId, dto);
+  }
+
+  @Post('tournaments/:id/teams/mine/logo')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(UPLOAD_THROTTLE)
+  @UseGuards(AuthGuard, VerifiedEmailGuard)
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } }))
+  setMyTeamLogo(@CurrentUserId() userId: string, @Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.tournaments.setMyTeamLogo(id, userId, file);
+  }
+
+  @Post('tournaments/:id/withdraw')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  withdraw(@CurrentUserId() userId: string, @Param('id') id: string) {
+    return this.tournaments.withdraw(id, userId);
+  }
+
+  // The caller's registrations (with team) and their teams' matches — My Tournaments / Hub.
+  @Get('me/tournaments')
+  @UseGuards(AuthGuard)
+  myTournaments(@CurrentUserId() userId: string) {
+    return this.tournaments.myTournaments(userId);
+  }
+
+  @Get('me/tournament-matches')
+  @UseGuards(AuthGuard)
+  myMatches(@CurrentUserId() userId: string) {
+    return this.tournaments.myMatches(userId);
   }
 
   @Post('admin/tournaments')
@@ -89,6 +148,63 @@ export class TournamentsController {
     const tournament = await this.tournaments.setCoverImage(id, file);
     await this.audit.log({ adminId, adminRole, action: 'tournament.set_cover', entityType: 'tournament', entityId: id });
     return tournament;
+  }
+
+  @Get('admin/tournaments/:id/teams')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  adminListTeams(@Param('id') id: string) {
+    return this.tournaments.adminListTeams(id);
+  }
+
+  @Post('admin/tournaments/:id/teams/:teamId/status')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async setTeamStatus(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id') id: string,
+    @Param('teamId') teamId: string,
+    @Body() dto: TeamStatusDto,
+  ) {
+    const team = await this.tournaments.adminSetTeamStatus(id, teamId, dto.status);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.team_status', entityType: 'tournament_team', entityId: teamId, metadata: { tournamentId: id, status: dto.status } });
+    return team;
+  }
+
+  @Post('admin/tournaments/:id/matches')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async createMatch(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string, @Body() dto: MatchDto) {
+    const match = await this.tournaments.adminCreateMatch(id, dto);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.match_create', entityType: 'tournament_match', entityId: match.id, metadata: { tournamentId: id } });
+    return match;
+  }
+
+  @Post('admin/tournaments/:id/matches/:matchId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async updateMatch(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id') id: string,
+    @Param('matchId') matchId: string,
+    @Body() dto: MatchDto,
+  ) {
+    const match = await this.tournaments.adminUpdateMatch(id, matchId, dto);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.match_update', entityType: 'tournament_match', entityId: matchId, metadata: { tournamentId: id } });
+    return match;
+  }
+
+  @Delete('admin/tournaments/:id/matches/:matchId')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async deleteMatch(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string, @Param('matchId') matchId: string) {
+    const result = await this.tournaments.adminDeleteMatch(id, matchId);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.match_delete', entityType: 'tournament_match', entityId: matchId, metadata: { tournamentId: id } });
+    return result;
   }
 
   @Delete('admin/tournaments/:id')

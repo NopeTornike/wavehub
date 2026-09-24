@@ -49,6 +49,14 @@ import type {
   ContentPageStatus,
   PublicTournamentSummary,
   TournamentStatus,
+  PublicTournamentTeam,
+  PublicTournamentMatch,
+  MyTournamentEntry,
+  TournamentPrizes,
+  TournamentTeamStatus,
+  TournamentMatchStage,
+  TournamentMatchStatus,
+  MatchTeamStats,
   PublicConversationSummary,
   SellerListingKeySummary,
   PublicSubscriptionPlan,
@@ -58,6 +66,22 @@ import type {
   SubscriptionAudience,
   SubscriptionPerks,
 } from '@wavehub/shared-types'
+
+// Admin match create/update body (backend MatchDto) — every field optional, null clears.
+export type TournamentMatchInput = Partial<{
+  stage: TournamentMatchStage
+  groupName: string | null
+  roundLabel: string | null
+  teamAId: string | null
+  teamBId: string | null
+  map: string | null
+  bestOf: number
+  scheduledAt: string | null
+  status: TournamentMatchStatus
+  scoreA: number | null
+  scoreB: number | null
+  stats: { a?: MatchTeamStats | null; b?: MatchTeamStats | null }
+}>
 
 // Raw Listing entity as returned to its own seller by GET /listings/mine, POST /listings and
 // POST /listings/:id/submit (not a Public* shape — see the comment above listMyListings). Only the
@@ -144,6 +168,12 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'Coach not found': 'ქოუჩი ვერ მოიძებნა.',
   'Session not found': 'სესია ვერ მოიძებნა.',
   'Tournament not found': 'ტურნირი ვერ მოიძებნა.',
+  'A team with this name is already registered': 'ამ სახელით გუნდი უკვე დარეგისტრირებულია.',
+  'Player names must be different': 'მოთამაშეების სახელები არ უნდა მეორდებოდეს.',
+  'This is a team tournament — register a team': 'ეს გუნდური ტურნირია — დაარეგისტრირეთ გუნდი.',
+  'The tournament has started — contact support to withdraw': 'ტურნირი დაწყებულია — გასასვლელად მიმართეთ მხარდაჭერას.',
+  'Match not found': 'მატჩი ვერ მოიძებნა.',
+  'Team not found': 'გუნდი ვერ მოიძებნა.',
   'Conversation not found': 'საუბარი ვერ მოიძებნა.',
   'Plan not found': 'გეგმა ვერ მოიძებნა.',
   'Page not found': 'გვერდი ვერ მოიძებნა.',
@@ -705,6 +735,37 @@ export const api = {
 
   registerForTournament: (id: string) => request<PublicTournamentSummary>(`/tournaments/${id}/register`, { method: 'POST' }),
 
+  registerTournamentTeam: (id: string, payload: { name: string; tag?: string; coachName?: string; members: string[] }) =>
+    request<PublicTournamentTeam>(`/tournaments/${id}/teams`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  uploadMyTeamLogo: (id: string, file: File) => upload<PublicTournamentTeam>(`/tournaments/${id}/teams/mine/logo`, file),
+
+  withdrawFromTournament: (id: string) => request<{ ok: boolean }>(`/tournaments/${id}/withdraw`, { method: 'POST' }),
+
+  listTournamentTeams: (id: string) => request<PublicTournamentTeam[]>(`/tournaments/${id}/teams`),
+
+  listTournamentMatches: (id: string) => request<PublicTournamentMatch[]>(`/tournaments/${id}/matches`),
+
+  getTournamentMatch: (id: string, matchId: string) => request<PublicTournamentMatch>(`/tournaments/${id}/matches/${matchId}`),
+
+  listMyTournaments: () => request<MyTournamentEntry[]>('/me/tournaments'),
+
+  listMyTournamentMatches: () => request<PublicTournamentMatch[]>('/me/tournament-matches'),
+
+  adminListTournamentTeams: (id: string) => request<PublicTournamentTeam[]>(`/admin/tournaments/${id}/teams`),
+
+  adminSetTournamentTeamStatus: (id: string, teamId: string, status: TournamentTeamStatus) =>
+    request<PublicTournamentTeam>(`/admin/tournaments/${id}/teams/${teamId}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
+
+  adminCreateTournamentMatch: (id: string, payload: TournamentMatchInput) =>
+    request<PublicTournamentMatch>(`/admin/tournaments/${id}/matches`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminUpdateTournamentMatch: (id: string, matchId: string, payload: TournamentMatchInput) =>
+    request<PublicTournamentMatch>(`/admin/tournaments/${id}/matches/${matchId}`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminDeleteTournamentMatch: (id: string, matchId: string) =>
+    request<{ ok: boolean }>(`/admin/tournaments/${id}/matches/${matchId}`, { method: 'DELETE' }),
+
   adminCreateTournament: (payload: {
     gameId: string
     name: string
@@ -715,6 +776,8 @@ export const api = {
     maxPlayers: number
     details?: Record<string, string>
     rules?: string
+    teamSize?: number
+    prizes?: TournamentPrizes
   }) => request<PublicTournamentSummary>('/admin/tournaments', { method: 'POST', body: JSON.stringify(payload) }),
 
   adminUpdateTournament: (
@@ -729,6 +792,8 @@ export const api = {
       maxPlayers: number
       details: Record<string, string>
       rules: string
+      teamSize: number
+      prizes: TournamentPrizes
     }>,
   ) => request<PublicTournamentSummary>(`/admin/tournaments/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
 

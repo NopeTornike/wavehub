@@ -114,6 +114,7 @@ function specialtyTags(specialty: string) {
 const TOURNAMENT_STATUS: Record<TournamentStatus, string> = {
   [TournamentStatus.Open]: 'რეგისტრაცია ღიაა',
   [TournamentStatus.Upcoming]: 'რეგისტრაცია მალე',
+  [TournamentStatus.InProgress]: 'მიმდინარე',
   [TournamentStatus.Completed]: 'დასრულებულია',
 }
 

@@ -55,6 +55,8 @@ import { ContentPage } from './content/content-page.entity';
 import { TournamentsModule } from './tournaments/tournaments.module';
 import { Tournament } from './tournaments/tournament.entity';
 import { TournamentRegistration } from './tournaments/tournament-registration.entity';
+import { TournamentTeam } from './tournaments/tournament-team.entity';
+import { TournamentMatch } from './tournaments/tournament-match.entity';
 import { CommonModule } from './common/common.module';
 import { CommunityModule } from './community/community.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
@@ -119,6 +121,8 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
         ContentPage,
         Tournament,
         TournamentRegistration,
+        TournamentTeam,
+        TournamentMatch,
         SubscriptionPlan,
         UserSubscription,
         SubscriptionChargeAttempt,

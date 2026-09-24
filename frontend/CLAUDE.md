@@ -36,6 +36,14 @@ section wins.
   `/profile` and `/orders`), `components/RecordCard.tsx`, `lib/games.ts` (`gameCover`/`gameTile`/
   `gameIcon` by slug), `lib/game-details.json` (per-game detail-form fields), `lib/labels.ts`
   (`LISTING_TYPE_LABELS`, order/session/listing status labels).
+- **Tournaments v2 (docs/design-mockups 01–03, 07, 08, 10, 11, 13)**: `components/TournamentBoard.tsx`
+  (list + "My Tournaments"), `pages/tournaments/{index,mine,hub,[id]}.tsx`,
+  `pages/tournaments/[id]/matches/{index,[matchId]}.tsx`, shared helpers/icons in
+  `lib/tournaments.tsx`, admin `components/admin/TournamentOps.tsx` (team verification, match entry;
+  player stats typed as `name | kills | K/D | damage | rating | assists | mvp`). New CSS is the
+  "Tournaments v2" block (`wt-` prefix) near the end of `global.css`; the detail tabs reuse the
+  prototype's `.prejoin-*`/`.prize-*`/`.team-*`/`.rule-*` rules. The prototype's team rows use a
+  stock portrait sprite for members — overridden to initials (rule #6).
 - **Rule #6 decisions in the port** (each also commented in its page): no fake prize splits / demo
   teams / anti-cheat claims on tournaments; no fake coach rank, response time, "Top 1%" tags or
   always-on online dot (the dot is real presence now); Steam detail shows real rating/stock/seller

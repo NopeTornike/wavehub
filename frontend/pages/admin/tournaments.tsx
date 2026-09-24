@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { PublicGame, PublicTournamentSummary } from '@wavehub/shared-types'
+import type { PublicGame, PublicTournamentSummary, TournamentPrizes } from '@wavehub/shared-types'
 import { TOURNAMENT_DETAIL_KEYS, TournamentStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
+import TournamentOps from '../../components/admin/TournamentOps'
 import { api, errorMessage } from '../../lib/api'
 
 const STATUS_LABELS: Record<TournamentStatus, string> = {
   [TournamentStatus.Open]: 'რეგისტრაცია ღიაა',
   [TournamentStatus.Upcoming]: 'მოახლოებული',
+  [TournamentStatus.InProgress]: 'მიმდინარე',
   [TournamentStatus.Completed]: 'დასრულებული',
 }
 
@@ -20,6 +22,42 @@ const emptyForm = {
   maxPlayers: 64,
   details: {} as Record<string, string>,
   rules: '',
+  teamSize: 1,
+  // Prize breakdown as editable text: one place per line "1st Place | 500 GEL | Gaming Gear, Hotel Stay".
+  prizePlaces: '',
+  specialRewards: '',
+  prizeNote: '',
+}
+
+function prizesFromForm(form: { prizePlaces: string; specialRewards: string; prizeNote: string }): TournamentPrizes {
+  const places = form.prizePlaces
+    .split('\n')
+    .map((line) => line.split('|').map((part) => part.trim()))
+    .filter((parts) => parts[0])
+    .map(([place, amount = '', rewards = '']) => ({
+      place: place.slice(0, 30),
+      amount: (amount || '—').slice(0, 30),
+      rewards: rewards
+        .split(',')
+        .map((r) => r.trim().slice(0, 40))
+        .filter(Boolean)
+        .slice(0, 5),
+    }))
+    .slice(0, 10)
+  const specialRewards = form.specialRewards
+    .split(',')
+    .map((r) => r.trim().slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 6)
+  return { places, specialRewards, note: form.prizeNote.trim().slice(0, 300) || null }
+}
+
+function prizesToForm(prizes: TournamentPrizes | undefined) {
+  return {
+    prizePlaces: (prizes?.places ?? []).map((p) => [p.place, p.amount, p.rewards.join(', ')].join(' | ')).join('\n'),
+    specialRewards: (prizes?.specialRewards ?? []).join(', '),
+    prizeNote: prizes?.note ?? '',
+  }
 }
 
 // Only the filled-in details are sent (empty ones show "To be announced" on the public page).
@@ -41,6 +79,8 @@ function validate(form: TournamentForm): string {
   if (prize.length < 1 || prize.length > 60) return 'პრიზი უნდა იყოს 1–60 სიმბოლო.'
   if (!form.startDate) return 'მიუთითეთ დაწყების თარიღი.'
   if (!Number.isInteger(form.maxPlayers) || form.maxPlayers < 2) return 'მოთამაშეების მაქსიმუმი უნდა იყოს მთელი რიცხვი, მინიმუმ 2.'
+  if (!Number.isInteger(form.teamSize) || form.teamSize < 1 || form.teamSize > 10) return 'გუნდის ზომა: 1–10.'
+  if (form.maxPlayers < form.teamSize) return 'მოთამაშეების მაქსიმუმი გუნდის ზომაზე ნაკლები ვერ იქნება.'
   return ''
 }
 
@@ -101,7 +141,28 @@ function TournamentFields({
           მაქს. მოთამაშეები
           <input id={`${idPrefix}-max`} type="number" min={2} step={1} value={form.maxPlayers} onChange={(e) => onChange({ ...form, maxPlayers: Number(e.target.value) })} required />
         </label>
+        <label className="field" htmlFor={`${idPrefix}-team`}>
+          გუნდის ზომა <small>1 = სოლო; გუნდები ვერ შეიცვლება რეგისტრაციის შემდეგ</small>
+          <input id={`${idPrefix}-team`} type="number" min={1} max={10} step={1} value={form.teamSize} onChange={(e) => onChange({ ...form, teamSize: Number(e.target.value) })} required />
+        </label>
       </div>
+      <details className="field">
+        <summary>საპრიზო ფონდის განაწილება (Prize Pool ჩანართი)</summary>
+        <label className="field" htmlFor={`${idPrefix}-places`}>
+          ადგილები <small>თითო ხაზზე: ადგილი | თანხა | ჯილდოები მძიმით (მაგ. „1st Place | 500 GEL | Gaming Gear, Hotel Stay“)</small>
+          <textarea id={`${idPrefix}-places`} rows={3} value={form.prizePlaces} onChange={(e) => onChange({ ...form, prizePlaces: e.target.value })} />
+        </label>
+        <div className="stack-form-grid">
+          <label className="field" htmlFor={`${idPrefix}-special`}>
+            სპეციალური ჯილდოები <small>მძიმით</small>
+            <input id={`${idPrefix}-special`} value={form.specialRewards} onChange={(e) => onChange({ ...form, specialRewards: e.target.value })} />
+          </label>
+          <label className="field" htmlFor={`${idPrefix}-pnote`}>
+            შენიშვნა
+            <input id={`${idPrefix}-pnote`} maxLength={300} value={form.prizeNote} onChange={(e) => onChange({ ...form, prizeNote: e.target.value })} />
+          </label>
+        </div>
+      </details>
       <details className="field">
         <summary>ტურნირის დეტალები (არასავალდებულო — ცარიელი ველი საჯაროდ ჩანს როგორც „To be announced“)</summary>
         <div className="stack-form-grid">
@@ -118,7 +179,7 @@ function TournamentFields({
           ))}
         </div>
         <label className="field" htmlFor={`${idPrefix}-rules`}>
-          წესები
+          წესები <small>თითო ხაზზე: „სათაური: აღწერა“</small>
           <textarea id={`${idPrefix}-rules`} rows={4} maxLength={5000} value={form.rules} onChange={(e) => onChange({ ...form, rules: e.target.value })} />
         </label>
       </details>
@@ -144,6 +205,7 @@ export default function AdminTournaments() {
 
   const coverInputRef = useRef<HTMLInputElement | null>(null)
   const [coverTargetId, setCoverTargetId] = useState<string | null>(null)
+  const [opsId, setOpsId] = useState<string | null>(null)
 
   // Quiet refresh (no spinner flash) — used after every mutation.
   const reload = () =>
@@ -194,6 +256,8 @@ export default function AdminTournaments() {
         maxPlayers: form.maxPlayers,
         details: cleanDetails(form.details),
         rules: form.rules.trim() || undefined,
+        teamSize: form.teamSize,
+        prizes: prizesFromForm(form),
       })
       setForm(emptyForm)
       await reload()
@@ -217,6 +281,8 @@ export default function AdminTournaments() {
       maxPlayers: t.maxPlayers,
       details: { ...(t.details ?? {}) },
       rules: t.rules ?? '',
+      teamSize: t.teamSize,
+      ...prizesToForm(t.prizes),
     })
   }
 
@@ -241,6 +307,8 @@ export default function AdminTournaments() {
         maxPlayers: editForm.maxPlayers,
         details: cleanDetails(editForm.details),
         rules: editForm.rules.trim(),
+        teamSize: editForm.teamSize,
+        prizes: prizesFromForm(editForm),
       })
       setEditingId(null)
       await reload()
@@ -338,11 +406,13 @@ export default function AdminTournaments() {
                 </div>
               </form>
             ) : (
-              <div key={t.id} className="admin-row">
+              <div key={t.id}>
+              <div className="admin-row">
                 <div className="admin-row-main">
                   <strong>{t.name}</strong>
                   <span className="note" style={{ margin: 0 }}>
-                    {t.gameName} · {STATUS_LABELS[t.status]} · {t.registeredCount}/{t.maxPlayers} · {t.prize} ·{' '}
+                    {t.gameName} · {STATUS_LABELS[t.status]} · {t.registeredCount}/{t.maxPlayers} მოთამაშე
+                    {t.teamSize > 1 ? ` · ${t.teamCount}/${t.maxTeams} გუნდი (${t.teamSize}-კაციანი)` : ' · სოლო'} · {t.prize} ·{' '}
                     {new Date(t.startDate).toLocaleDateString('ka-GE', { month: 'short', day: 'numeric', year: 'numeric' })}
                     {!t.coverImageUrl && ' · ქოვერის გარეშე'}
                   </span>
@@ -354,10 +424,15 @@ export default function AdminTournaments() {
                   <button type="button" className="button" disabled={busyId === t.id} onClick={() => startEdit(t)}>
                     რედაქტირება
                   </button>
+                  <button type="button" className="button" aria-expanded={opsId === t.id} onClick={() => setOpsId(opsId === t.id ? null : t.id)}>
+                    გუნდები და მატჩები
+                  </button>
                   <button type="button" className="button" disabled={busyId === t.id} onClick={() => remove(t)}>
                     წაშლა
                   </button>
                 </div>
+              </div>
+              {opsId === t.id && <TournamentOps tournament={t} onChanged={reload} />}
               </div>
             ),
           )}

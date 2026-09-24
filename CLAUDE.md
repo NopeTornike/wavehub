@@ -16,6 +16,9 @@ The full build plan (phased architecture, schema, decisions) lives at
 `/Users/sarvat/.claude/plans/mighty-mapping-robin.md` on the machine this was planned on — if that path
 isn't available to you, `SPECIFICATION.md` §6-8 and this file are the durable record.
 
+**Design target (2026-09-24): `docs/design-mockups/` holds the owner's 18 target screens and a
+mockup → route → data-source map (`README.md`). Match them with real data only.**
+
 **Read `LAUNCH_PLAN.md` before starting any new feature work right now** — it documents a critical
 finding (as of 2026-09-16): `origin/main` has diverged into a parallel, simpler backend (a
 localStorage-mirroring blob store instead of this branch's real Postgres schema, plus a
@@ -50,7 +53,7 @@ runbook is `docs/DEPLOY.md` and the go-live checklist is `docs/LAUNCH_CHECKLIST.
 | `backend/src/support/` | Support ticketing — user tickets, staff replies, internal notes, Saved Replies | `backend/src/support/CLAUDE.md` |
 | `backend/src/coaching/` | Coach profiles, public directory, admin verification/suspension, session booking + escrow payment | `backend/src/coaching/CLAUDE.md` |
 | `backend/src/content/` | Static/legal page CMS (10 pages: About/Contact/Terms/Privacy/Refund/Delivery/Disputes/Community/Coach & Seller Standards) — admin-edited, publicly rendered, real copy | `backend/src/content/CLAUDE.md` |
-| `backend/src/tournaments/` | Admin-posted tournaments, self-service registration — no bracket/matchmaking/prize-payout automation | `backend/src/tournaments/CLAUDE.md` |
+| `backend/src/tournaments/` | Tournaments with team registration (staff-verified), prize breakdown, staff-recorded matches + player stats — no automated matchmaking/prize payout | `backend/src/tournaments/CLAUDE.md` |
 | `backend/src/subscriptions/` | BOG-billed Buyer / Seller-Coach membership plans, jsonb perks (fee discount, featured, priority support, badge), hourly recharge sweep | `backend/src/subscriptions/CLAUDE.md` |
 | `backend/src/community/` | Public shell aggregates (online count, per-game listing counts, seller ranks) + the user's Wave rank | `backend/src/community/CLAUDE.md` |
 | `backend/src/common/` | Cross-cutting runtime: global exception filter, PII-free request log, `/health`, throttle presets | `backend/src/common/CLAUDE.md` |

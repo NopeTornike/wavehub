@@ -853,7 +853,107 @@ export interface PublicCoachingSession {
 export enum TournamentStatus {
   Open = 'open',
   Upcoming = 'upcoming',
+  // Registration closed, matches being played (the design's "IN PROGRESS" / Active group).
+  InProgress = 'in_progress',
   Completed = 'completed',
+}
+
+// Every registration is a team (a solo tournament's team is one player, auto-verified). Squad
+// teams start Pending until tournament staff verify them.
+export enum TournamentTeamStatus {
+  Pending = 'pending',
+  Verified = 'verified',
+  Rejected = 'rejected',
+}
+
+export enum TournamentMatchStage {
+  Group = 'group',
+  Round = 'round',
+  QuarterFinal = 'quarterfinal',
+  SemiFinal = 'semifinal',
+  Final = 'final',
+}
+
+export enum TournamentMatchStatus {
+  Scheduled = 'scheduled',
+  Live = 'live',
+  Completed = 'completed',
+}
+
+// Admin-entered prize breakdown (the design's Prize Pool tab). Free text amounts, like `prize` —
+// payouts are not automated.
+export interface TournamentPrizePlace {
+  place: string;
+  amount: string;
+  rewards: string[];
+}
+
+export interface TournamentPrizes {
+  places: TournamentPrizePlace[];
+  specialRewards: string[];
+  note: string | null;
+}
+
+export interface PublicTournamentTeam {
+  id: string;
+  tournamentId: string;
+  name: string;
+  tag: string | null;
+  logoUrl: string | null;
+  captainUsername: string;
+  coachName: string | null;
+  // In-game names as the captain entered them (exactly `teamSize` of them).
+  members: string[];
+  status: TournamentTeamStatus;
+  createdAt: string;
+}
+
+export interface TournamentTeamRef {
+  id: string;
+  name: string;
+  tag: string | null;
+  logoUrl: string | null;
+}
+
+// Admin-entered per-player match line. Any stat may be missing (null) — the page shows "—".
+export interface MatchPlayerStat {
+  name: string;
+  kills: number | null;
+  kd: number | null;
+  damage: number | null;
+  rating: number | null;
+  assists: number | null;
+  mvp: boolean;
+}
+
+export interface MatchTeamStats {
+  coach: string | null;
+  players: MatchPlayerStat[];
+}
+
+export interface PublicTournamentMatch {
+  id: string;
+  tournamentId: string;
+  tournamentName: string;
+  stage: TournamentMatchStage;
+  groupName: string | null;
+  roundLabel: string | null;
+  teamA: TournamentTeamRef | null;
+  teamB: TournamentTeamRef | null;
+  map: string | null;
+  bestOf: number;
+  scheduledAt: string | null;
+  status: TournamentMatchStatus;
+  scoreA: number | null;
+  scoreB: number | null;
+  stats: { a: MatchTeamStats | null; b: MatchTeamStats | null };
+}
+
+// GET /me/tournaments — one row per tournament the caller registered a team for.
+export interface MyTournamentEntry {
+  tournament: PublicTournamentSummary;
+  team: PublicTournamentTeam;
+  registeredAt: string;
 }
 
 // Deliberately NOT personalized (no "am I registered" field) — this app keeps public endpoints
@@ -876,7 +976,14 @@ export interface PublicTournamentSummary {
   createdAt: string;
   // Admin-entered facts (keys: TOURNAMENT_DETAIL_KEYS); missing ones show "To be announced".
   details: Record<string, string>;
+  // One rule per line, "Title: description" (the Rules tab's numbered rows).
   rules: string | null;
+  // Players per team (1 = solo). `registeredCount` counts players across non-rejected teams;
+  // `maxTeams` = floor(maxPlayers / teamSize).
+  teamSize: number;
+  teamCount: number;
+  maxTeams: number;
+  prizes: TournamentPrizes;
 }
 
 // The facts the prototype's tournament page shows, in its order, with its labels.
@@ -887,6 +994,7 @@ export const TOURNAMENT_DETAIL_KEYS: ReadonlyArray<readonly [key: string, label:
   ['platform', 'პლატფორმა'],
   ['checkInTime', 'Check-in Time'],
   ['startTime', 'Start Time'],
+  ['endDate', 'End Date (YYYY-MM-DD)'],
   ['registrationDeadline', 'Registration Deadline'],
   ['entryFee', 'შესვლის საფასური'],
   ['teamSize', 'Team Size'],
@@ -896,6 +1004,7 @@ export const TOURNAMENT_DETAIL_KEYS: ReadonlyArray<readonly [key: string, label:
   ['whoCanJoin', 'Who Can Join'],
   ['communication', 'Communication'],
   ['organizer', 'Organizer'],
+  ['slogan', 'Hero slogan'],
 ];
 
 export type PublicTournamentDetail = PublicTournamentSummary;

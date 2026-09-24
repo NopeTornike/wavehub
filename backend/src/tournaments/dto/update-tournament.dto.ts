@@ -1,6 +1,8 @@
-import { IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { TournamentStatus } from '@wavehub/shared-types';
 import { IsItemAttributes } from '../../listings/dto/item-attributes.validator';
+import { PrizesDto } from './prizes.dto';
 
 // All fields optional (a partial update) — same convention as
 // backend/src/settings/dto/update-platform-settings.dto.ts.
@@ -46,4 +48,16 @@ export class UpdateTournamentDto {
   @IsString()
   @MaxLength(5000)
   rules?: string;
+
+  // Players per team (1 = solo).
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  teamSize?: number;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PrizesDto)
+  prizes?: PrizesDto;
 }
