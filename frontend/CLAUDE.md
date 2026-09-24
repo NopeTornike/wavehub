@@ -61,6 +61,10 @@ section wins.
   featured-tournament cover (the prototype hard-coded "WAVE CUP"). **Public profile (12)**:
   `pages/u/[username].tsx` (`up-` CSS), fields editable in Settings. A global `[hidden] { display:
   none !important }` now guarantees the hidden attribute wins over prototype `display` rules.
+- **Dashboard (09)**: `pages/dashboard.tsx` (`db-` CSS), signed-in only, added to `Sidebar` after
+  Home only when logged in. Every number is the viewer's own data from existing endpoints: next
+  scheduled coaching session (countdown), session progress ring, open orders, active tournament
+  entries, latest order, wallet balance, Wave rank. Empty states instead of placeholders.
 - **Rule #6 decisions in the port** (each also commented in its page): no fake prize splits / demo
   teams / anti-cheat claims on tournaments; no fake coach rank, response time, "Top 1%" tags or
   always-on online dot (the dot is real presence now); Steam detail shows real rating/stock/seller

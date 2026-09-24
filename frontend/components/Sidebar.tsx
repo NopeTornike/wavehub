@@ -45,6 +45,9 @@ const NAV: NavItem[] = [
   { id: 'profile', label: 'პარამეტრები', href: '/profile', icon: 'settings-icon.svg', iconClass: 'nav-icon-settings', match: (p) => p.startsWith('/profile') },
 ]
 
+// Signed-in only (docs/design-mockups/09).
+const DASHBOARD: NavItem = { id: 'dashboard', label: 'დაფა', href: '/dashboard', icon: 'dashboard-icon.svg', iconClass: 'nav-icon-home', match: (p) => p === '/dashboard' }
+
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter()
   const { user } = useAuth()
@@ -93,7 +96,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         </Link>
 
         <nav className="side-nav" aria-label="Main pages">
-          {NAV.map((item) => {
+          {(user ? [NAV[0], DASHBOARD, ...NAV.slice(1)] : NAV).map((item) => {
             const active = item.match(path)
             if (item.id === 'marketplace') {
               return (
