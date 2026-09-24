@@ -1,6 +1,7 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
+import { ListingFavorite } from './listing-favorite.entity';
 import { KeyInventoryStatus, ListingStatus, ListingType } from '@wavehub/shared-types';
 import type { AdminListingSummary, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
@@ -14,6 +15,7 @@ import { Category } from './category.entity';
 import { Game } from './game.entity';
 import { assertValidTransition } from './listing-lifecycle';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { UpdateListingDto } from './dto/update-listing.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { BrowseListingsDto } from './dto/browse-listings.dto';
 import { StorageService } from '../storage/storage.service';
@@ -34,7 +36,7 @@ function toPublicSeller(seller: User): PublicSeller {
   };
 }
 
-const MAX_IMAGES_PER_LISTING = 5;
+const MAX_IMAGES_PER_LISTING = 6;
 const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -49,6 +51,7 @@ export class ListingsService {
     @InjectRepository(Package) private readonly packages: Repository<Package>,
     @InjectRepository(Category) private readonly categories: Repository<Category>,
     @InjectRepository(Game) private readonly games: Repository<Game>,
+    @InjectRepository(ListingFavorite) private readonly favorites: Repository<ListingFavorite>,
     private readonly storage: StorageService,
   ) {}
 
@@ -97,7 +100,7 @@ export class ListingsService {
       await this.itemDetails.save(
         this.itemDetails.create({
           listingId: saved.id,
-          attributes: {},
+          attributes: dto.attributes ?? {},
           isUnique: dto.isUnique ?? true,
         }),
       );
@@ -108,7 +111,7 @@ export class ListingsService {
   }
 
   async findMine(sellerId: string): Promise<Listing[]> {
-    return this.listings.find({ where: { sellerId }, order: { createdAt: 'DESC' } });
+    return this.listings.find({ where: { sellerId }, relations: ['game', 'images'], order: { createdAt: 'DESC' } });
   }
 
   // Backs the public seller-profile page (backend/src/users/users.controller.ts) — only counts
@@ -212,14 +215,34 @@ export class ListingsService {
       qb.andWhere('"sellerPlan"."id" IS NOT NULL');
     }
 
+    // Sort key for price sorts: an item/key's own price, else the cheapest package (services).
+    qb.addSelect(
+      `COALESCE("listing"."priceWaveCoin", (SELECT MIN(p."priceWaveCoin") FROM "packages" p WHERE p."listingId" = "listing"."id"))`,
+      'sort_price',
+    );
+    if (filters.sort === 'oldest') {
+      qb.orderBy('listing.createdAt', 'ASC');
+    } else if (filters.sort === 'price_asc') {
+      qb.orderBy('sort_price', 'ASC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
+    } else if (filters.sort === 'price_desc') {
+      qb.orderBy('sort_price', 'DESC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
+    } else {
+      qb.orderBy('featured_boost', 'DESC').addOrderBy('listing.isFeatured', 'DESC').addOrderBy('listing.createdAt', 'DESC');
+    }
+
     const [items, total] = await qb
-      .orderBy('featured_boost', 'DESC')
-      .addOrderBy('listing.isFeatured', 'DESC')
-      .addOrderBy('listing.createdAt', 'DESC')
       .take(filters.limit ?? 20)
       .skip(filters.offset ?? 0)
       .getManyAndCount();
 
+    return { items: await this.decorateSummaries(items), total };
+  }
+
+  // Everything a listing card needs beyond the row itself, batched per page (a fixed handful of
+  // queries regardless of page size): cheapest package price for services, live available-key
+  // count for digital keys, item attributes, and the favourite count. Shared by browse and the
+  // favourites list so both return the exact same card shape.
+  private async decorateSummaries(items: Listing[]) {
     const serviceListingIds = items.filter((item) => item.type === ListingType.Service).map((i) => i.id);
     const minPriceByListing = new Map<string, number>();
     if (serviceListingIds.length > 0) {
@@ -250,7 +273,26 @@ export class ListingsService {
       rows.forEach((row) => availableCountByListing.set(row.listingId, Number(row.count)));
     }
 
-    const withStartingPrice = items.map((item) => ({
+    const ids = items.map((item) => item.id);
+    const itemListingIds = items.filter((item) => item.type === ListingType.Item).map((i) => i.id);
+    const [attributeRows, favoriteRows] = await Promise.all([
+      itemListingIds.length > 0
+        ? this.itemDetails.find({ where: { listingId: In(itemListingIds) }, select: ['listingId', 'attributes'] })
+        : Promise.resolve([] as ItemDetails[]),
+      ids.length > 0
+        ? this.favorites
+            .createQueryBuilder('f')
+            .select('f.listingId', 'listingId')
+            .addSelect('COUNT(*)', 'count')
+            .where('f.listingId IN (:...ids)', { ids })
+            .groupBy('f.listingId')
+            .getRawMany<{ listingId: string; count: string }>()
+        : Promise.resolve([] as Array<{ listingId: string; count: string }>),
+    ]);
+    const attributesByListing = new Map(attributeRows.map((row) => [row.listingId, row.attributes]));
+    const favoritesByListing = new Map(favoriteRows.map((row) => [row.listingId, Number(row.count)]));
+
+    return items.map((item) => ({
       ...item,
       seller: toPublicSeller(item.seller),
       stockQuantity: item.type === ListingType.DigitalKey ? availableCountByListing.get(item.id) ?? 0 : item.stockQuantity,
@@ -258,9 +300,53 @@ export class ListingsService {
         item.type === ListingType.Item || item.type === ListingType.DigitalKey
           ? item.priceWaveCoin
           : minPriceByListing.get(item.id) ?? null,
+      itemAttributes: item.type === ListingType.Item ? attributesByListing.get(item.id) ?? {} : null,
+      favoriteCount: favoritesByListing.get(item.id) ?? 0,
     }));
+  }
 
-    return { items: withStartingPrice, total };
+  // --- Favourites (the prototype's ♡ / Favorites page) ---
+
+  // Only an Active listing can be saved (same visibility rule as the public detail page); saving
+  // twice is a no-op thanks to the composite primary key.
+  async addFavorite(userId: string, listingId: string): Promise<{ favorited: true; favoriteCount: number }> {
+    const exists = await this.listings.exist({ where: { id: listingId, status: ListingStatus.Active } });
+    if (!exists) {
+      throw new NotFoundException('Listing not found');
+    }
+    await this.favorites
+      .createQueryBuilder()
+      .insert()
+      .into(ListingFavorite)
+      .values({ userId, listingId })
+      .orIgnore()
+      .execute();
+    return { favorited: true, favoriteCount: await this.favorites.count({ where: { listingId } }) };
+  }
+
+  async removeFavorite(userId: string, listingId: string): Promise<{ favorited: false; favoriteCount: number }> {
+    await this.favorites.delete({ userId, listingId });
+    return { favorited: false, favoriteCount: await this.favorites.count({ where: { listingId } }) };
+  }
+
+  async listFavoriteIds(userId: string): Promise<string[]> {
+    const rows = await this.favorites.find({ where: { userId }, select: ['listingId'], order: { createdAt: 'DESC' } });
+    return rows.map((row) => row.listingId);
+  }
+
+  // The viewer's saved listings as ordinary cards, newest save first. Listings that have since
+  // stopped being Active are left out (they'd 404 on click) but the favourite row is kept, so it
+  // reappears if the seller re-activates the listing.
+  async listFavorites(userId: string) {
+    const ids = await this.listFavoriteIds(userId);
+    if (ids.length === 0) return [];
+    const rows = await this.listings.find({
+      where: { id: In(ids), status: ListingStatus.Active },
+      relations: ['seller', 'category', 'game', 'images'],
+    });
+    const order = new Map(ids.map((id, index) => [id, index]));
+    rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return this.decorateSummaries(rows);
   }
 
   // Public detail lookup — 404s on anything not Active (a draft/pending listing isn't "not found"
@@ -280,6 +366,7 @@ export class ListingsService {
       throw new NotFoundException('Listing not found');
     }
     void this.listings.increment({ id }, 'viewsCount', 1);
+    const favoriteCount = await this.favorites.count({ where: { listingId: id } });
 
     if (listing.type === ListingType.Service) {
       const [packages, details] = await Promise.all([
@@ -292,6 +379,8 @@ export class ListingsService {
         packages,
         requirementsSchema: details?.requirementsSchema ?? [],
         faq: details?.faq ?? [],
+        itemAttributes: null,
+        favoriteCount,
       };
     }
 
@@ -299,11 +388,11 @@ export class ListingsService {
       const availableCount = await this.keyInventory.count({
         where: { listingId: id, status: KeyInventoryStatus.Available },
       });
-      return { ...listing, seller: toPublicSeller(listing.seller), packages: [], stockQuantity: availableCount };
+      return { ...listing, seller: toPublicSeller(listing.seller), packages: [], stockQuantity: availableCount, itemAttributes: null, favoriteCount };
     }
 
     const itemDetails = await this.itemDetails.findOne({ where: { listingId: id } });
-    return { ...listing, seller: toPublicSeller(listing.seller), packages: [], itemAttributes: itemDetails?.attributes ?? {} };
+    return { ...listing, seller: toPublicSeller(listing.seller), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount };
   }
 
   async addPackage(sellerId: string, listingId: string, dto: CreatePackageDto): Promise<Package> {
@@ -353,6 +442,54 @@ export class ListingsService {
     const stored = await this.storage.save(file.buffer, file.originalname, 'image');
     const image = this.images.create({ listingId, url: stored.url, sortOrder: existingCount });
     return this.images.save(image);
+  }
+
+  // Seller edit. A Draft/Rejected listing just takes the changes (the seller submits it when ready);
+  // an Active/Paused one goes back to PendingReview so the edited version is moderated before it's
+  // buyable again. A listing already waiting for review can't be edited mid-review.
+  async update(sellerId: string, listingId: string, dto: UpdateListingDto): Promise<Listing> {
+    const listing = await this.getOwnedListing(sellerId, listingId);
+    if (listing.status === ListingStatus.PendingReview) {
+      throw new ConflictException('This listing is waiting for review — edit it after the decision');
+    }
+    if (dto.priceWaveCoin !== undefined && listing.type === ListingType.Service) {
+      throw new ForbiddenException('Service listings are priced by their packages');
+    }
+    if (dto.attributes !== undefined && listing.type !== ListingType.Item) {
+      throw new ForbiddenException('Only item listings have attributes');
+    }
+    if (dto.title !== undefined) listing.title = dto.title;
+    if (dto.description !== undefined) listing.description = dto.description;
+    if (dto.priceWaveCoin !== undefined) listing.priceWaveCoin = dto.priceWaveCoin;
+    if (listing.status === ListingStatus.Active || listing.status === ListingStatus.Paused) {
+      assertValidTransition(listing.status, ListingStatus.PendingReview);
+      listing.status = ListingStatus.PendingReview;
+    }
+    const saved = await this.listings.save(listing);
+    if (dto.attributes !== undefined) {
+      await this.itemDetails.update({ listingId }, { attributes: dto.attributes });
+    }
+    return saved;
+  }
+
+  // Seller delete. Only a listing nobody has ever ordered can be removed — orders (and their
+  // escrow/dispute/review history) must keep pointing at the listing they bought, so a listing with
+  // orders gets a clear "pause it instead" answer.
+  async remove(sellerId: string, listingId: string): Promise<void> {
+    const listing = await this.getOwnedListing(sellerId, listingId);
+    const [{ count }] = await this.listings.query(`SELECT count(*)::int AS count FROM "orders" WHERE "listingId" = $1`, [listingId]);
+    if (count > 0) {
+      throw new ConflictException('This listing has orders and can’t be deleted — pause it instead');
+    }
+    try {
+      await this.listings.delete({ id: listing.id });
+    } catch (err) {
+      // 23503 = foreign_key_violation: an order was placed between the check above and the delete.
+      if ((err as { code?: string }).code === '23503') {
+        throw new ConflictException('This listing has orders and can’t be deleted — pause it instead');
+      }
+      throw err;
+    }
   }
 
   async submitForReview(sellerId: string, listingId: string): Promise<Listing> {

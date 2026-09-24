@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Length, Min, ValidateNested } from 'class-validator';
+import { IsItemAttributes } from './item-attributes.validator';
 import { ListingType } from '@wavehub/shared-types';
 
 export class RequirementFieldDto {
@@ -65,6 +66,11 @@ export class CreateListingDto {
   @IsOptional()
   @IsBoolean()
   resaleRightsAttested?: boolean;
+
+  // Item-type only — the seller-entered account/skin details (see IsItemAttributes for the limits).
+  @IsOptional()
+  @IsItemAttributes()
+  attributes?: Record<string, string | number | boolean>;
 
   // Service-type only
   @IsOptional()

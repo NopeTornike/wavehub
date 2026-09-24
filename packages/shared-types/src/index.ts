@@ -232,6 +232,8 @@ export interface PublicUser {
   // (available/pending/withdrawn) are a separate derived view over the wallet ledger, not this
   // field; this is only ever what the user can spend at checkout.
   wavecoinBalance: number;
+  // Uploaded profile photo (Settings page), or null for the initials avatar.
+  avatarUrl: string | null;
 }
 
 export interface AuthMeResponse {
@@ -306,6 +308,33 @@ export interface PublicListingSummary {
   category: PublicCategory;
   game: PublicGame | null;
   images: PublicListingImage[];
+  // Item listings only (null otherwise): the seller-entered account/skin details the prototype's
+  // marketplace cards and detail page show — see ItemAttributes.
+  itemAttributes: ItemAttributes | null;
+  // How many accounts have this listing in their favourites (the card's ♡ count).
+  favoriteCount: number;
+}
+
+// Seller-entered details on an item listing (backend/src/listings — `item_details.attributes`).
+// Known keys are the ones the prototype's sell form collects; per-game extras use their own keys.
+// Values are always short strings / numbers / booleans (validated server-side, see
+// IsItemAttributes). Public information by design — never put secrets (logins, emails) here.
+export type ItemAttributeValue = string | number | boolean;
+export interface ItemAttributes {
+  kind?: 'account' | 'skin';
+  accountStatus?: 'basic' | 'premium' | 'rare' | 'og' | 'ranked' | 'full-collection';
+  accountLevel?: number;
+  platform?: string;
+  region?: string;
+  loginMethod?: string;
+  emailChangeable?: boolean;
+  linkedAccounts?: string;
+  fullAccess?: boolean;
+  originalEmail?: boolean;
+  twoFactor?: boolean;
+  deliveryMethod?: string;
+  deliveryTime?: string;
+  [key: string]: ItemAttributeValue | undefined;
 }
 
 export interface RequirementField {
@@ -328,7 +357,6 @@ export interface PublicListingDetail extends PublicListingSummary {
   packages: PublicPackage[];
   requirementsSchema?: RequirementField[];
   faq?: FaqEntry[];
-  itemAttributes?: Record<string, unknown>;
 }
 
 // --- Order response shapes ---
@@ -758,6 +786,19 @@ export interface PublicUserProfile {
   // both, since a public seller-profile page is inherently seller-context. Null if the user has
   // no subscription with this perk. See backend/src/subscriptions/CLAUDE.md.
   profileBadge: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  mainGames: Array<{ name: string; slug: string }>;
+}
+
+// The signed-in user's own editable profile (GET/PATCH /me/profile).
+export interface MyProfile {
+  username: string;
+  firstName: string;
+  lastName: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  mainGameIds: string[];
 }
 
 // Coaching session booking + escrow payment (build-plan Phase 11b follow-up — see
@@ -922,3 +963,8 @@ export const WAVE_RANK_TIERS: ReadonlyArray<readonly [string, number]> = [
   ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580],
   ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000],
 ];
+
+// Marketplace position of each seller (GET /stats/seller-ranks) — the prototype's
+// getMarketplaceSellerWaveRank order: completed sales, then reviews, then active listings, then
+// average rating. Keyed by username; sellers with no activity are absent ("unranked").
+export type SellerRanks = Record<string, number>;

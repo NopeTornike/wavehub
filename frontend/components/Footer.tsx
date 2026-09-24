@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { useLanguage, type Language } from '../lib/i18n'
 
 // site-footer.js's footer, markup-for-markup. Policy links point at the admin-editable CMS pages
-// (backend/src/content/ — /pages/[slug]); the two policies the prototype keeps as sections of its
-// About page (payments, wallet) point at the same sections of /about. The language select drives
-// the same LanguageProvider as the topbar switcher.
+// (backend/src/content/ — /pages/[slug]), including the payment and wallet policies (the prototype
+// links those to about.html anchors that don't exist; here they're real CMS pages). The language
+// select drives the same LanguageProvider as the topbar switcher.
 /* eslint-disable @next/next/no-img-element */
 
 const Svg = ({ children }: { children: React.ReactNode }) => (
@@ -62,8 +62,8 @@ export default function Footer() {
           <Link href="/pages/privacy-policy">კონფიდენციალურობის პოლიტიკა</Link>
           <Link href="/pages/refund-policy">დაბრუნებისა და გაუქმების პოლიტიკა</Link>
           <Link href="/pages/delivery-policy">მიწოდების პოლიტიკა</Link>
-          <Link href="/about#payments">გადახდისა და ფასების პოლიტიკა</Link>
-          <Link href="/about#wallet">საფულის პოლიტიკა</Link>
+          <Link href="/pages/payment-policy">გადახდისა და ფასების პოლიტიკა</Link>
+          <Link href="/pages/wallet-policy">საფულის პოლიტიკა</Link>
           <Link href="/pages/dispute-resolution">დავების გადაწყვეტის პოლიტიკა</Link>
         </nav>
 

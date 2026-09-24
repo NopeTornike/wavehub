@@ -12,6 +12,7 @@ import { Listing } from './listings/listing.entity';
 import { ListingImage } from './listings/listing-image.entity';
 import { ServiceDetails } from './listings/service-details.entity';
 import { ItemDetails } from './listings/item-details.entity';
+import { ListingFavorite } from './listings/listing-favorite.entity';
 import { Package } from './listings/package.entity';
 import { Category } from './listings/category.entity';
 import { Game } from './listings/game.entity';
@@ -44,6 +45,7 @@ const AppDataSource = new DataSource({
     ListingImage,
     ServiceDetails,
     ItemDetails,
+    ListingFavorite,
     Package,
     Category,
     Game,

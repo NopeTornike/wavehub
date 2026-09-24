@@ -1,4 +1,7 @@
 import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
+import { Game } from '../listings/game.entity';
 import { SubscriptionAudience } from '@wavehub/shared-types';
 import type { PublicUserProfile } from '@wavehub/shared-types';
 import { UsersService } from './users.service';
@@ -13,6 +16,7 @@ export class UsersController {
     private readonly users: UsersService,
     private readonly listings: ListingsService,
     private readonly subscriptions: SubscriptionsService,
+    @InjectRepository(Game) private readonly games: Repository<Game>,
   ) {}
 
   @Get(':username')
@@ -28,6 +32,10 @@ export class UsersController {
       this.subscriptions.getActivePerks(user.id, SubscriptionAudience.Buyer),
     ]);
     const profileBadge = sellerCoachPerks?.profileBadge ?? buyerPerks?.profileBadge ?? null;
+    const mainGameIds = user.mainGameIds ?? [];
+    const mainGames = mainGameIds.length
+      ? (await this.games.find({ where: { id: In(mainGameIds) }, select: ['id', 'name', 'slug'] })).map((g) => ({ name: g.name, slug: g.slug }))
+      : [];
     return {
       username: user.username,
       firstName: user.firstName,
@@ -37,6 +45,9 @@ export class UsersController {
       activeListingCount,
       createdAt: user.createdAt.toISOString(),
       profileBadge,
+      bio: user.bio ?? null,
+      avatarUrl: user.avatarUrl ?? null,
+      mainGames,
     };
   }
 }

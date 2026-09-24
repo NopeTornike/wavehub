@@ -6,18 +6,8 @@ import { OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { ORDER_STATUS_LABELS } from '../../lib/labels'
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  [OrderStatus.PendingPayment]: 'გადახდის მოლოდინში',
-  [OrderStatus.Paid]: 'გადახდილია',
-  [OrderStatus.InProgress]: 'მიმდინარეობს',
-  [OrderStatus.Delivered]: 'მიწოდებულია',
-  [OrderStatus.Completed]: 'დასრულებულია',
-  [OrderStatus.Cancelled]: 'გაუქმებულია',
-  [OrderStatus.Refunded]: 'თანხა დაბრუნებულია',
-  [OrderStatus.Disputed]: 'დავის პროცესშია',
-  [OrderStatus.Expired]: 'ვადაგასულია',
-}
 
 export default function Orders() {
   const router = useRouter()
@@ -119,7 +109,7 @@ export default function Orders() {
                   </span>
                   <div className="order-copy">
                     <div>
-                      <span className="order-status">{STATUS_LABELS[order.status]}</span>
+                      <span className="order-status">{ORDER_STATUS_LABELS[order.status]}</span>
                     </div>
                     <h2>{order.listing.title}</h2>
                     <p>{order.package ? order.package.name : order.listing.title}</p>

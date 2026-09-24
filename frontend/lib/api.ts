@@ -1,7 +1,10 @@
 import type {
   AuthMeResponse,
   GameListingCount,
+  ItemAttributes,
+  MyProfile,
   OnlineStats,
+  SellerRanks,
   WaveRank,
   PublicUser,
   PublicCategory,
@@ -66,6 +69,10 @@ export interface MyListing {
   title: string
   priceWaveCoin: number | null
   rejectionReason?: string | null
+  description?: string
+  createdAt?: string
+  game?: { name: string; slug: string } | null
+  images?: Array<{ url: string }>
 }
 
 // Raw Coach entity as returned to its own owner by GET /coaches/mine (null when the user never
@@ -108,6 +115,9 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'Session expired or invalid': 'სესია ამოიწურა. გთხოვთ, ხელახლა შეხვიდეთ.',
   'Account suspended or banned': 'თქვენი ანგარიში შეჩერებული ან დაბლოკილია.',
   'Server error': 'სერვერის შეცდომა. სცადეთ მოგვიანებით.',
+  "You can't buy your own listing": 'საკუთარი განცხადების ყიდვა შეუძლებელია.',
+  'A listing can have at most 6 images': 'განცხადებას მაქსიმუმ 6 სურათი შეიძლება ჰქონდეს.',
+  'item listings require priceWaveCoin': 'მიუთითეთ ფასი.',
   'Insufficient WaveCoin balance for this purchase': 'WaveCoin-ის ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
   'Insufficient WaveCoin balance for this session': 'WaveCoin-ის ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
   'This item is out of stock': 'ეს ნივთი ამოიწურა.',
@@ -276,6 +286,7 @@ export const api = {
     q?: string
     // Only listings from sellers with the featuredListings subscription perk.
     featured?: boolean
+    sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc'
     limit?: number
     offset?: number
   } = {}) => {
@@ -318,6 +329,53 @@ export const api = {
     }),
 
   submitListingForReview: (id: string) => request<MyListing>(`/listings/${id}/submit`, { method: 'POST' }),
+
+  // Item (account/skin) listing — the prototype's "Become a seller" form. `attributes` are the
+  // public account/skin details (validated server-side: flat, short values, ≤40 keys).
+  createItemListing: (payload: {
+    categoryId: string
+    gameId: string
+    title: string
+    description: string
+    priceWaveCoin: number
+    attributes: ItemAttributes
+  }) =>
+    request<MyListing>('/listings', {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, type: 'item', isUnique: true, stockQuantity: 1 }),
+    }),
+
+  // Seller edit/delete of their own listing. Editing a live listing sends it back to review;
+  // delete only works for a listing that was never ordered (409 otherwise — pause it instead).
+  updateListing: (id: string, payload: { title?: string; description?: string; priceWaveCoin?: number; attributes?: ItemAttributes }) =>
+    request<MyListing>(`/listings/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  deleteListing: (id: string) => request<void>(`/listings/${id}`, { method: 'DELETE' }),
+
+  pauseListing: (id: string) => request<MyListing>(`/listings/${id}/pause`, { method: 'POST' }),
+
+  unpauseListing: (id: string) => request<MyListing>(`/listings/${id}/unpause`, { method: 'POST' }),
+
+  // --- Own profile (Settings page) --- (backend/src/users/profile.controller.ts)
+  getMyProfile: () => request<MyProfile>('/me/profile'),
+
+  updateMyProfile: (payload: { firstName?: string; lastName?: string; bio?: string; mainGameIds?: string[] }) =>
+    request<MyProfile>('/me/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  uploadAvatar: (file: File) => upload<MyProfile>('/me/avatar', file),
+
+  uploadListingImage: (listingId: string, file: File) => upload<{ id: string; url: string }>(`/listings/${listingId}/images`, file),
+
+  // --- Favourites --- (backend/src/listings — `me/favorites*`, `listings/:id/favorite`)
+  listFavorites: () => request<PublicListingSummary[]>('/me/favorites'),
+
+  listFavoriteIds: () => request<string[]>('/me/favorites/ids'),
+
+  addFavorite: (listingId: string) =>
+    request<{ favorited: true; favoriteCount: number }>(`/listings/${listingId}/favorite`, { method: 'POST' }),
+
+  removeFavorite: (listingId: string) =>
+    request<{ favorited: false; favoriteCount: number }>(`/listings/${listingId}/favorite`, { method: 'DELETE' }),
 
   addListingKeys: (listingId: string, keys: string[]) =>
     request<{ added: number }>(`/listings/${listingId}/keys`, { method: 'POST', body: JSON.stringify({ keys }) }),
@@ -459,6 +517,8 @@ export const api = {
   getGameListingCounts: () => request<GameListingCount[]>('/stats/games'),
 
   getMyWaveRank: () => request<WaveRank>('/me/wave-rank'),
+
+  getSellerRanks: () => request<SellerRanks>('/stats/seller-ranks'),
 
   // --- Admin panel --- (backend/src/admin/, plus admin-only routes on each domain module).
   // Server-side role checks are the real enforcement (AdminGuard/@RequireAdminRole) — the

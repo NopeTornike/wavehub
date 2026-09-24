@@ -1,0 +1,1039 @@
+{
+ "cod-mobile": {
+  "title": "Add Call of Duty Details",
+  "subtitle": "Fill only the details that apply to this account. Leave the rest empty.",
+  "noteStrong": "These Call of Duty details will be shown on the product details page.",
+  "noteSpan": "You can describe more weapons, operators and rare content in the main description.",
+  "gridClass": "game-details-grid",
+  "fields": [
+   {
+    "label": "Current MP Rank",
+    "optional": true,
+    "tag": "input",
+    "id": "codMpRank",
+    "type": "text",
+    "placeholder": "e.g. Grand Master V, Legendary",
+    "maxlength": "60"
+   },
+   {
+    "label": "Current BR Rank",
+    "optional": true,
+    "tag": "input",
+    "id": "codBrRank",
+    "type": "text",
+    "placeholder": "e.g. Master III, Legendary",
+    "maxlength": "60"
+   },
+   {
+    "label": "CP Balance",
+    "optional": true,
+    "tag": "input",
+    "id": "codCpBalance",
+    "type": "number",
+    "placeholder": "e.g. 3,600 CP",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Mythic Weapons",
+    "optional": true,
+    "tag": "input",
+    "id": "codMythicWeapons",
+    "type": "number",
+    "placeholder": "e.g. 2",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Legendary Weapons",
+    "optional": true,
+    "tag": "input",
+    "id": "codLegendaryWeapons",
+    "type": "number",
+    "placeholder": "e.g. 8",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Operator Skin Count",
+    "optional": true,
+    "tag": "input",
+    "id": "codOperatorSkins",
+    "type": "number",
+    "placeholder": "e.g. 45",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Completionist Camos",
+    "optional": true,
+    "tag": "input",
+    "id": "codCamos",
+    "type": "text",
+    "placeholder": "e.g. Gold, Damascus, Diamond",
+    "maxlength": "140"
+   },
+   {
+    "label": "Popular Weapon Blueprints",
+    "cls": "game-details-wide",
+    "optional": true,
+    "tag": "input",
+    "id": "codBlueprints",
+    "type": "text",
+    "placeholder": "e.g. AK117 Meltdown, DL Q33 Holidays",
+    "maxlength": "220"
+   },
+   {
+    "label": "Rare Items / Highlights",
+    "cls": "game-details-full",
+    "optional": true,
+    "tag": "input",
+    "id": "codHighlights",
+    "type": "text",
+    "placeholder": "e.g. Mythic M13, Legendary Ghost",
+    "maxlength": "260"
+   }
+  ]
+ },
+ "clash-of-clans": {
+  "title": "Add Clash of Clans Details",
+  "subtitle": "Fill only the Clash of Clans details that apply to this account. Leave the rest empty.",
+  "noteStrong": "These Clash of Clans details will be shown on the product details page.",
+  "noteSpan": "You can describe more troops, spells, defenses and other information in the main description.",
+  "gridClass": "game-details-grid clash-details-grid",
+  "fields": [
+   {
+    "label": "Town Hall Level",
+    "optional": true,
+    "tag": "select",
+    "id": "clashTownHall",
+    "options": [
+     {
+      "value": "",
+      "label": "Select Town Hall"
+     },
+     {
+      "value": null,
+      "label": "TH17"
+     },
+     {
+      "value": null,
+      "label": "TH16"
+     },
+     {
+      "value": null,
+      "label": "TH15"
+     },
+     {
+      "value": null,
+      "label": "TH14"
+     },
+     {
+      "value": null,
+      "label": "TH13"
+     },
+     {
+      "value": null,
+      "label": "TH12"
+     },
+     {
+      "value": null,
+      "label": "TH11"
+     },
+     {
+      "value": null,
+      "label": "TH10"
+     },
+     {
+      "value": null,
+      "label": "TH9"
+     },
+     {
+      "value": null,
+      "label": "TH8"
+     },
+     {
+      "value": null,
+      "label": "TH7"
+     },
+     {
+      "value": null,
+      "label": "TH6"
+     },
+     {
+      "value": null,
+      "label": "TH5"
+     },
+     {
+      "value": null,
+      "label": "TH4"
+     },
+     {
+      "value": null,
+      "label": "TH3"
+     },
+     {
+      "value": null,
+      "label": "TH2"
+     },
+     {
+      "value": null,
+      "label": "TH1"
+     }
+    ]
+   },
+   {
+    "label": "Hero Levels",
+    "optional": true,
+    "tag": "input",
+    "id": "clashHeroLevels",
+    "type": "text",
+    "placeholder": "e.g. BK 95 / AQ 95 / GW 65 / RC 40",
+    "maxlength": "160"
+   },
+   {
+    "label": "Base Upgrade Status",
+    "optional": true,
+    "tag": "select",
+    "id": "clashBaseStatus",
+    "options": [
+     {
+      "value": "",
+      "label": "Select status"
+     },
+     {
+      "value": null,
+      "label": "Maxed"
+     },
+     {
+      "value": null,
+      "label": "Near Max"
+     },
+     {
+      "value": null,
+      "label": "Balanced"
+     },
+     {
+      "value": null,
+      "label": "Rushed"
+     }
+    ]
+   },
+   {
+    "label": "Laboratory Level",
+    "optional": true,
+    "tag": "input",
+    "id": "clashLaboratoryLevel",
+    "type": "text",
+    "placeholder": "e.g. Level 14",
+    "maxlength": "60"
+   },
+   {
+    "label": "Hero Equipment",
+    "optional": true,
+    "tag": "input",
+    "id": "clashHeroEquipment",
+    "type": "text",
+    "placeholder": "e.g. Epic Equipment, Max-Level Equipment",
+    "maxlength": "220"
+   },
+   {
+    "label": "Rare / Valuable Items",
+    "optional": true,
+    "tag": "input",
+    "id": "clashRareItems",
+    "type": "text",
+    "placeholder": "e.g. Hero Skins, Sceneries, Decorations, Exclusive Items",
+    "maxlength": "260"
+   }
+  ]
+ },
+ "dota-2": {
+  "title": "Add Dota 2 Details",
+  "subtitle": "Fill only the Dota 2 details that apply to this account. Leave the rest empty.",
+  "noteStrong": "These Dota 2 details will be shown on the product details page.",
+  "noteSpan": "You can describe more heroes, items and other information in the main description.",
+  "gridClass": "game-details-grid clash-details-grid",
+  "fields": [
+   {
+    "label": "Main Rank",
+    "optional": true,
+    "tag": "select",
+    "id": "dotaMainRank",
+    "options": [
+     {
+      "value": "",
+      "label": "Select main rank"
+     },
+     {
+      "value": null,
+      "label": "Immortal"
+     },
+     {
+      "value": null,
+      "label": "Divine"
+     },
+     {
+      "value": null,
+      "label": "Ancient"
+     },
+     {
+      "value": null,
+      "label": "Legend"
+     },
+     {
+      "value": null,
+      "label": "Archon"
+     },
+     {
+      "value": null,
+      "label": "Crusader"
+     },
+     {
+      "value": null,
+      "label": "Guardian"
+     },
+     {
+      "value": null,
+      "label": "Herald"
+     },
+     {
+      "value": null,
+      "label": "Unranked"
+     }
+    ]
+   },
+   {
+    "label": "MMR",
+    "optional": true,
+    "tag": "input",
+    "id": "dotaMmr",
+    "type": "number",
+    "placeholder": "e.g. 5670",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Arcana Count",
+    "optional": true,
+    "tag": "input",
+    "id": "dotaArcanaCount",
+    "type": "number",
+    "placeholder": "e.g. 4",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Immortal Items Count",
+    "optional": true,
+    "tag": "input",
+    "id": "dotaImmortalCount",
+    "type": "number",
+    "placeholder": "e.g. 85",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Rare / Prestige Items",
+    "optional": true,
+    "tag": "input",
+    "id": "dotaRareItems",
+    "type": "text",
+    "placeholder": "e.g. Golden Baby Roshan, Fractal Horns",
+    "maxlength": "240"
+   },
+   {
+    "label": "Exclusive / Limited Items",
+    "optional": true,
+    "tag": "input",
+    "id": "dotaExclusiveItems",
+    "type": "text",
+    "placeholder": "e.g. Diretide, TI Collector's Cache",
+    "maxlength": "240"
+   }
+  ]
+ },
+ "fortnite": {
+  "title": "Add Fortnite Details",
+  "subtitle": "Fill only the Fortnite details that apply to this account. Leave the rest empty.",
+  "noteStrong": "These Fortnite details will be shown on the product details page.",
+  "noteSpan": "You can describe more information in the main description.",
+  "gridClass": "game-details-grid clash-details-grid",
+  "fields": [
+   {
+    "label": "Total Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "fortniteTotalSkins",
+    "type": "number",
+    "placeholder": "e.g. 186",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Exclusive / OG Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "fortniteOgSkins",
+    "type": "number",
+    "placeholder": "e.g. 6",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Rare Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "fortniteRareSkins",
+    "type": "text",
+    "placeholder": "e.g. Renegade Raider, Black Knight",
+    "maxlength": "240"
+   },
+   {
+    "label": "Pickaxes",
+    "optional": true,
+    "tag": "input",
+    "id": "fortnitePickaxes",
+    "type": "number",
+    "placeholder": "e.g. 74",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Emotes",
+    "optional": true,
+    "tag": "input",
+    "id": "fortniteEmotes",
+    "type": "number",
+    "placeholder": "e.g. 132",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Gliders",
+    "optional": true,
+    "tag": "input",
+    "id": "fortniteGliders",
+    "type": "number",
+    "placeholder": "e.g. 58",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "V-Bucks Balance",
+    "optional": true,
+    "tag": "input",
+    "id": "fortniteVbucks",
+    "type": "number",
+    "placeholder": "e.g. 2,800",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Rare Items / Highlights",
+    "cls": "game-details-full",
+    "optional": true,
+    "tag": "input",
+    "id": "fortniteHighlights",
+    "type": "text",
+    "placeholder": "e.g. Travis Scott, Ikonik, Minty Axe, Rare Emotes",
+    "maxlength": "280"
+   }
+  ]
+ },
+ "gta-5": {
+  "title": "Add GTA 5 Details",
+  "subtitle": "Fill only the GTA 5 details that apply to this account. Leave the rest empty.",
+  "noteStrong": "These GTA 5 details will be shown on the product details page.",
+  "noteSpan": "You can describe more information in the main description.",
+  "gridClass": "game-details-grid clash-details-grid",
+  "fields": [
+   {
+    "label": "Rank",
+    "optional": true,
+    "tag": "input",
+    "id": "gtaRank",
+    "type": "number",
+    "placeholder": "e.g. 1200",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Total Money",
+    "optional": true,
+    "tag": "input",
+    "id": "gtaTotalMoney",
+    "type": "number",
+    "placeholder": "e.g. 50,000,000",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Total RP",
+    "optional": true,
+    "tag": "input",
+    "id": "gtaTotalRp",
+    "type": "number",
+    "placeholder": "e.g. 25,000,000",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Unlocked Level",
+    "optional": true,
+    "tag": "input",
+    "id": "gtaUnlockedLevel",
+    "type": "number",
+    "placeholder": "e.g. 120",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Properties Owned",
+    "optional": true,
+    "tag": "input",
+    "id": "gtaProperties",
+    "type": "number",
+    "placeholder": "e.g. 15",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Vehicles Owned",
+    "optional": true,
+    "tag": "input",
+    "id": "gtaVehicles",
+    "type": "number",
+    "placeholder": "e.g. 25",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Outfits Saved",
+    "optional": true,
+    "tag": "input",
+    "id": "gtaOutfits",
+    "type": "number",
+    "placeholder": "e.g. 20",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Weaponized Vehicles",
+    "optional": true,
+    "tag": "input",
+    "id": "gtaWeaponizedVehicles",
+    "type": "number",
+    "placeholder": "e.g. 8",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Rare / Special Items",
+    "cls": "game-details-full",
+    "optional": true,
+    "tag": "input",
+    "id": "gtaRareItems",
+    "type": "text",
+    "placeholder": "e.g. Rare Cars, Limited Livery, Secret T-Shirts, Event Items",
+    "maxlength": "280"
+   }
+  ]
+ },
+ "league-of-legends": {
+  "title": "Add League of Legends Details",
+  "subtitle": "Fill only the main details that apply to this account. Leave the rest empty.",
+  "noteStrong": "These League of Legends details will be shown on the product details page.",
+  "noteSpan": "You can describe more champions, runes, icons and other information in the main description.",
+  "gridClass": "game-details-grid clash-details-grid",
+  "fields": [
+   {
+    "label": "Rank (Solo/Duo)",
+    "optional": true,
+    "tag": "select",
+    "id": "lolRank",
+    "options": [
+     {
+      "value": "",
+      "label": "Select rank"
+     },
+     {
+      "value": null,
+      "label": "Challenger"
+     },
+     {
+      "value": null,
+      "label": "Grandmaster"
+     },
+     {
+      "value": null,
+      "label": "Master"
+     },
+     {
+      "value": null,
+      "label": "Diamond I"
+     },
+     {
+      "value": null,
+      "label": "Diamond II"
+     },
+     {
+      "value": null,
+      "label": "Diamond III"
+     },
+     {
+      "value": null,
+      "label": "Diamond IV"
+     },
+     {
+      "value": null,
+      "label": "Emerald I"
+     },
+     {
+      "value": null,
+      "label": "Emerald II"
+     },
+     {
+      "value": null,
+      "label": "Emerald III"
+     },
+     {
+      "value": null,
+      "label": "Emerald IV"
+     },
+     {
+      "value": null,
+      "label": "Platinum I"
+     },
+     {
+      "value": null,
+      "label": "Platinum II"
+     },
+     {
+      "value": null,
+      "label": "Platinum III"
+     },
+     {
+      "value": null,
+      "label": "Platinum IV"
+     },
+     {
+      "value": null,
+      "label": "Gold I"
+     },
+     {
+      "value": null,
+      "label": "Gold II"
+     },
+     {
+      "value": null,
+      "label": "Gold III"
+     },
+     {
+      "value": null,
+      "label": "Gold IV"
+     },
+     {
+      "value": null,
+      "label": "Silver I"
+     },
+     {
+      "value": null,
+      "label": "Silver II"
+     },
+     {
+      "value": null,
+      "label": "Silver III"
+     },
+     {
+      "value": null,
+      "label": "Silver IV"
+     },
+     {
+      "value": null,
+      "label": "Bronze I"
+     },
+     {
+      "value": null,
+      "label": "Bronze II"
+     },
+     {
+      "value": null,
+      "label": "Bronze III"
+     },
+     {
+      "value": null,
+      "label": "Bronze IV"
+     },
+     {
+      "value": null,
+      "label": "Iron I"
+     },
+     {
+      "value": null,
+      "label": "Iron II"
+     },
+     {
+      "value": null,
+      "label": "Iron III"
+     },
+     {
+      "value": null,
+      "label": "Iron IV"
+     },
+     {
+      "value": null,
+      "label": "Unranked"
+     }
+    ]
+   },
+   {
+    "label": "Peak Rank",
+    "optional": true,
+    "tag": "input",
+    "id": "lolPeakRank",
+    "type": "text",
+    "placeholder": "e.g. Master",
+    "maxlength": "80"
+   },
+   {
+    "label": "Account Level",
+    "optional": true,
+    "tag": "input",
+    "id": "lolAccountLevel",
+    "type": "number",
+    "placeholder": "e.g. 350",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Blue Essence (BE)",
+    "optional": true,
+    "tag": "input",
+    "id": "lolBlueEssence",
+    "type": "number",
+    "placeholder": "e.g. 125,000",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Skins Owned",
+    "optional": true,
+    "tag": "input",
+    "id": "lolSkinsOwned",
+    "type": "number",
+    "placeholder": "e.g. 85",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Legendary Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "lolLegendarySkins",
+    "type": "number",
+    "placeholder": "e.g. 12",
+    "min": "0",
+    "step": "1"
+   }
+  ]
+ },
+ "mobile-legends": {
+  "title": "Add Mobile Legends Details",
+  "subtitle": "Add only the most important account details that affect value.",
+  "noteStrong": "These Mobile Legends details will be shown on the product details page.",
+  "noteSpan": "You can describe more heroes, skins and other information in the main description.",
+  "gridClass": "game-details-grid",
+  "fields": [
+   {
+    "label": "Current Rank",
+    "optional": true,
+    "tag": "input",
+    "id": "mlCurrentRank",
+    "type": "text",
+    "placeholder": "e.g. Mythical Glory",
+    "maxlength": "80"
+   },
+   {
+    "label": "Highest Rank Reached",
+    "optional": true,
+    "tag": "input",
+    "id": "mlHighestRank",
+    "type": "text",
+    "placeholder": "e.g. Mythical Immortal",
+    "maxlength": "80"
+   },
+   {
+    "label": "Heroes Owned",
+    "optional": true,
+    "tag": "input",
+    "id": "mlHeroesOwned",
+    "type": "number",
+    "placeholder": "e.g. 112",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Total Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "mlTotalSkins",
+    "type": "number",
+    "placeholder": "e.g. 237",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Legend Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "mlLegendSkins",
+    "type": "number",
+    "placeholder": "e.g. 12",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Collector Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "mlCollectorSkins",
+    "type": "number",
+    "placeholder": "e.g. 8",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Zodiac Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "mlZodiacSkins",
+    "type": "number",
+    "placeholder": "e.g. 6",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Rare Items / Highlights",
+    "cls": "game-details-full",
+    "optional": true,
+    "tag": "input",
+    "id": "mlHighlights",
+    "type": "text",
+    "placeholder": "e.g. Limited Skins, Rare Effects, Titles",
+    "maxlength": "280"
+   }
+  ]
+ },
+ "pubg-mobile": {
+  "title": "Add PUBG Mobile Details",
+  "subtitle": "Fill only the PUBG Mobile details that apply to this account. Leave the rest empty.",
+  "noteStrong": "These PUBG Mobile details will be shown on the product details page.",
+  "noteSpan": "You can describe more skins and rare content in the main description.",
+  "gridClass": "game-details-grid",
+  "fields": [
+   {
+    "label": "Current Tier",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgCurrentTier",
+    "type": "text",
+    "placeholder": "e.g. Ace Master, Conqueror",
+    "maxlength": "80"
+   },
+   {
+    "label": "Highest Tier Reached",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgHighestTier",
+    "type": "text",
+    "placeholder": "e.g. Conqueror",
+    "maxlength": "80"
+   },
+   {
+    "label": "Royale Pass",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgRoyalePass",
+    "type": "text",
+    "placeholder": "e.g. A10 Max",
+    "maxlength": "80"
+   },
+   {
+    "label": "UC Balance",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgUcBalance",
+    "type": "number",
+    "placeholder": "e.g. 12,500 UC",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "X-Suits",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgXSuits",
+    "type": "number",
+    "placeholder": "e.g. 3",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Mythic Outfits",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgMythicOutfits",
+    "type": "number",
+    "placeholder": "e.g. 14",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Gun Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgGunSkins",
+    "type": "number",
+    "placeholder": "e.g. 65",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Upgradable Gun Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgUpgradableSkins",
+    "type": "number",
+    "placeholder": "e.g. 6",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Vehicle Skins",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgVehicleSkins",
+    "type": "number",
+    "placeholder": "e.g. 12",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Rare Items / Highlights",
+    "cls": "game-details-full",
+    "optional": true,
+    "tag": "input",
+    "id": "pubgHighlights",
+    "type": "text",
+    "placeholder": "e.g. Glacier M416, Pharaoh X-Suit",
+    "maxlength": "280"
+   }
+  ]
+ },
+ "roblox": {
+  "title": "Add Roblox Details",
+  "subtitle": "Fill only the Roblox details that apply to this account. Leave the rest empty.",
+  "noteStrong": "These Roblox details will be shown on the product details page.",
+  "noteSpan": "You can describe more items, badges, games and other information in the main description.",
+  "gridClass": "game-details-grid",
+  "fields": [
+   {
+    "label": "Robux Balance",
+    "optional": true,
+    "tag": "input",
+    "id": "robloxRobux",
+    "type": "number",
+    "placeholder": "e.g. 25,000",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Limiteds Count",
+    "optional": true,
+    "tag": "input",
+    "id": "robloxLimitedsCount",
+    "type": "number",
+    "placeholder": "e.g. 12",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Limiteds RAP Value",
+    "optional": true,
+    "tag": "input",
+    "id": "robloxRapValue",
+    "type": "number",
+    "placeholder": "e.g. 125,000",
+    "min": "0",
+    "step": "1"
+   },
+   {
+    "label": "Premium Membership",
+    "optional": true,
+    "tag": "select",
+    "id": "robloxPremium",
+    "options": [
+     {
+      "value": "",
+      "label": "Select membership"
+     },
+     {
+      "value": null,
+      "label": "No Premium"
+     },
+     {
+      "value": null,
+      "label": "Premium 450"
+     },
+     {
+      "value": null,
+      "label": "Premium 1000"
+     },
+     {
+      "value": null,
+      "label": "Premium 2200"
+     }
+    ]
+   },
+   {
+    "label": "Account Age",
+    "optional": true,
+    "tag": "input",
+    "id": "robloxAccountAge",
+    "type": "text",
+    "placeholder": "e.g. 3 Years",
+    "maxlength": "60"
+   },
+   {
+    "label": "Total Spending",
+    "optional": true,
+    "tag": "input",
+    "id": "robloxTotalSpending",
+    "type": "number",
+    "placeholder": "e.g. ₾2,450",
+    "min": "0",
+    "step": "0.01"
+   },
+   {
+    "label": "Top Game Items",
+    "cls": "game-details-wide",
+    "optional": true,
+    "tag": "input",
+    "id": "robloxTopItems",
+    "type": "text",
+    "placeholder": "e.g. Adopt Me: Bat Dragon, Shadow Dragon",
+    "maxlength": "280"
+   },
+   {
+    "label": "Rare / Valuable Items",
+    "optional": true,
+    "tag": "input",
+    "id": "robloxRareItems",
+    "type": "text",
+    "placeholder": "e.g. Korblox, Dominus, Headless Horseman",
+    "maxlength": "280"
+   }
+  ]
+ }
+}

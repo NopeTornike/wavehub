@@ -1,5 +1,5 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import type { GameListingCount, OnlineStats, WaveRank } from '@wavehub/shared-types';
+import type { GameListingCount, OnlineStats, SellerRanks, WaveRank } from '@wavehub/shared-types';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
 import { CommunityService } from './community.service';
@@ -19,6 +19,11 @@ export class CommunityController {
   @Get('stats/games')
   games(): Promise<GameListingCount[]> {
     return this.community.gameListingCounts();
+  }
+
+  @Get('stats/seller-ranks')
+  sellerRanks(): Promise<SellerRanks> {
+    return this.community.sellerRanks();
   }
 
   @Get('me/wave-rank')

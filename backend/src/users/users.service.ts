@@ -58,6 +58,7 @@ export class UsersService {
       status: user.status,
       adminRole: user.adminRole,
       wavecoinBalance: user.wavecoinBalance,
+      avatarUrl: user.avatarUrl ?? null,
     };
   }
 

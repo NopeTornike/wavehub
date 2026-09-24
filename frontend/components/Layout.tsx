@@ -23,12 +23,19 @@ export default function Layout({
   description,
   noIndex,
   bodyClass,
+  topbarAction,
+  mainClass,
 }: {
   children: ReactNode
   title?: string
   description?: string
   noIndex?: boolean
   bodyClass?: string
+  // A page-specific button the prototype puts in the topbar before the profile menu (e.g. the
+  // marketplace's "Become a seller" — profile-nav.js keeps `#sellerButton` there).
+  topbarAction?: ReactNode
+  // Extra classes on <main class="main-panel"> (e.g. the About page's `about-main-panel`).
+  mainClass?: string
 }) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -69,8 +76,8 @@ export default function Layout({
       </a>
       <div className="app-shell">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="main-panel" id="main-content" tabIndex={-1}>
-          <Topbar onMenuClick={() => setSidebarOpen((v) => !v)} sidebarOpen={sidebarOpen} />
+        <main className={`main-panel${mainClass ? ` ${mainClass}` : ''}`} id="main-content" tabIndex={-1}>
+          <Topbar onMenuClick={() => setSidebarOpen((v) => !v)} sidebarOpen={sidebarOpen} action={topbarAction} />
           <VerifyEmailBanner />
           {children}
         </main>

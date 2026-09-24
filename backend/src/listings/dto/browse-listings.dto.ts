@@ -37,6 +37,12 @@ export class BrowseListingsDto {
   @IsBoolean()
   featured?: boolean;
 
+  // The prototype's sort menu. Default (`newest`) keeps the featured-perk boost first; the explicit
+  // sorts are exactly what they say. A service's price is its cheapest package.
+  @IsOptional()
+  @IsIn(['newest', 'oldest', 'price_asc', 'price_desc'])
+  sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc';
+
   @IsOptional()
   @Transform(({ value }) => Number(value))
   @IsInt()

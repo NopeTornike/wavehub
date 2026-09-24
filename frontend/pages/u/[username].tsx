@@ -4,26 +4,16 @@ import { useEffect, useState } from 'react'
 import type { PublicUserProfile } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
+import { GAME_ART } from '../../lib/games'
 
-// Public seller-profile page — backed by GET /users/:username (backend/src/users/
-// users.controller.ts). Reuses profile.html's own `.public-profile-frame`/`.public-profile-hero`/
-// `.public-profile-stats` markup (2026-09 re-check against the current, much-grown profile.html —
-// it now also has an `.public-profile-avatar-wrap`/`-ring`, a `.public-profile-rank-panel` aside,
-// an "About"/main-game/secondary-game overview, an achievements badge grid, a rating-distribution
-// "performance" section, and full listings/reviews sub-sections with a "Message" footer button).
-// `PublicUserProfile` only carries username/firstName/lastName/sellerRatingAvg/sellerRatingCount/
-// activeListingCount/createdAt/profileBadge — none of those richer sections have real data behind
-// them (no bio/game-preference fields on `User`, no per-user achievement records, no rating
-// distribution, and no public "list this seller's listings/reviews" endpoint to call without a
-// backend change, which is out of scope here) — root CLAUDE.md rule #6, left out rather than
-// faked. The rank panel is specifically a client-computed "marketplace activity" score in the
-// static prototype, not real backend data, so it's dropped too. The footer "Message" button is
-// also intentionally dropped: Direct messaging is transacted-users-only (LAUNCH_PLAN.md §4), so a
-// generic "message this seller" entry point from an arbitrary public profile would be misleading —
-// the only real entry points are the buttons on an actual order/session page (see
-// `pages/messages/index.tsx`). What IS backed by real data now renders as 4 (not the prototype's
-// 5) stat tiles — Rating, Public listings, Buyer reviews, Member since — dropping only "Completed
-// orders", which has no equivalent field.
+// Public seller-profile page — backed by GET /users/:username (backend/src/users/users.controller.ts).
+// profile.html's `.public-profile-frame`/`-hero`/`-stats` plus its About / main game / second game
+// overview, all on real data: the photo, bio and up to two main games are what the member set on
+// the Settings page (/profile). Four stat tiles instead of the prototype's five — "Completed orders"
+// has no public backing field (root CLAUDE.md rule #6). Still not ported, for the same reason: the
+// achievement badge grid, the rating-distribution "performance" block, the client-computed rank
+// panel, and the per-profile listings/reviews lists; the footer "Message" button is dropped because
+// Direct messaging is transacted-users-only (LAUNCH_PLAN.md §4).
 export default function PublicProfile() {
   const router = useRouter()
   const { username } = router.query as { username?: string }
@@ -72,9 +62,12 @@ export default function PublicProfile() {
             <div className="public-profile-frame">
               <section className="public-profile-hero" aria-labelledby="publicProfileName">
                 <div className="public-profile-avatar-wrap">
-                  <span className="public-profile-avatar avatar avatar-hot" aria-hidden="true">
-                    {profile.firstName[0]}
-                    {profile.lastName[0]}
+                  <span
+                    className={`public-profile-avatar avatar avatar-hot${profile.avatarUrl ? ' avatar-image' : ''}`}
+                    aria-hidden="true"
+                    style={profile.avatarUrl ? { backgroundImage: `url("${profile.avatarUrl}")` } : undefined}
+                  >
+                    {profile.avatarUrl ? '' : `${profile.firstName[0] ?? ''}${profile.lastName[0] ?? ''}`}
                   </span>
                   <span className="public-profile-avatar-ring" aria-hidden="true" />
                 </div>
@@ -132,6 +125,55 @@ export default function PublicProfile() {
                 </article>
               </section>
             </div>
+
+            {/* profile.html's "About / main game / second game" overview — the bio and main games
+                the member set on their Settings page (GET /users/:username). */}
+            <section className="public-profile-overview public-profile-games-overview">
+              <article className="public-profile-info-card">
+                <div className="public-profile-section-title">
+                  <span>შესახებ</span>
+                </div>
+                <p className="public-profile-bio" id="publicProfileBio">
+                  BIO: {profile.bio || 'აღწერა ჯერ არ დამატებულა.'}
+                </p>
+                <dl className="public-profile-facts">
+                  <div>
+                    <dt>მომხმარებლის სახელი</dt>
+                    <dd>@{profile.username}</dd>
+                  </div>
+                  <div>
+                    <dt>წევრის ტიპი</dt>
+                    <dd>{profile.activeListingCount > 0 ? 'მარკეტფლეისის გამყიდველი' : 'საზოგადოების წევრი'}</dd>
+                  </div>
+                  <div>
+                    <dt>მარკეტფლეისის აქტივობა</dt>
+                    <dd>{profile.activeListingCount > 0 ? `${profile.activeListingCount} აქტიური განცხადება` : 'აქტივობა ჯერ არ არის'}</dd>
+                  </div>
+                </dl>
+              </article>
+              {[0, 1].map((index) => {
+                const game = profile.mainGames[index]
+                const art = game ? GAME_ART[game.slug]?.cover : undefined
+                return (
+                  <article key={index} className="public-profile-info-card public-profile-game-card">
+                    <div className="public-profile-section-title">
+                      <span>{index === 0 ? 'მთავარი თამაში' : 'მეორე თამაში'}</span>
+                    </div>
+                    <div
+                      className={`public-profile-game-visual${art ? '' : ' is-empty'}`}
+                      aria-hidden="true"
+                      style={art ? { backgroundImage: `linear-gradient(180deg, rgba(4, 7, 17, 0.03), rgba(4, 7, 17, 0.5)), url("${art}")` } : undefined}
+                    >
+                      {art ? '' : 'WH'}
+                    </div>
+                    <div className="public-profile-game-copy">
+                      <strong>{game ? game.name : index === 0 ? 'თამაში არ არის მითითებული' : 'მეორე თამაში არ არის'}</strong>
+                      <span>{game ? 'არჩეულია პროფილის პარამეტრებში' : 'აირჩიეთ თამაშები პროფილის პარამეტრებში.'}</span>
+                    </div>
+                  </article>
+                )
+              })}
+            </section>
           </>
         )}
       </div>

@@ -6,12 +6,8 @@ import { CoachingSessionStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { SESSION_STATUS_LABELS } from '../../lib/labels'
 
-const STATUS_LABELS: Record<CoachingSessionStatus, string> = {
-  [CoachingSessionStatus.Scheduled]: 'დაგეგმილია',
-  [CoachingSessionStatus.Completed]: 'დასრულებულია',
-  [CoachingSessionStatus.Cancelled]: 'გაუქმებულია',
-}
 
 // Mirrors orders/index.tsx's structure exactly — same .orders-page-head/.orders-tabs/.order-card
 // design, since coaching sessions are conceptually a sibling of orders (a paid, escrowed
@@ -116,7 +112,7 @@ export default function CoachingSessions() {
                   </span>
                   <div className="order-copy">
                     <div>
-                      <span className="order-status">{STATUS_LABELS[session.status]}</span>
+                      <span className="order-status">{SESSION_STATUS_LABELS[session.status]}</span>
                     </div>
                     <h2>
                       {session.durationMinutes} წუთიანი სესია — {session.coachFirstName} {session.coachLastName}

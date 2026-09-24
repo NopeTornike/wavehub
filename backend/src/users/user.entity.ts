@@ -70,4 +70,16 @@ export class User {
   // exposed per-user in any public response.
   @Column({ type: 'timestamptz', nullable: true })
   lastSeenAt: Date | null;
+
+  // Public profile details, edited on the Settings page (users/profile.controller.ts).
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  bio: string | null;
+
+  // URL returned by StorageService for an uploaded, byte-sniffed image.
+  @Column({ type: 'varchar', nullable: true })
+  avatarUrl: string | null;
+
+  // Up to two ids into `games` — the profile's "main games".
+  @Column({ type: 'uuid', array: true, default: () => "'{}'" })
+  mainGameIds: string[];
 }

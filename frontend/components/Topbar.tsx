@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { WAVE_RANK_TIERS } from '@wavehub/shared-types'
 import { useAuth } from '../lib/auth'
 import { useCart } from '../lib/cart'
@@ -54,7 +54,7 @@ function MenuIcon({ paths, circle }: { paths: string; circle?: [number, number, 
 const SETTINGS_PATH =
   'M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z'
 
-export default function Topbar({ onMenuClick, sidebarOpen }: { onMenuClick: () => void; sidebarOpen: boolean }) {
+export default function Topbar({ onMenuClick, sidebarOpen, action }: { onMenuClick: () => void; sidebarOpen: boolean; action?: ReactNode }) {
   const router = useRouter()
   const { user, checked, logout } = useAuth()
   const { count: cartCount } = useCart()
@@ -67,10 +67,22 @@ export default function Topbar({ onMenuClick, sidebarOpen }: { onMenuClick: () =
 
   const signedIn = checked && Boolean(user)
   const avatar = user ? initials(user.firstName, user.lastName, user.username) : '?'
+  // profile-nav.js#applyAvatar: an uploaded photo replaces the initials via .avatar-image.
+  const photo = user?.avatarUrl ?? null
+  const avatarClass = `avatar avatar-hot${photo ? ' avatar-image' : ''}`
+  const avatarStyle = photo ? { backgroundImage: `url("${photo}")` } : undefined
+  const avatarText = photo ? '' : avatar
   const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username : 'სტუმრის ანგარიში'
   const rankName = waveRank?.name ?? WAVE_RANK_TIERS[0][0]
   const nextRank = waveRank?.nextName ?? WAVE_RANK_TIERS[1][0]
-  const loginHref = `/login?next=${encodeURIComponent(router.asPath)}`
+  // The return path is only known after hydration (a statically prerendered page's server HTML has
+  // no query string), so it's filled in client-side to avoid a server/client href mismatch.
+  const [returnTo, setReturnTo] = useState('')
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReturnTo(router.asPath)
+  }, [router.asPath])
+  const loginHref = returnTo ? `/login?next=${encodeURIComponent(returnTo)}` : '/login'
 
   useEffect(() => {
     const q = router.query.q
@@ -180,6 +192,7 @@ export default function Topbar({ onMenuClick, sidebarOpen }: { onMenuClick: () =
           <span id="homeTopWalletBalance">{user?.wavecoinBalance ?? 0}</span> WC
         </Link>
 
+        {action}
         <div className="profile-menu" id="profileMenu" ref={menuRef}>
           <button
             className="profile-chip"
@@ -190,16 +203,16 @@ export default function Topbar({ onMenuClick, sidebarOpen }: { onMenuClick: () =
             aria-expanded={profileOpen}
             onClick={() => setProfileOpen((open) => !open)}
           >
-            <span className="avatar avatar-hot" id="profileAvatar">
-              {avatar}
+            <span className={avatarClass} id="profileAvatar" style={avatarStyle}>
+              {avatarText}
             </span>
           </button>
 
           <div className="profile-dropdown profile-dropdown-rich" id="profileDropdown" hidden={!profileOpen}>
             <div className="profile-dropdown-head">
               <span className="profile-panel-avatar-wrap">
-                <span className="avatar avatar-hot" id="profilePanelAvatar">
-                  {avatar}
+                <span className={avatarClass} id="profilePanelAvatar" style={avatarStyle}>
+                  {avatarText}
                 </span>
                 {signedIn && <i aria-label="ონლაინ"></i>}
               </span>
@@ -316,8 +329,8 @@ export default function Topbar({ onMenuClick, sidebarOpen }: { onMenuClick: () =
           Join
         </Link>
         <Link className="mobile-user-profile" id="mobileUserProfile" href={user ? '/profile' : loginHref} aria-label="Open profile">
-          <span className="avatar avatar-hot" id="mobileHeaderAvatar">
-            {avatar}
+          <span className={avatarClass} id="mobileHeaderAvatar" style={avatarStyle}>
+            {avatarText}
           </span>
         </Link>
       </div>

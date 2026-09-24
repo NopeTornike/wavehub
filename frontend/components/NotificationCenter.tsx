@@ -6,6 +6,9 @@ import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
 
+// useLayoutEffect warns during server rendering; the panel only ever positions itself in the browser.
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
+
 // The prototype's `.notification-center` panel (profile-nav.js#renderNotificationCenter /
 // setNotificationCenterOpen), fed by the real notifications API. Portaled to <body> like the
 // prototype's (a position:fixed panel inside the blurred topbar would be clipped to it), and placed
@@ -67,7 +70,7 @@ export default function NotificationCenter({
       .catch(() => setItems([]))
   }, [open, user])
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const panel = panelRef.current
     const button = anchor.current
     if (!open || !panel || !button) return

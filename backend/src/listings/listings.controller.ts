@@ -1,4 +1,4 @@
-import { UPLOAD_THROTTLE } from '../common/throttle';
+import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
 import {
   Body,
@@ -8,6 +8,8 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -20,6 +22,7 @@ import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { UpdateListingDto } from './dto/update-listing.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { BrowseListingsDto } from './dto/browse-listings.dto';
 import { RejectListingDto } from './dto/reject-listing.dto';
@@ -74,10 +77,53 @@ export class ListingsController {
     return this.listings.findPublicById(id);
   }
 
+  // --- Favourites --- (`me/favorites*` rather than `listings/favorites` so nothing can collide
+  // with the `listings/:id` route above.)
+  @Get('me/favorites')
+  @UseGuards(AuthGuard)
+  listFavorites(@CurrentUserId() userId: string) {
+    return this.listings.listFavorites(userId);
+  }
+
+  @Get('me/favorites/ids')
+  @UseGuards(AuthGuard)
+  listFavoriteIds(@CurrentUserId() userId: string) {
+    return this.listings.listFavoriteIds(userId);
+  }
+
+  @Post('listings/:id/favorite')
+  @UseGuards(AuthGuard)
+  @Throttle(CREATE_THROTTLE)
+  addFavorite(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.listings.addFavorite(userId, id);
+  }
+
+  @Delete('listings/:id/favorite')
+  @UseGuards(AuthGuard)
+  @Throttle(CREATE_THROTTLE)
+  removeFavorite(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.listings.removeFavorite(userId, id);
+  }
+
   @Post('listings')
   @UseGuards(AuthGuard, VerifiedEmailGuard)
   create(@CurrentUserId() sellerId: string, @Body() dto: CreateListingDto) {
     return this.listings.createDraft(sellerId, dto);
+  }
+
+  @Patch('listings/:id')
+  @UseGuards(AuthGuard, VerifiedEmailGuard)
+  @Throttle(CREATE_THROTTLE)
+  update(@CurrentUserId() sellerId: string, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateListingDto) {
+    return this.listings.update(sellerId, id, dto);
+  }
+
+  @Delete('listings/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard)
+  @Throttle(CREATE_THROTTLE)
+  async remove(@CurrentUserId() sellerId: string, @Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.listings.remove(sellerId, id);
   }
 
   @Post('listings/:id/submit')

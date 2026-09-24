@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 // The prototype's cart (cart.html / cart.js). The real backend's checkout is one order per listing
 // (backend/src/orders/ — escrow is per order), so the cart is a client-side list of listings the
@@ -50,19 +50,12 @@ function readStored(): CartLine[] {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([])
-
-  useEffect(() => {
-    // Hydrate once from storage after mount (SSR renders an empty cart).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLines(readStored())
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY) setLines(readStored())
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [])
+  // The latest lines, so several mutations in one tick (e.g. checkout removing each bought line in
+  // a loop) each build on the previous one instead of on a stale render-time snapshot.
+  const linesRef = useRef<CartLine[]>([])
 
   const persist = useCallback((next: CartLine[]) => {
+    linesRef.current = next
     setLines(next)
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
@@ -71,23 +64,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  useEffect(() => {
+    // Hydrate once from storage after mount (SSR renders an empty cart).
+    const stored = readStored()
+    linesRef.current = stored
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLines(stored)
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY) return
+      const next = readStored()
+      linesRef.current = next
+      setLines(next)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   const value = useMemo<CartContextValue>(() => {
     const clamp = (n: number) => Math.max(1, Math.min(99, Math.floor(n) || 1))
+    const current = () => linesRef.current
     return {
       lines,
       count: lines.reduce((sum, line) => sum + line.quantity, 0),
       totalWaveCoin: lines.reduce((sum, line) => sum + line.priceWaveCoin * line.quantity, 0),
       add: (line, quantity = 1) => {
-        const existing = lines.find((l) => l.listingId === line.listingId)
+        const existing = current().find((l) => l.listingId === line.listingId)
         persist(
           existing
-            ? lines.map((l) => (l.listingId === line.listingId ? { ...l, ...line, quantity: clamp(l.quantity + quantity) } : l))
-            : [...lines, { ...line, quantity: clamp(quantity) }],
+            ? current().map((l) => (l.listingId === line.listingId ? { ...l, ...line, quantity: clamp(l.quantity + quantity) } : l))
+            : [...current(), { ...line, quantity: clamp(quantity) }],
         )
       },
       setQuantity: (listingId, quantity) =>
-        persist(lines.map((l) => (l.listingId === listingId ? { ...l, quantity: clamp(quantity) } : l))),
-      remove: (listingId) => persist(lines.filter((l) => l.listingId !== listingId)),
+        persist(current().map((l) => (l.listingId === listingId ? { ...l, quantity: clamp(quantity) } : l))),
+      remove: (listingId) => persist(current().filter((l) => l.listingId !== listingId)),
       clear: () => persist([]),
       has: (listingId) => lines.some((l) => l.listingId === listingId),
     }

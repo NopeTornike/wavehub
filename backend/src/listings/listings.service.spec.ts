@@ -50,6 +50,7 @@ describe('ListingsService.createDraft', () => {
       packages as any,
       categories as any,
       games as any,
+      createFakeRepo() as any,
       storage as any,
     );
 
@@ -185,6 +186,7 @@ describe('ListingsService key inventory', () => {
       packages as any,
       categories as any,
       games as any,
+      createFakeRepo() as any,
       storage as any,
     );
 

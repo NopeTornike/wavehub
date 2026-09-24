@@ -17,6 +17,7 @@ import { Listing } from './listings/listing.entity';
 import { ListingImage } from './listings/listing-image.entity';
 import { ServiceDetails } from './listings/service-details.entity';
 import { ItemDetails } from './listings/item-details.entity';
+import { ListingFavorite } from './listings/listing-favorite.entity';
 import { ListingKeyInventory } from './listings/listing-key-inventory.entity';
 import { Package } from './listings/package.entity';
 import { Category } from './listings/category.entity';
@@ -92,6 +93,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
         ListingImage,
         ServiceDetails,
         ItemDetails,
+        ListingFavorite,
         ListingKeyInventory,
         Package,
         Category,
