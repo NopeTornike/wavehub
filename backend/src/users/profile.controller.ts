@@ -37,6 +37,11 @@ export class ProfileController {
       bio: user.bio ?? null,
       avatarUrl: user.avatarUrl ?? null,
       mainGameIds: user.mainGameIds ?? [],
+      location: user.location ?? null,
+      tagline: user.tagline ?? null,
+      platform: user.platform ?? null,
+      preferredRole: user.preferredRole ?? null,
+      achievement: user.achievement ?? null,
     };
   }
 
@@ -58,6 +63,9 @@ export class ProfileController {
     if (dto.firstName !== undefined) patch.firstName = dto.firstName.trim();
     if (dto.lastName !== undefined) patch.lastName = dto.lastName.trim();
     if (dto.bio !== undefined) patch.bio = dto.bio.trim() || null;
+    for (const key of ['location', 'tagline', 'platform', 'preferredRole', 'achievement'] as const) {
+      if (dto[key] !== undefined) patch[key] = dto[key]!.trim() || null;
+    }
     if (dto.mainGameIds !== undefined) {
       const ids = [...new Set(dto.mainGameIds)];
       const found = ids.length ? await this.games.count({ where: { id: In(ids), isActive: true } }) : 0;

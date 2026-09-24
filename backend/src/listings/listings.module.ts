@@ -1,3 +1,4 @@
+import { ProfilesModule } from '../profiles/profiles.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Listing } from './listing.entity';
@@ -22,6 +23,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
+    ProfilesModule,
     TypeOrmModule.forFeature([
       Listing,
       ListingImage,

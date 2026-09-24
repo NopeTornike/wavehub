@@ -18,7 +18,8 @@ import { GAME_ART, gameCover, gameDisplayName } from '../lib/games'
 //     Like the prototype, `featured-items-fallback` goes on <body> when there are none.
 //   - Top Coaches: real verified coaches, highest rated first. The prototype's three coach cards
 //     (names, photos, ratings, "Online" pill, "Most booked") are hardcoded; this shows real coach
-//     data only, and drops the "Online" pill (there is no per-user presence to show).
+//     data only; the "Online" pill shows real presence and the badge is earned (most booked here,
+//     plan badge, top rated, new).
 //   - Featured Tournament: the next open (else upcoming) real tournament.
 //   - "Steam Games" carousel: real digital-key listings with real WaveCoin prices.
 // The mobile-only blocks (account overview, services grid) are included because the prototype's
@@ -73,6 +74,17 @@ const FAQS = [
   { q: 'შემიძლია თანხის დაბრუნების მოთხოვნა?', s: 'დიახ, პირობების შეუსრულებლობის შემთხვევაში შეგიძლიათ თანხის დაბრუნება მოითხოვოთ.', a: 'თუ შეკვეთა შეთანხმებულ პირობებს არ აკმაყოფილებს, შეკვეთის დეტალებით დაუკავშირდით მხარდაჭერას. საქმე განიხილება პლატფორმის თანხის დაბრუნების წესების შესაბამისად.' },
 ]
 
+// docs/design-mockups/18 "Explore our services" row (desktop).
+const EXPLORE_SERVICES: Array<{ label: string; href: string | null; icon: React.ReactNode }> = [
+  { label: 'ქოუჩინგი', href: '/coaching', icon: <path d="M9 20v-5a7 7 0 0 1 14 0v5M9 17H6v7h4v-7H9Zm14 0h3v7h-4v-7h1ZM22 25c0 2-2 3-5 3" /> },
+  { label: 'ნივთების მარკეტი', href: '/marketplace?type=skin', icon: <path d="m16 4 11 6v12l-11 6-11-6V10l11-6Zm0 0v24M5 10l11 6 11-6" /> },
+  { label: 'ანგარიშების მარკეტი', href: '/marketplace?type=account', icon: <><circle cx="16" cy="11" r="5" /><path d="M6 27a10 10 0 0 1 20 0" /></> },
+  { label: 'CS2 სკინები', href: '/marketplace?type=skin&game=cs2', icon: <path d="M4 18h9l2-4h11l2 3-8 1-2 4h-5l-1 3H6l1-4H4v-3Zm11-4 1-4h5" /> },
+  { label: 'ტურნირები', href: '/tournaments', icon: <><path d="M10 5h12v6a6 6 0 0 1-12 0V5Zm0 3H5v2a5 5 0 0 0 5 5m12-7h5v2a5 5 0 0 1-5 5M16 17v5m-6 5h12m-9-5h6" /></> },
+  { label: 'Steam თამაშები', href: '/steam-keys', icon: null },
+  { label: 'მალე', href: null, icon: <><rect x="8" y="14" width="16" height="12" rx="2" /><path d="M11 14v-3a5 5 0 0 1 10 0v3" /></> },
+]
+
 const MOBILE_SERVICES: Array<{ label: React.ReactNode; href: string; icon: React.ReactNode }> = [
   { label: 'ქოუჩინგი', href: '/coaching', icon: <path d="M9 20v-5a7 7 0 0 1 14 0v5M9 17H6v7h4v-7H9Zm14 0h3v7h-4v-7h1ZM22 25c0 2-2 3-5 3" /> },
   { label: 'რანკის აწევა', href: '/marketplace', icon: <path d="m6 17 10-10 10 10M11 15v11h10V15M7 22h4M21 22h4" /> },
@@ -95,7 +107,10 @@ function typeLabel(type: ListingType) {
   return type === ListingType.Service ? 'სერვისი' : type === ListingType.DigitalKey ? 'გასაღები' : 'ნივთი'
 }
 
-function coachBadge(coach: PublicCoachSummary) {
+// Earned labels only (docs/design-mockups/15): the most-booked coach among those shown, a plan
+// badge, top rated, or new.
+function coachBadge(coach: PublicCoachSummary, mostBookedId: string | null) {
+  if (coach.id === mostBookedId) return '🔥 ყველაზე მოთხოვნადი'
   if (coach.profileBadge) return `♛ ${coach.profileBadge}`
   const rating = coach.ratingAvg ? Number(coach.ratingAvg) : null
   if (rating !== null && rating >= 4.5 && coach.ratingCount > 0) return '✪ ტოპ რეიტინგი'
@@ -318,6 +333,27 @@ export default function Home() {
               </span>
             </Link>
 
+            <section className="home-explore" aria-labelledby="homeExploreTitle">
+              <h2 id="homeExploreTitle">
+                <i aria-hidden="true"></i> გაეცანი ჩვენს <b>სერვისებს</b> <i aria-hidden="true"></i>
+              </h2>
+              <div className="home-explore-grid">
+                {EXPLORE_SERVICES.map((service) =>
+                  service.href ? (
+                    <Link key={service.label} href={service.href}>
+                      {service.icon ? <svg viewBox="0 0 32 32" aria-hidden="true">{service.icon}</svg> : <img src="/assets/steam-logo.png" alt="" aria-hidden="true" />}
+                      <span>{service.label}</span>
+                    </Link>
+                  ) : (
+                    <span key={service.label} className="soon" aria-disabled="true">
+                      <svg viewBox="0 0 32 32" aria-hidden="true">{service.icon}</svg>
+                      <span>{service.label}</span>
+                    </span>
+                  ),
+                )}
+              </div>
+            </section>
+
             <section className="mobile-home-services" aria-labelledby="mobile-services-title">
               <header>
                 <h2 id="mobile-services-title">
@@ -432,8 +468,9 @@ export default function Home() {
                 <p className="home-featured-empty">ჯერ ქოუჩები არ არის.</p>
               ) : (
                 coaches.map((coach) => {
-                  const slug = coach.gameName ? slugByName.get(coach.gameName) : undefined
-                  const cover = gameCover(slug)
+                  const slug = coach.gameSlug ?? (coach.gameName ? slugByName.get(coach.gameName) : undefined)
+                  const cover = coach.avatarUrl ?? gameCover(slug)
+                  const mostBookedId = coaches.reduce<PublicCoachSummary | null>((best, c) => (c.completedSessions > (best?.completedSessions ?? 0) ? c : best), null)?.id ?? null
                   const rating = coach.ratingAvg ? Number(coach.ratingAvg).toFixed(1) : null
                   return (
                     <Link key={coach.id} className="featured-coach" href={`/coaching/${coach.id}`} aria-label={`${coach.firstName} ${coach.lastName}`}>
@@ -441,7 +478,12 @@ export default function Home() {
                         className="featured-coach-photo"
                         style={cover ? { backgroundImage: `linear-gradient(rgba(76, 13, 119, .2), rgba(10, 1, 20, .36)), url("${cover}")`, backgroundPosition: '15% center' } : undefined}
                       >
-                        <span>{coachBadge(coach)}</span>
+                        <span>{coachBadge(coach, mostBookedId)}</span>
+                        {coach.online && (
+                          <em className="featured-coach-online">
+                            <i aria-hidden="true"></i>ონლაინ
+                          </em>
+                        )}
                       </div>
                       <div className="featured-coach-copy">
                         <div className="featured-coach-name">
@@ -536,6 +578,12 @@ export default function Home() {
               <div className="featured-tournament">
                 <div
                   className="tournament-cover"
+                  data-title={(() => {
+                    // The cover's big two-line title (the design's "WAVE / CUP") is the real name.
+                    const words = tournament.name.toUpperCase().split(/\s+/)
+                    const half = Math.ceil(words.length / 2)
+                    return `${words.slice(0, half).join(' ')}\n${words.slice(half).join(' ')}`.trim()
+                  })()}
                   style={{
                     backgroundImage: `linear-gradient(0deg, rgba(9, 1, 18, .62), rgba(9, 4, 25, .08)), url("${tournament.coverImageUrl ?? gameCover(slugById.get(tournament.gameId)) ?? '/assets/cs2-marketplace-cover.png'}")`,
                   }}
@@ -547,7 +595,14 @@ export default function Home() {
                 <div className="tournament-copy">
                   <h4>{tournament.name}</h4>
                   <p>
-                    {tournament.gameName} <i></i> {tournament.maxPlayers} მოთამაშე <i></i> ონლაინ
+                    {tournament.gameName}
+                    {[tournament.details?.format || (tournament.teamSize > 1 ? `${tournament.teamSize}v${tournament.teamSize}` : 'Solo'), tournament.details?.bracketType, tournament.details?.platform]
+                      .filter(Boolean)
+                      .map((fact) => (
+                        <span key={fact} className="featured-tournament-tag">
+                          {fact}
+                        </span>
+                      ))}
                   </p>
                   <dl>
                     <div>
@@ -562,16 +617,14 @@ export default function Home() {
                         <svg viewBox="0 0 48 48" aria-hidden="true"><g transform="rotate(-24 24 24)"><path d="M8 15h32v8a5 5 0 0 0 0 10v8H8v-8a5 5 0 0 0 0-10v-8Z" /><path d="M29 15v5m0 5v5m0 5v6" /><path d="m19 23 1.7 3.4 3.8.6-2.8 2.7.7 3.8-3.4-1.8-3.4 1.8.7-3.8-2.8-2.7 3.8-.6L19 23Z" /></g></svg>
                         <span>შესვლის საფასური</span>
                       </dt>
-                      <dd>უფასო</dd>
+                      <dd>{tournament.details?.entryFee || 'უფასო'}</dd>
                     </div>
                     <div>
                       <dt>
                         <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="14" r="6" /><circle cx="10.5" cy="18" r="4.5" /><circle cx="37.5" cy="18" r="4.5" /><path d="M14 39v-4c0-7 4-11 10-11s10 4 10 11v4M2 38v-3c0-6 3-9 8-9 2 0 4 .7 5.4 2M46 38v-3c0-6-3-9-8-9-2 0-4 .7-5.4 2" /></svg>
-                        <span>გუნდები</span>
+                        <span>{tournament.teamSize > 1 ? 'გუნდები' : 'მოთამაშეები'}</span>
                       </dt>
-                      <dd>
-                        {tournament.registeredCount} / {tournament.maxPlayers}
-                      </dd>
+                      <dd>{tournament.teamSize > 1 ? `${tournament.teamCount} / ${tournament.maxTeams}` : `${tournament.registeredCount} / ${tournament.maxPlayers}`}</dd>
                     </div>
                     <div>
                       <dt>
@@ -708,6 +761,21 @@ export default function Home() {
         <p className="featured-items-empty" id="mobileFeaturedItemsEmpty" hidden={!featured || featured.length > 0}>
           ამ ეტაპზე Featured Item-ები არ არის.
         </p>
+      </section>
+
+      <section className="home-cta" aria-labelledby="homeCtaTitle">
+        <span className="home-cta-mark" aria-hidden="true">
+          <img src="/assets/logo-wavehubx-main.png" alt="" />
+        </span>
+        <div>
+          <h2 id="homeCtaTitle">
+            მზად ხარ <b>დონის ასაწევად?</b>
+          </h2>
+          <p>შემოუერთდი მოთამაშეებს, რომლებიც WaveHubX-ზე ვარჯიშობენ, ეჯიბრებიან და იმარჯვებენ.</p>
+        </div>
+        <Link className="home-cta-button" href={user ? '/marketplace' : '/register'}>
+          {user ? 'მარკეტის დათვალიერება' : 'შემოუერთდი WaveHubX-ს'} <b aria-hidden="true">→</b>
+        </Link>
       </section>
 
       <section className="content-section home-how-section" id="how-it-works" aria-labelledby="howTitle">

@@ -79,6 +79,22 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   avatarUrl: string | null;
 
+  // Self-entered public "game profile" (docs/design-mockups/12) — shown as the user wrote them.
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  location: string | null;
+
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  tagline: string | null;
+
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  platform: string | null;
+
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  preferredRole: string | null;
+
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  achievement: string | null;
+
   // Up to two ids into `games` — the profile's "main games".
   @Column({ type: 'uuid', array: true, default: () => "'{}'" })
   mainGameIds: string[];

@@ -37,7 +37,7 @@ export default function Profile() {
   const { games } = useShell()
   const userId = user?.id
   const [profile, setProfile] = useState<MyProfile | null>(null)
-  const [form, setForm] = useState({ firstName: '', lastName: '', bio: '', mainGameIds: [] as string[] })
+  const [form, setForm] = useState({ firstName: '', lastName: '', bio: '', mainGameIds: [] as string[], location: '', tagline: '', platform: '', preferredRole: '', achievement: '' })
   const [status, setStatus] = useState<Status>({ kind: '', text: '' })
   const [saving, setSaving] = useState(false)
   const [listingCount, setListingCount] = useState(0)
@@ -51,7 +51,17 @@ export default function Profile() {
       .getMyProfile()
       .then((p) => {
         setProfile(p)
-        setForm({ firstName: p.firstName, lastName: p.lastName, bio: p.bio ?? '', mainGameIds: p.mainGameIds })
+        setForm({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          bio: p.bio ?? '',
+          mainGameIds: p.mainGameIds,
+          location: p.location ?? '',
+          tagline: p.tagline ?? '',
+          platform: p.platform ?? '',
+          preferredRole: p.preferredRole ?? '',
+          achievement: p.achievement ?? '',
+        })
       })
       .catch(() => undefined)
     Promise.all([api.listMySessionsAsBuyer().catch(() => []), api.listMySessionsAsCoach().catch(() => [])]).then(([asBuyer, asCoach]) => {
@@ -85,7 +95,17 @@ export default function Profile() {
     setSaving(true)
     setStatus({ kind: 'pending', text: 'ინახება…' })
     try {
-      const next = await api.updateMyProfile({ firstName: form.firstName.trim(), lastName: form.lastName.trim(), bio: form.bio, mainGameIds: form.mainGameIds })
+      const next = await api.updateMyProfile({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        bio: form.bio,
+        mainGameIds: form.mainGameIds,
+        location: form.location,
+        tagline: form.tagline,
+        platform: form.platform,
+        preferredRole: form.preferredRole,
+        achievement: form.achievement,
+      })
       setProfile(next)
       await refresh()
       setStatus({ kind: 'success', text: 'ცვლილებები შენახულია.' })
@@ -214,6 +234,28 @@ export default function Profile() {
               <label>
                 <span>გვარი</span>
                 <input id="profileLastNameInput" type="text" maxLength={40} autoComplete="family-name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+              </label>
+            </div>
+            <div className="profile-form-grid">
+              <label>
+                <span>მდებარეობა</span>
+                <input type="text" maxLength={60} placeholder="მაგ. თბილისი, საქართველო" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+              </label>
+              <label>
+                <span>მოკლე სლოგანი</span>
+                <input type="text" maxLength={80} placeholder="მაგ. Better players. Brighter stories." value={form.tagline} onChange={(e) => setForm({ ...form, tagline: e.target.value })} />
+              </label>
+              <label>
+                <span>პლატფორმა</span>
+                <input type="text" maxLength={30} placeholder="მაგ. Mobile / PC" value={form.platform} onChange={(e) => setForm({ ...form, platform: e.target.value })} />
+              </label>
+              <label>
+                <span>სასურველი როლი / სტილი</span>
+                <input type="text" maxLength={40} placeholder="მაგ. Aggressive / Slayer" value={form.preferredRole} onChange={(e) => setForm({ ...form, preferredRole: e.target.value })} />
+              </label>
+              <label>
+                <span>გამორჩეული მიღწევა</span>
+                <input type="text" maxLength={80} placeholder="მაგ. Top 500 Global Leaderboard" value={form.achievement} onChange={(e) => setForm({ ...form, achievement: e.target.value })} />
               </label>
             </div>
             <label className="profile-bio-field">

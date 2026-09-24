@@ -7,6 +7,7 @@ import type { PublicUserProfile } from '@wavehub/shared-types';
 import { UsersService } from './users.service';
 import { ListingsService } from '../listings/listings.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { ProfilesService } from '../profiles/profiles.service';
 
 // Public, unauthenticated — no guard. Only exposes fields safe to show an anonymous visitor (see
 // PublicUserProfile's own comment for the exact list and why it's smaller than AdminUserSummary).
@@ -16,6 +17,7 @@ export class UsersController {
     private readonly users: UsersService,
     private readonly listings: ListingsService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly profiles: ProfilesService,
     @InjectRepository(Game) private readonly games: Repository<Game>,
   ) {}
 
@@ -36,7 +38,16 @@ export class UsersController {
     const mainGames = mainGameIds.length
       ? (await this.games.find({ where: { id: In(mainGameIds) }, select: ['id', 'name', 'slug'] })).map((g) => ({ name: g.name, slug: g.slug }))
       : [];
+    const facts = await this.profiles.facts(user.id, user.lastSeenAt ?? null, activeListingCount);
     return {
+      ...facts,
+      userId: user.id,
+      shortId: user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
+      location: user.location ?? null,
+      tagline: user.tagline ?? null,
+      platform: user.platform ?? null,
+      preferredRole: user.preferredRole ?? null,
+      achievement: user.achievement ?? null,
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,

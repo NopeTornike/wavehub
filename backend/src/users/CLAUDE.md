@@ -118,3 +118,9 @@ Seller/Coach plan, falling back to their Buyer plan, else `null`.
   `StorageService`, so HTML-as-PNG is a 415). Username is not editable there (400).
 - `GET /users/:username` now also returns `bio`, `avatarUrl`, `mainGames`; `toPublicUser` carries
   `avatarUrl` (the topbar shows the photo).
+
+## 2026-09-24 profile fields
+`location`, `tagline`, `platform`, `preferredRole`, `achievement` (self-entered, shown on
+`/u/[username]`, docs/design-mockups/12) — `PATCH /me/profile`. The public profile also carries
+computed facts from `backend/src/profiles/` (follows, role, deals, reviews, badges, online).
+

@@ -24,4 +24,29 @@ export class UpdateProfileDto {
   @ArrayMaxSize(2)
   @IsUUID('4', { each: true })
   mainGameIds?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  tagline?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  platform?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  preferredRole?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  achievement?: string;
 }

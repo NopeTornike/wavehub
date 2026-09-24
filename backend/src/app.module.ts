@@ -55,6 +55,8 @@ import { CoachFavorite } from './coaching/coach-favorite.entity';
 import { ContentModule } from './content/content.module';
 import { ContentPage } from './content/content-page.entity';
 import { TournamentsModule } from './tournaments/tournaments.module';
+import { ProfilesModule } from './profiles/profiles.module';
+import { UserFollow } from './profiles/user-follow.entity';
 import { Tournament } from './tournaments/tournament.entity';
 import { TournamentRegistration } from './tournaments/tournament-registration.entity';
 import { TournamentTeam } from './tournaments/tournament-team.entity';
@@ -127,6 +129,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
         TournamentRegistration,
         TournamentTeam,
         TournamentMatch,
+        UserFollow,
         SubscriptionPlan,
         UserSubscription,
         SubscriptionChargeAttempt,
@@ -150,6 +153,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
     CoachingModule,
     ContentModule,
     TournamentsModule,
+    ProfilesModule,
     SubscriptionsModule,
     CommonModule,
     CommunityModule,

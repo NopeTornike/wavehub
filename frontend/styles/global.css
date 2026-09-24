@@ -19006,3 +19006,131 @@ body:not(.home-page) .mobile-header-auth { display: none !important; }
 .wc-profile a.coach-video-preview { display: block; background-color: #0d111c; }
 .wc-profile .coach-book-secondary:not(.coach-message-secondary)::before { content: "♡"; width: auto; height: auto; background: none; filter: none; color: #fff; font-size: 20px; line-height: 1; }
 .wc-profile .coach-book-secondary.is-saved::before { content: "♥"; color: #ff2f8f; }
+
+/* Home additions (docs/design-mockups 15/18). */
+.home-explore { margin: 18px 0 6px; }
+.home-explore h2 { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 0 0 14px; color: #eef0f6; font-size: 15px; font-weight: 700; letter-spacing: .28em; text-transform: uppercase; }
+.home-explore h2 b { color: #ff2f8f; font-weight: 700; }
+.home-explore h2 i { width: 44px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .5)); }
+.home-explore h2 i:last-child { transform: scaleX(-1); }
+.home-explore-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
+.home-explore-grid > a, .home-explore-grid > span { min-height: 108px; display: grid; justify-items: center; align-content: center; gap: 10px; border: 1px solid rgba(120, 130, 170, .22); border-radius: 10px; color: #eef0f6; background: linear-gradient(170deg, rgba(16, 14, 34, .95), rgba(8, 8, 20, .95)); padding: 12px 8px; font-size: 13px; text-align: center; transition: border-color .2s, transform .2s; }
+.home-explore-grid > a:hover { border-color: rgba(255, 47, 143, .6); transform: translateY(-2px); }
+.home-explore-grid svg { width: 36px; height: 36px; fill: none; stroke: #ff3d9a; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.home-explore-grid img { width: 36px; height: 36px; object-fit: contain; filter: invert(1); }
+.home-explore-grid .soon { color: #7f879b; }
+.home-explore-grid .soon svg { stroke: #6b7285; }
+@media (max-width: 1100px) { .home-explore-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .home-explore { display: none; } }
+.featured-coach-photo { position: relative; }
+.featured-coach-online { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; background: rgba(6, 8, 16, .75); padding: 3px 9px; color: #e8fbee; font-size: 11px; font-style: normal; font-weight: 700; }
+.featured-coach-online i { width: 7px; height: 7px; border-radius: 50%; background: #36d56f; box-shadow: 0 0 8px #36d56f; }
+.featured-tournament-tag { display: inline-flex; margin-left: 8px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 5px; padding: 2px 8px; font-size: 12px; }
+.home-cta { position: relative; display: grid; grid-template-columns: 220px minmax(0, 1fr) auto; align-items: center; gap: 28px; margin: 28px 0; overflow: hidden; border: 1px solid rgba(120, 130, 170, .22); border-radius: 14px; background: radial-gradient(circle at 12% 50%, rgba(160, 40, 255, .35), transparent 30%), linear-gradient(120deg, rgba(20, 10, 40, .95), rgba(8, 8, 20, .98)); padding: 22px 36px; }
+.home-cta-mark { display: grid; place-items: center; height: 120px; }
+.home-cta-mark img { width: 170px; filter: drop-shadow(0 0 24px rgba(200, 70, 255, .6)); }
+.home-cta h2 { margin: 0; font-size: clamp(22px, 2.4vw, 32px); text-transform: uppercase; }
+.home-cta h2 b { color: #ff2f8f; }
+.home-cta p { margin: 8px 0 0; color: #c3c8d4; font-size: 16px; }
+.home-cta-button { min-height: 58px; display: inline-flex; align-items: center; gap: 12px; border-radius: 10px; color: white; background: linear-gradient(90deg, #ff1f7a, #7b2ff7); padding: 0 34px; font-size: 18px; font-weight: 700; white-space: nowrap; box-shadow: 0 10px 28px rgba(200, 40, 200, .35); }
+@media (max-width: 900px) { .home-cta { grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 22px 18px; } .home-cta-mark { height: 80px; } .home-cta-button { width: 100%; justify-content: center; } }
+/* The prototype prints a fixed "WAVE CUP" here; use the featured tournament's real name. */
+.tournament-cover[data-title]::before { content: attr(data-title); max-width: 58%; font-size: clamp(30px, 3.4vw, 54px); line-height: .9; white-space: pre-line; }
+/* `.featured-items-empty { display: grid }` beat [hidden], so the empty-state box showed under a
+   full featured row on phones. */
+.featured-items-empty[hidden], .home-featured-empty[hidden] { display: none; }
+/* The `hidden` attribute must always hide: several prototype rules set `display` on classes that
+   pages toggle with `hidden` (empty states, pagination, badges), which silently kept them visible. */
+[hidden] { display: none !important; }
+
+/* Public profile (docs/design-mockups/12), up- = user profile. */
+.up-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; color: #eef0f6; }
+.up-page svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.up-hero { position: relative; display: grid; grid-template-columns: 250px minmax(0, 1fr) minmax(260px, 340px); gap: 26px; align-items: center; overflow: hidden; border: 1px solid rgba(255, 47, 143, .4); border-radius: 16px; background: radial-gradient(circle at 12% 30%, rgba(255, 40, 140, .35), transparent 32%), radial-gradient(circle at 92% 40%, rgba(90, 60, 255, .35), transparent 35%), linear-gradient(115deg, rgba(40, 8, 36, .96), rgba(10, 8, 26, .98) 55%, rgba(16, 10, 44, .96)); padding: 26px 30px; }
+.up-avatar-wrap { position: relative; justify-self: center; }
+.up-avatar { width: 220px; height: 220px; display: grid; place-items: center; border: 4px solid #ff2f8f; border-radius: 50%; background: radial-gradient(circle, rgba(120, 30, 90, .9), rgba(20, 6, 30, .95)) center / cover no-repeat; box-shadow: 0 0 40px rgba(255, 47, 143, .55); color: #ffd6ec; font-size: 64px; font-weight: 900; }
+.up-online-dot { position: absolute; right: 18px; bottom: 26px; width: 26px; height: 26px; border: 4px solid #1a0a24; border-radius: 50%; background: #36d56f; box-shadow: 0 0 14px #36d56f; }
+.up-identity { display: grid; gap: 8px; min-width: 0; }
+.up-identity h1 { display: flex; align-items: center; gap: 12px; margin: 0; font-size: clamp(28px, 3.2vw, 44px); letter-spacing: .02em; text-transform: uppercase; }
+.up-verified { width: 30px; height: 30px; flex: 0 0 auto; border-radius: 50%; background: #ff2f8f url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3'%3E%3Cpath d='m6 12 4 4 8-8'/%3E%3C/svg%3E") center / 18px no-repeat; }
+.up-handle { margin: -4px 0 0; color: #ff3d9a; font-size: 20px; }
+.up-id { display: flex; align-items: center; gap: 8px; margin: 0; color: #d6d9e3; font-size: 16px; }
+.up-id button { border: 0; color: #ff6fae; background: none; font-size: 18px; cursor: pointer; }
+.up-role { width: max-content; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #ff2f8f; border-radius: 8px; padding: 6px 14px; font-size: 15px; }
+.up-role svg { width: 20px; height: 20px; }
+.up-meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 2px 0 0; color: #e0e3ec; font-size: 15px; }
+.up-meta span { display: inline-flex; align-items: center; gap: 8px; }
+.up-meta svg { width: 20px; height: 20px; color: #ff3d9a; }
+.up-tagline { margin: 0; color: #d6d9e3; font-size: 17px; font-style: italic; }
+.up-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+.up-btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid #ff2f8f; border-radius: 8px; color: white; background: transparent; padding: 0 26px; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+.up-btn.primary { border-color: transparent; background: #ff2f8f; box-shadow: 0 8px 24px rgba(255, 47, 143, .35); }
+.up-btn.on { color: #ff6fae; }
+.up-rank { position: relative; z-index: 1; display: grid; gap: 10px; }
+.up-rank > small { display: inline-flex; color: #eef0f6; font-size: 14px; letter-spacing: .08em; }
+.up-rank > div { display: flex; align-items: center; gap: 16px; }
+.up-rank-gem { width: 72px; height: 72px; display: grid; place-items: center; border-radius: 16px; background: radial-gradient(circle, rgba(220, 90, 255, .5), rgba(60, 20, 110, .8)); box-shadow: 0 0 26px rgba(220, 90, 255, .55); }
+.up-rank-gem svg { width: 42px; height: 42px; color: #fbe6ff; }
+.up-rank strong { display: block; font-size: 22px; }
+.up-rank em { color: #d6d9e3; font-style: normal; font-size: 14px; }
+.up-rank p { margin: 0; color: #e0e3ec; font-size: 14px; }
+.up-rank > i { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .15); overflow: hidden; }
+.up-rank > i b { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ff2f8f, #ff7ac4); }
+.up-slogan { position: absolute; top: 18px; right: 26px; margin: 0; color: rgba(255, 255, 255, .8); font-size: 17px; letter-spacing: .12em; line-height: 1.35; text-align: right; }
+.up-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px; background: rgba(10, 12, 24, .9); }
+.up-stats > div { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px 10px; border-right: 1px solid rgba(255, 255, 255, .08); }
+.up-stats > div:last-child { border-right: 0; }
+.up-stats svg { width: 34px; height: 34px; color: #e6e8f0; }
+.up-stats strong { display: block; font-size: 22px; }
+.up-stats small { color: #b9c0d0; font-size: 13px; }
+.up-dot { width: 14px; height: 14px; border-radius: 50%; background: #6b7285; }
+.up-dot.on { background: #36d56f; box-shadow: 0 0 12px #36d56f; }
+.up-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; }
+.up-card { min-width: 0; border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px; background: linear-gradient(160deg, rgba(14, 14, 32, .96), rgba(7, 8, 18, .98)); padding: 18px 20px; }
+.up-card > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.up-card h2 { margin: 0; font-size: 22px; font-weight: 700; }
+.up-card > header p { flex-basis: 100%; margin: 2px 0 0; color: #b9c0d0; font-size: 14px; }
+.up-card > header a { color: #ff6fae; font-size: 14px; }
+.up-muted { margin: 0; color: #9aa1b4; font-size: 14px; }
+.up-game-body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+.up-game-cover { min-height: 170px; display: grid; place-items: center; border: 1px solid rgba(255, 47, 143, .35); border-radius: 10px; background: #111 center / cover no-repeat; color: #9aa1b4; font-size: 13px; }
+.up-game-body dl { display: grid; gap: 12px; margin: 0; }
+.up-game-body dt { color: #b9c0d0; font-size: 13px; }
+.up-game-body dd { margin: 2px 0 0; font-size: 16px; font-weight: 600; }
+.up-about-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .8fr); gap: 16px; align-items: center; }
+.up-about-body > p { margin: 0; color: #d6d9e3; font-size: 15px; line-height: 1.6; white-space: pre-line; }
+.up-about-body blockquote { position: relative; display: grid; gap: 10px; margin: 0; border: 1px solid rgba(255, 47, 143, .35); border-radius: 10px; background: radial-gradient(circle at 80% 30%, rgba(255, 47, 143, .3), transparent 55%), rgba(20, 8, 30, .9); padding: 20px; color: #fff; font-size: 18px; font-style: italic; letter-spacing: .06em; }
+.up-about-body blockquote span { color: #ff2f8f; font-size: 42px; line-height: .6; font-style: normal; }
+.up-about-body blockquote small { color: #ff6fae; font-size: 12px; font-style: normal; letter-spacing: .2em; }
+.up-badge-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+.up-badge { display: grid; justify-items: center; gap: 8px; text-align: center; }
+.up-badge span { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 16px; background: radial-gradient(circle, rgba(200, 80, 255, .45), rgba(40, 14, 70, .9)); box-shadow: 0 0 20px rgba(200, 80, 255, .35); }
+.up-badge svg { width: 36px; height: 36px; color: #fbe6ff; }
+.up-badge.champion span, .up-badge.finalist span { background: radial-gradient(circle, rgba(255, 190, 60, .5), rgba(70, 40, 10, .9)); box-shadow: 0 0 20px rgba(255, 190, 60, .35); }
+.up-badge.coach span, .up-badge.first-deal span { background: radial-gradient(circle, rgba(60, 170, 255, .45), rgba(12, 30, 60, .9)); box-shadow: 0 0 20px rgba(60, 170, 255, .3); }
+.up-badge small { color: #e0e3ec; font-size: 13px; }
+.up-reviews-body { display: grid; grid-template-columns: 120px minmax(160px, 1fr) minmax(0, 1.2fr); gap: 18px; align-items: center; }
+.up-score strong { display: block; font-size: 44px; line-height: 1; }
+.up-score span { display: block; margin: 6px 0; font-size: 18px; letter-spacing: 2px; }
+.up-score small { color: #b9c0d0; font-size: 12px; }
+.up-bars { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.up-bars li { display: grid; grid-template-columns: 34px minmax(0, 1fr) 38px; align-items: center; gap: 8px; color: #d6d9e3; font-size: 12px; }
+.up-bars i { height: 7px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.up-bars b { display: block; height: 100%; border-radius: 999px; background: #ff2f8f; }
+.up-review { border: 1px solid rgba(120, 130, 170, .22); border-radius: 10px; padding: 12px 14px; }
+.up-review header { display: flex; justify-content: space-between; gap: 8px; }
+.up-review small { color: #9aa1b4; }
+.up-review p { margin: 6px 0 0; color: #d6d9e3; font-size: 14px; }
+.up-listings-link { margin: 0; color: #b9c0d0; text-align: center; }
+@media (max-width: 1200px) { .up-hero { grid-template-columns: 200px minmax(0, 1fr); } .up-avatar { width: 180px; height: 180px; } .up-rank { grid-column: 1 / -1; } .up-slogan { display: none; } .up-reviews-body { grid-template-columns: 110px minmax(0, 1fr); } .up-review { grid-column: 1 / -1; } }
+@media (max-width: 900px) { .up-grid { grid-template-columns: minmax(0, 1fr); } .up-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .up-stats > div { border-bottom: 1px solid rgba(255, 255, 255, .06); } }
+@media (max-width: 640px) {
+  .up-hero { grid-template-columns: minmax(0, 1fr); justify-items: center; padding: 20px 16px; text-align: center; }
+  .up-identity { justify-items: center; }
+  .up-identity h1 { justify-content: center; }
+  .up-meta, .up-actions { justify-content: center; }
+  .up-avatar { width: 150px; height: 150px; font-size: 44px; }
+  .up-rank { width: 100%; text-align: left; }
+  .up-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .up-game-body, .up-about-body, .up-reviews-body { grid-template-columns: minmax(0, 1fr); }
+}

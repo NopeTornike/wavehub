@@ -835,6 +835,8 @@ export interface AdminContentPage {
 // email/wavecoinBalance/adminRole/status (see AdminUserSummary for the admin-only superset) —
 // this is served to unauthenticated visitors.
 export interface PublicUserProfile {
+  // Same exposure as PublicSeller.id — used by "Message".
+  userId: string;
   username: string;
   firstName: string;
   lastName: string;
@@ -850,6 +852,31 @@ export interface PublicUserProfile {
   bio: string | null;
   avatarUrl: string | null;
   mainGames: Array<{ name: string; slug: string }>;
+  // docs/design-mockups/12 additions. Self-entered: location, tagline, platform, preferredRole,
+  // achievement. Everything else is computed from real rows.
+  shortId: string;
+  role: 'coach' | 'seller' | 'player';
+  location: string | null;
+  tagline: string | null;
+  platform: string | null;
+  preferredRole: string | null;
+  achievement: string | null;
+  online: boolean;
+  followers: number;
+  following: number;
+  waveRank: WaveRank;
+  completedDeals: number;
+  // Buyer reviews of this user as seller and as coach, together.
+  reviews: {
+    count: number;
+    average: number | null;
+    // Index 0 = 5 stars … index 4 = 1 star.
+    distribution: [number, number, number, number, number];
+    latest: Array<{ rating: number; body: string | null; buyerUsername: string; createdAt: string }>;
+  };
+  // Earned achievements only — see backend/src/follows/CLAUDE.md for each rule.
+  badges: Array<{ key: string; label: string }>;
+  coachId: string | null;
 }
 
 // The signed-in user's own editable profile (GET/PATCH /me/profile).
@@ -860,6 +887,11 @@ export interface MyProfile {
   bio: string | null;
   avatarUrl: string | null;
   mainGameIds: string[];
+  location: string | null;
+  tagline: string | null;
+  platform: string | null;
+  preferredRole: string | null;
+  achievement: string | null;
 }
 
 // Coaching session booking + escrow payment (build-plan Phase 11b follow-up — see

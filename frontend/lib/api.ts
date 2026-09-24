@@ -177,6 +177,7 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'The tournament has started — contact support to withdraw': 'ტურნირი დაწყებულია — გასასვლელად მიმართეთ მხარდაჭერას.',
   'Match not found': 'მატჩი ვერ მოიძებნა.',
   'You already reviewed this session': 'ეს სესია უკვე შეაფასეთ.',
+  'You cannot follow yourself': 'საკუთარი თავის გამოწერა შეუძლებელია.',
   'Only a completed session can be reviewed': 'შეფასება შესაძლებელია მხოლოდ დასრულებული სესიისთვის.',
   'You are not a coach': 'თქვენ ქოუჩის პროფილი არ გაქვთ.',
   'The video must be a YouTube or Vimeo link': 'ვიდეო უნდა იყოს YouTube ან Vimeo ბმული.',
@@ -403,7 +404,17 @@ export const api = {
   // --- Own profile (Settings page) --- (backend/src/users/profile.controller.ts)
   getMyProfile: () => request<MyProfile>('/me/profile'),
 
-  updateMyProfile: (payload: { firstName?: string; lastName?: string; bio?: string; mainGameIds?: string[] }) =>
+  updateMyProfile: (payload: {
+    firstName?: string
+    lastName?: string
+    bio?: string
+    mainGameIds?: string[]
+    location?: string
+    tagline?: string
+    platform?: string
+    preferredRole?: string
+    achievement?: string
+  }) =>
     request<MyProfile>('/me/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
 
   uploadAvatar: (file: File) => upload<MyProfile>('/me/avatar', file),
@@ -734,6 +745,13 @@ export const api = {
   completeCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/complete`, { method: 'POST' }),
 
   cancelCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/cancel`, { method: 'POST' }),
+
+  // --- Follows (docs/design-mockups/12) ---
+  getFollowStatus: (username: string) => request<{ following: boolean }>(`/users/${encodeURIComponent(username)}/follow-status`),
+
+  followUser: (username: string) => request<{ following: boolean; followers: number }>(`/users/${encodeURIComponent(username)}/follow`, { method: 'POST' }),
+
+  unfollowUser: (username: string) => request<{ following: boolean; followers: number }>(`/users/${encodeURIComponent(username)}/follow`, { method: 'DELETE' }),
 
   // --- Coach profile content, reviews, favourites (docs/design-mockups 06/14) ---
   getMyCoachProfile: () => request<MyCoachProfile>('/coaches/mine/profile'),

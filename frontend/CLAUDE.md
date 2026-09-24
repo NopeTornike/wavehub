@@ -55,6 +55,12 @@ section wins.
   YouTube thumbnail, quote, style, games, languages, Book / Message / Wishlist with the booking form);
   `coaching/profile.tsx` is the coach's editor; `components/SessionReview.tsx` on
   `coaching-sessions/[id]` lets the buyer review a completed session.
+- **Home (docs/design-mockups 15–18)** keeps Tornike's home and adds the desktop "Explore our
+  services" row, the "Ready to level up?" call-to-action, coach photos / real online pill / earned
+  badges on the coach cards, and real format/fee/team facts plus the tournament's own name on the
+  featured-tournament cover (the prototype hard-coded "WAVE CUP"). **Public profile (12)**:
+  `pages/u/[username].tsx` (`up-` CSS), fields editable in Settings. A global `[hidden] { display:
+  none !important }` now guarantees the hidden attribute wins over prototype `display` rules.
 - **Rule #6 decisions in the port** (each also commented in its page): no fake prize splits / demo
   teams / anti-cheat claims on tournaments; no fake coach rank, response time, "Top 1%" tags or
   always-on online dot (the dot is real presence now); Steam detail shows real rating/stock/seller
