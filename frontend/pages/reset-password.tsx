@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useState, type FormEvent } from 'react'
 import { api, errorMessage } from '../lib/api'
 import AuthCardTop from '../components/AuthCardTop'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 import PageHead from '../components/PageHead'
 
 // Mirrors backend/src/auth/password-policy.ts — keep these in sync if that changes.
@@ -56,11 +57,12 @@ export default function ResetPassword() {
 
   return (
     <main className="auth-page-shell">
+      <LanguageSwitcher floating />
       <PageHead title="ახალი პაროლი" description="დააყენეთ ახალი პაროლი თქვენი WaveHub ანგარიშისთვის." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
         <AuthCardTop />
         <div className="auth-card-head">
-          <p className="section-kicker">WaveHub account</p>
+          <p className="section-kicker">WaveHub ანგარიში</p>
           <h1 id="authTitle">ახალი პაროლის დაყენება</h1>
         </div>
 

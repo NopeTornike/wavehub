@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useRef, useState } from 'react'
 import { api, errorMessage } from '../lib/api'
 import AuthCardTop from '../components/AuthCardTop'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 import PageHead from '../components/PageHead'
 import { useAuth } from '../lib/auth'
 
@@ -51,11 +52,12 @@ export default function VerifyEmail() {
 
   return (
     <main className="auth-page-shell">
+      <LanguageSwitcher floating />
       <PageHead title="ელფოსტის დადასტურება" description="დაადასტურეთ თქვენი ელფოსტა WaveHub-ზე." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
         <AuthCardTop />
         <div className="auth-card-head">
-          <p className="section-kicker">WaveHub account</p>
+          <p className="section-kicker">WaveHub ანგარიში</p>
           <h1 id="authTitle">Email-ის დადასტურება</h1>
         </div>
 

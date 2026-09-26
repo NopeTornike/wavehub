@@ -18849,9 +18849,6 @@ body:not(.home-page) .mobile-header-auth { display: none !important; }
 .sg-search input { width: 100%; min-height: 48px; border: 0; outline: none; color: #eef0f6; background: transparent; padding: 0 16px 0 52px; font: inherit; font-size: 15px; }
 .sg-sort { display: flex; align-items: center; gap: 12px; color: #c9cedb; font-size: 15px; }
 .sg-sort select { min-width: 190px; min-height: 50px; border: 1px solid rgba(120, 130, 170, .28); border-radius: 8px; color: #eef0f6; background: rgba(10, 12, 24, .85); padding: 0 14px; font: inherit; }
-.sg-genres { display: flex; flex-wrap: wrap; gap: 12px; }
-.sg-genres button { min-height: 40px; border: 1px solid rgba(120, 130, 170, .28); border-radius: 999px; color: #e6e8f0; background: rgba(10, 12, 24, .85); padding: 0 22px; font: inherit; font-size: 14px; cursor: pointer; }
-.sg-genres button.active { border-color: transparent; color: white; background: #ff2f8f; box-shadow: 0 6px 18px rgba(255, 47, 143, .35); }
 .sg-grid { display: grid; gap: 18px; }
 .sg-grid.lg { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .sg-grid.sm { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 14px; }
@@ -18890,7 +18887,7 @@ body:not(.home-page) .mobile-header-auth { display: none !important; }
 .sg-pages svg { width: 18px; height: 18px; }
 @media (max-width: 1400px) { .sg-grid.sm { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 @media (max-width: 1100px) { .sg-grid.lg { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sg-grid.sm { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (max-width: 760px) { .sg-grid.lg, .sg-grid.sm { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sg-sort { flex: 1 1 100%; } .sg-sort select { flex: 1; } .sg-genres { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .sg-genres button { flex: 0 0 auto; } }
+@media (max-width: 760px) { .sg-grid.lg, .sg-grid.sm { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sg-sort { flex: 1 1 100%; } .sg-sort select { flex: 1; } }
 @media (max-width: 420px) { .sg-foot { flex-direction: column; align-items: stretch; } .sg-details { justify-content: center; } }
 
 /* Steam game detail (docs/design-mockups/05), sd- = Steam detail. */
@@ -19352,4 +19349,21 @@ select option, select optgroup { background: #0e0c1e; color: #eef0f6; }
    panel's 8px padding, so it always overhung the right edge. Fill the padded panel instead. */
 @media (max-width: 720px) {
   .home-page .global-topbar { width: auto; max-width: 100%; }
+}
+
+/* Auth tabs: the prototype toggles two <button>s; here the inactive tab is a <Link> to the other
+   route, which ignored the button-only centring — "შესვლა" sat top-left and long labels could
+   push the grid wider on phones. Centre both kinds and let the columns shrink. */
+.auth-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.auth-tab { min-width: 0; display: flex; align-items: center; justify-content: center; padding: 6px 10px; line-height: 1.2; text-align: center; text-decoration: none; overflow-wrap: anywhere; transition: color .15s ease, background .15s ease; }
+a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255, 255, 255, 0.05); }
+/* The auth card's implicit `auto` grid column grew to the logo row's min-content (220px logo +
+   cart), so on ~320px phones the tabs, title and inputs ran past the card's right edge. */
+.auth-card { grid-template-columns: minmax(0, 1fr); }
+.auth-card > *, .auth-form > *, .auth-form label { min-width: 0; }
+.auth-brand { min-width: 0; }
+.auth-brand img { max-width: 100%; height: auto; }
+@media (max-width: 400px) {
+  .auth-page-shell { padding: 64px 12px 32px; }
+  .auth-card { padding: 20px 16px; }
 }

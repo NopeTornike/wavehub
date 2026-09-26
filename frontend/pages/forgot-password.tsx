@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { useState, type FormEvent } from 'react'
 import { api, errorMessage } from '../lib/api'
 import AuthCardTop from '../components/AuthCardTop'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 import PageHead from '../components/PageHead'
 
 export default function ForgotPassword() {
@@ -35,17 +36,18 @@ export default function ForgotPassword() {
 
   return (
     <main className="auth-page-shell">
+      <LanguageSwitcher floating />
       <PageHead title="პაროლის აღდგენა" description="მოითხოვეთ პაროლის აღდგენის ბმული ელფოსტაზე." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
         <AuthCardTop />
         <div className="auth-card-head">
-          <p className="section-kicker">WaveHub account</p>
+          <p className="section-kicker">WaveHub ანგარიში</p>
           <h1 id="authTitle">პაროლის აღდგენა</h1>
         </div>
 
         <form className="auth-form" onSubmit={submit}>
           <label>
-            <span>Email</span>
+            <span>ელფოსტა</span>
             <input
               autoComplete="email"
               name="email"

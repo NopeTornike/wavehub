@@ -1229,5 +1229,6 @@
   "თქვენ მიიღეთ ახალი შეფასება: {0} ★": "You received a new review: {0} ★",
   "{0} სესია": "{0} sessions",
   "{0} დასრულებული": "{0} completed",
-  "{0} დარჩენილი": "{0} remaining"
+  "{0} დარჩენილი": "{0} remaining",
+  "მინიმუმ 8 სიმბოლო": "At least 8 characters"
 }

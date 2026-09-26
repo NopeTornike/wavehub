@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { api, errorMessage } from '../lib/api'
 import AuthCardTop from '../components/AuthCardTop'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 import PageHead from '../components/PageHead'
 import { useAuth } from '../lib/auth'
 
@@ -157,27 +158,28 @@ export default function Register() {
 
   return (
     <main className="auth-page-shell">
+      <LanguageSwitcher floating />
       <PageHead title="რეგისტრაცია" description="შექმენით WaveHub ანგარიში და დაიწყეთ გაყიდვა ან შეძენა." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
         <AuthCardTop />
 
         <div className="auth-card-head">
-          <p className="section-kicker">WaveHub account</p>
-          <h1 id="authTitle">Log in or create account</h1>
+          <p className="section-kicker">WaveHub ანგარიში</p>
+          <h1 id="authTitle">შედით ან შექმენით ანგარიში</h1>
         </div>
 
-        <div className="auth-tabs" role="tablist" aria-label="Authentication">
+        <div className="auth-tabs" role="tablist" aria-label="ავტორიზაცია">
           <Link className="auth-tab" href="/login" role="tab" aria-selected="false">
-            Log in
+            შესვლა
           </Link>
           <button className="auth-tab active" type="button" role="tab" aria-selected="true">
-            Register
+            რეგისტრაცია
           </button>
         </div>
 
         <form className="auth-form" onSubmit={submit}>
           <label>
-            <span>Username</span>
+            <span>მომხმარებლის სახელი</span>
             <input
               autoComplete="username"
               name="username"
@@ -202,40 +204,40 @@ export default function Register() {
               verification is a non-negotiable rule (root CLAUDE.md §"Non-negotiable rules") the
               backend actually enforces; the static prototype never had a real backend behind it. */}
           <label>
-            <span>Email</span>
+            <span>ელფოსტა</span>
             <input autoComplete="email" name="email" type="email" placeholder="you@example.com" required value={form.email} onChange={onChange} />
           </label>
           <div className="auth-split">
             <label>
-              <span>First name</span>
-              <input autoComplete="given-name" name="firstName" placeholder="First name" required value={form.firstName} onChange={onChange} />
+              <span>სახელი</span>
+              <input autoComplete="given-name" name="firstName" placeholder="სახელი" required value={form.firstName} onChange={onChange} />
             </label>
             <label>
-              <span>Last name</span>
-              <input autoComplete="family-name" name="lastName" placeholder="Last name" required value={form.lastName} onChange={onChange} />
+              <span>გვარი</span>
+              <input autoComplete="family-name" name="lastName" placeholder="გვარი" required value={form.lastName} onChange={onChange} />
             </label>
           </div>
           <label>
-            <span>Password</span>
+            <span>პაროლი</span>
             <input
               autoComplete="new-password"
               name="password"
               type="password"
               minLength={PASSWORD_MIN_LENGTH}
-              placeholder="At least 8 characters"
+              placeholder="მინიმუმ 8 სიმბოლო"
               required
               value={form.password}
               onChange={onChange}
             />
           </label>
           <label>
-            <span>Confirm password</span>
+            <span>პაროლის დადასტურება</span>
             <input
               autoComplete="new-password"
               name="confirmPassword"
               type="password"
               minLength={PASSWORD_MIN_LENGTH}
-              placeholder="Repeat password"
+              placeholder="გაიმეორეთ პაროლი"
               required
               value={form.confirmPassword}
               onChange={onChange}

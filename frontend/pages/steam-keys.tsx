@@ -2,17 +2,17 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { Fragment, useEffect, useState } from 'react'
-import { ListingType, STEAM_GENRES, type PublicListingSummary } from '@wavehub/shared-types'
+import { ListingType, type PublicListingSummary } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { gameCover } from '../lib/games'
 import { TIcon } from '../lib/tournaments'
 
-// docs/design-mockups/04-steam-games-list.jpg: title, search, sort, genre chips, a row of large
+// docs/design-mockups/04-steam-games-list.jpg: title, search, sort (no genre filter — owner decision 2026-09-26), a row of large
 // cards then a row of compact ones, and pagination — over the platform's real digital-key
 // listings. Card facts are real: stock = unsold keys, tagline/genre = what the seller entered,
-// "Popular" = completed orders. Search, genre, sort and paging are server-side.
+// "Popular" = completed orders. Search, sort and paging are server-side.
 
 type Sort = 'popular' | 'newest' | 'price_asc' | 'price_desc'
 const PER_PAGE = 12
@@ -60,7 +60,6 @@ export default function SteamGames() {
   const { user } = useAuth()
   const [query, setQuery] = useState('')
   const [search, setSearch] = useState('')
-  const [genre, setGenre] = useState('')
   const [sort, setSort] = useState<Sort>('popular')
   const [page, setPage] = useState(1)
   const [result, setResult] = useState<{ items: PublicListingSummary[]; total: number } | null>(null)
@@ -78,7 +77,7 @@ export default function SteamGames() {
   useEffect(() => {
     let cancelled = false
     api
-      .browseListings({ type: ListingType.DigitalKey, q: search || undefined, genre: genre || undefined, sort, limit: PER_PAGE, offset: (page - 1) * PER_PAGE })
+      .browseListings({ type: ListingType.DigitalKey, q: search || undefined, sort, limit: PER_PAGE, offset: (page - 1) * PER_PAGE })
       .then((res) => {
         if (cancelled) return
         setResult(res)
@@ -92,7 +91,7 @@ export default function SteamGames() {
     return () => {
       cancelled = true
     }
-  }, [search, genre, sort, page])
+  }, [search, sort, page])
 
   const items = result?.items ?? []
   const large = page === 1 ? items.slice(0, LARGE) : []
@@ -147,23 +146,6 @@ export default function SteamGames() {
           </label>
         </div>
 
-        <div className="sg-genres" role="group" aria-label="ჟანრი">
-          {[['', 'ყველა'] as const, ...STEAM_GENRES].map(([key, label]) => (
-            <button
-              key={key || 'all'}
-              type="button"
-              className={genre === key ? 'active' : undefined}
-              aria-pressed={genre === key}
-              onClick={() => {
-                setGenre(key)
-                setPage(1)
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
         {error && (
           <p className="seller-status error" role="alert">
             {error}
@@ -175,7 +157,7 @@ export default function SteamGames() {
           <div className="wt-empty">
             <img src="/assets/steam-logo.png" alt="" width={44} height={44} style={{ filter: 'invert(1)', opacity: 0.6 }} />
             <strong>თამაშები ვერ მოიძებნა</strong>
-            <p>{search || genre ? 'სცადე სხვა ძიება ან ჟანრი.' : 'გამყიდველების მიერ დამატებული Steam გასაღებები აქ გამოჩნდება.'}</p>
+            <p>{search ? 'სცადე სხვა ძიება.' : 'გამყიდველების მიერ დამატებული Steam გასაღებები აქ გამოჩნდება.'}</p>
           </div>
         ) : (
           <>

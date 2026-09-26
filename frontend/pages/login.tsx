@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useState, type FormEvent } from 'react'
 import { api, errorMessage } from '../lib/api'
 import AuthCardTop from '../components/AuthCardTop'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 import PageHead from '../components/PageHead'
 import { useAuth } from '../lib/auth'
 
@@ -51,27 +52,28 @@ export default function Login() {
 
   return (
     <main className="auth-page-shell">
+      <LanguageSwitcher floating />
       <PageHead title="შესვლა" description="შედით თქვენს WaveHub ანგარიშზე." noIndex />
       <section className="auth-card" aria-labelledby="authTitle">
         <AuthCardTop />
 
         <div className="auth-card-head">
-          <p className="section-kicker">WaveHub account</p>
-          <h1 id="authTitle">Log in or create account</h1>
+          <p className="section-kicker">WaveHub ანგარიში</p>
+          <h1 id="authTitle">შედით ან შექმენით ანგარიში</h1>
         </div>
 
-        <div className="auth-tabs" role="tablist" aria-label="Authentication">
+        <div className="auth-tabs" role="tablist" aria-label="ავტორიზაცია">
           <button className="auth-tab active" type="button" role="tab" aria-selected="true">
-            Log in
+            შესვლა
           </button>
           <Link className="auth-tab" href="/register" role="tab" aria-selected="false">
-            Register
+            რეგისტრაცია
           </Link>
         </div>
 
         <form className="auth-form" onSubmit={submit}>
           <label>
-            <span>Username</span>
+            <span>მომხმარებლის სახელი</span>
             <input
               autoComplete="username"
               name="username"
@@ -82,11 +84,11 @@ export default function Login() {
             />
           </label>
           <label>
-            <span>Password</span>
+            <span>პაროლი</span>
             <input
               autoComplete="current-password"
               name="password"
-              placeholder="Password"
+              placeholder="პაროლი"
               required
               type="password"
               value={password}
@@ -99,7 +101,7 @@ export default function Login() {
             </p>
           )}
           <button className="auth-submit-button" type="submit" disabled={submitting}>
-            Log in
+            შესვლა
           </button>
         </form>
 
@@ -107,7 +109,7 @@ export default function Login() {
           დაგავიწყდათ პაროლი?
         </Link>
         <Link className="auth-back-link" href="/marketplace">
-          Back to marketplace
+          მარკეტფლეისზე დაბრუნება
         </Link>
       </section>
     </main>

@@ -44,8 +44,9 @@ section wins.
   "Tournaments v2" block (`wt-` prefix) near the end of `global.css`; the detail tabs reuse the
   prototype's `.prejoin-*`/`.prize-*`/`.team-*`/`.rule-*` rules. The prototype's team rows use a
   stock portrait sprite for members — overridden to initials (rule #6).
-- **Steam games (docs/design-mockups 04/05)**: `pages/steam-keys.tsx` (search, genre chips, sort,
-  5 large + 7 compact cards, pagination — all server-side) and `components/SteamGameDetail.tsx`
+- **Steam games (docs/design-mockups 04/05)**: `pages/steam-keys.tsx` (search, sort — the genre
+  chip bar was removed at the owner's request 2026-09-26; genre stays a seller-entered fact on
+  the detail page; 5 large + 7 compact cards, pagination — all server-side) and `components/SteamGameDetail.tsx`
   (rendered by `listings/[id].tsx` for digital keys: gallery with arrows/thumbs/trailer link, badges,
   rating + sold, price with the seller's "was" price, facts grid, tabs, "You may also like"). CSS
   blocks `sg-` and `sd-` at the end of `global.css`.
@@ -88,6 +89,9 @@ section wins.
 - **Support (`pages/support/*`, `lib/support.tsx`, `sp-` CSS)**: no prototype page; dark cards,
   category chip grid (no native `<select>`), ticket list, chat-style thread. A global rule now
   gives native `<select>` option lists a dark background (they were white-on-white).
+- **Auth pages**: copy is Georgian source like every other page (it used to be the prototype's
+  English verbatim, so KA mode showed English) and they carry the floating EN/ქა switcher
+  (`<LanguageSwitcher floating />`), as the prototype's site-footer.js adds on auth.html.
 - **Favicon**: the prototype's `public/assets/favicon.png` (`_document.tsx`).
 - **Dashboard (09)**: `pages/dashboard.tsx` (`db-` CSS), signed-in only, added to `Sidebar` after
   Home only when logged in. Every number is the viewer's own data from existing endpoints: next
