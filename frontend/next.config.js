@@ -6,6 +6,8 @@ const path = require('path')
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Don't advertise the framework in an `X-Powered-By` response header.
+  poweredByHeader: false,
   // Next 16's `next dev` auto-generates an AGENTS.md "agent rules" block. In THIS repo every
   // AGENTS.md is a plain symlink to its sibling CLAUDE.md (root CLAUDE.md, "Tool portability"), so
   // that generator followed frontend/AGENTS.md and appended its block into frontend/CLAUDE.md
