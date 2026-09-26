@@ -246,3 +246,18 @@ Added while porting the prototype's marketplace/seller flow 1:1 (commits `fee10d
   opened with `rel="noopener noreferrer nofollow"`.
 - Tests: `listings.service.spec.ts` (key details row, compare-at rule), `test/steam.e2e-spec.ts`.
 
+
+## 2026-09-26 Admin game catalogue
+- `games.service.ts` + `admin-games.controller.ts` (`/admin/games`, roles Operation Lead / Main
+  Administrator / Marketplace & Coaching Ops Manager, plus Super Admin): list every game with its
+  listing count, create (`name` 2–40, `slug` lowercase-hyphenated, both unique — name
+  case-insensitively via `UQ_games_name_lower`), update `name`/`isActive`/`sortOrder`, upload or
+  clear `icon`/`cover`/`tile` art (StorageService content-sniffs; non-images → 415). Every write is
+  audit-logged (`game.create|update|set_image|clear_image`).
+- **The slug is immutable** (not in `UpdateGameDto`): URLs (`/marketplace?game=`) and the frontend's
+  bundled art map key on it. **Games are never deleted** — listings, coaches and tournaments
+  reference them; `isActive=false` hides a game from `GET /games`, `GET /stats/games` (home grid)
+  and every picker while its existing listings keep working.
+- Migration `1784357000000-GameArtwork` adds `coverUrl`/`tileUrl`. `GET /games` and
+  `GET /stats/games` return the art; the frontend registers it (`lib/games.ts#registerGameArt`)
+  and prefers uploads over the bundled `/assets` art. e2e: `test/games.e2e-spec.ts`.

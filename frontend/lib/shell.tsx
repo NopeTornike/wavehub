@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { GameListingCount, WaveRank } from '@wavehub/shared-types'
 import { api } from './api'
+import { registerGameArt } from './games'
 import { useAuth } from './auth'
 
 // Live numbers the site shell shows on every page — one poller here instead of one per component.
@@ -61,7 +62,13 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadOnline = () => api.getOnlineStats().then((r) => setOnlineCount(r.count)).catch(() => undefined)
     loadOnline()
-    api.getGameListingCounts().then(setGames).catch(() => undefined)
+    api
+      .getGameListingCounts()
+      .then((list) => {
+        registerGameArt(list)
+        setGames(list)
+      })
+      .catch(() => undefined)
     const interval = setInterval(loadOnline, ONLINE_POLL_MS)
     return () => clearInterval(interval)
   }, [])

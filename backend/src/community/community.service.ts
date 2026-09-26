@@ -89,15 +89,23 @@ export class CommunityService {
   }
 
   async gameListingCounts(): Promise<GameListingCount[]> {
-    const rows: Array<{ gameId: string; slug: string; name: string; count: number }> = await this.db.query(
-      `SELECT g."id" AS "gameId", g."slug", g."name", count(l."id")::int AS "count"
+    const rows: Array<{ gameId: string; slug: string; name: string; count: number; iconUrl: string | null; coverUrl: string | null; tileUrl: string | null }> = await this.db.query(
+      `SELECT g."id" AS "gameId", g."slug", g."name", g."iconUrl", g."coverUrl", g."tileUrl", count(l."id")::int AS "count"
        FROM "games" g
        LEFT JOIN "listings" l ON l."gameId" = g."id" AND l."status" = 'active'
        WHERE g."isActive" = true
        GROUP BY g."id"
        ORDER BY g."sortOrder" ASC, g."name" ASC`,
     );
-    return rows.map((row) => ({ gameId: row.gameId, slug: row.slug, name: row.name, activeListingCount: row.count }));
+    return rows.map((row) => ({
+      gameId: row.gameId,
+      slug: row.slug,
+      name: row.name,
+      activeListingCount: row.count,
+      iconUrl: row.iconUrl,
+      coverUrl: row.coverUrl,
+      tileUrl: row.tileUrl,
+    }));
   }
 
   // Coaching counts like the marketplace: a completed session is a sale for the coach and a

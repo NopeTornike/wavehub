@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth'
 const NAV_ITEMS = [
   { href: '/admin', label: 'დაფა' },
   { href: '/admin/listings', label: 'განცხადებები' },
+  { href: '/admin/games', label: 'თამაშები' },
   { href: '/admin/reviews', label: 'შეფასებები' },
   { href: '/admin/disputes', label: 'დავები' },
   { href: '/admin/withdrawals', label: 'გატანები' },

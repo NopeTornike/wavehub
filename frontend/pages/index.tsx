@@ -6,7 +6,7 @@ import Layout from '../components/Layout'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
-import { GAME_ART, gameCover, gameDisplayName } from '../lib/games'
+import { gameCover, gameDisplayName, gameTile } from '../lib/games'
 import { listingKind, normalizeAccountStatus } from '../components/ProductCard'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
@@ -408,7 +408,7 @@ export default function Home() {
                   <span
                     className="home-marketplace-game-image"
                     aria-hidden="true"
-                    style={GAME_ART[game.slug] ? { background: `url("${GAME_ART[game.slug].tile}") center / cover no-repeat` } : undefined}
+                    style={gameTile(game.slug) ? { background: `url("${gameTile(game.slug)}") center / cover no-repeat` } : undefined}
                   ></span>
                   <span className="home-marketplace-game-info">
                     <strong>{gameDisplayName(game.name)}</strong>

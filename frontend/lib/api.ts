@@ -1,5 +1,7 @@
 import type {
+  AdminGame,
   AuthMeResponse,
+  GameImageKind,
   GameListingCount,
   ItemAttributes,
   MyProfile,
@@ -317,6 +319,14 @@ export const api = {
   listCategories: () => request<PublicCategory[]>('/categories'),
 
   listGames: () => request<PublicGame[]>('/games'),
+  // --- Admin game catalogue --- (backend/src/listings/admin-games.controller.ts)
+  adminListGames: () => request<AdminGame[]>('/admin/games'),
+  adminCreateGame: (payload: { name: string; slug: string; sortOrder?: number }) =>
+    request<AdminGame>('/admin/games', { method: 'POST', body: JSON.stringify(payload) }),
+  adminUpdateGame: (id: string, payload: { name?: string; isActive?: boolean; sortOrder?: number }) =>
+    request<AdminGame>(`/admin/games/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
+  adminUploadGameImage: (id: string, kind: GameImageKind, file: File) => upload<AdminGame>(`/admin/games/${id}/images/${kind}`, file),
+  adminClearGameImage: (id: string, kind: GameImageKind) => request<AdminGame>(`/admin/games/${id}/images/${kind}`, { method: 'DELETE' }),
 
   browseListings: (filters: {
     categoryId?: string

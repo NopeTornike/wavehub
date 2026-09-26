@@ -259,7 +259,25 @@ export interface PublicGame {
   name: string;
   slug: string;
   iconUrl: string | null;
+  // Staff-uploaded art (GET /games returns them; nested `game` objects may omit them).
+  coverUrl?: string | null;
+  tileUrl?: string | null;
 }
+
+// GET /admin/games — every game including hidden ones, with how many listings use it.
+export interface AdminGame {
+  id: string;
+  name: string;
+  slug: string;
+  iconUrl: string | null;
+  coverUrl: string | null;
+  tileUrl: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  listingCount: number;
+}
+
+export type GameImageKind = 'icon' | 'cover' | 'tile';
 
 export interface PublicSeller {
   id: string;
@@ -1186,6 +1204,9 @@ export interface GameListingCount {
   slug: string;
   name: string;
   activeListingCount: number;
+  iconUrl: string | null;
+  coverUrl: string | null;
+  tileUrl: string | null;
 }
 
 export interface WaveRank {

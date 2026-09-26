@@ -40,7 +40,7 @@ runbook is `docs/DEPLOY.md` and the go-live checklist is `docs/LAUNCH_CHECKLIST.
 | `backend/src/payments/` | BOG WaveCoin top-up integration | `backend/src/payments/CLAUDE.md` |
 | `backend/src/email/` | Transactional email — Resend HTTP driver or console, selected by `EMAIL_PROVIDER` | `backend/src/email/CLAUDE.md` |
 | `backend/src/wallet/` | WaveCoin ledger — the only writer of `users.wavecoinBalance` | `backend/src/wallet/CLAUDE.md` |
-| `backend/src/listings/` | Marketplace listings (service + item + digital key), moderation lifecycle | `backend/src/listings/CLAUDE.md` |
+| `backend/src/listings/` | Marketplace listings (service + item + digital key), moderation lifecycle, admin game catalogue | `backend/src/listings/CLAUDE.md` |
 | `backend/src/storage/` | Upload storage — local disk or S3-compatible driver, content-sniffed file types | `backend/src/storage/CLAUDE.md` |
 | `backend/src/orders/` | Purchase flow, delivery lifecycle, the only trigger for wallet money movement | `backend/src/orders/CLAUDE.md` |
 | `backend/src/reviews/` | Buyer reviews of completed orders, seller/listing rating aggregates | `backend/src/reviews/CLAUDE.md` |

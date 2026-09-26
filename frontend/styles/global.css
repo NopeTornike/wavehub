@@ -19367,3 +19367,31 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
   .auth-page-shell { padding: 64px 12px 32px; }
   .auth-card { padding: 20px 16px; }
 }
+
+/* Admin → Games (pages/admin/games.tsx), ag- = admin games. */
+.ag-create { margin: 18px 0 24px; }
+.ag-create h2 { margin: 0; font-size: 1.05rem; }
+.ag-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 430px), 1fr)); gap: 16px; }
+.ag-card { min-width: 0; display: grid; gap: 14px; border: 1px solid rgba(120, 130, 170, .22); border-radius: 12px; background: rgba(8, 10, 22, .92); padding: 16px; }
+.ag-card.hidden-game { opacity: .62; border-style: dashed; }
+.ag-card header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; }
+.ag-title { display: grid; gap: 4px; min-width: 0; }
+.ag-title input, .ag-order input { width: 100%; min-width: 0; border: 1px solid rgba(120, 130, 170, .28); border-radius: 8px; background: rgba(5, 6, 16, .8); color: #fff; padding: 8px 10px; font: inherit; font-weight: 700; }
+.ag-title small { color: #9aa1b3; font-size: 12px; }
+.ag-title code { color: #d9a6ff; }
+.ag-order { display: grid; gap: 4px; width: 74px; color: #9aa1b3; font-size: 12px; }
+.ag-status { border-radius: 6px; padding: 4px 10px; font-size: 12px; font-style: normal; font-weight: 800; }
+.ag-status.on { background: rgba(40, 170, 90, .18); color: #3fe07c; }
+.ag-status.off { background: rgba(255, 255, 255, .08); color: #aab0c0; }
+.ag-art { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ag-art-slot { min-width: 0; display: grid; align-content: start; gap: 4px; }
+.ag-thumb { aspect-ratio: 16 / 10; display: grid; place-items: center; border: 1px solid rgba(120, 130, 170, .2); border-radius: 8px; background: #11131f center / cover no-repeat; color: #6d7386; }
+.ag-art-slot.icon .ag-thumb { background-size: contain; background-origin: content-box; padding: 10px; }
+.ag-art-slot strong { font-size: 13px; }
+.ag-art-slot small { color: #9aa1b3; font-size: 11px; min-height: 28px; }
+.ag-art-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ag-small { min-height: 30px !important; padding: 0 10px !important; font-size: 12px !important; cursor: pointer; }
+.ag-card footer { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 520px) { .ag-art { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ag-card header { grid-template-columns: minmax(0, 1fr) auto; } .ag-status { grid-column: 1 / -1; justify-self: start; } }
+.button.ghost { border: 1px solid rgba(255, 255, 255, .18); background: transparent; color: #d6d9e3; box-shadow: none; }
+.button.ghost:hover { border-color: rgba(255, 47, 143, .6); color: #fff; }

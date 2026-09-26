@@ -9,7 +9,7 @@ import { accountStatusLabel, listingKind } from '../../components/ProductCard'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { useFavorites } from '../../lib/favorites'
-import { GAME_ART } from '../../lib/games'
+import { gameCover, gameIcon } from '../../lib/games'
 import GAME_DETAILS from '../../lib/game-details.json'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
@@ -123,8 +123,8 @@ export default function ListingDetail() {
   const kind = listingKind(listing)
   const attrs = listing.itemAttributes ?? {}
   const slug = listing.game?.slug ?? ''
-  const art = GAME_ART[slug]
-  const gallery = [...(art ? [{ key: 'cover', url: art.cover, label: listing.game?.name ?? '' }] : []), ...listing.images.map((img, i) => ({ key: img.id, url: img.url, label: `${i + 1}` }))]
+  const cover = gameCover(slug)
+  const gallery = [...(cover ? [{ key: 'cover', url: cover, label: listing.game?.name ?? '' }] : []), ...listing.images.map((img, i) => ({ key: img.id, url: img.url, label: `${i + 1}` }))]
   const hero = gallery[imageIndex] ?? gallery[0]
   const selectedPackage = listing.packages.find((pkg) => pkg.id === selectedPackageId) ?? null
   const price = listing.type === ListingType.Service ? selectedPackage?.priceWaveCoin ?? null : listing.priceWaveCoin
@@ -264,7 +264,7 @@ export default function ListingDetail() {
                 {kindLabel} detail
               </p>
               <div className="detail-heading-row">
-                {art && <img className="detail-title-game-icon" id="detailTitleGameIcon" src={art.icon} alt={`${listing.game?.name} icon`} />}
+                {gameIcon(slug) && <img className="detail-title-game-icon" id="detailTitleGameIcon" src={gameIcon(slug) ?? undefined} alt={`${listing.game?.name} icon`} />}
                 <h1 id="detailTitle">{listing.title}</h1>
               </div>
               <p className="detail-lead" id="detailDescription">

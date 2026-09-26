@@ -24,16 +24,32 @@ export const GAME_ART: Record<string, GameArt> = {
   valorant: { cover: A('valorant-marketplace-cover.png'), tile: A('valorant-marketplace-cover.png'), icon: A('valorant-title-icon.png') },
 }
 
+// Art staff uploaded in Admin → Games (games.coverUrl/tileUrl/iconUrl), registered by the shell
+// once GET /stats/games loads. It wins over the bundled art, and is the only art a game added
+// after launch has. Module-level so the plain helpers below keep their signatures.
+const uploadedArt: Record<string, Partial<GameArt>> = {}
+
+export function registerGameArt(games: Array<{ slug: string; coverUrl?: string | null; tileUrl?: string | null; iconUrl?: string | null }>) {
+  for (const game of games) {
+    uploadedArt[game.slug] = {
+      cover: game.coverUrl || undefined,
+      tile: game.tileUrl || undefined,
+      // Seeded games carry a bundled `/assets/...` iconUrl already — only an upload overrides.
+      icon: game.iconUrl && !game.iconUrl.startsWith('/assets/') ? game.iconUrl : undefined,
+    }
+  }
+}
+
 export function gameCover(slug: string | null | undefined, fallback: string | null = null): string | null {
-  return (slug && GAME_ART[slug]?.cover) || fallback
+  return (slug && (uploadedArt[slug]?.cover || GAME_ART[slug]?.cover)) || fallback
 }
 
 export function gameTile(slug: string | null | undefined): string | null {
-  return (slug && GAME_ART[slug]?.tile) || null
+  return (slug && (uploadedArt[slug]?.tile || GAME_ART[slug]?.tile || uploadedArt[slug]?.cover)) || null
 }
 
 export function gameIcon(slug: string | null | undefined): string | null {
-  return (slug && GAME_ART[slug]?.icon) || null
+  return (slug && (uploadedArt[slug]?.icon || GAME_ART[slug]?.icon)) || null
 }
 
 // The prototype shows game names in caps on the home grid (e.g. "CALL OF DUTY MOBILE").

@@ -92,6 +92,10 @@ section wins.
 - **Auth pages**: copy is Georgian source like every other page (it used to be the prototype's
   English verbatim, so KA mode showed English) and they carry the floating EN/ქა switcher
   (`<LanguageSwitcher floating />`), as the prototype's site-footer.js adds on auth.html.
+- **Admin → Games** (`pages/admin/games.tsx`, `ag-` CSS): add/rename/hide/reorder games and
+  upload their home tile, cover and icon. `lib/games.ts` helpers (`gameCover`/`gameTile`/
+  `gameIcon`) prefer uploaded art (registered from `/stats/games` by `lib/shell.tsx`) over the
+  bundled `GAME_ART` — always go through the helpers, never index `GAME_ART` directly.
 - **Favicon**: the prototype's `public/assets/favicon.png` (`_document.tsx`).
 - **Dashboard (09)**: `pages/dashboard.tsx` (`db-` CSS), signed-in only, added to `Sidebar` after
   Home only when logged in. Every number is the viewer's own data from existing endpoints: next

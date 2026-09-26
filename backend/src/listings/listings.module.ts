@@ -20,6 +20,8 @@ import { UsersController } from '../users/users.controller';
 import { ProfileController } from '../users/profile.controller';
 import { User } from '../users/user.entity';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { AdminGamesController } from './admin-games.controller';
+import { GamesService } from './games.service';
 
 @Module({
   imports: [
@@ -45,8 +47,8 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
   // UsersController (public GET /users/:username) is declared here rather than in UsersModule
   // itself — it needs both UsersService and ListingsService, and UsersModule must stay a leaf
   // module (see users.module.ts's own comment) since AuthModule already imports it.
-  controllers: [ListingsController, UsersController, ProfileController],
-  providers: [ListingsService],
+  controllers: [ListingsController, UsersController, ProfileController, AdminGamesController],
+  providers: [ListingsService, GamesService],
   exports: [ListingsService],
 })
 export class ListingsModule {}
