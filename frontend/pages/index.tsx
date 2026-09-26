@@ -7,6 +7,7 @@ import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
 import { GAME_ART, gameCover, gameDisplayName } from '../lib/games'
+import { listingKind, normalizeAccountStatus } from '../components/ProductCard'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
 // the prototype's final DOM order (its script moves competition/steam/featured/how-it-works in
@@ -99,12 +100,19 @@ function listingPrice(listing: PublicListingSummary) {
   return listing.startingPriceWaveCoin ?? listing.priceWaveCoin ?? 0
 }
 
+// The prototype's featured-item image order (index.html#getFeaturedImage): the seller's own photo,
+// then an account's rarity art (`<status>-account.png`), then the game's cover.
 function listingImage(listing: PublicListingSummary, gameSlug: string | undefined) {
-  return gameCover(gameSlug, listing.images[0]?.url ?? null)
+  const own = listing.images[0]?.url
+  if (own) return own
+  const status = listing.itemAttributes?.accountStatus
+  if (listingKind(listing) === 'account' && status) return `/assets/${normalizeAccountStatus(status)}-account.png`
+  return gameCover(gameSlug)
 }
 
-function typeLabel(type: ListingType) {
-  return type === ListingType.Service ? 'სერვისი' : type === ListingType.DigitalKey ? 'გასაღები' : 'ნივთი'
+function typeLabel(listing: PublicListingSummary) {
+  const kind = listingKind(listing)
+  return kind === 'account' ? 'ანგარიში' : kind === 'skin' ? 'სკინი' : kind === 'key' ? 'გასაღები' : 'სერვისი'
 }
 
 // Earned labels only (docs/design-mockups/15): the most-booked coach among those shown, a plan
@@ -253,7 +261,7 @@ export default function Home() {
             <Link href={href}>{listing.title}</Link>
           </h3>
           <p>
-            {listing.game?.name ?? 'Marketplace'} / {typeLabel(listing.type)}
+            {listing.game?.name ?? 'Marketplace'} / {typeLabel(listing)}
           </p>
           <footer>
             <strong>{listingPrice(listing)} GEL</strong>
@@ -752,7 +760,7 @@ export default function Home() {
                   {image ? '' : (listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
                 </span>
                 <strong>{listing.title}</strong>
-                <small>{typeLabel(listing.type)}</small>
+                <small>{typeLabel(listing)}</small>
                 <b>{listingPrice(listing)} GEL</b>
               </Link>
             )

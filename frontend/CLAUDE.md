@@ -75,6 +75,16 @@ section wins.
   (`ProductCard`), so a mixed grid stays symmetrical (the plain card appeared only beside
   showcase cards on the prototype's own account/skin-only mock data); hover/focus feedback and a
   clickable cover are app additions at the end of `global.css`.
+- **Grid parity check (2026-09-26)**: with reference listings loaded into the prototype's
+  `wavehub.sellerListings`, the marketplace grid and every home grid measure identical to ours
+  at 1440/1180/1000/800/600/375 (columns, gaps, card/cover/footer heights, fonts). Differences
+  kept on purpose: rarity border colours follow each real listing; the prototype's home grid is
+  40px wider than its padded panel at ≤800px (it overflows; ours fits). Prototype layout bugs
+  fixed at the end of `global.css` (don't "restore" them): the home Coaching & Tournaments panels
+  at 921–1250px (the tournament panel fell into a hidden 150px bridge column; now stacked), the
+  footer's last column cut off at 1041–1400px, and the phone home topbar sized `100vw` inside an
+  8px-padded panel. Home featured items use the prototype's image order: own photo → account
+  rarity art (`<status>-account.png`) → game cover.
 - **Support (`pages/support/*`, `lib/support.tsx`, `sp-` CSS)**: no prototype page; dark cards,
   category chip grid (no native `<select>`), ticket list, chat-style thread. A global rule now
   gives native `<select>` option lists a dark background (they were white-on-white).

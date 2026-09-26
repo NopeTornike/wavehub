@@ -19326,3 +19326,30 @@ select option, select optgroup { background: #0e0c1e; color: #eef0f6; }
 @media (max-width: 420px) {
   .topbar .top-actions .seller-button { font-size: 10.5px; padding-inline: 8px; }
 }
+
+/* Home "Coaching & Tournaments" at 921–1250px: the prototype's ≤1250px rule still sets its old
+   3-column template (panel | 150px bridge | panel) although a later rule hides the bridge, so the
+   tournament panel fell into the 150px slot and the coach cards squeezed to ~116px (the prototype
+   has the same bug). Stack the panels in that range, as it already does at ≤920px. */
+@media (max-width: 1250px) {
+  .home-competition-section .competition-showcase { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .home-competition-section .competition-panel { height: auto; }
+}
+
+/* Footer: the four columns carry hard minimums (280/180/240/260px + a 6vw gap) that don't fit
+   between the 2-column breakpoint (1040px) and ~1400px — the last column was cut off at 1180px
+   (also on the prototype). Let the columns shrink in that band; wider screens are unchanged. */
+@media (min-width: 1041px) and (max-width: 1400px) {
+  .site-footer-main { grid-template-columns: minmax(0, 1.22fr) minmax(0, .72fr) minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 3.2vw, 56px); padding-inline: clamp(24px, 3vw, 48px); }
+}
+
+/* Home topbar on phones: the search column's 96px minimum pushed the bar ~12px past the
+   viewport (prototype too); let the search box shrink instead. */
+@media (max-width: 620px) {
+  .home-page .topbar { min-width: 0; grid-template-columns: 34px minmax(0, 1fr) 40px auto; }
+}
+/* The prototype sizes the phone home topbar as `width: 100vw` although it sits inside the
+   panel's 8px padding, so it always overhung the right edge. Fill the padded panel instead. */
+@media (max-width: 720px) {
+  .home-page .global-topbar { width: auto; max-width: 100%; }
+}
