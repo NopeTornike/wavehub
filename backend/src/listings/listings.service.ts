@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { ListingFavorite } from './listing-favorite.entity';
 import { KeyInventoryStatus, ListingStatus, ListingType } from '@wavehub/shared-types';
-import type { AdminListingSummary, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
+import type { AdminListingSummary, ListingForEdit, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { Listing } from './listing.entity';
 import { ListingImage } from './listing-image.entity';
@@ -74,6 +74,13 @@ export class ListingsService {
       throw new ForbiddenException('You must confirm you have the legal right to resell these keys');
     }
 
+    if (dto.type === ListingType.Service) {
+      await this.assertServiceCategory(dto.categoryId);
+      assertRequirementsSchema(dto.requirementsSchema ?? []);
+    } else if (dto.requirementsSchema?.length || dto.faq?.length) {
+      throw new ForbiddenException('Only service listings have requirements and FAQ');
+    }
+
     const listing = this.listings.create({
       sellerId,
       categoryId: dto.categoryId,
@@ -94,7 +101,7 @@ export class ListingsService {
         this.serviceDetails.create({
           listingId: saved.id,
           requirementsSchema: dto.requirementsSchema ?? [],
-          faq: [],
+          faq: dto.faq ?? [],
         }),
       );
     } else if (dto.type === ListingType.Item || dto.type === ListingType.DigitalKey) {
@@ -120,6 +127,45 @@ export class ListingsService {
     const details = ids.length ? await this.itemDetails.find({ where: { listingId: In(ids) }, select: ['listingId', 'attributes'] }) : [];
     const byId = new Map(details.map((d) => [d.listingId, d.attributes]));
     return rows.map((row) => Object.assign(row, { itemAttributes: row.type === ListingType.Service ? null : (byId.get(row.id) ?? {}) }));
+  }
+
+  // The seller's own listing in any status, everything needed to edit it (GET listings/mine/:id).
+  async findOwnedForEdit(sellerId: string, listingId: string): Promise<ListingForEdit> {
+    const listing = await this.getOwnedListing(sellerId, listingId);
+    return this.toListingForEdit(listing.id);
+  }
+
+  // A moderator's preview of any listing before deciding (GET admin/listings/:id).
+  findForReview(listingId: string): Promise<ListingForEdit> {
+    return this.toListingForEdit(listingId);
+  }
+
+  private async toListingForEdit(listingId: string): Promise<ListingForEdit> {
+    const listing = await this.listings.findOne({ where: { id: listingId }, relations: ['seller', 'category', 'game', 'images'] });
+    if (!listing) throw new NotFoundException('Listing not found');
+    const [packages, service, item] = await Promise.all([
+      this.packages.find({ where: { listingId }, order: { sortOrder: 'ASC' } }),
+      listing.type === ListingType.Service ? this.serviceDetails.findOne({ where: { listingId } }) : null,
+      listing.type !== ListingType.Service ? this.itemDetails.findOne({ where: { listingId } }) : null,
+    ]);
+    return {
+      id: listing.id,
+      type: listing.type,
+      status: listing.status,
+      title: listing.title,
+      description: listing.description,
+      rejectionReason: listing.rejectionReason ?? null,
+      priceWaveCoin: listing.priceWaveCoin,
+      category: { id: listing.category.id, name: listing.category.name, slug: listing.category.slug },
+      game: listing.game ? { id: listing.game.id, name: listing.game.name, slug: listing.game.slug, iconUrl: listing.game.iconUrl } : null,
+      sellerUsername: listing.seller.username,
+      images: [...(listing.images ?? [])].sort((a, b) => a.sortOrder - b.sortOrder).map((img) => ({ id: img.id, url: img.url, sortOrder: img.sortOrder })),
+      packages: packages.map((p) => ({ id: p.id, name: p.name, priceWaveCoin: p.priceWaveCoin, deliveryTimeDays: p.deliveryTimeDays, features: p.features ?? [], revisionsIncluded: p.revisionsIncluded })),
+      requirementsSchema: service?.requirementsSchema ?? [],
+      faq: service?.faq ?? [],
+      itemAttributes: item?.attributes ?? null,
+      createdAt: listing.createdAt.toISOString(),
+    };
   }
 
   async removeImage(sellerId: string, listingId: string, imageId: string): Promise<{ ok: true }> {
@@ -434,11 +480,19 @@ export class ListingsService {
     return { ...listing, seller: toPublicSeller(listing.seller), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount, sellerCompletedOrders };
   }
 
+  // Packages are what a buyer pays for, so changing them on a live (Active/Paused) service sends it
+  // back to review exactly like any other edit (see #update); mid-review changes are refused.
   async addPackage(sellerId: string, listingId: string, dto: CreatePackageDto): Promise<Package> {
     const listing = await this.getOwnedListing(sellerId, listingId);
     if (listing.type !== ListingType.Service) {
       throw new ForbiddenException('Only service listings have packages');
     }
+    this.assertPackagesEditable(listing);
+    const existing = await this.packages.count({ where: { listingId } });
+    if (existing >= MAX_PACKAGES) {
+      throw new ConflictException(`A service can have at most ${MAX_PACKAGES} packages`);
+    }
+    await this.backToReviewIfLive(listing);
 
     const pkg = this.packages.create({
       listingId,
@@ -447,15 +501,39 @@ export class ListingsService {
       deliveryTimeDays: dto.deliveryTimeDays,
       features: dto.features ?? [],
       revisionsIncluded: dto.revisionsIncluded ?? 0,
+      sortOrder: existing,
     });
     return this.packages.save(pkg);
   }
 
   async removePackage(sellerId: string, listingId: string, packageId: string): Promise<void> {
-    await this.getOwnedListing(sellerId, listingId);
+    const listing = await this.getOwnedListing(sellerId, listingId);
+    this.assertPackagesEditable(listing);
     const result = await this.packages.delete({ id: packageId, listingId });
     if (!result.affected) {
       throw new NotFoundException('Package not found');
+    }
+    await this.backToReviewIfLive(listing);
+  }
+
+  private assertPackagesEditable(listing: Listing) {
+    if (listing.status === ListingStatus.PendingReview) {
+      throw new ConflictException('This listing is waiting for review — edit it after the decision');
+    }
+  }
+
+  private async backToReviewIfLive(listing: Listing) {
+    if (listing.status === ListingStatus.Active || listing.status === ListingStatus.Paused) {
+      assertValidTransition(listing.status, ListingStatus.PendingReview);
+      listing.status = ListingStatus.PendingReview;
+      await this.listings.save(listing);
+    }
+  }
+
+  private async assertServiceCategory(categoryId: string) {
+    const category = await this.categories.findOne({ where: { id: categoryId, isActive: true } });
+    if (!category || (category.type !== 'service' && category.type !== 'both')) {
+      throw new ForbiddenException('Choose a service category for a service listing');
     }
   }
 
@@ -497,6 +575,10 @@ export class ListingsService {
     if (dto.attributes !== undefined && listing.type === ListingType.Service) {
       throw new ForbiddenException('Only item and key listings have attributes');
     }
+    if ((dto.requirementsSchema !== undefined || dto.faq !== undefined) && listing.type !== ListingType.Service) {
+      throw new ForbiddenException('Only service listings have requirements and FAQ');
+    }
+    if (dto.requirementsSchema !== undefined) assertRequirementsSchema(dto.requirementsSchema);
     assertCompareAtPrice(dto.attributes, dto.priceWaveCoin ?? listing.priceWaveCoin);
     if (dto.title !== undefined) listing.title = dto.title;
     if (dto.description !== undefined) listing.description = dto.description;
@@ -506,6 +588,13 @@ export class ListingsService {
       listing.status = ListingStatus.PendingReview;
     }
     const saved = await this.listings.save(listing);
+    if (dto.requirementsSchema !== undefined || dto.faq !== undefined) {
+      const patch: Partial<ServiceDetails> = {};
+      if (dto.requirementsSchema !== undefined) patch.requirementsSchema = dto.requirementsSchema;
+      if (dto.faq !== undefined) patch.faq = dto.faq;
+      const updated = await this.serviceDetails.update({ listingId }, patch);
+      if (!updated.affected) await this.serviceDetails.save(this.serviceDetails.create({ listingId, requirementsSchema: [], faq: [], ...patch }));
+    }
     if (dto.attributes !== undefined) {
       // Key listings created before they carried attributes have no details row yet.
       const updated = await this.itemDetails.update({ listingId }, { attributes: dto.attributes });
@@ -539,6 +628,9 @@ export class ListingsService {
   async submitForReview(sellerId: string, listingId: string): Promise<Listing> {
     const listing = await this.getOwnedListing(sellerId, listingId);
     assertValidTransition(listing.status, ListingStatus.PendingReview);
+    if (listing.type === ListingType.Service && (await this.packages.count({ where: { listingId } })) === 0) {
+      throw new ConflictException('Add at least one package before submitting a service for review');
+    }
     listing.status = ListingStatus.PendingReview;
     listing.rejectionReason = null;
     return this.listings.save(listing);
@@ -654,5 +746,20 @@ function assertCompareAtPrice(attributes: Record<string, unknown> | undefined, p
   if (compareAt === undefined || compareAt === null || compareAt === '') return;
   if (typeof compareAt !== 'number' || !Number.isInteger(compareAt) || !price || compareAt <= price) {
     throw new BadRequestException('The original price must be a whole number above the current price');
+  }
+}
+
+const MAX_PACKAGES = 5;
+
+// Requirement keys identify the buyer's answers (orders/requirements-validator.ts), so they must be
+// unique; a dropdown needs something to pick.
+function assertRequirementsSchema(fields: Array<{ key: string; type: string; options?: string[] }>) {
+  const keys = new Set<string>();
+  for (const field of fields) {
+    if (keys.has(field.key)) throw new ForbiddenException(`Duplicate requirement key "${field.key}"`);
+    keys.add(field.key);
+    if (field.type === 'dropdown' && !field.options?.length) {
+      throw new ForbiddenException('A dropdown requirement needs at least one option');
+    }
   }
 }

@@ -108,7 +108,15 @@ export default function MyListings({
           {shown.map((listing) => (
             <RecordCard
               key={listing.id}
-              href={listing.status === ListingStatus.Active ? `/listings/${listing.id}` : listing.type === ListingType.DigitalKey ? `/sell/digital-keys/${listing.id}` : '/profile'}
+              href={
+                listing.status === ListingStatus.Active
+                  ? `/listings/${listing.id}`
+                  : listing.type === ListingType.DigitalKey
+                    ? `/sell/digital-keys/${listing.id}`
+                    : listing.type === ListingType.Service
+                      ? `/sell/services/${listing.id}`
+                      : '/profile'
+              }
               image={gameCover(listing.game?.slug, listing.images?.[0]?.url ?? null)}
               fallback={(listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
               title={listing.title}
@@ -116,7 +124,12 @@ export default function MyListings({
               footer={`${listing.priceWaveCoin ?? '—'} GEL / ${formatDate(listing.createdAt)}${listing.rejectionReason ? ` / ${listing.rejectionReason}` : ''}`}
               actions={
                 <>
-                  {listing.status !== ListingStatus.PendingReview && (
+                  {listing.type === ListingType.Service && (
+                    <Link className="profile-record-action" href={`/sell/services/${listing.id}`}>
+                      Manage
+                    </Link>
+                  )}
+                  {listing.status !== ListingStatus.PendingReview && listing.type !== ListingType.Service && (
                     <button
                       className="profile-record-action"
                       type="button"

@@ -62,6 +62,22 @@ export class ListingsController {
     return this.listings.findMine(sellerId);
   }
 
+  // The seller's own listing in any status (draft/rejected/in review included), for editing.
+  @Get('listings/mine/:id')
+  @UseGuards(AuthGuard)
+  findMineById(@CurrentUserId() sellerId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.listings.findOwnedForEdit(sellerId, id);
+  }
+
+  // Moderator preview of any listing (description, packages, requirements, FAQ, photos) before
+  // approving or rejecting it — the public GET listings/:id only serves active listings.
+  @Get('admin/listings/:id')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  findForReview(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listings.findForReview(id);
+  }
+
   // Admin-only — the approval queue. MUST stay registered before `listings/:id` below: Express
   // matches routes in registration order, and `:id` would otherwise swallow this path treating
   // "pending-review" as an id.

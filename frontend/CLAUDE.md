@@ -92,6 +92,11 @@ section wins.
 - **Auth pages**: copy is Georgian source like every other page (it used to be the prototype's
   English verbatim, so KA mode showed English) and they carry the floating EN/ქა switcher
   (`<LanguageSwitcher floating />`), as the prototype's site-footer.js adds on auth.html.
+- **Selling services** (`pages/sell/services/*`, `components/ServiceEditors.tsx`, `sv-` CSS):
+  create a service (category, game, title, description, buyer questions, FAQ), then packages,
+  photos, submit; reachable from the profile menu ("ჩემი სერვისები"), the Become-a-seller modal and
+  the My Listings panel ("Manage"). Admin → Listings has a Details expander (`al-` CSS) showing the
+  full listing before approval. See `backend/src/listings/CLAUDE.md` for the rules.
 - **Admin → Games** (`pages/admin/games.tsx`, `ag-` CSS): add/rename/hide/reorder games and
   upload their home tile, cover and icon. `lib/games.ts` helpers (`gameCover`/`gameTile`/
   `gameIcon`) prefer uploaded art (registered from `/stats/games` by `lib/shell.tsx`) over the

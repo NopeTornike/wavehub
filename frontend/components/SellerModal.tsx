@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { ItemAttributes, PublicCategory } from '@wavehub/shared-types'
@@ -226,6 +227,9 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
           <div>
             <p className="section-kicker">განცხადების შექმნა</p>
             <h2 id="sellerModalTitle">Sell Your Game Account or Skin</h2>
+            <p className="seller-modal-alt">
+              <span>სერვისს ყიდით (რანკის აწევა, დუო თამაში…)?</span> <Link href="/sell/services">სერვისის გაყიდვა →</Link>
+            </p>
           </div>
           <button className="seller-close-button" id="sellerCloseButton" type="button" aria-label="Close seller form" onClick={onClose}>
             x

@@ -1,5 +1,9 @@
 import type {
   AdminGame,
+  FaqEntry,
+  ListingForEdit,
+  PublicPackage,
+  RequirementField,
   AuthMeResponse,
   GameImageKind,
   GameListingCount,
@@ -400,9 +404,30 @@ export const api = {
       body: JSON.stringify({ ...payload, type: 'item', isUnique: true, stockQuantity: 1 }),
     }),
 
+  // --- Service listings --- (pages/sell/services/*): priced by 1–5 packages; the buyer answers
+  // `requirementsSchema` when ordering. Editing a live service (incl. packages) re-queues review.
+  createServiceListing: (payload: {
+    categoryId: string
+    gameId?: string
+    title: string
+    description: string
+    requirementsSchema: RequirementField[]
+    faq: FaqEntry[]
+  }) => request<MyListing>('/listings', { method: 'POST', body: JSON.stringify({ ...payload, type: 'service' }) }),
+  getMyListing: (id: string) => request<ListingForEdit>(`/listings/mine/${id}`),
+  adminGetListing: (id: string) => request<ListingForEdit>(`/admin/listings/${id}`),
+  addListingPackage: (
+    id: string,
+    payload: { name: string; priceWaveCoin: number; deliveryTimeDays: number; features: string[]; revisionsIncluded: number },
+  ) => request<PublicPackage>(`/listings/${id}/packages`, { method: 'POST', body: JSON.stringify(payload) }),
+  removeListingPackage: (id: string, packageId: string) => request<void>(`/listings/${id}/packages/${packageId}`, { method: 'DELETE' }),
+
   // Seller edit/delete of their own listing. Editing a live listing sends it back to review;
   // delete only works for a listing that was never ordered (409 otherwise — pause it instead).
-  updateListing: (id: string, payload: { title?: string; description?: string; priceWaveCoin?: number; attributes?: ItemAttributes }) =>
+  updateListing: (
+    id: string,
+    payload: { title?: string; description?: string; priceWaveCoin?: number; attributes?: ItemAttributes; requirementsSchema?: RequirementField[]; faq?: FaqEntry[] },
+  ) =>
     request<MyListing>(`/listings/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
   deleteListing: (id: string) => request<void>(`/listings/${id}`, { method: 'DELETE' }),

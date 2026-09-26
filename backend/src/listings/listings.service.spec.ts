@@ -38,6 +38,8 @@ describe('ListingsService.createDraft', () => {
     const keyInventory = createFakeRepo();
     const packages = createFakeRepo();
     const categories = createFakeRepo();
+    categories.rows.set('cat-1', { id: 'cat-1', type: 'service', isActive: true });
+    categories.rows.set('cat-item', { id: 'cat-item', type: 'item', isActive: true });
     const games = createFakeRepo();
     const storage = { save: jest.fn() };
 
@@ -107,6 +109,35 @@ describe('ListingsService.createDraft', () => {
     expect(listing.priceWaveCoin).toBeNull();
     expect(serviceDetails.save).toHaveBeenCalledTimes(1);
     expect(itemDetails.save).not.toHaveBeenCalled();
+  });
+
+  it('refuses a service in an item category, duplicate requirement keys and an empty dropdown', async () => {
+    const { service } = build();
+    const base = { type: ListingType.Service, title: 'A valid title here', description: 'A'.repeat(60) };
+    await expect(service.createDraft(sellerId, { ...base, categoryId: 'cat-item' } as any)).rejects.toThrow(/service category/);
+    await expect(
+      service.createDraft(sellerId, {
+        ...base,
+        categoryId: 'cat-1',
+        requirementsSchema: [
+          { key: 'rank', label: 'Rank', type: 'text', required: true },
+          { key: 'rank', label: 'Rank again', type: 'text', required: false },
+        ],
+      } as any),
+    ).rejects.toThrow(/Duplicate requirement key/);
+    await expect(
+      service.createDraft(sellerId, { ...base, categoryId: 'cat-1', requirementsSchema: [{ key: 'server', label: 'Server', type: 'dropdown', required: true }] } as any),
+    ).rejects.toThrow(/dropdown/);
+  });
+
+  it('refuses requirements/FAQ on a non-service listing', async () => {
+    const { service } = build();
+    await expect(
+      service.createDraft(sellerId, {
+        type: ListingType.Item, categoryId: 'cat-item', title: 'A valid title here', description: 'A'.repeat(60), priceWaveCoin: 10,
+        faq: [{ q: 'Question?', a: 'Answer.' }],
+      } as any),
+    ).rejects.toThrow(/Only service listings/);
   });
 
   it('rejects a digital key listing with no priceWaveCoin', async () => {

@@ -29,6 +29,7 @@ function initials(firstName?: string, lastName?: string, username?: string) {
 }
 
 const ICONS = {
+  services: 'M4 8h16v11H4z|M9 8V5h6v3|M4 13h16',
   orders: 'm4 7 8-4 8 4-8 4-8-4Z|M4 7v10l8 4 8-4V7M12 11v10',
   favorites: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.5 5.5 0 0 0 0-7.8Z',
   support: 'M4 13v-2a8 8 0 0 1 16 0v2|M4 12H2v5a2 2 0 0 0 2 2h2v-7H4Zm16 0h2v5a2 2 0 0 1-2 2h-2v-7h2ZM18 19c0 2-2 2-4 2',
@@ -287,6 +288,11 @@ export default function Topbar({
                 <Link href={signedIn ? '/orders' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.orders} />
                   <span>ჩემი შეკვეთები</span>
+                  <i aria-hidden="true">›</i>
+                </Link>
+                <Link href={signedIn ? '/sell/services' : loginHref} onClick={closeMenu}>
+                  <MenuIcon paths={ICONS.services} />
+                  <span>ჩემი სერვისები</span>
                   <i aria-hidden="true">›</i>
                 </Link>
                 <Link id="profileFavoritesLink" href="/favorites" onClick={closeMenu}>

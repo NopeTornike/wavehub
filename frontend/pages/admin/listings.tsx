@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AdminListingSummary } from '@wavehub/shared-types'
+import type { AdminListingSummary, ListingForEdit } from '@wavehub/shared-types'
 import { ListingType } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
@@ -15,6 +15,23 @@ export default function AdminListings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Full content of the listing being reviewed (GET admin/listings/:id), keyed by id.
+  const [previews, setPreviews] = useState<Record<string, ListingForEdit | 'loading'>>({})
+
+  const togglePreview = async (id: string) => {
+    if (previews[id]) {
+      setPreviews(({ [id]: _closed, ...rest }) => rest)
+      return
+    }
+    setPreviews((p) => ({ ...p, [id]: 'loading' }))
+    try {
+      const data = await api.adminGetListing(id)
+      setPreviews((p) => ({ ...p, [id]: data }))
+    } catch (err) {
+      setPreviews(({ [id]: _failed, ...rest }) => rest)
+      setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -86,6 +103,9 @@ export default function AdminListings() {
                 </span>
               </div>
               <div className="admin-row-actions">
+                <button type="button" className="button ghost" aria-expanded={Boolean(previews[item.id])} onClick={() => void togglePreview(item.id)}>
+                  {previews[item.id] ? 'დახურვა' : 'დეტალები'}
+                </button>
                 <button
                   type="button"
                   className="button"
@@ -103,10 +123,85 @@ export default function AdminListings() {
                   უარყოფა
                 </button>
               </div>
+              {previews[item.id] && <ListingPreview data={previews[item.id]} />}
             </div>
           ))}
         </div>
       )}
     </AdminLayout>
+  )
+}
+
+// What the moderator checks before approving: the full text, photos, and for a service its
+// packages, buyer questions and FAQ; for items/keys the price and seller-entered facts.
+function ListingPreview({ data }: { data: ListingForEdit | 'loading' }) {
+  if (data === 'loading') return <div className="al-preview">იტვირთება…</div>
+  return (
+    <div className="al-preview">
+      {data.images.length > 0 && (
+        <div className="al-photos">
+          {data.images.map((img) => (
+            <a key={img.id} href={img.url} target="_blank" rel="noreferrer noopener" style={{ backgroundImage: `url("${img.url}")` }} aria-label="ფოტო" />
+          ))}
+        </div>
+      )}
+      <p className="al-description">{data.description}</p>
+      {data.priceWaveCoin !== null && (
+        <p>
+          <span>ფასი:</span> <b>{data.priceWaveCoin} GEL</b>
+        </p>
+      )}
+      {data.packages.length > 0 && (
+        <div>
+          <h4>პაკეტები</h4>
+          <ul>
+            {data.packages.map((p) => (
+              <li key={p.id}>
+                <b>{p.name}</b> — {p.priceWaveCoin} GEL · {p.deliveryTimeDays} <span>დღე</span> · {p.revisionsIncluded} <span>რევიზია</span>
+                {p.features.length > 0 && <small> · {p.features.join(', ')}</small>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {data.requirementsSchema.length > 0 && (
+        <div>
+          <h4>კითხვები მყიდველისთვის</h4>
+          <ul>
+            {data.requirementsSchema.map((f) => (
+              <li key={f.key}>
+                {f.label}
+                {f.required ? ' *' : ''}
+                {f.options?.length ? <small> ({f.options.join(', ')})</small> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {data.faq.length > 0 && (
+        <div>
+          <h4>FAQ</h4>
+          <ul>
+            {data.faq.map((e, i) => (
+              <li key={i}>
+                <b>{e.q}</b> — {e.a}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {data.itemAttributes && Object.keys(data.itemAttributes).length > 0 && (
+        <div>
+          <h4>დეტალები</h4>
+          <ul>
+            {Object.entries(data.itemAttributes).map(([k, v]) => (
+              <li key={k}>
+                <code>{k}</code>: {String(v)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }

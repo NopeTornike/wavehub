@@ -368,6 +368,27 @@ export interface FaqEntry {
   a: string;
 }
 
+// GET listings/mine/:id (the seller, any status) and GET admin/listings/:id (moderator preview):
+// everything needed to edit or review a listing. Never carries seller PII beyond the username.
+export interface ListingForEdit {
+  id: string;
+  type: ListingType;
+  status: ListingStatus;
+  title: string;
+  description: string;
+  rejectionReason: string | null;
+  priceWaveCoin: number | null;
+  category: { id: string; name: string; slug: string };
+  game: PublicGame | null;
+  sellerUsername: string;
+  images: PublicListingImage[];
+  packages: PublicPackage[];
+  requirementsSchema: RequirementField[];
+  faq: FaqEntry[];
+  itemAttributes: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 // What ListingsService#findPublicById returns — a PublicListingSummary plus the fuller detail-page
 // fields (description, packages, type-specific extras).
 export interface PublicListingDetail extends PublicListingSummary {

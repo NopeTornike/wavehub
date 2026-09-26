@@ -261,3 +261,20 @@ Added while porting the prototype's marketplace/seller flow 1:1 (commits `fee10d
 - Migration `1784357000000-GameArtwork` adds `coverUrl`/`tileUrl`. `GET /games` and
   `GET /stats/games` return the art; the frontend registers it (`lib/games.ts#registerGameArt`)
   and prefers uploads over the bundled `/assets` art. e2e: `test/games.e2e-spec.ts`.
+
+## 2026-09-26 Service listings become sellable from the site
+- Frontend: `pages/sell/services/{index,[id]}.tsx` (+ `components/ServiceEditors.tsx`). Step 1 creates
+  the draft (service category only, optional game, title, description, buyer questions, FAQ); step 2
+  adds 1–5 packages and photos, then submits.
+- Rules added in `listings.service.ts`: a service must use a `service`/`both` category; requirement
+  keys unique and dropdowns non-empty; requirements/FAQ are service-only (create and PATCH);
+  **max 5 packages**, kept in the order added (`sortOrder`); **package add/remove on an
+  Active/Paused service sends it back to review** and is refused while it's in review; **a service
+  can't be submitted with no packages** (409). DTO bounds: ≤10 questions (key `[a-z0-9_]{1,40}`,
+  label ≤80, ≤20 dropdown options ≤60), ≤10 FAQ (q 3–200, a 3–1000), package price ≤100000,
+  delivery 1–90 days, ≤8 features ≤100 chars, ≤20 revisions.
+- `GET listings/mine/:id` (owner, any status) and `GET admin/listings/:id` (moderator preview,
+  Marketplace Ops role) return `ListingForEdit` — full text, photos, packages, questions, FAQ,
+  item attributes, seller username only (no PII). Admin → Listings has a "Details" expander.
+- e2e: `test/services.e2e-spec.ts` (validation, package cap/order, submit gate, owner/stranger/admin
+  views, approval, purchase with requirement answers, re-review on live edits).

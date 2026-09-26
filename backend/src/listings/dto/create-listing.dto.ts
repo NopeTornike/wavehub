@@ -1,13 +1,17 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Length, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Min, ValidateNested } from 'class-validator';
 import { IsItemAttributes } from './item-attributes.validator';
 import { ListingType } from '@wavehub/shared-types';
 
+// A question the buyer answers when ordering a service (validated at order time by
+// orders/requirements-validator.ts). Bounded so a listing can't carry an unbounded form.
 export class RequirementFieldDto {
   @IsString()
+  @Matches(/^[a-z0-9_]{1,40}$/, { message: 'requirement key must be 1–40 lowercase letters, digits or _' })
   key: string;
 
   @IsString()
+  @Length(1, 80)
   label: string;
 
   @IsIn(['text', 'dropdown', 'number', 'textarea'])
@@ -18,8 +22,20 @@ export class RequirementFieldDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(20)
   @IsString({ each: true })
+  @Length(1, 60, { each: true })
   options?: string[];
+}
+
+export class FaqEntryDto {
+  @IsString()
+  @Length(3, 200)
+  q: string;
+
+  @IsString()
+  @Length(3, 1000)
+  a: string;
 }
 
 // Cross-field rules (item listings need priceWaveCoin, service listings need requirementsSchema,
@@ -75,7 +91,16 @@ export class CreateListingDto {
   // Service-type only
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(10)
   @ValidateNested({ each: true })
   @Type(() => RequirementFieldDto)
   requirementsSchema?: RequirementFieldDto[];
+
+  // Service-type only
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => FaqEntryDto)
+  faq?: FaqEntryDto[];
 }
