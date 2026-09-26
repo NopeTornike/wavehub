@@ -306,7 +306,7 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
                 </select>
               </label>
               <label>
-                <span>Price (WC) *</span>
+                <span>Price (GEL) *</span>
                 <input id="sellerPrice" type="number" min={1} step={1} placeholder="Enter price" required value={price} onChange={(e) => setPrice(e.target.value)} />
               </label>
               <label className="seller-account-field" hidden={!isAccount}>

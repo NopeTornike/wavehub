@@ -164,7 +164,7 @@ export default function Marketplace() {
           </select>
         </label>
         <label>
-          <span>ფასი (WC)</span>
+          <span>ფასი (GEL)</span>
           <select id="priceSort" value={sort} onChange={(e) => setFilter('sort', e.target.value, 'newest')}>
             <option value="newest">უახლესი</option>
             <option value="oldest">უძველესი</option>
@@ -215,7 +215,7 @@ export default function Marketplace() {
             <img className="cart-icon-image" src="/assets/cart-icon.png" alt="" aria-hidden="true" /> კალათა{' '}
           </span>
           <strong id="cartCount">{cart.count}</strong>
-          <small id="cartTotal">{cart.totalWaveCoin} WC</small>
+          <small id="cartTotal">{cart.totalWaveCoin} GEL</small>
         </Link>
       </footer>
 

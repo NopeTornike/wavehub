@@ -382,7 +382,7 @@ export default function CoachProfile() {
               <div className="coach-starting-price">
                 <span>საათობრივი ფასი</span>
                 <strong>
-                  {coach.hourlyRateWaveCoin} <small>WC/სთ</small>
+                  {coach.hourlyRateWaveCoin} <small>GEL/სთ</small>
                 </strong>
               </div>
               {isOwnProfile ? (
@@ -424,7 +424,7 @@ export default function CoachProfile() {
                   <select value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}>
                     {DURATION_OPTIONS.map((minutes) => (
                       <option key={minutes} value={minutes}>
-                        {minutes} წუთი — {Math.round((coach.hourlyRateWaveCoin * minutes) / 60)} WC
+                        {minutes} წუთი — {Math.round((coach.hourlyRateWaveCoin * minutes) / 60)} GEL
                       </option>
                     ))}
                   </select>
@@ -444,7 +444,7 @@ export default function CoachProfile() {
                   </p>
                 )}
                 <button className="coach-book-primary" type="submit" disabled={booking}>
-                  {booking ? 'იჯავშნება…' : `დადასტურება — ${sessionPrice} WC`}
+                  {booking ? 'იჯავშნება…' : `დადასტურება — ${sessionPrice} GEL`}
                 </button>
               </form>
             )}

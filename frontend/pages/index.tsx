@@ -256,7 +256,7 @@ export default function Home() {
             {listing.game?.name ?? 'Marketplace'} / {typeLabel(listing.type)}
           </p>
           <footer>
-            <strong>{listingPrice(listing)} WC</strong>
+            <strong>{listingPrice(listing)} GEL</strong>
             <Link href={href}>დეტალების ნახვა</Link>
           </footer>
         </div>
@@ -504,7 +504,7 @@ export default function Home() {
                         </ul>
                         <footer>
                           <strong>
-                            {coach.hourlyRateWaveCoin} WC <small>/ საათი</small>
+                            {coach.hourlyRateWaveCoin} GEL <small>/ საათი</small>
                           </strong>
                           <span>სესიის დაჯავშნა →</span>
                         </footer>
@@ -696,13 +696,13 @@ export default function Home() {
                       <span className="home-steam-cart" aria-hidden="true">
                         🛒
                       </span>{' '}
-                      {listingPrice(listing)} WC
+                      {listingPrice(listing)} GEL
                     </strong>
                     <span className="home-steam-mobile-body">
                       <strong className="home-steam-mobile-title">{listing.title}</strong>
                       <span className="home-steam-mobile-description">{listing.game?.name ?? ''}</span>
                       <span className="home-steam-mobile-price-row">
-                        <b>{listingPrice(listing)} WC</b>
+                        <b>{listingPrice(listing)} GEL</b>
                         <i>
                           <span></span>
                           {inStock ? 'მარაგშია' : 'ამოიწურა'}
@@ -753,7 +753,7 @@ export default function Home() {
                 </span>
                 <strong>{listing.title}</strong>
                 <small>{typeLabel(listing.type)}</small>
-                <b>{listingPrice(listing)} WC</b>
+                <b>{listingPrice(listing)} GEL</b>
               </Link>
             )
           })}

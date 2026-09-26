@@ -82,7 +82,7 @@ export default function SteamFactsFields({ facts, onChange }: { facts: SteamFact
           <input maxLength={40} value={facts.language} onChange={set('language')} />
         </label>
         <label className="field">
-          ძველი ფასი (WC) <small>არასავალდებულო; მიმდინარეზე მეტი</small>
+          ძველი ფასი (GEL) <small>არასავალდებულო; მიმდინარეზე მეტი</small>
           <input inputMode="numeric" value={facts.compareAtPrice} onChange={set('compareAtPrice')} />
         </label>
         <label className="field">

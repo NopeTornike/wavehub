@@ -374,11 +374,11 @@ export default function OrderDetail() {
             <p>
               მყიდველი: @{order.buyer.username} · გამყიდველი: @{order.seller.username}
             </p>
-            <p>ფასი: {order.priceWaveCoin} WC</p>
+            <p>ფასი: {order.priceWaveCoin} GEL</p>
             {isSeller && (
               <p className="note">
-                პლატფორმის საკომისიო: {order.platformFeeWaveCoin} WC · თქვენი შემოსავალი:{' '}
-                {order.sellerPayoutWaveCoin} WC
+                პლატფორმის საკომისიო: {order.platformFeeWaveCoin} GEL · თქვენი შემოსავალი:{' '}
+                {order.sellerPayoutWaveCoin} GEL
               </p>
             )}
             {order.deliveryDueAt && (

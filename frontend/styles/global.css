@@ -18350,13 +18350,11 @@ input, select, textarea { min-width: 0; max-width: 100%; }
   width: 100%;
 }
 
-/* The heading + count tile row overflowed the viewport on phones (the tile is a fixed 112px min). */
-.marketplace-head {
-  flex-wrap: wrap;
-}
-
-.marketplace-head > div {
+/* The heading + count tile row overflowed the viewport on phones (the tile is a fixed 112px min):
+   let the heading column shrink (its kicker wraps) so the tile stays beside it, as on the prototype. */
+.marketplace-head > div:first-child {
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .marketplace-head h1 {
@@ -19232,4 +19230,99 @@ body:not(.home-page) .mobile-header-auth { display: none !important; }
   .db-rank { border-left: 0; border-top: 1px solid rgba(255, 255, 255, .1); padding: 14px 0 0; }
   .db-empty-row { grid-template-columns: minmax(0, 1fr); }
   .db-banner { padding: 22px 18px; }
+}
+
+/* Native <select> option lists are drawn by the OS: without these, several dropdowns (support
+   category, admin filters) showed white text on a white list. */
+select { color-scheme: dark; }
+select option, select optgroup { background: #0e0c1e; color: #eef0f6; }
+
+/* Support (pages/support/*), sp- = support. No prototype page exists; this reuses the
+   prototype's dark card + pink accent language. */
+.sp-page { width: min(1180px, 100%); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; color: #eef0f6; }
+.sp-page svg { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sp-kicker { margin: 0 0 6px; color: #ff4fa3; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.sp-head h1 { margin: 0; font-size: clamp(28px, 3vw, 38px); }
+.sp-head p:last-child { margin: 6px 0 0; color: #b9c0d0; font-size: 16px; }
+.sp-back { width: max-content; display: inline-flex; align-items: center; gap: 8px; color: #d9a6ff; font-size: 14px; font-weight: 700; }
+.sp-card { min-width: 0; margin: 0; border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px; background: linear-gradient(160deg, rgba(14, 12, 30, .96), rgba(8, 7, 18, .98)); padding: 20px 22px; }
+.sp-card h2 { margin: 0; font-size: 19px; }
+.sp-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.sp-form { display: grid; gap: 16px; }
+.sp-field { display: grid; gap: 8px; min-width: 0; margin: 0; border: 0; padding: 0; }
+.sp-field > span, .sp-field > legend { padding: 0; margin-bottom: 8px; color: #d6d9e3; font-size: 14px; font-weight: 700; }
+.sp-field > span { margin: 0; }
+.sp-field input, .sp-field textarea, .sp-reply input { width: 100%; min-width: 0; border: 1px solid rgba(120, 130, 170, .28); border-radius: 9px; background: rgba(5, 6, 16, .8); color: #fff; padding: 12px 14px; font: inherit; font-size: 15px; outline: none; }
+.sp-field textarea { resize: vertical; min-height: 130px; }
+.sp-field input:focus, .sp-field textarea:focus, .sp-reply input:focus { border-color: #ff2f8f; box-shadow: 0 0 0 3px rgba(255, 47, 143, .18); }
+.sp-field input::placeholder, .sp-field textarea::placeholder, .sp-reply input::placeholder { color: #7f8699; }
+.sp-categories { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.sp-categories button { min-width: 0; min-height: 76px; display: grid; justify-items: center; align-content: center; gap: 8px; border: 1px solid rgba(120, 130, 170, .25); border-radius: 10px; background: rgba(255, 255, 255, .03); color: #c9cedb; padding: 10px 6px; font: inherit; font-size: 13px; font-weight: 600; text-align: center; cursor: pointer; transition: border-color .15s, background .15s, color .15s; }
+.sp-categories button span { overflow-wrap: anywhere; }
+.sp-categories button svg { color: #ff4fa3; }
+.sp-categories button:hover { border-color: rgba(255, 47, 143, .55); color: #fff; }
+.sp-categories button.active { border-color: #ff2f8f; background: rgba(255, 47, 143, .14); color: #fff; box-shadow: 0 0 18px rgba(255, 47, 143, .18); }
+.sp-primary { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 9px; background: linear-gradient(90deg, #ff1f7a, #d42eaa); color: #fff; padding: 0 28px; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 22px rgba(255, 47, 143, .28); }
+.sp-form .sp-primary { justify-self: start; }
+.sp-primary:disabled { opacity: .55; cursor: not-allowed; }
+.sp-error { margin: 0; border: 1px solid rgba(255, 80, 110, .4); border-radius: 8px; background: rgba(230, 40, 80, .1); color: #ff8da0; padding: 10px 12px; font-size: 14px; }
+.sp-empty { margin: 0; color: #b9c0d0; font-size: 15px; text-align: center; padding: 26px 8px; }
+.sp-tickets { display: grid; gap: 14px; }
+.sp-tickets > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sp-count { border-radius: 999px; background: rgba(255, 47, 143, .14); color: #ff8cc4; padding: 4px 12px; font-size: 13px; font-weight: 800; }
+.sp-ticket-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.sp-ticket { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 12px; align-items: center; border: 1px solid rgba(120, 130, 170, .18); border-radius: 10px; background: rgba(255, 255, 255, .025); color: inherit; padding: 12px 14px; transition: border-color .15s; }
+.sp-ticket:hover { border-color: rgba(255, 47, 143, .5); }
+.sp-ticket-icon { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid rgba(255, 47, 143, .4); border-radius: 10px; background: rgba(255, 47, 143, .08); color: #ff3d9a; }
+.sp-ticket-copy { display: grid; gap: 4px; min-width: 0; }
+.sp-ticket-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; }
+.sp-ticket-copy small { color: #9aa1b3; font-size: 13px; }
+.sp-status { border-radius: 6px; background: rgba(123, 47, 247, .2); color: #d9c2ff; padding: 4px 10px; font-size: 12px; font-style: normal; font-weight: 800; white-space: nowrap; }
+.sp-status.open { background: rgba(40, 170, 90, .18); color: #3fe07c; }
+.sp-status.escalated { background: rgba(255, 170, 40, .16); color: #ffc15c; }
+.sp-status.closed { background: rgba(255, 255, 255, .08); color: #aab0c0; }
+.sp-ticket-head { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+.sp-ticket-head .sp-ticket-icon { width: 52px; height: 52px; }
+.sp-ticket-head h1 { margin: 0; overflow-wrap: anywhere; font-size: clamp(22px, 2.4vw, 30px); }
+.sp-ticket-head p { margin: 4px 0 0; color: #9aa1b3; font-size: 14px; }
+.sp-thread { display: grid; gap: 16px; }
+.sp-messages { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; max-height: 60vh; overflow-y: auto; }
+.sp-messages li { max-width: min(640px, 88%); display: grid; gap: 6px; border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px 12px 12px 4px; background: rgba(255, 255, 255, .04); padding: 12px 14px; }
+.sp-messages li.mine { justify-self: end; border-color: rgba(255, 47, 143, .35); border-radius: 12px 12px 4px 12px; background: rgba(255, 47, 143, .1); }
+.sp-messages small { color: #9aa1b3; font-size: 12px; }
+.sp-messages small b { color: #ff8cc4; }
+.sp-messages p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.5; }
+.sp-reply { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+@media (max-width: 960px) { .sp-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) {
+  .sp-card { padding: 16px; }
+  .sp-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sp-form .sp-primary { justify-self: stretch; }
+  .sp-ticket { grid-template-columns: 42px minmax(0, 1fr); }
+  .sp-ticket .sp-status { grid-column: 2; justify-self: start; }
+  .sp-ticket-head { grid-template-columns: 44px minmax(0, 1fr); }
+  .sp-ticket-head .sp-ticket-icon { width: 44px; height: 44px; }
+  .sp-ticket-head .sp-status { grid-column: 2; justify-self: start; }
+  .sp-reply { grid-template-columns: minmax(0, 1fr); }
+  .sp-messages li { max-width: 100%; }
+}
+
+/* Marketplace showcase cards (components/ProductCard): every listing type uses this one shape so
+   mixed grids stay symmetrical; the prototype gives the card no hover/focus feedback, so add it,
+   and the cover opens the listing like the title does. */
+.marketplace-grid { align-items: stretch; }
+.marketplace-grid > .product-showcase-card { height: 100%; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.marketplace-grid > .product-showcase-card:hover,
+.marketplace-grid > .product-showcase-card:focus-within { transform: translateY(-3px); border-color: rgba(var(--account-neon-rgb), .95); box-shadow: 0 0 0 1px rgba(var(--account-neon-rgb), .3) inset, 0 14px 34px rgba(var(--account-neon-rgb), .22); }
+.product-showcase-cover { cursor: pointer; }
+.product-showcase-price small { font-size: .7em; font-weight: 700; opacity: .8; }
+@media (prefers-reduced-motion: reduce) { .marketplace-grid > .product-showcase-card { transition: none; } .marketplace-grid > .product-showcase-card:hover { transform: none; } }
+
+/* Phone topbar: the seller button's label was centred inside a clipped 94–120px box, cutting off
+   both ends ("ახდი გამყიდველ" — the prototype has the same bug). Let it wrap onto two lines. */
+@media (max-width: 720px) {
+  .topbar .top-actions .seller-button { white-space: normal; text-overflow: clip; line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+}
+@media (max-width: 420px) {
+  .topbar .top-actions .seller-button { font-size: 10.5px; padding-inline: 8px; }
 }

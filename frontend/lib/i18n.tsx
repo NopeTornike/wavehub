@@ -30,10 +30,70 @@ const LanguageContext = createContext<LanguageContextValue>({ language: 'ka', se
 const originalText = new WeakMap<Text, string>()
 const ORIGINAL_ATTR_PREFIX = 'data-i18n-original-'
 
+// Entries whose key contains {0}, {1}… are patterns for text rendered from a template string
+// (e.g. `{0} აქტიური შეკვეთა`): the placeholders match the interpolated values and are carried
+// into the English value.
+const PATTERNS: Array<{ regex: RegExp; english: string; literal: number }> = Object.entries(DICTIONARY)
+  .filter(([key]) => /\{\d\}/.test(key))
+  .map(([key, english]) => ({
+    regex: new RegExp(`^${key.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\?\{(\d)\\?\}/g, '(?<p$1>[\\s\\S]+?)')}$`),
+    english,
+    literal: key.replace(/\{\d\}/g, '').length,
+  }))
+  // Most specific first, so a short generic pattern ("{0} დღე") can't shadow a longer one.
+  .sort((a, b) => b.literal - a.literal)
+
+// Dates are formatted with the `ka-GE` locale, which renders Georgian month/day names.
+const GEORGIAN_DATE_WORDS: Array<[RegExp, string]> = [
+  ['იანვარი', 'January'], ['თებერვალი', 'February'], ['მარტი', 'March'], ['აპრილი', 'April'],
+  ['მაისი', 'May'], ['ივნისი', 'June'], ['ივლისი', 'July'], ['აგვისტო', 'August'],
+  ['სექტემბერი', 'September'], ['ოქტომბერი', 'October'], ['ნოემბერი', 'November'], ['დეკემბერი', 'December'],
+  ['იან\\.?', 'Jan'], ['თებ\\.?', 'Feb'], ['მარ\\.?', 'Mar'], ['აპრ\\.?', 'Apr'], ['მაი\\.?', 'May'],
+  ['ივნ\\.?', 'Jun'], ['ივლ\\.?', 'Jul'], ['აგვ\\.?', 'Aug'], ['სექ\\.?', 'Sep'], ['ოქტ\\.?', 'Oct'],
+  ['ნოე\\.?', 'Nov'], ['დეკ\\.?', 'Dec'],
+  ['ორშაბათი', 'Monday'], ['სამშაბათი', 'Tuesday'], ['ოთხშაბათი', 'Wednesday'], ['ხუთშაბათი', 'Thursday'],
+  ['პარასკევი', 'Friday'], ['შაბათი', 'Saturday'], ['კვირა', 'Sunday'],
+  ['ორშ\\.?', 'Mon'], ['სამ\\.?', 'Tue'], ['ოთხ\\.?', 'Wed'], ['ხუთ\\.?', 'Thu'], ['პარ\\.?', 'Fri'], ['შაბ\\.?', 'Sat'], ['კვი\\.?', 'Sun'],
+].map(([ka, en]) => [new RegExp(`(^|[\\s,])${ka}(?=$|[\\s,])`, 'g'), en] as [RegExp, string])
+const GEORGIAN = /[\u10A0-\u10FF]/
+
+function translateDate(value: string): string | null {
+  if (!/\d/.test(value)) return null
+  let out = value.replace(/(\d)\s*წ\.?/g, '$1')
+  for (const [regex, english] of GEORGIAN_DATE_WORDS) out = out.replace(regex, (_m, lead: string) => `${lead}${english}`)
+  return out !== value && !GEORGIAN.test(out) ? out : null
+}
+
+// Labels joined in code ("მყიდველი / დაგეგმილია", "PUBG Mobile · ანგარიში", "ქოუჩი | WaveHub").
+const SEPARATORS = /( \/ | · | • | \| | — )/
+
+function translateTrimmed(trimmed: string): string | null {
+  const hit = DICTIONARY[trimmed]
+  if (hit) return hit
+  if (!GEORGIAN.test(trimmed)) return null
+  for (const { regex, english } of PATTERNS) {
+    const match = regex.exec(trimmed)
+    if (!match) continue
+    // A placeholder can itself hold a Georgian label (a status, a stage name) — translate it too.
+    return english.replace(/\{(\d)\}/g, (_m, i: string) => {
+      const value = match.groups?.[`p${i}`] ?? ''
+      return (GEORGIAN.test(value) && translateTrimmed(value.trim())) || value
+    })
+  }
+  const date = translateDate(trimmed)
+  if (date) return date
+  const parts = trimmed.split(SEPARATORS)
+  if (parts.length > 1) {
+    const translated = parts.map((part) => (GEORGIAN.test(part) ? translateTrimmed(part.trim()) : part))
+    if (translated.every((part) => part !== null)) return translated.join('')
+  }
+  return null
+}
+
 function translateString(value: string): string | null {
   const trimmed = value.trim()
   if (!trimmed) return null
-  const hit = DICTIONARY[trimmed]
+  const hit = translateTrimmed(trimmed)
   if (!hit) return null
   const leading = value.match(/^\s*/)?.[0] ?? ''
   const trailing = value.match(/\s*$/)?.[0] ?? ''
@@ -61,7 +121,7 @@ function applyToElementAttributes(element: Element, language: Language) {
     if (language === 'en') {
       const value = element.getAttribute(attribute)
       if (!value) continue
-      const translated = DICTIONARY[value.trim()]
+      const translated = translateTrimmed(value.trim())
       if (!translated) continue
       element.setAttribute(stashKey, value)
       element.setAttribute(attribute, translated)
@@ -90,7 +150,7 @@ function applyToSubtree(root: Node, language: Language) {
 function translateTitle(language: Language) {
   const [page, ...rest] = document.title.split(' | ')
   if (language === 'en') {
-    const translated = DICTIONARY[page.trim()]
+    const translated = translateTrimmed(page.trim())
     if (translated) document.title = [translated, ...rest].join(' | ')
   }
 }

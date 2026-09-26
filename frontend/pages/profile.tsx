@@ -341,7 +341,7 @@ export default function Profile() {
                     fallback="CS"
                     title={asCoach ? `სესია — ${session.buyerUsername}` : `სესია — ${session.coachFirstName} ${session.coachLastName}`}
                     meta={`${asCoach ? 'ქოუჩი' : 'მყიდველი'} / ${SESSION_STATUS_LABELS[session.status]}`}
-                    footer={`${new Date(session.scheduledAt).toLocaleString('ka-GE', { dateStyle: 'medium', timeStyle: 'short' })} / ${session.durationMinutes} წთ / ${session.priceWaveCoin} WC`}
+                    footer={`${new Date(session.scheduledAt).toLocaleString('ka-GE', { dateStyle: 'medium', timeStyle: 'short' })} / ${session.durationMinutes} წთ / ${session.priceWaveCoin} GEL`}
                   />
                 )
               })}
@@ -367,7 +367,7 @@ export default function Profile() {
                   fallback="OR"
                   title={order.listing.title}
                   meta={`#${order.orderNumber} / ${order.seller.username}`}
-                  footer={`${ORDER_STATUS_LABELS[order.status]} / ${formatDate(order.createdAt)} / ${order.priceWaveCoin} WC`}
+                  footer={`${ORDER_STATUS_LABELS[order.status]} / ${formatDate(order.createdAt)} / ${order.priceWaveCoin} GEL`}
                 />
               ))}
             </div>

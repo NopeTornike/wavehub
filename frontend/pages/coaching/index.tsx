@@ -307,7 +307,7 @@ export default function CoachingDirectory() {
 
                     <div className="coach-price-row">
                       <p>
-                        <strong>{coach.hourlyRateWaveCoin} WC/სთ</strong>
+                        <strong>{coach.hourlyRateWaveCoin} GEL/სთ</strong>
                       </p>
                       <Link href={href} aria-label={`სესიის დაჯავშნა — ${name}`}>
                         სესიის დაჯავშნა

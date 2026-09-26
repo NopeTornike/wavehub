@@ -1,28 +1,12 @@
+import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicTicket } from '@wavehub/shared-types'
-import { TicketCategory, TicketStatus } from '@wavehub/shared-types'
+import { TicketStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
-
-const CATEGORY_LABELS: Record<TicketCategory, string> = {
-  [TicketCategory.Payment]: 'გადახდა',
-  [TicketCategory.OrderStatus]: 'შეკვეთის სტატუსი',
-  [TicketCategory.Refund]: 'თანხის დაბრუნება',
-  [TicketCategory.Verification]: 'ვერიფიკაცია',
-  [TicketCategory.Marketplace]: 'მარკეტფლეისი',
-  [TicketCategory.Coaching]: 'კოუჩინგი',
-  [TicketCategory.Technical]: 'ტექნიკური',
-  [TicketCategory.Other]: 'სხვა',
-}
-
-const STATUS_LABELS: Record<TicketStatus, string> = {
-  [TicketStatus.Open]: 'ღიაა',
-  [TicketStatus.InProgress]: 'მუშავდება',
-  [TicketStatus.Escalated]: 'ესკალირებულია',
-  [TicketStatus.Closed]: 'დახურულია',
-}
+import { CategoryIcon, TICKET_CATEGORY_LABELS, TICKET_STATUS_LABELS, formatTicketDate } from '../../lib/support'
 
 export default function SupportTicketDetail() {
   const router = useRouter()
@@ -79,52 +63,59 @@ export default function SupportTicketDetail() {
     }
   }
 
+  const closed = ticket?.status === TicketStatus.Closed
+
   return (
     <Layout title="მხარდაჭერის ბილეთი" noIndex>
-      <div className="detail-page">
+      <div className="sp-page">
+        <Link className="sp-back" href="/support">
+          <span aria-hidden="true">&lt;</span> დახმარება
+        </Link>
         {loading ? (
-          <div className="marketplace-empty">იტვირთება…</div>
+          <p className="sp-card sp-empty">იტვირთება…</p>
         ) : error && !ticket ? (
-          <div className="marketplace-empty">{error}</div>
+          <p className="sp-card sp-empty">{error}</p>
         ) : ticket ? (
           <>
-            <div className="detail-title-block">
-              <p className="section-kicker">დახმარების ბილეთი</p>
-              <h1>{ticket.subject}</h1>
-              <p className="detail-lead">
-                {CATEGORY_LABELS[ticket.category]} ·{' '}
-                <span className={`order-status order-status-${ticket.status}`}>{STATUS_LABELS[ticket.status]}</span>
-              </p>
-            </div>
-
-            {error && <div className="status-text status-error" role="alert">{error}</div>}
-
-            <section className="detail-section detail-reviews-card">
-              <div className="chat-panel">
-                <div className="chat-messages">
-                  {ticket.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`chat-message${message.senderId === me?.id ? ' chat-message-mine' : ''}`}
-                    >
-                      {message.senderId !== me?.id && <strong>@{message.senderUsername} </strong>}
-                      {message.body}
-                    </div>
-                  ))}
-                </div>
-                <form className="chat-form" onSubmit={reply}>
-                  <input
-                    className="input"
-                    placeholder="დაწერეთ პასუხი…"
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    disabled={sending}
-                  />
-                  <button className="button glow-on-hover" type="submit" disabled={sending || !draft.trim()}>
-                    გაგზავნა
-                  </button>
-                </form>
+            <header className="sp-card sp-ticket-head">
+              <span className="sp-ticket-icon">
+                <CategoryIcon category={ticket.category} />
+              </span>
+              <div>
+                <h1>{ticket.subject}</h1>
+                <p>
+                  <span>{TICKET_CATEGORY_LABELS[ticket.category]}</span> · {formatTicketDate(ticket.createdAt)}
+                </p>
               </div>
+              <em className={`sp-status ${ticket.status}`}>{TICKET_STATUS_LABELS[ticket.status]}</em>
+            </header>
+
+            <section className="sp-card sp-thread">
+              <ol className="sp-messages">
+                {ticket.messages.map((message) => {
+                  const mine = message.senderId === me?.id
+                  return (
+                    <li key={message.id} className={mine ? 'mine' : undefined}>
+                      <small>
+                        {mine ? <span>თქვენ</span> : <b>WaveHub · @{message.senderUsername}</b>} · {formatTicketDate(message.createdAt)}
+                      </small>
+                      <p>{message.body}</p>
+                    </li>
+                  )
+                })}
+              </ol>
+              {error && (
+                <p className="sp-error" role="alert">
+                  {error}
+                </p>
+              )}
+              {closed && <p className="sp-empty">ბილეთი დახურულია — პასუხი მას ხელახლა გახსნის.</p>}
+              <form className="sp-reply" onSubmit={reply}>
+                <input placeholder="დაწერეთ პასუხი…" maxLength={5000} value={draft} onChange={(event) => setDraft(event.target.value)} disabled={sending} />
+                <button className="sp-primary" type="submit" disabled={sending || !draft.trim()}>
+                  გაგზავნა
+                </button>
+              </form>
             </section>
           </>
         ) : null}

@@ -131,7 +131,7 @@ export default function CoachingSessionDetail() {
           <h2>დეტალები</h2>
           <p>თარიღი და დრო: {new Date(session.scheduledAt).toLocaleString('ka-GE')}</p>
           <p>ხანგრძლივობა: {session.durationMinutes} წუთი</p>
-          <p>ფასი: {session.priceWaveCoin} WC</p>
+          <p>ფასი: {session.priceWaveCoin} GEL</p>
           <p>
             მწვრთნელი:{' '}
             <Link href={`/u/${session.coachUsername}`}>@{session.coachUsername}</Link>

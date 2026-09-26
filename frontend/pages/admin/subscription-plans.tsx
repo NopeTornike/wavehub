@@ -89,7 +89,7 @@ export default function AdminSubscriptionPlans() {
     if (tier.length < 2 || tier.length > 40) return setFormError('დონე უნდა იყოს 2–40 სიმბოლო.')
     if (name.length < 3 || name.length > 80) return setFormError('სახელი უნდა იყოს 3–80 სიმბოლო.')
     if (description.length < 10 || description.length > 2000) return setFormError('აღწერა უნდა იყოს 10–2000 სიმბოლო.')
-    if (!Number.isInteger(form.priceGel) || form.priceGel < 1) return setFormError('ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 ₾.')
+    if (!Number.isInteger(form.priceGel) || form.priceGel < 1) return setFormError('ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 GEL.')
     if (!Number.isInteger(form.billingPeriodDays) || form.billingPeriodDays < 1) return setFormError('პერიოდი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 დღე.')
     setCreating(true)
     try {
@@ -214,7 +214,7 @@ export default function AdminSubscriptionPlans() {
         </label>
         <div className="stack-form-grid">
           <label className="field">
-            ფასი (₾)
+            ფასი (GEL)
             <input type="number" min={1} step={1} value={form.priceGel} onChange={(e) => setForm({ ...form, priceGel: Number(e.target.value) })} required />
           </label>
           <label className="field">
@@ -264,7 +264,7 @@ export default function AdminSubscriptionPlans() {
                   ({AUDIENCE_LABELS[p.audience]} · {p.tier})
                 </span>
                 <div className="note" style={{ margin: 0 }}>
-                  {p.priceGel} ₾ / {p.billingPeriodDays} დღე · {p.isActive ? 'აქტიური' : 'გამორთული'} · {perkSummary(p.perks)}
+                  {p.priceGel} GEL / {p.billingPeriodDays} დღე · {p.isActive ? 'აქტიური' : 'გამორთული'} · {perkSummary(p.perks)}
                 </div>
               </div>
               <div className="admin-row-actions">

@@ -61,6 +61,24 @@ section wins.
   featured-tournament cover (the prototype hard-coded "WAVE CUP"). **Public profile (12)**:
   `pages/u/[username].tsx` (`up-` CSS), fields editable in Settings. A global `[hidden] { display:
   none !important }` now guarantees the hidden attribute wins over prototype `display` rules.
+- **Currency display (owner decision, 2026-09-26)**: product/service/order/session/cart prices and
+  coach rates show **GEL**; only wallet balances (topbar, wallet page, dashboard wallet card,
+  "your balance is …" notices, withdrawals) stay **WC** — exactly the prototype's split (its wallet
+  says "1 WaveCoin = 1 GEL", the backend's fixed top-up rate). Don't print both on one price.
+- **English mode (`lib/i18n.tsx`)**: every Georgian string the app renders must have an entry in
+  `lib/i18n-ka-en.app.json` or it stays Georgian in EN mode (the 2026-09-26 sweep added ~1,100
+  that had been missed, incl. `.verify-banner` and `.home-cta`). Text built from a template string
+  is one text node — add it as a pattern key with `{0}`, `{1}`… placeholders
+  (`"{0} აქტიური შეკვეთა": "{0} active orders"`). `ka-GE` dates are translated by a month/day-name
+  fallback. JSX text split around `{expr}` is several nodes — add each Georgian piece separately.
+- **Marketplace cards**: every listing type renders the prototype's showcase card
+  (`ProductCard`), so a mixed grid stays symmetrical (the plain card appeared only beside
+  showcase cards on the prototype's own account/skin-only mock data); hover/focus feedback and a
+  clickable cover are app additions at the end of `global.css`.
+- **Support (`pages/support/*`, `lib/support.tsx`, `sp-` CSS)**: no prototype page; dark cards,
+  category chip grid (no native `<select>`), ticket list, chat-style thread. A global rule now
+  gives native `<select>` option lists a dark background (they were white-on-white).
+- **Favicon**: the prototype's `public/assets/favicon.png` (`_document.tsx`).
 - **Dashboard (09)**: `pages/dashboard.tsx` (`db-` CSS), signed-in only, added to `Sidebar` after
   Home only when logged in. Every number is the viewer's own data from existing endpoints: next
   scheduled coaching session (countdown), session progress ring, open orders, active tournament
@@ -378,7 +396,7 @@ scope for the UI pivot. Revisit only if bulk purchase becomes a real product dec
   checkout — registration auto-logs the user in, so this is every new user's first-session state.
   `register.tsx` calls `refresh()` after signup and `verify-email.tsx` after a successful verify, so
   the banner appears/disappears without a reload.
-- `pages/_document.tsx` (`<html lang="ka">`, favicon `public/favicon.svg`, theme color),
+- `pages/_document.tsx` (`<html lang="ka">`, favicon `public/assets/favicon.png` — the prototype's own, theme color),
   `pages/404.tsx` and `pages/_error.tsx` (Georgian, the latter deliberately doesn't use `Layout`),
   `public/robots.txt` (disallows the private/transactional routes)
 - `components/NotificationBell.tsx` — bell icon with an unread-count badge (polls

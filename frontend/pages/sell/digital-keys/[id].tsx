@@ -213,7 +213,7 @@ export default function ManageDigitalKeyListing() {
           <p className="section-kicker">გასაღებების მართვა</p>
           <h1>{listing.title}</h1>
           <p>
-            სტატუსი: {LISTING_STATUS_LABELS[listing.status] ?? listing.status} · ფასი: {listing.priceWaveCoin} WC · ხელმისაწვდომი გასაღები: {availableCount}
+            სტატუსი: {LISTING_STATUS_LABELS[listing.status] ?? listing.status} · ფასი: {listing.priceWaveCoin} GEL · ხელმისაწვდომი გასაღები: {availableCount}
           </p>
         </div>
 

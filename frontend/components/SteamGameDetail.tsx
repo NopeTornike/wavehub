@@ -203,11 +203,11 @@ export default function SteamGameDetail({
               <small>{listing.ordersCount} გაყიდული</small>
             </p>
             <div className="sd-price">
-              <strong>{price} WC</strong>
+              <strong>{price} GEL</strong>
               {compareAt && (
                 <>
                   <b>-{discount}%</b>
-                  <s>{compareAt} WC</s>
+                  <s>{compareAt} GEL</s>
                 </>
               )}
             </div>
@@ -389,7 +389,7 @@ export default function SteamGameDetail({
                     <span style={cover ? { backgroundImage: `url('${cover}')` } : undefined}></span>
                     <strong>{item.title}</strong>
                     <small>{tagline ? String(tagline) : item.game?.name ?? 'Steam'}</small>
-                    <b>{item.priceWaveCoin ?? item.startingPriceWaveCoin} WC</b>
+                    <b>{item.priceWaveCoin ?? item.startingPriceWaveCoin} GEL</b>
                   </Link>
                 )
               })}

@@ -45,7 +45,7 @@ function SteamCard({ listing, size }: { listing: PublicListingSummary; size: 'lg
         <strong>{listing.title}</strong>
         <span>{attrs.tagline ? String(attrs.tagline) : listing.game?.name ?? 'Steam'}</span>
         <div className="sg-foot">
-          <b>{price} WC</b>
+          <b>{price} GEL</b>
           <Link className="sg-details" href={href} aria-disabled={!inStock}>
             დეტალები <TIcon name="arrow" />
           </Link>

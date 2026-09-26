@@ -7,7 +7,9 @@ export default function Document() {
   return (
     <Html lang="ka">
       <Head>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        {/* The prototype's own favicon (index.html: assets/favicon.png?v=4). */}
+        <link rel="icon" type="image/png" sizes="512x512" href="/assets/favicon.png?v=4" />
+        <link rel="apple-touch-icon" href="/assets/favicon.png?v=4" />
         <meta name="theme-color" content="#050813" />
       </Head>
       <body>

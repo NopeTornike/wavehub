@@ -192,7 +192,7 @@ export default function Plans() {
                     <article key={plan.id} className="plan-card">
                       <h3 style={{ margin: 0 }}>{plan.name}</h3>
                       <strong>
-                        {plan.priceGel} ₾ <span className="note">/ {plan.billingPeriodDays} დღე</span>
+                        {plan.priceGel} GEL <span className="note">/ {plan.billingPeriodDays} დღე</span>
                       </strong>
                       <p className="note" style={{ margin: 0 }}>{plan.description}</p>
                       <ul>

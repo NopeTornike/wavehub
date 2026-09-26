@@ -113,7 +113,7 @@ export default function MyListings({
               fallback={(listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
               title={listing.title}
               meta={`${listing.game?.name ?? 'WaveHub'} / ${LISTING_STATUS_LABELS[listing.status]}`}
-              footer={`${listing.priceWaveCoin ?? '—'} WC / ${formatDate(listing.createdAt)}${listing.rejectionReason ? ` / ${listing.rejectionReason}` : ''}`}
+              footer={`${listing.priceWaveCoin ?? '—'} GEL / ${formatDate(listing.createdAt)}${listing.rejectionReason ? ` / ${listing.rejectionReason}` : ''}`}
               actions={
                 <>
                   {listing.status !== ListingStatus.PendingReview && (
@@ -188,7 +188,7 @@ export default function MyListings({
                   </label>
                   {editing.type !== ListingType.Service && (
                     <label>
-                      <span>ფასი (WC) *</span>
+                      <span>ფასი (GEL) *</span>
                       <input type="number" min={1} step={1} required value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} />
                     </label>
                   )}

@@ -120,7 +120,7 @@ function TournamentFields({
       </label>
       <div className="stack-form-grid">
         <label className="field" htmlFor={`${idPrefix}-prize`}>
-          პრიზი <small>მაგ. 5,000 WC</small>
+          პრიზი <small>მაგ. 5,000 GEL</small>
           <input id={`${idPrefix}-prize`} value={form.prize} onChange={(e) => onChange({ ...form, prize: e.target.value })} required />
         </label>
         <label className="field" htmlFor={`${idPrefix}-status`}>

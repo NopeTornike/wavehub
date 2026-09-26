@@ -58,7 +58,7 @@ export default function ApplyAsCoach() {
     // Mirrors ApplyCoachDto (specialty 3–200, bio 20–3000, integer rate >= 1).
     if (specialty.trim().length < 3) return setError('სპეციალობა უნდა იყოს მინიმუმ 3 სიმბოლო.')
     if (bio.trim().length < 20) return setError('ბიოგრაფია უნდა იყოს მინიმუმ 20 სიმბოლო.')
-    if (!Number.isInteger(hourlyRate) || hourlyRate < 1) return setError('საათობრივი ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 WC.')
+    if (!Number.isInteger(hourlyRate) || hourlyRate < 1) return setError('საათობრივი ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 GEL.')
     setSubmitting(true)
     try {
       await api.applyAsCoach({
@@ -149,7 +149,7 @@ export default function ApplyAsCoach() {
                     <textarea rows={5} value={bio} onChange={(e) => setBio(e.target.value)} required minLength={20} maxLength={3000} />
                   </label>
                   <label className="field">
-                    ფასი საათში (WC)
+                    ფასი საათში (GEL)
                     <input type="number" min={1} step={1} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value))} required />
                   </label>
                   <button type="submit" className="coach-book-primary" disabled={submitting}>

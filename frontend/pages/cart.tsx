@@ -68,7 +68,7 @@ export default function CartPage() {
     }
     if (buyable.length === 0) return
     if (total > balance) {
-      setStatus({ kind: 'error', text: `ბალანსი არ არის საკმარისი: საჭიროა ${total} WC, გაქვთ ${balance} WC.` })
+      setStatus({ kind: 'error', text: `ბალანსი არ არის საკმარისი: საჭიროა ${total} GEL, გაქვთ ${balance} WC.` })
       return
     }
     setBusy(true)
@@ -159,7 +159,7 @@ export default function CartPage() {
                       {line.gameName ?? 'Marketplace'} / {line.sellerUsername}
                       {line.quantity > 1 ? ` · ×${line.quantity}` : ''}
                     </span>
-                    <small>{state?.available === false ? state.reason : `${priceOf(line) * line.quantity} WC`}</small>
+                    <small>{state?.available === false ? state.reason : `${priceOf(line) * line.quantity} GEL`}</small>
                   </div>
                   <div className="cart-item-actions">
                     <Link href={`/listings/${line.listingId}`}>ნახვა</Link>
@@ -203,7 +203,7 @@ export default function CartPage() {
           </header>
           <div className="cart-summary-row">
             <span>შუალედური ჯამი</span>
-            <strong id="cartSubtotal">{total} WC</strong>
+            <strong id="cartSubtotal">{total} GEL</strong>
           </div>
           <div className="cart-summary-row">
             <span>ნივთები</span>
@@ -221,7 +221,7 @@ export default function CartPage() {
           )}
           <div className="cart-summary-total">
             <span>სულ</span>
-            <strong id="cartTotal">{total} WC</strong>
+            <strong id="cartTotal">{total} GEL</strong>
           </div>
           {checked && !user ? (
             <Link className="cart-checkout-button" href="/login?next=/cart">

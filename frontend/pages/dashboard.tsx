@@ -150,7 +150,7 @@ export default function Dashboard() {
                 </p>
                 <p className="db-next-meta">
                   <Icon name="user" />
-                  {next.durationMinutes} წუთი · {next.priceWaveCoin} WC
+                  {next.durationMinutes} წუთი · {next.priceWaveCoin} GEL
                 </p>
                 <span className="db-status">დადასტურებული</span>
               </div>
@@ -205,15 +205,15 @@ export default function Dashboard() {
                 <ul>
                   <li>
                     <i className="pink"></i>
-                    {total} სესია
+                    {`${total} სესია`}
                   </li>
                   <li>
                     <i className="green"></i>
-                    {completed} დასრულებული
+                    {`${completed} დასრულებული`}
                   </li>
                   <li>
                     <i className="violet"></i>
-                    {upcoming.length} დარჩენილი
+                    {`${upcoming.length} დარჩენილი`}
                   </li>
                 </ul>
                 {next && <p className="db-small">შემდეგი: {new Date(next.scheduledAt).toLocaleString('ka-GE', { dateStyle: 'medium', timeStyle: 'short' })}</p>}
@@ -275,7 +275,7 @@ export default function Dashboard() {
                 </span>
                 <span className="db-order-side">
                   <em className={`db-order-status ${recent.status}`}>{ORDER_STATUS_LABELS[recent.status]}</em>
-                  <b>{recent.priceWaveCoin} WC</b>
+                  <b>{recent.priceWaveCoin} GEL</b>
                 </span>
               </Link>
             ) : (

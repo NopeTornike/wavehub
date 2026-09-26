@@ -90,12 +90,12 @@ export default function Orders() {
           <article>
             <span>შესყიდვები</span>
             <strong id="purchasedCount">{purchased.length}</strong>
-            <small id="purchasedTotal">{sum(purchased)} WC</small>
+            <small id="purchasedTotal">{sum(purchased)} GEL</small>
           </article>
           <article>
             <span>გაყიდვები</span>
             <strong id="soldCount">{sold.length}</strong>
-            <small id="soldTotal">{sum(sold)} WC</small>
+            <small id="soldTotal">{sum(sold)} GEL</small>
           </article>
         </div>
 
@@ -144,7 +144,7 @@ export default function Orders() {
                   <code>Order #{order.orderNumber}</code>
                 </div>
                 <div className="order-side">
-                  <strong>{order.priceWaveCoin} WC</strong>
+                  <strong>{order.priceWaveCoin} GEL</strong>
                   <Link href={`/orders/${order.id}`}>დეტალების ნახვა</Link>
                 </div>
               </article>

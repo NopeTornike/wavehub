@@ -77,7 +77,7 @@ export default function CoachProfileEditor() {
       .filter(Boolean)
     if (form.specialty.trim().length < 3) return setStatus({ kind: 'error', text: 'სპეციალობა: მინიმუმ 3 სიმბოლო.' })
     if (form.bio.trim().length < 20) return setStatus({ kind: 'error', text: 'ბიოგრაფია: მინიმუმ 20 სიმბოლო.' })
-    if (!Number.isInteger(form.rate) || form.rate < 1) return setStatus({ kind: 'error', text: 'ფასი: მთელი რიცხვი, მინიმუმ 1 WC.' })
+    if (!Number.isInteger(form.rate) || form.rate < 1) return setStatus({ kind: 'error', text: 'ფასი: მთელი რიცხვი, მინიმუმ 1 GEL.' })
     if (form.videoUrl.trim() && !VIDEO_URL.test(form.videoUrl.trim())) return setStatus({ kind: 'error', text: 'ვიდეო უნდა იყოს YouTube ან Vimeo ბმული (https://...).' })
     if (style.length > 6 || style.some((l) => l.length < 2 || l.length > 60)) return setStatus({ kind: 'error', text: 'სტილი: მაქს. 6 პუნქტი, თითო 2–60 სიმბოლო.' })
     setSaving(true)
@@ -153,7 +153,7 @@ export default function CoachProfileEditor() {
                   </select>
                 </label>
                 <label className="field">
-                  საათობრივი ფასი (WC)
+                  საათობრივი ფასი (GEL)
                   <input type="number" min={1} step={1} value={form.rate} onChange={(e) => setForm({ ...form, rate: Number(e.target.value) })} />
                 </label>
               </div>

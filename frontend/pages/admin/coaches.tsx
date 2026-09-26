@@ -111,7 +111,7 @@ export default function AdminCoaches() {
                   <div className="admin-row-main">
                     <strong>{coach.specialty}</strong>
                     <span className="note" style={{ margin: 0 }}>
-                      @{coach.username} · {coach.gameName ?? 'ზოგადი'} · {coach.hourlyRateWaveCoin} WC/სთ
+                      @{coach.username} · {coach.gameName ?? 'ზოგადი'} · {coach.hourlyRateWaveCoin} GEL/სთ
                     </span>
                   </div>
                   <div className="admin-row-actions">

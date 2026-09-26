@@ -72,7 +72,7 @@ export default function MyDigitalKeyListings() {
     if (!categoryId) return setCreateError('აირჩიეთ კატეგორია.')
     if (title.trim().length < 5 || title.trim().length > 100) return setCreateError('სათაური უნდა იყოს 5–100 სიმბოლო.')
     if (description.trim().length < 50 || description.trim().length > 5000) return setCreateError('აღწერა უნდა იყოს 50–5000 სიმბოლო.')
-    if (!Number.isInteger(priceWaveCoin) || priceWaveCoin < 1) return setCreateError('ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 WC.')
+    if (!Number.isInteger(priceWaveCoin) || priceWaveCoin < 1) return setCreateError('ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 GEL.')
     if (!attested) return setCreateError('საჭიროა დაადასტუროთ გასაღებების ხელახალი გაყიდვის უფლება.')
     const attributes = steamFactsToAttributes(facts, priceWaveCoin)
     if (typeof attributes === 'string') return setCreateError(attributes)
@@ -160,7 +160,7 @@ export default function MyDigitalKeyListings() {
               <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} required />
             </label>
             <label className="field">
-              ფასი (WC) <small>ერთი გასაღების ფასი</small>
+              ფასი (GEL) <small>ერთი გასაღების ფასი</small>
               <input type="number" min={1} step={1} value={priceWaveCoin} onChange={(e) => setPriceWaveCoin(Number(e.target.value))} required />
             </label>
             <SteamFactsFields facts={facts} onChange={setFacts} />
@@ -201,7 +201,7 @@ export default function MyDigitalKeyListings() {
                     <strong>{listing.title}</strong>
                   </div>
                   <div className="order-side">
-                    <strong>{listing.priceWaveCoin} WC</strong>
+                    <strong>{listing.priceWaveCoin} GEL</strong>
                   </div>
                 </Link>
               ))}

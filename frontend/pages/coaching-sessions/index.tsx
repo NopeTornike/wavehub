@@ -70,12 +70,12 @@ export default function CoachingSessions() {
           <article>
             <span>დაჯავშნილი სესიები</span>
             <strong>{tab === 'buyer' ? sessions.length : '—'}</strong>
-            <small>{tab === 'buyer' ? `${totalPrice} WC` : ''}</small>
+            <small>{tab === 'buyer' ? `${totalPrice} GEL` : ''}</small>
           </article>
           <article>
             <span>ჩემი, როგორც მწვრთნელის სესიები</span>
             <strong>{tab === 'coach' ? sessions.length : '—'}</strong>
-            <small>{tab === 'coach' ? `${totalPrice} WC` : ''}</small>
+            <small>{tab === 'coach' ? `${totalPrice} GEL` : ''}</small>
           </article>
         </div>
 
@@ -121,7 +121,7 @@ export default function CoachingSessions() {
                     <span>{tab === 'buyer' ? 'მწვრთნელი' : 'მყიდველი'}: @{counterpart}</span>
                   </div>
                   <div className="order-side">
-                    <strong>{session.priceWaveCoin} WC</strong>
+                    <strong>{session.priceWaveCoin} GEL</strong>
                   </div>
                 </Link>
               )

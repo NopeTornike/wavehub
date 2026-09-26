@@ -348,7 +348,7 @@ export default function ListingDetail() {
                         >
                           <div className="package-option-head">
                             <span>{pkg.name}</span>
-                            <span>{pkg.priceWaveCoin} WC</span>
+                            <span>{pkg.priceWaveCoin} GEL</span>
                           </div>
                           <div className="note" style={{ margin: '4px 0 0' }}>
                             მიწოდება {pkg.deliveryTimeDays} დღეში · {pkg.revisionsIncluded} რევიზია
@@ -492,7 +492,7 @@ export default function ListingDetail() {
 
           <aside className="detail-buy-panel" aria-label="Buy offer">
             <div className="detail-buy-head">
-              <strong id="detailPrice">{price !== null ? `${price} WC` : '—'}</strong>
+              <strong id="detailPrice">{price !== null ? `${price} GEL` : '—'}</strong>
               <button className="detail-share-button" type="button" aria-label="Share product" onClick={() => void share()}>
                 გაზიარება
               </button>
