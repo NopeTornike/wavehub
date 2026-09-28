@@ -79,3 +79,17 @@ whether the email arrived, never from an error surfaced to a caller:
 See `docs/DEPLOY.md` step 7 for how to (re-)check where a production deployment's mail is actually
 landing — specific to each server's IP/domain reputation, not a one-time check that stays valid
 forever.
+
+## 2026-09-28 Deliverability: multipart branded templates
+- Every message is now text + HTML: `send(to, subject, content)` takes a `RenderedEmail`
+  (`templates.ts`: `verificationEmail`, `passwordResetEmail`) or a plain string, which gets the
+  standard HTML shell via `plainEmail`. Georgian first, English below; every interpolated value is
+  HTML-escaped (names are user input). Both SMTP and Resend send `text` and `html`.
+- Why: the old verification mail was two lines of text with a bare link and landed in Gmail spam
+  even though SPF (VPS IP), DKIM (OpenDKIM selector `wh2026`, verified signing from the backend
+  container) and DMARC (`p=quarantine`) all pass and the IP (PTR `mail.wavehubx.com`) is on no
+  blocklist. The server's OpenDKIM now uses `Canonicalization relaxed/relaxed` (was simple/simple,
+  which breaks on any in-transit whitespace change); backup at `/etc/opendkim.conf.bak-20260928`.
+- Remaining factor is sender reputation: a new domain sending from its own VPS starts with none.
+  Recipients marking "Not spam" builds it; a transactional provider (`EMAIL_PROVIDER=resend`) gives
+  the best inbox placement from day one.

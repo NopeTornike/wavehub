@@ -63,7 +63,8 @@ describe('EmailService', () => {
       from: 'WaveHub <no-reply@example.com>',
       to: 'user@example.com',
       subject: 'Subject',
-      text: 'Body',
+      text: expect.stringContaining('Body'),
+      html: expect.stringContaining('Body'),
     });
 
     sendMail.mockReset().mockRejectedValue(new Error('connection refused'));
@@ -101,7 +102,8 @@ describe('EmailService', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://api.resend.com/emails');
     expect(init.headers.authorization).toBe('Bearer re_key');
-    expect(JSON.parse(init.body)).toEqual({ from: 'WaveHub <no-reply@example.com>', to: ['user@example.com'], subject: 'Subject', text: 'Body' });
+    const sent = JSON.parse(init.body);
+    expect(sent).toEqual({ from: 'WaveHub <no-reply@example.com>', to: ['user@example.com'], subject: 'Subject', text: expect.stringContaining('Body'), html: expect.stringContaining('Body') });
   });
 
   it('does not throw or retry on a 4xx, and retries once then swallows a 5xx/network error', async () => {
@@ -121,5 +123,27 @@ describe('EmailService', () => {
     global.fetch = five as unknown as typeof fetch;
     await expect(svc.send('u@example.com', 's', 'b')).resolves.toBeUndefined();
     expect(five).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('email templates', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { verificationEmail, passwordResetEmail, plainEmail } = require('./templates');
+
+  it('renders text + HTML with the link, and escapes user-supplied names', () => {
+    const mail = verificationEmail('<script>x</script>', 'https://wavehubx.com/verify-email?token=abc');
+    expect(mail.text).toContain('https://wavehubx.com/verify-email?token=abc');
+    expect(mail.html).toContain('href="https://wavehubx.com/verify-email?token=abc"');
+    expect(mail.html).not.toContain('<script>');
+    expect(mail.html).toContain('&lt;script&gt;');
+    expect(mail.text).toMatch(/დაადასტურეთ|Verify/);
+  });
+
+  it('password reset and plain notifications are multipart too', () => {
+    const reset = passwordResetEmail('Ana', 'https://wavehubx.com/reset-password?token=t');
+    expect(reset.html).toContain('reset-password?token=t');
+    const plain = plainEmail('Line one\n\nA <b>tag</b>');
+    expect(plain.html).toContain('&lt;b&gt;tag&lt;/b&gt;');
+    expect(plain.text).toContain('Line one');
   });
 });

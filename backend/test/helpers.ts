@@ -13,7 +13,7 @@ export interface E2eApp {
   baseUrl: string;
   dataSource: DataSource;
   wallet: WalletService;
-  sentEmails: { to: string; subject: string; body: string }[];
+  sentEmails: { to: string; subject: string; body: string; html: string }[];
   close: () => Promise<void>;
 }
 
@@ -22,8 +22,10 @@ export interface E2eApp {
 export async function createApp(): Promise<E2eApp> {
   const sentEmails: E2eApp['sentEmails'] = [];
   // No @nestjs/testing dependency — patch the stub's `send` so tests can read verification links.
-  EmailService.prototype.send = async (to: string, subject: string, body: string) => {
-    sentEmails.push({ to, subject, body });
+  // `body` is the text part (templates render text+HTML); `html` is kept so specs can check it.
+  EmailService.prototype.send = async (to: string, subject: string, content: string | { text: string; html: string }) => {
+    const body = typeof content === 'string' ? content : content.text;
+    sentEmails.push({ to, subject, body, html: typeof content === 'string' ? '' : content.html });
   };
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true, logger: ['error'] });
   configureApp(app); // the same middleware/pipes/filters main.ts runs (TRUST_PROXY comes from e2e-env.ts)

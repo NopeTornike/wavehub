@@ -8,6 +8,7 @@ import { User } from '../users/user.entity';
 import { EmailVerificationToken } from './email-verification-token.entity';
 import { PasswordResetToken } from './password-reset-token.entity';
 import { EmailService } from '../email/email.service';
+import { passwordResetEmail, verificationEmail } from '../email/templates';
 
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
@@ -119,11 +120,7 @@ export class AuthService {
     await this.verificationTokens.save(token);
 
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${rawToken}`;
-    await this.email.send(
-      user.email,
-      'Verify your WaveHub email',
-      `Hi ${user.firstName},\n\nVerify your email: ${verifyUrl}\n\nThis link expires in 24 hours.`,
-    );
+    await this.email.send(user.email, 'დაადასტურეთ ელფოსტა · Verify your WaveHub email', verificationEmail(user.firstName, verifyUrl));
   }
 
   async verifyEmail(rawToken: string): Promise<void> {
@@ -157,11 +154,7 @@ export class AuthService {
     await this.resetTokens.save(token);
 
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${rawToken}`;
-    await this.email.send(
-      user.email,
-      'Reset your WaveHub password',
-      `Hi ${user.firstName},\n\nReset your password: ${resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, ignore this email.`,
-    );
+    await this.email.send(user.email, 'პაროლის აღდგენა · Reset your WaveHub password', passwordResetEmail(user.firstName, resetUrl));
   }
 
   async resetPassword(rawToken: string, newPassword: string): Promise<void> {

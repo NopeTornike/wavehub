@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import nodemailer, { Transporter } from 'nodemailer';
+import { plainEmail, type RenderedEmail } from './templates';
 
 type Provider = 'console' | 'resend' | 'smtp';
 
@@ -82,7 +83,10 @@ export class EmailService {
     }
   }
 
-  async send(to: string, subject: string, body: string): Promise<void> {
+  // `content` is a rendered text+HTML pair (email/templates.ts) or a plain text body, which gets
+  // the standard HTML shell — every message goes out multipart (see templates.ts for why).
+  async send(to: string, subject: string, content: string | RenderedEmail): Promise<void> {
+    const { text: body, html } = typeof content === 'string' ? plainEmail(content) : content;
     if (this.provider === 'console') {
       if (process.env.NODE_ENV === 'production') {
         this.logger.warn(`[email disabled] would send "${subject}" to a ${to.split('@')[1] ?? 'unknown'} address`);
@@ -93,7 +97,7 @@ export class EmailService {
     }
 
     if (this.provider === 'smtp') {
-      await this.sendViaSmtp(to, subject, body);
+      await this.sendViaSmtp(to, subject, body, html);
       return;
     }
 
@@ -103,7 +107,7 @@ export class EmailService {
         const res = await fetch(RESEND_URL, {
           method: 'POST',
           headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'content-type': 'application/json' },
-          body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [to], subject, text: body }),
+          body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [to], subject, text: body, html }),
           signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
         });
         if (res.ok) return;
@@ -122,11 +126,11 @@ export class EmailService {
 
   // Same never-throw, one-retry, domain-only-logging contract as the Resend branch above — a
   // relay outage looks identical to the caller either way.
-  private async sendViaSmtp(to: string, subject: string, body: string): Promise<void> {
+  private async sendViaSmtp(to: string, subject: string, body: string, html: string): Promise<void> {
     const domain = to.split('@')[1] ?? 'unknown';
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        await this.smtpTransport!.sendMail({ from: process.env.EMAIL_FROM, to, subject, text: body });
+        await this.smtpTransport!.sendMail({ from: process.env.EMAIL_FROM, to, subject, text: body, html });
         return;
       } catch (err) {
         this.logger.warn(`SMTP send error (attempt ${attempt}) sending to ${domain}: ${(err as Error).message}`);
