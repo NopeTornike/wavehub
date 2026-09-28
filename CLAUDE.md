@@ -56,6 +56,7 @@ runbook is `docs/DEPLOY.md` and the go-live checklist is `docs/LAUNCH_CHECKLIST.
 | `backend/src/tournaments/` | Tournaments with team registration (staff-verified), prize breakdown, staff-recorded matches + player stats — no automated matchmaking/prize payout | `backend/src/tournaments/CLAUDE.md` |
 | `backend/src/subscriptions/` | BOG-billed Buyer / Seller-Coach membership plans, jsonb perks (fee discount, featured, priority support, badge), hourly recharge sweep | `backend/src/subscriptions/CLAUDE.md` |
 | `backend/src/profiles/` | Follows + the computed public-profile facts (role, deals, review breakdown, earned badges) | `backend/src/profiles/CLAUDE.md` |
+| `backend/src/analytics/` | Super-Admin-only statistics: sales, games, types, top listings/sellers, subscriptions, coaching, money flow | `backend/src/analytics/CLAUDE.md` |
 | `backend/src/community/` | Public shell aggregates (online count, per-game listing counts, seller ranks) + the user's Wave rank | `backend/src/community/CLAUDE.md` |
 | `backend/src/common/` | Cross-cutting runtime: global exception filter, PII-free request log, `/health`, throttle presets | `backend/src/common/CLAUDE.md` |
 | `backend/src/config/` | Production boot-time config validation (refuses dev defaults in `NODE_ENV=production`) | `backend/src/config/CLAUDE.md` |

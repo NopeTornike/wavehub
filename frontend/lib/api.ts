@@ -1,4 +1,5 @@
 import type {
+  AdminAnalytics,
   AdminGame,
   FaqEntry,
   ListingForEdit,
@@ -323,6 +324,8 @@ export const api = {
   listCategories: () => request<PublicCategory[]>('/categories'),
 
   listGames: () => request<PublicGame[]>('/games'),
+  // --- Super Admin statistics --- (backend/src/analytics/): inclusive YYYY-MM-DD dates.
+  adminGetAnalytics: (from: string, to: string) => request<AdminAnalytics>(`/admin/analytics?from=${from}&to=${to}`),
   // --- Admin game catalogue --- (backend/src/listings/admin-games.controller.ts)
   adminListGames: () => request<AdminGame[]>('/admin/games'),
   adminCreateGame: (payload: { name: string; slug: string; sortOrder?: number }) =>

@@ -4,8 +4,9 @@ import { useEffect, type ReactNode } from 'react'
 import Layout from './Layout'
 import { useAuth } from '../lib/auth'
 
-const NAV_ITEMS = [
+const NAV_ITEMS: Array<{ href: string; label: string; superAdminOnly?: boolean }> = [
   { href: '/admin', label: 'დაფა' },
+  { href: '/admin/analytics', label: 'სტატისტიკა', superAdminOnly: true },
   { href: '/admin/listings', label: 'განცხადებები' },
   { href: '/admin/games', label: 'თამაშები' },
   { href: '/admin/reviews', label: 'შეფასებები' },
@@ -27,6 +28,8 @@ const NAV_ITEMS = [
 // role without access to a given section just gets a 403 from that page's own api call rather
 // than the link being hidden. Building a full client-side permission matrix mirroring the backend
 // one exactly wasn't worth the duplication risk for a first pass — see frontend/CLAUDE.md.
+// Exception: Super-Admin-only sections (Statistics) are hidden from other roles, since no other
+// role can ever open them (the API still refuses them regardless).
 export default function AdminLayout({ children, title }: { children: ReactNode; title?: string }) {
   const layoutTitle = title ? `${title} · ადმინ პანელი` : 'ადმინ პანელი'
   const router = useRouter()
@@ -70,7 +73,7 @@ export default function AdminLayout({ children, title }: { children: ReactNode; 
       <div className="page">
         <div className="page-inner">
           <nav className="admin-nav" aria-label="ადმინ პანელის სექციები">
-            {NAV_ITEMS.map((item) => (
+            {NAV_ITEMS.filter((item) => !item.superAdminOnly || user!.adminRole === 'super_admin').map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

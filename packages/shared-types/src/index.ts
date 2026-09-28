@@ -1250,3 +1250,87 @@ export const WAVE_RANK_TIERS: ReadonlyArray<readonly [string, number]> = [
 // getMarketplaceSellerWaveRank order: completed sales, then reviews, then active listings, then
 // average rating. Keyed by username; sellers with no activity are absent ("unranked").
 export type SellerRanks = Record<string, number>;
+
+// GET /admin/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD — Super Admin only
+// (backend/src/analytics/). Money is WaveCoin, which is 1:1 GEL; subscription and top-up
+// amounts are real GEL charged through BOG. Every figure is computed from real rows.
+export interface AnalyticsSalesSummary {
+  orders: number; // paid orders placed in range (excludes unpaid/expired)
+  gmv: number; // value of those orders that weren't cancelled/refunded
+  completedOrders: number;
+  completedValue: number;
+  platformFees: number; // earned on orders completed in range
+  refundedOrders: number;
+  refundedValue: number;
+  inEscrow: number; // right now: orders paid but not yet completed/refunded
+  averageOrder: number;
+}
+
+export interface AnalyticsBreakdownRow {
+  key: string;
+  label: string;
+  orders: number;
+  gmv: number;
+  platformFees: number;
+}
+
+export interface AnalyticsTopListing {
+  listingId: string;
+  title: string;
+  type: ListingType;
+  game: string | null;
+  seller: string;
+  orders: number;
+  gmv: number;
+}
+
+export interface AnalyticsTopSeller {
+  username: string;
+  orders: number;
+  gmv: number;
+  platformFees: number;
+}
+
+export interface AnalyticsPlanRow {
+  planId: string;
+  name: string;
+  audience: string;
+  priceGel: number;
+  activeNow: number;
+  newInRange: number;
+  revenueGel: number;
+}
+
+export interface AnalyticsSeriesPoint {
+  bucket: string; // ISO date of the bucket start
+  gmv: number;
+  orders: number;
+  topupsGel: number;
+  subscriptionsGel: number;
+}
+
+export interface AdminAnalytics {
+  from: string;
+  to: string;
+  bucket: 'day' | 'month';
+  sales: AnalyticsSalesSummary;
+  byGame: AnalyticsBreakdownRow[];
+  byType: AnalyticsBreakdownRow[];
+  byCategory: AnalyticsBreakdownRow[];
+  topListings: AnalyticsTopListing[];
+  topSellers: AnalyticsTopSeller[];
+  coaching: { sessions: number; completed: number; cancelled: number; value: number; platformFees: number };
+  subscriptions: {
+    activeNow: number;
+    grantedNow: number;
+    newInRange: number;
+    cancelledInRange: number;
+    revenueGel: number;
+    monthlyRecurringGel: number; // active paid plans normalised to 30 days
+    byPlan: AnalyticsPlanRow[];
+  };
+  money: { topups: number; topupsGel: number; withdrawalsPaid: number; withdrawalsPaidValue: number; withdrawalsPending: number; withdrawalsPendingValue: number };
+  users: { total: number; newInRange: number; verifiedInRange: number; sellersWithSales: number; buyers: number };
+  series: AnalyticsSeriesPoint[];
+}
+

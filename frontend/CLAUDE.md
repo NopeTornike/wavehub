@@ -97,6 +97,12 @@ section wins.
   photos, submit; reachable from the profile menu ("ჩემი სერვისები"), the Become-a-seller modal and
   the My Listings panel ("Manage"). Admin → Listings has a Details expander (`al-` CSS) showing the
   full listing before approval. See `backend/src/listings/CLAUDE.md` for the rules.
+- **Admin → Statistics** (`pages/admin/analytics.tsx`, Super Admin only — the nav link is hidden for
+  other roles and the API refuses them): date presets + custom range scoping the whole page, KPI
+  tiles, a trend chart (`components/charts/TrendChart.tsx`: single series, crosshair tooltip,
+  keyboard ←/→) with a metric switch and a table view, sales by game (`components/charts/BarList.tsx`),
+  type/category tables, top listings/sellers, subscriptions by plan, coaching, money flow. Chart
+  colours (brand pink/violet) were run through the dataviz palette validator on the dark surface.
 - **Admin → Games** (`pages/admin/games.tsx`, `ag-` CSS): add/rename/hide/reorder games and
   upload their home tile, cover and icon. `lib/games.ts` helpers (`gameCover`/`gameTile`/
   `gameIcon`) prefer uploaded art (registered from `/stats/games` by `lib/shell.tsx`) over the
