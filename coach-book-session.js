@@ -1029,8 +1029,6 @@
           <button class="coach-book-secondary" type="button" data-action="wishlist">Add to Wishlist</button>
         </div>
 
-        ${renderBookingCalendar(coach)}
-
         <p class="coach-booking-status" id="coachBookingStatus" aria-live="polite"></p>
 
         <div class="coach-protection-row">

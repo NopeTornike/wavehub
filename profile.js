@@ -893,7 +893,13 @@ function createPublicReviewCard(review) {
 
   const reviewer = document.createElement('strong');
   reviewer.textContent = reviewerName;
-  reviewerWrap.append(reviewerAvatar, reviewer);
+  const reviewerIdentity = document.createElement('span');
+  reviewerIdentity.className = 'public-review-reviewer-identity';
+  const reviewerRank = document.createElement('small');
+  reviewerRank.className = 'public-review-reviewer-rank';
+  reviewerRank.textContent = reviewerUser ? getWaveRankMetrics(reviewerUser).tier : 'Wave Spark';
+  reviewerIdentity.append(reviewer, reviewerRank);
+  reviewerWrap.append(reviewerAvatar, reviewerIdentity);
 
   const rating = document.createElement('span');
   rating.className = 'public-review-rating';

@@ -245,12 +245,10 @@
       { id: 'coaching', label: 'Coaching', href: 'coaching.html', icon: '<img src="assets/sidebar-coaching-icon.svg" alt="" />', iconClass: 'nav-icon-coaching' },
       { id: 'tournaments', label: 'Tournaments', href: 'tournaments.html', icon: '<img src="assets/tournaments-icon.svg" alt="" />', iconClass: 'nav-icon-tournaments' },
       { id: 'about', label: 'About Us', href: 'about.html', icon: '<img src="assets/about-icon.svg?v=2" alt="" />', iconClass: 'nav-icon-about' },
-      { id: 'orders', label: 'Orders', href: 'orders.html', icon: '<img src="assets/orders-icon.svg" alt="" />', iconClass: 'nav-icon-orders' },
       { id: 'messages', label: 'Messages', href: 'messages.html', icon: '<img src="assets/sidebar-message-icon.svg" alt="" />', iconClass: 'nav-icon-messages', count: 'message' },
       { id: 'wallet', label: 'Wallet', href: 'wallet.html', icon: '<img src="assets/wallet-icon.svg" alt="" />', iconClass: 'nav-icon-wallet' },
       { id: 'cart', label: 'Cart', href: 'cart.html', icon: '<img src="assets/sidebar-cart-icon.svg" alt="" />', iconClass: 'nav-icon-cart', count: 'cart' },
       { id: 'favorites', label: 'Favorites', href: 'marketplace.html#favorites', icon: '<img src="assets/favorites-icon.svg" alt="" />', iconClass: 'nav-icon-heart' },
-      { id: 'profile', label: 'Settings', href: 'profile.html', icon: '<img src="assets/settings-icon.svg" alt="" />', iconClass: 'nav-icon-settings' },
     ];
 
     const existingLinks = Array.from(navigation.querySelectorAll('.side-link'));
@@ -463,6 +461,9 @@
     if (mobileProfileRank) mobileProfileRank.textContent = profileRank;
     if (mobileProfileLevel) mobileProfileLevel.textContent = String(Math.max(1, Number(user?.level) || 1));
     if (mobileHeaderAuth) mobileHeaderAuth.classList.toggle('is-signed-in', isSignedIn);
+    document.querySelectorAll('.home-page .top-actions').forEach((actions) => {
+      actions.classList.toggle('is-signed-in', isSignedIn);
+    });
     if (mobileWalletBalance) {
       const wallets = readJson(walletsKey, {});
       const balance = isSignedIn ? Math.max(0, Number(wallets?.[username]?.balance) || 0) : 0;

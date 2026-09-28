@@ -1030,6 +1030,13 @@ button {
   gap: 5px;
 }
 
+.side-nav > .side-link[href="orders.html"],
+.side-nav > .side-link[href="profile.html"],
+.side-nav > .side-link[href*="admin"],
+.side-nav > .side-link[data-section="Admin Panel"] {
+  display: none;
+}
+
 .marketplace-game-menu {
   position: relative;
   min-width: 0;
@@ -1048,8 +1055,7 @@ button {
   transition: transform 160ms ease;
 }
 
-.marketplace-game-menu.open .marketplace-menu-arrow,
-.marketplace-game-menu:hover .marketplace-menu-arrow {
+.marketplace-game-menu.open .marketplace-menu-arrow {
   transform: rotate(225deg) translate(-2px, -1px);
 }
 
@@ -1069,8 +1075,6 @@ button {
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.48);
 }
 
-.marketplace-game-menu:hover .marketplace-game-dropdown,
-.marketplace-game-menu:focus-within .marketplace-game-dropdown,
 .marketplace-game-menu.open .marketplace-game-dropdown {
   display: grid;
   gap: 3px;
@@ -3747,6 +3751,22 @@ button {
 .public-review-reviewer {
   color: inherit;
   text-decoration: none;
+}
+
+.public-review-reviewer-identity {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.public-review-card .public-review-reviewer .public-review-reviewer-rank {
+  overflow: hidden;
+  color: #d46dff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .public-review-reviewer:hover strong,
@@ -15823,6 +15843,34 @@ body.public-profile-view .main-panel {
   .mobile-header-auth { min-width: 0; display: flex; align-items: center; gap: 4px; }
   .mobile-header-auth .mobile-user-profile { display: none; }
   .mobile-header-auth.is-signed-in > a:not(.mobile-user-profile) { display: none; }
+  .home-page .top-actions.is-signed-in {
+    grid-column: 4;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .home-page .top-actions.is-signed-in > .icon-button:not(.has-alert),
+  .home-page .top-actions.is-signed-in > .home-top-wallet {
+    display: none;
+  }
+  .home-page .top-actions.is-signed-in .profile-menu {
+    display: block;
+  }
+  .home-page .top-actions.is-signed-in .icon-button.has-alert {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    flex: 0 0 40px;
+    border: 0;
+    border-radius: 50%;
+    background-color: transparent;
+    background-size: 22px 22px;
+  }
+  .home-page .top-actions.is-signed-in .profile-chip .avatar {
+    width: 40px;
+    height: 40px;
+  }
+  .mobile-header-auth.is-signed-in { display: none; }
   .mobile-header-auth.is-signed-in .mobile-user-profile {
     min-width: 40px;
     width: 40px;

@@ -414,6 +414,23 @@ function formatReviewDate(value) {
   });
 }
 
+function getReviewerWaveRank(user) {
+  const username = String(user?.username || '');
+  if (!username) return 'Wave Spark';
+
+  const listings = getSellerListings().filter((item) => item?.sellerUsername === username);
+  const purchases = getPurchases();
+  const purchaseItems = purchases.flatMap((purchase) => Array.isArray(purchase?.items)
+    ? purchase.items.map((item) => ({ ...item, purchasedAt: item.purchasedAt || purchase.purchasedAt, buyerUsername: item.buyerUsername || purchase.buyerUsername }))
+    : [purchase]);
+  const sold = purchaseItems.filter((item) => item?.sellerUsername === username);
+  const bought = purchaseItems.filter((item) => item?.buyerUsername === username || item?.username === username);
+  const reviews = readJson(sellerReviewsKey, []).filter((item) => item?.sellerUsername === username);
+  const score = Math.min(1000, listings.length * 15 + sold.length * 60 + bought.length * 20 + reviews.length * 25 + Math.min(100, Number(user?.xp) || 0));
+  const tiers = [['Wave Spark', 0], ['Wave Scout', 70], ['Wave Rider', 140], ['Wave Surfer', 220], ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580], ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000]];
+  return tiers.reduce((rank, [name, threshold]) => score >= threshold ? name : rank, 'Wave Spark');
+}
+
 function getReviewablePurchase(offer, buyerUsername) {
   if (!offer?.sellerUsername || !buyerUsername || offer.sellerUsername === buyerUsername) {
     return null;
@@ -1009,7 +1026,13 @@ function createDetailReviewCard(review) {
 
   const buyer = document.createElement('strong');
   buyer.textContent = reviewerName;
-  reviewerWrap.append(reviewerAvatar, buyer);
+  const reviewerIdentity = document.createElement('span');
+  reviewerIdentity.className = 'public-review-reviewer-identity';
+  const reviewerRank = document.createElement('small');
+  reviewerRank.className = 'public-review-reviewer-rank';
+  reviewerRank.textContent = getReviewerWaveRank(reviewerUser);
+  reviewerIdentity.append(buyer, reviewerRank);
+  reviewerWrap.append(reviewerAvatar, reviewerIdentity);
 
   const rating = document.createElement('span');
   rating.className = 'public-review-rating';
