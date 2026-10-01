@@ -6,7 +6,7 @@ import { VerificationStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
-import { CoachPackagesEditor, CoachQuestionsEditor, CoachVideoEditor } from '../../components/CoachExtras'
+import { CoachPackagesEditor, CoachQuestionsEditor, CoachVideoEditor, LANGUAGE_OPTIONS } from '../../components/CoachExtras'
 
 // A coach editing the content of their public profile (docs/design-mockups/14): specialty, bio,
 // rate, rank, languages, main + extra games, intro video, quote and coaching-style points. Mirrors
@@ -14,14 +14,6 @@ import { CoachPackagesEditor, CoachQuestionsEditor, CoachVideoEditor } from '../
 // the uploaded video, packages and pre-booking questions save through their own endpoints
 // (components/CoachExtras.tsx).
 
-const LANGUAGE_OPTIONS: Array<[string, string]> = [
-  ['ka', 'ქართული'],
-  ['en', 'English'],
-  ['ru', 'Русский'],
-  ['tr', 'Türkçe'],
-  ['de', 'Deutsch'],
-  ['uk', 'Українська'],
-]
 const VIDEO_URL = /^https:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/\S+$/
 
 export default function CoachProfileEditor() {

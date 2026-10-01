@@ -9,6 +9,15 @@ import { cleanRequirements, RequirementsEditor, validateServiceExtras } from './
 // matching api calls. Bounds mirror the backend: video MP4/WebM ≤50MB; ≤6 packages (name 2–60,
 // description ≤300, 15–480 min, 1–100000 GEL); ≤10 questions.
 
+export const LANGUAGE_OPTIONS: Array<[string, string]> = [
+  ['ka', 'ქართული'],
+  ['en', 'English'],
+  ['ru', 'Русский'],
+  ['tr', 'Türkçe'],
+  ['de', 'Deutsch'],
+  ['uk', 'Українська'],
+]
+
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024
 const MAX_PACKAGES = 6
 

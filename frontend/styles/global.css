@@ -19752,3 +19752,43 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
 .to-players code { color: #ffc400; }
 .to-players a { color: #ff8cc4; }
 .to-players small { color: #7f8699; }
+
+/* Coach extras (components/CoachExtras.tsx — the coach's /coaching/profile editor and Admin →
+   Coaches): video upload, packages, pre-booking questions; plus their public rendering on
+   /coaching/[id] and the booking answers on /coaching-sessions/[id]. No prototype equivalent. */
+.ce-section { display: grid; gap: 10px; padding: 16px 0; border-top: 1px solid rgba(120, 130, 170, .18); }
+.ce-section:first-child { border-top: 0; padding-top: 0; }
+.ce-section h3 { margin: 0; color: #fff; font-size: 16px; }
+.ce-hint { margin: 0; color: #9aa1b3; font-size: 13px; line-height: 1.45; }
+.ce-video { width: 100%; max-width: 560px; max-height: 320px; border-radius: 10px; background: #000; }
+.ce-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ce-file { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+.ce-file.disabled { opacity: .55; pointer-events: none; }
+.ce-photo { display: flex; gap: 16px; align-items: center; }
+.ce-photo > div { display: grid; gap: 8px; justify-items: start; }
+.ce-avatar { flex: 0 0 auto; width: 72px; height: 72px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, #ff2f8f, #7b3fe4) center / cover; color: #fff; font-size: 28px; font-weight: 800; }
+.ce-package { grid-template-columns: minmax(0, 1.6fr) minmax(0, .7fr) minmax(0, .8fr); }
+.ce-panel { display: grid; gap: 4px; margin: 0 0 12px; border: 1px solid rgba(120, 130, 170, .18); border-top: 0; border-radius: 0 0 10px 10px; background: rgba(255, 255, 255, .02); padding: 16px; }
+.ce-panel .stack-form { margin: 0 0 8px; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.ce-coach > .admin-row { margin: 0; }
+.coach-apply-cta { display: inline-flex; align-items: center; min-height: 35px; border-radius: 7px; background: linear-gradient(90deg, #ff2f8f, #e23ee5); box-shadow: 0 10px 24px rgba(255, 47, 143, .25); color: #fff; padding: 0 14px; font-size: 12px; font-weight: 800; white-space: nowrap; text-decoration: none; }
+.coach-apply-cta:hover, .coach-apply-cta:focus-visible { filter: brightness(1.08); }
+.coach-video-file { display: block; width: 100%; min-height: 260px; max-height: 420px; background: #000; object-fit: contain; }
+.coach-packages-card { display: grid; gap: 12px; margin-top: 14px; }
+.coach-packages-card h2 { margin: 0; font-size: 18px; }
+.coach-packages { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.coach-package { display: grid; gap: 8px; align-content: start; border: 1px solid rgba(199, 211, 236, .18); border-radius: 10px; background: rgba(255, 255, 255, .025); padding: 14px; }
+.coach-package strong { color: #fff; font-size: 15px; }
+.coach-package p { margin: 0; color: #aab2c5; font-size: 13px; line-height: 1.45; }
+.coach-package span { color: #c7d3ec; font-size: 13px; }
+.coach-package b { color: #ff8cc4; }
+.coach-package .coach-book-secondary { min-height: 38px; margin-top: 4px; }
+.cs-answers { display: grid; gap: 8px; margin: 0 0 16px; }
+.cs-answers > div { display: grid; grid-template-columns: minmax(120px, 220px) minmax(0, 1fr); gap: 12px; border-bottom: 1px solid rgba(120, 130, 170, .14); padding-bottom: 8px; }
+.cs-answers dt { color: #9aa1b3; font-size: 13px; }
+.cs-answers dd { margin: 0; color: #e6e9f2; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .ce-package, .cs-answers > div { grid-template-columns: minmax(0, 1fr); }
+  .coach-heading-row { flex-wrap: wrap; }
+  .coach-video-file { min-height: 200px; }
+}

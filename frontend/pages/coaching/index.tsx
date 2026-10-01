@@ -193,11 +193,14 @@ export default function CoachingDirectory() {
                   <span className="coach-heading-icon" aria-hidden="true"></span>ქოუჩების ნახვა
                 </h1>
                 <p>
-                  იპოვე შესაფერისი ქოუჩი თამაშის დონის ასამაღლებლად · <Link href="/coaching/apply">გახდი ქოუჩი</Link> ·{' '}
+                  იპოვე შესაფერისი ქოუჩი თამაშის დონის ასამაღლებლად ·{' '}
                   <Link href="/coaching-sessions">ჩემი სესიები</Link> · <Link href="/coaching/profile">ქოუჩის პროფილი</Link>
                 </p>
               </div>
               <div className="coach-sort-row">
+                <Link className="coach-apply-cta" href="/coaching/apply">
+                  გახდი ქოუჩი
+                </Link>
                 <label>
                   <span className="sr-only">ქოუჩების დალაგება</span>
                   <select id="coachSort" value={sort} onChange={(event) => refilter(() => setSort(event.target.value))}>

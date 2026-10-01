@@ -217,3 +217,35 @@ Migration `1784355000000-CoachProfilesReviewsFavorites`.
   "Message Coach" (same exposure as `PublicSeller.id`).
 - Frontend tags only when earned: "Fast Responder" (median ≤10 min), "Top Rated" (≥4.8 from ≥5
   reviews). Tests: `test/coach-profiles.e2e-spec.ts`.
+
+## 2026-10-01 packages, pre-booking questions, uploaded video, staff-managed coaches
+Migration `1784360000000-CoachPackagesVideo` (runs on boot).
+- **Packages** (`coach-package.entity.ts`, `coach_packages`, ≤6 per coach, name 2–60, description
+  ≤300, 15–480 min, 1–100000 GEL — DB CHECKs mirror the DTO): `PUT coaches/mine/packages` replaces
+  the whole list in order (`SetCoachPackagesDto`). Public on `PublicCoachDetail.packages`.
+- **Booking from a package**: `BookSessionDto.packageId` (must belong to that coach) takes the
+  package's duration and price instead of `durationMinutes` × hourly rate. The session snapshots
+  `packageName`; `packageId` is `ON DELETE SET NULL`, so editing packages never rewrites history.
+- **Pre-booking questions**: `coaches.bookingQuestions` (jsonb, `RequirementField[]`, ≤10 — the same
+  shape and validator as service-listing buyer questions, `booking-questions.ts`), edited through
+  `PATCH coaches/mine/profile { bookingQuestions }`. Answers are validated on booking and stored on
+  `coaching_sessions.answers`; only the session's participants see them (`/coaching-sessions/[id]`).
+- **Uploaded intro video**: `POST coaches/mine/video` (multipart `file`, `StorageService` kind
+  `'video'` — byte-sniffed MP4/WebM, `MAX_COACH_VIDEO_BYTES` 50MB, `UPLOAD_THROTTLE`) →
+  `coaches.videoFileUrl`; `DELETE coaches/mine/video` clears it. When set it replaces the
+  YouTube/Vimeo `videoUrl` on the public profile. Caddy's `request_body` cap was raised to 55MB for
+  this (`deploy/Caddyfile` — reload Caddy after deploying).
+- **Staff add / edit coaches** (`COACH_MANAGEMENT_ROLES` = Operation Lead, Main Administrator,
+  Marketplace & Coaching Ops Manager, plus Super Admin; every mutation audit-logged as
+  `coach.create|update|set_packages|set_video|clear_video`): `POST admin/coaches`
+  (`AdminCreateCoachDto` — an existing **active** account by username becomes a verified, active
+  coach; a pending/rejected application of that account is verified with these details; an already
+  verified coach → 409), `GET/PATCH admin/coaches/:id/profile` (same `UpdateCoachProfileDto` as the
+  coach's own), `PUT admin/coaches/:id/packages`, `POST/DELETE admin/coaches/:id/video`.
+- Frontend: the coach edits all of it on `/coaching/profile`; staff on Admin → Coaches ("ქოუჩის
+  დამატება" form + per-coach "რედაქტირება" panel) — both use `components/CoachExtras.tsx`.
+  `/coaching` now shows a visible "გახდი ქოუჩი" button in its header (it was a link buried in the
+  subtitle and production showed no applications).
+- Tests: `test/coach-admin.e2e-spec.ts` (staff-only create, package/question bounds for coach and
+  staff, video MP4/WebM-only + served inline, booking a package charges its price and stores the
+  answers for participants only).

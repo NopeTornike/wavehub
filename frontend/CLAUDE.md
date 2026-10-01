@@ -732,3 +732,20 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - Match stats tables keep all five columns on phones (compact + horizontal scroll fallback).
 - Admin → Tournaments: reload after save uses `adminBrowseTournaments` (the public list hid edited
   drafts); prize / format-info-rules sections are expanded by default.
+
+## 2026-10-01 Coaches: packages, questions, video, staff-managed
+- `components/CoachExtras.tsx` — `CoachVideoEditor` (MP4/WebM ≤50MB upload/clear),
+  `CoachPackagesEditor` (≤6 fixed-price packages), `CoachQuestionsEditor` (pre-booking questions,
+  reuses `ServiceEditors`' `RequirementsEditor`), `LANGUAGE_OPTIONS`. Each takes its api calls as
+  props, so the coach's `/coaching/profile` and Admin → Coaches share them. CSS: `ce-` block at the
+  end of `global.css`.
+- `pages/admin/coaches.tsx` — "ქოუჩის დამატება" form (existing account by username → verified
+  coach, `api.adminCreateCoach`) and a per-coach "რედაქტირება" panel (profile fields, video,
+  packages, questions via the `api.admin*Coach*` calls). `reload()` is silent so an open panel
+  stays mounted after a save.
+- `/coaching/[id]` renders the uploaded video (`.coach-video-file`) before the YouTube link, and a
+  packages card (`.coach-packages-card`) whose "დაჯავშნა" preselects the package in the booking
+  form; the form asks the coach's questions. `/coaching-sessions/[id]` shows package + answers
+  (`.cs-answers`).
+- `/coaching` header has a visible "გახდი ქოუჩი" button (`.coach-apply-cta`) next to the sort.
+
