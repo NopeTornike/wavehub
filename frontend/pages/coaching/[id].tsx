@@ -331,10 +331,10 @@ export default function CoachProfile() {
                       {coach.games.map((game) => {
                         const icon = gameIcon(game.slug)
                         return (
-                          <span key={game.id} className={icon ? 'coach-game-item-with-image' : undefined}>
-                            <b className={icon ? 'coach-game-image-shell' : undefined}>{icon ? <img src={icon} alt="" width={44} height={44} /> : game.name.slice(0, 3)}</b>
-                            {game.name}
+                          <span key={game.id} className={[icon ? 'coach-game-item-with-image' : '', game.main ? 'coach-game-item-main' : ''].filter(Boolean).join(' ') || undefined}>
                             {game.main && <small>ძირითადი თამაში</small>}
+                            <b className={icon ? 'coach-game-image-shell' : undefined}>{icon ? <img src={icon} alt="" width={44} height={44} /> : game.name.slice(0, 3)}</b>
+                            <em className="coach-game-name">{game.name}</em>
                           </span>
                         )
                       })}

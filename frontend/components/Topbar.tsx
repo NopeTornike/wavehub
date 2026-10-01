@@ -189,7 +189,7 @@ export default function Topbar({
         </form>
       )}
 
-      <div className="top-actions">
+      <div className={`top-actions${signedIn ? ' is-signed-in' : ''}`}>
         <LanguageSwitcher />
         <Link className="icon-button" href={signedIn ? '/messages' : loginHref} aria-label="შეტყობინებები" title="შეტყობინებები">
           <img className="message-icon-image" src="/assets/message-icon.svg" alt="" aria-hidden="true" />
@@ -305,6 +305,13 @@ export default function Topbar({
                   <span>Support</span>
                   <i aria-hidden="true">›</i>
                 </Link>
+                {user?.adminRole && (
+                  <Link href="/admin" onClick={closeMenu}>
+                    <MenuIcon paths={ICONS.verified} />
+                    <span>ადმინ პანელი</span>
+                    <i aria-hidden="true">›</i>
+                  </Link>
+                )}
                 <Link href={signedIn ? '/profile' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={SETTINGS_PATH} circle={[12, 12, 3]} />
                   <span>პარამეტრები</span>

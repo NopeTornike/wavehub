@@ -102,6 +102,12 @@ describe('reviews (e2e)', () => {
     expect(hidden.avg!).toBeGreaterThan(withBad.avg!);
     const pub = await buyerA.client.get(`/listings/${(await ctx.dataSource.query(`SELECT "listingId" l FROM orders WHERE id = $1`, [o]))[0].l}/reviews`);
     expect(pub.body.map((r: any) => r.id)).not.toContain(rev.id);
+    // Each public review carries its reviewer (id + username) and their Wave rank — nothing private.
+    for (const r of pub.body) {
+      expect(r.buyer).toEqual({ id: expect.any(String), username: expect.any(String) });
+      expect(r.buyerRank).toMatch(/^Wave /);
+    }
+    expect(JSON.stringify(pub.body)).not.toMatch(/"(email|passwordHash|wavecoinBalance|buyerId|sellerId|status)"/);
 
     expect((await tso.client.post(`/reviews/${rev.id}/restore`)).status).toBe(200);
     expect(await sellerRating()).toEqual(withBad);

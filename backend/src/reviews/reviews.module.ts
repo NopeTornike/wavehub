@@ -10,6 +10,7 @@ import { ReviewsController } from './reviews.controller';
 import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { CommunityModule } from '../community/community.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AuthModule,
     AdminModule,
     NotificationsModule,
+    CommunityModule,
   ],
   controllers: [ReviewsController],
   providers: [ReviewsService],

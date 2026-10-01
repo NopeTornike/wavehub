@@ -238,12 +238,24 @@ export default function Messages() {
               ) : thread.length === 0 ? (
                 <p className="direct-message-empty">შეტყობინებები არ არის. დაწერეთ პირველი!</p>
               ) : (
-                thread.map((m) => (
-                  <article key={m.id} className={`direct-message-bubble ${m.senderId === me.id ? 'mine' : 'theirs'}`}>
-                    <p>{m.body}</p>
-                    <small>{new Date(m.createdAt).toLocaleString('ka-GE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>
-                  </article>
-                ))
+                thread.map((m) => {
+                  const mine = m.senderId === me.id
+                  const sender = mine ? me.username : selected?.otherUser.username ?? ''
+                  return (
+                    <div key={m.id} className={`direct-message-row ${mine ? 'mine' : 'theirs'}`}>
+                      <span className="direct-message-avatar" aria-hidden="true">
+                        {initials(sender)}
+                      </span>
+                      <article className={`direct-message-bubble ${mine ? 'mine' : 'theirs'}`}>
+                        <div className="direct-message-meta">
+                          <strong>{mine ? 'თქვენ' : `@${sender}`}</strong>
+                          <small>{new Date(m.createdAt).toLocaleString('ka-GE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>
+                        </div>
+                        <p>{m.body}</p>
+                      </article>
+                    </div>
+                  )
+                })
               )}
             </div>
 

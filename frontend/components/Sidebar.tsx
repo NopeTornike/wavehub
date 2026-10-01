@@ -37,12 +37,10 @@ const NAV: NavItem[] = [
   { id: 'coaching', label: 'ქოუჩინგი', href: '/coaching', icon: 'sidebar-coaching-icon.svg', iconClass: 'nav-icon-coaching', match: (p) => p.startsWith('/coaching') },
   { id: 'tournaments', label: 'ტურნირები', href: '/tournaments', icon: 'tournaments-icon.svg', iconClass: 'nav-icon-tournaments', match: (p) => p.startsWith('/tournaments') },
   { id: 'about', label: 'ჩვენ შესახებ', href: '/about', icon: 'about-icon.svg', iconClass: 'nav-icon-about', match: (p) => p === '/about' },
-  { id: 'orders', label: 'შეკვეთები', href: '/orders', icon: 'orders-icon.svg', iconClass: 'nav-icon-orders', match: (p) => p.startsWith('/orders') },
   { id: 'messages', label: 'შეტყობინებები', href: '/messages', icon: 'sidebar-message-icon.svg', iconClass: 'nav-icon-messages', count: 'message', match: (p) => p.startsWith('/messages') },
   { id: 'wallet', label: 'საფულე', href: '/wallet', icon: 'wallet-icon.svg', iconClass: 'nav-icon-wallet', match: (p) => p.startsWith('/wallet') },
   { id: 'cart', label: 'კალათა', href: '/cart', icon: 'sidebar-cart-icon.svg', iconClass: 'nav-icon-cart', count: 'cart', match: (p) => p.startsWith('/cart') },
   { id: 'favorites', label: 'რჩეულები', href: '/favorites', icon: 'favorites-icon.svg', iconClass: 'nav-icon-heart', match: (p) => p.startsWith('/favorites') },
-  { id: 'profile', label: 'პარამეტრები', href: '/profile', icon: 'settings-icon.svg', iconClass: 'nav-icon-settings', match: (p) => p.startsWith('/profile') },
 ]
 
 // Signed-in only (docs/design-mockups/09).
@@ -142,14 +140,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               </Link>
             )
           })}
-          {user?.adminRole && (
-            <Link className={`side-link${path.startsWith('/admin') ? ' active' : ''}`} href="/admin" onClick={onClose}>
-              <span className="nav-icon nav-icon-settings" aria-hidden="true">
-                <img src="/assets/settings-icon.svg" alt="" />
-              </span>
-              <span>ადმინი</span>
-            </Link>
-          )}
+          {/* Orders, Settings and Admin live in the profile menu (Tornike 2026-10-01 removed them here). */}
         </nav>
 
         <div className="sidebar-status" aria-label="Platform activity">

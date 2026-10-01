@@ -464,7 +464,10 @@ export default function ListingDetail() {
                         <div className="public-review-head">
                           <Link className="public-review-reviewer" href={`/u/${review.buyer.username}`} aria-label={`Open ${review.buyer.username} profile`}>
                             <span className="message-avatar">{review.buyer.username[0]?.toUpperCase()}</span>
-                            <strong>{review.buyer.username}</strong>
+                            <span className="public-review-reviewer-identity">
+                              <strong>{review.buyer.username}</strong>
+                              {review.buyerRank && <small className="public-review-reviewer-rank">{review.buyerRank}</small>}
+                            </span>
                           </Link>
                           <span className="public-review-rating">
                             {'★'.repeat(stars)}

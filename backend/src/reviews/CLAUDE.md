@@ -64,6 +64,11 @@ BETWEEN 1 AND 5)` — both enforced by Postgres, not just app-layer validation.
   reviews need attention, not each individual report's own reason/reporter. A per-report browse
   view over `review_reports` itself still doesn't exist (see Related modules).
 
+- **`findForListing` returns `PublicReview[]`** (2026-10-01): id, rating, body, tags, seller reply,
+  `buyer: {id, username}` and `buyerRank` (the reviewer's Wave rank name via
+  `CommunityService#waveRank`). It used to return raw `Review` rows without the buyer joined, so the
+  listing page's `review.buyer.username` would have thrown as soon as a real review existed.
+
 ## Related modules
 - `backend/src/orders/` — `create()`'s only real dependency: an order must exist, belong to the
   caller, and be `Completed`.

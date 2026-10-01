@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nest
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { NotificationType, OrderStatus, ReviewStatus } from '@wavehub/shared-types';
-import type { AdminReviewSummary } from '@wavehub/shared-types';
+import type { PublicReview, AdminReviewSummary } from '@wavehub/shared-types';
 import { Review } from './review.entity';
 import { ReviewReport } from './review-report.entity';
 import { Order } from '../orders/order.entity';
@@ -10,6 +10,7 @@ import { Listing } from '../listings/listing.entity';
 import { User } from '../users/user.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CommunityService } from '../community/community.service';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
@@ -23,6 +24,7 @@ export class ReviewsService {
     @InjectRepository(Order) private readonly orders: Repository<Order>,
     private readonly dataSource: DataSource,
     private readonly notifications: NotificationsService,
+    private readonly community: CommunityService,
   ) {}
 
   // Gated on: the caller is the order's buyer, the order is Completed, and one review per order —
@@ -107,9 +109,12 @@ export class ReviewsService {
     return saved;
   }
 
-  async findForListing(listingId: string, sort: 'newest' | 'highest' | 'lowest' = 'newest'): Promise<Review[]> {
+  // Public listing reviews: only the reviewer's id/username/rank are exposed, never the user row.
+  async findForListing(listingId: string, sort: 'newest' | 'highest' | 'lowest' = 'newest'): Promise<PublicReview[]> {
     const qb = this.reviews
       .createQueryBuilder('review')
+      .leftJoin('review.buyer', 'buyer')
+      .addSelect(['buyer.id', 'buyer.username'])
       .where('review.listingId = :listingId', { listingId })
       .andWhere('review.status = :status', { status: ReviewStatus.Published });
 
@@ -121,7 +126,22 @@ export class ReviewsService {
       qb.orderBy('review.createdAt', 'DESC');
     }
 
-    return qb.getMany();
+    const rows = await qb.getMany();
+    const ranks = new Map<string, string>();
+    await Promise.all(
+      [...new Set(rows.map((r) => r.buyerId))].map(async (id) => ranks.set(id, (await this.community.waveRank(id)).name)),
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      body: r.body,
+      tags: r.tags ?? [],
+      sellerReply: r.sellerReply,
+      sellerRepliedAt: r.sellerRepliedAt ? r.sellerRepliedAt.toISOString() : null,
+      createdAt: r.createdAt.toISOString(),
+      buyer: { id: r.buyer.id, username: r.buyer.username },
+      buyerRank: ranks.get(r.buyerId) ?? '',
+    }));
   }
 
   // Backs the admin `GET reviews/reported` route — the moderation queue. hide/remove/restore

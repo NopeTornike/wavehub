@@ -539,6 +539,8 @@ export interface PublicReview {
   sellerRepliedAt: string | null;
   createdAt: string;
   buyer: Pick<PublicUser, 'id' | 'username'>;
+  // The reviewer's current Wave rank tier name (CommunityService#waveRank), shown under the name.
+  buyerRank: string;
 }
 
 // --- Wallet & withdrawal response shapes ---

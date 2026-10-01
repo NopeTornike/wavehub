@@ -97,6 +97,13 @@ section wins.
   photos, submit; reachable from the profile menu ("ჩემი სერვისები"), the Become-a-seller modal and
   the My Listings panel ("Manage"). Admin → Listings has a Details expander (`al-` CSS) showing the
   full listing before approval. See `backend/src/listings/CLAUDE.md` for the rules.
+- **Tornike's main updates ported (2026-10-01, `eb4f6a3` + `ad1ecf8`)**: his `styles.css` diff applied
+  to `global.css` as a patch (clean); sidebar drops Orders/Settings (both in the profile menu) and
+  the Admin link moved into the profile menu (his CSS hides any sidebar link containing "admin");
+  coach-profile games card uses his Main-Game tile markup; featured-tournament cover lost the trophy
+  icon; direct messages render as rows with avatar + sender/time meta (his "Seen" marker omitted:
+  messages carry no read time); home `.top-actions.is-signed-in`; review cards show the reviewer's
+  real Wave rank (`PublicReview.buyerRank`).
 - **Admin → Statistics** (`pages/admin/analytics.tsx`, Super Admin only — the nav link is hidden for
   other roles and the API refuses them): date presets + custom range scoping the whole page, KPI
   tiles, a trend chart (`components/charts/TrendChart.tsx`: single series, crosshair tooltip,

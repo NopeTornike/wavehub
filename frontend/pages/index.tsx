@@ -599,7 +599,6 @@ export default function Home() {
                 >
                   <span>რჩეული ტურნირი</span>
                   <b>{TOURNAMENT_STATUS[tournament.status]}</b>
-                  <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M29 17h42v17c0 18-8 31-21 31S29 52 29 34V17Zm0 9H12v9c0 16 9 24 21 24m38-33h17v9c0 16-9 24-21 24M50 65v13m-18 8h36M39 78h22l5 8H34l5-8Z" /><path d="m50 27 4 8 9 1-6.5 6.3L58 51l-8-4.2-8 4.2 1.5-8.7L37 36l9-1 4-8Z" /></svg>
                 </div>
                 <div className="tournament-copy">
                   <h4>{tournament.name}</h4>
