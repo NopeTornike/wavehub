@@ -1554,5 +1554,7 @@
   "← განცხადებები": "← Listings",
   "განცხადებების რედაქტირება მხოლოდ Super Admin-ს შეუძლია.": "Only Super Admin can edit listings.",
   "რედაქტირება (ადმინი)": "Edit (admin)",
-  "თამაშის რედაქტირება": "Edit game"
+  "თამაშის რედაქტირება": "Edit game",
+  "მოძებნე მარკეტში: „{0}“": "Search the marketplace: “{0}”",
+  "ძიების შედეგები": "Search results"
 }

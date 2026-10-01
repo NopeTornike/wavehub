@@ -8,3 +8,6 @@ export const CREATE_THROTTLE = { default: { limit: 15, ttl: 60_000 } };
 // Account lookups (e.g. a tournament captain checking a teammate's username) — enough for filling a
 // roster, too few to walk the user table.
 export const LOOKUP_THROTTLE = { default: { limit: 30, ttl: 60_000 } };
+// Public search-as-you-type (users/search): the frontend debounces, so a person typing stays well
+// under this; it still stops anyone walking the whole user table.
+export const SEARCH_THROTTLE = { default: { limit: 60, ttl: 60_000 } };

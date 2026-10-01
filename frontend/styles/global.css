@@ -19818,3 +19818,21 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
 .detail-edit-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .detail-admin-edit, .sd-edit { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; border: 1px solid rgba(255, 196, 0, .45); border-radius: 8px; color: #ffd24d; padding: 0 14px; font-weight: 800; text-decoration: none; }
 .sd-edit { width: 100%; margin-top: 10px; }
+
+/* Topbar search suggestions (components/Topbar.tsx): matching users (GET users/search) + "search
+   the marketplace". The box clips its corners normally; it overflows only while open. */
+.search-box { position: relative; }
+.search-box.is-suggesting { overflow: visible; }
+.search-suggest { position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; right: 0; display: grid; gap: 2px; max-height: 360px; overflow-y: auto; border: 1px solid rgba(120, 130, 170, .28); border-radius: 10px; background: #0b0e1c; box-shadow: 0 18px 40px rgba(0, 0, 0, .5); padding: 6px; }
+.search-suggest-title { margin: 4px 8px 2px; color: #8f97aa; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.search-suggest a { display: flex; align-items: center; gap: 10px; min-height: 40px; border-radius: 7px; padding: 0 10px; color: #e6e8f0; font-size: 14px; text-decoration: none; }
+.search-suggest a:hover, .search-suggest a:focus-visible { background: rgba(255, 79, 163, .12); }
+.search-suggest-user i { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #2a1d44 center / cover no-repeat; color: #fff; font-style: normal; font-weight: 900; font-size: 13px; }
+.search-suggest-user span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-suggest-market { border-top: 1px solid rgba(120, 130, 170, .16); color: #ff8cc4 !important; font-weight: 700; }
+.marketplace-users { display: grid; gap: 10px; margin: 0 0 18px; }
+.marketplace-users h2 { margin: 0; color: #fff; font-size: 16px; }
+.marketplace-users > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.marketplace-users a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; max-width: 100%; border: 1px solid rgba(120, 130, 170, .25); border-radius: 999px; background: rgba(255, 255, 255, .03); padding: 0 14px 0 6px; color: #e6e8f0; font-weight: 700; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.marketplace-users a:hover { border-color: #ff4fa3; }
+.marketplace-users i { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #2a1d44 center / cover no-repeat; color: #fff; font-style: normal; font-weight: 900; font-size: 13px; }

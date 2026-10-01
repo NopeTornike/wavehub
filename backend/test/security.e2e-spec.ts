@@ -54,6 +54,7 @@ describe('response privacy sweep + hardening (e2e)', () => {
     await buyer.client.post('/reviews', { orderId, rating: 5, body: 'Great seller, would buy again.' });
     await stranger.client.get(`/listings/${listingId}/reviews`);
     await stranger.client.get(`/users/${seller.username}`);
+    await stranger.client.get(`/users/search?q=${encodeURIComponent(seller.username.slice(0, 6))}`);
     await buyer.client.post('/direct-messages/start', { recipientUserId: seller.id });
     await buyer.client.get('/direct-messages');
     await buyer.client.post('/tickets', { subject: 'Help me', category: 'other', description: 'Something' });

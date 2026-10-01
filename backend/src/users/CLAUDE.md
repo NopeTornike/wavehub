@@ -135,3 +135,14 @@ computed facts from `backend/src/profiles/` (follows, role, deals, reviews, badg
   balances), audit `user.wallet_adjust`. Goes through `WalletService#adminAdjust` (see
   `backend/src/wallet/CLAUDE.md`). `AdminModule` imports `WalletModule` for this.
 - UI: Admin → Users "მართვა" panel, rendered for Super Admins only. e2e: `test/admin-powers.e2e-spec.ts`.
+
+## 2026-10-01 Public user search (feature 11)
+`GET users/search?q=` (`SearchUsersDto`: 2–40 chars; a leading `@` is ignored) → `PublicUserSearchResult[]`
+= `{id, username, avatarUrl}` only. Rules:
+- **Active accounts only**: suspended, banned and unverified accounts are excluded.
+- **Matching**: case-insensitive substring match on username, with `%`/`_`/`\` escaped so they
+  match literally. Ranked exact match → prefix match → contains, then shorter usernames first.
+- **Limits**: at most 8 results; `SEARCH_THROTTLE` = 60/min per IP.
+- **Route order**: registered before `GET users/:username`, which would otherwise swallow "search".
+
+Covered by `test/user-search.e2e-spec.ts`, and the `security.e2e-spec.ts` privacy sweep now walks it.

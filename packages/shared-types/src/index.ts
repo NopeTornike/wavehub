@@ -1067,6 +1067,14 @@ export interface TournamentTeamPlayer {
   inGameId?: string | null;
 }
 
+// GET users/search?q= — public username search (topbar / marketplace). Only what a public profile
+// already shows.
+export interface PublicUserSearchResult {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+}
+
 // GET tournaments/player-lookup — the captain checks a teammate's account before registering.
 export interface TournamentPlayerLookup {
   id: string;

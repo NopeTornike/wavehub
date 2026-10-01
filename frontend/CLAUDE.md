@@ -764,3 +764,11 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - Entry points: `/listings/[id]` shows "განცხადების რედაქტირება" to the owner and
   "რედაქტირება (ადმინი)" to Super Admin. The Steam game page does the same via `editHref`.
   Admin → Listings rows get "რედაქტირება" for Super Admin. CSS: `le-` block.
+
+## 2026-10-01 User search (feature 11)
+- **Topbar search box** (`components/Topbar.tsx`, `role="combobox"`) now opens a suggestions
+  dropdown (`.search-suggest`):
+  - matching users from `api.searchUsers` (debounced 250 ms, ≥2 chars), each linking to `/u/[username]`;
+  - a final "მოძებნე მარკეტში" row that searches the marketplace.
+  - `.search-box.is-suggesting` lifts the box's `overflow: hidden` while the dropdown is open.
+- **`/marketplace?q=`** lists matching users above the products (`.marketplace-users`).

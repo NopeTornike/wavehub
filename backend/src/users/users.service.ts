@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { AdminRole, AdminUserSummary, UserStatus } from '@wavehub/shared-types';
+import type { PublicUserSearchResult } from '@wavehub/shared-types';
 import { User } from './user.entity';
 import { ListUsersDto } from './dto/list-users.dto';
 
@@ -47,6 +48,27 @@ export class UsersService {
 
   async setPasswordHash(id: string, passwordHash: string) {
     await this.repo.update(id, { passwordHash });
+  }
+
+  // Public username search: active accounts only, case-insensitive substring match, exact match
+  // first, then prefix matches, then the rest (shorter usernames first); at most 8. Returns only
+  // what a public profile already shows — never email, balance, role or status.
+  async searchPublic(query: string, limit = 8): Promise<PublicUserSearchResult[]> {
+    const q = query.trim().replace(/^@/, '').toLowerCase();
+    if (q.length < 2) return [];
+    const pattern = `%${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+    const rows = await this.repo
+      .createQueryBuilder('u')
+      .select(['u.id', 'u.username', 'u.avatarUrl'])
+      .where('u.status = :active', { active: UserStatus.Active })
+      .andWhere('lower(u.username) LIKE :pattern', { pattern })
+      .orderBy('CASE WHEN lower(u.username) = :q THEN 0 WHEN lower(u.username) LIKE :prefix THEN 1 ELSE 2 END', 'ASC')
+      .addOrderBy('length(u.username)', 'ASC')
+      .addOrderBy('u.username', 'ASC')
+      .setParameters({ q, prefix: `${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%` })
+      .limit(Math.min(limit, 8))
+      .getMany();
+    return rows.map((u) => ({ id: u.id, username: u.username, avatarUrl: u.avatarUrl ?? null }));
   }
 
   toPublicUser(user: User) {

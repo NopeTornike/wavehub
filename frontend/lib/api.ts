@@ -62,6 +62,7 @@ import type {
   TournamentStatus,
   PublicTournamentTeam,
   TournamentPlayerLookup,
+  PublicUserSearchResult,
   PublicTournamentMatch,
   MyTournamentEntry,
   TournamentPrizes,
@@ -905,6 +906,9 @@ export const api = {
 
   registerForTournament: (id: string, payload: { inGameName: string; inGameId: string }) =>
     request<PublicTournamentSummary>(`/tournaments/${id}/register`, { method: 'POST', body: JSON.stringify(payload) }),
+  // Public username search (topbar suggestions, marketplace search) — active accounts, ≤8.
+  searchUsers: (q: string) => request<PublicUserSearchResult[]>(`/users/search?q=${encodeURIComponent(q)}`),
+
   lookupTournamentPlayer: (q: string) => request<TournamentPlayerLookup>(`/tournaments/player-lookup?q=${encodeURIComponent(q)}`),
 
   registerTournamentTeam: (

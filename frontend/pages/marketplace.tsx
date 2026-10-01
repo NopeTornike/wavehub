@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ListingType, type PublicCategory, type PublicListingSummary, type SellerRanks } from '@wavehub/shared-types'
+import { ListingType, type PublicCategory, type PublicListingSummary, type PublicUserSearchResult, type SellerRanks } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import ProductCard from '../components/ProductCard'
 import SellerModal from '../components/SellerModal'
@@ -48,6 +48,28 @@ export default function Marketplace() {
   const game = queryString(router.query.game)
   const sort = (queryString(router.query.sort) || 'newest') as Sort
   const q = queryString(router.query.q)
+  // A search also lists matching user accounts (GET users/search) above the product results.
+  const [userHits, setUserHits] = useState<PublicUserSearchResult[]>([])
+  useEffect(() => {
+    const term = q.trim().replace(/^@/, '')
+    if (term.length < 2 || term.length > 40) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUserHits([])
+      return
+    }
+    let cancelled = false
+    api
+      .searchUsers(term)
+      .then((rows) => {
+        if (!cancelled) setUserHits(rows)
+      })
+      .catch(() => {
+        if (!cancelled) setUserHits([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [q])
 
   useEffect(() => {
     api.listCategories().then(setCategories).catch(() => undefined)
@@ -172,6 +194,22 @@ export default function Marketplace() {
           </select>
         </label>
       </section>
+
+      {userHits.length > 0 && (
+        <section className="marketplace-users" aria-labelledby="marketplaceUsersTitle">
+          <h2 id="marketplaceUsersTitle">მომხმარებლები</h2>
+          <div>
+            {userHits.map((u) => (
+              <Link key={u.id} href={`/u/${encodeURIComponent(u.username)}`}>
+                <i style={u.avatarUrl ? { backgroundImage: `url("${u.avatarUrl}")` } : undefined} aria-hidden="true">
+                  {u.avatarUrl ? '' : u.username.slice(0, 1).toUpperCase()}
+                </i>
+                @{u.username}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="marketplace-list-section" aria-labelledby="marketplaceListTitle">
         <div className="section-heading">

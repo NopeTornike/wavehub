@@ -1,4 +1,7 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { SEARCH_THROTTLE } from '../common/throttle';
+import { SearchUsersDto } from './dto/search-users.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Game } from '../listings/game.entity';
@@ -20,6 +23,14 @@ export class UsersController {
     private readonly profiles: ProfilesService,
     @InjectRepository(Game) private readonly games: Repository<Game>,
   ) {}
+
+  // Must stay registered before `:username` (Express matches in order; "search" would be taken
+  // as a username). Public and throttled; returns only id, username, avatarUrl.
+  @Get('search')
+  @Throttle(SEARCH_THROTTLE)
+  search(@Query() query: SearchUsersDto) {
+    return this.users.searchPublic(query.q);
+  }
 
   @Get(':username')
   async getPublicProfile(@Param('username') username: string): Promise<PublicUserProfile> {

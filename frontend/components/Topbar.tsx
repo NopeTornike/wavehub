@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { WAVE_RANK_TIERS } from '@wavehub/shared-types'
+import type { PublicUserSearchResult } from '@wavehub/shared-types'
+import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
@@ -78,6 +80,10 @@ export default function Topbar({
   const [profileOpen, setProfileOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [search, setSearch] = useState('')
+  // Live user suggestions under the search box (GET users/search, debounced; ≥2 characters).
+  const [userHits, setUserHits] = useState<PublicUserSearchResult[]>([])
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const searchRef = useRef<HTMLFormElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLButtonElement>(null)
 
@@ -106,6 +112,44 @@ export default function Topbar({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearch(typeof q === 'string' ? q : '')
   }, [router.query.q])
+
+  useEffect(() => {
+    const q = search.trim().replace(/^@/, '')
+    if (q.length < 2 || q.length > 40) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUserHits([])
+      return
+    }
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      api
+        .searchUsers(q)
+        .then((rows) => {
+          if (!cancelled) setUserHits(rows)
+        })
+        .catch(() => {
+          if (!cancelled) setUserHits([])
+        })
+    }, 250)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [search])
+
+  useEffect(() => {
+    if (!suggestOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) setSuggestOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [suggestOpen])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSuggestOpen(false)
+  }, [router.asPath])
 
   useEffect(() => {
     if (!profileOpen) return
@@ -173,7 +217,7 @@ export default function Topbar({
           />
         </form>
       ) : (
-        <form className="search-box" role="search" aria-label="ძიება" onSubmit={submitSearch}>
+        <form className={`search-box${suggestOpen && search.trim().length >= 2 ? ' is-suggesting' : ''}`} role="search" aria-label="ძიება" onSubmit={submitSearch} ref={searchRef}>
           <span className="search-icon" aria-hidden="true">
             /
           </span>
@@ -184,8 +228,39 @@ export default function Topbar({
             autoComplete="off"
             maxLength={100}
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="searchSuggestions"
+            aria-expanded={suggestOpen && search.trim().length >= 2}
+            onFocus={() => setSuggestOpen(true)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setSuggestOpen(false)
+            }}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setSuggestOpen(true)
+            }}
           />
+          {suggestOpen && search.trim().length >= 2 && (
+            <div className="search-suggest" id="searchSuggestions" role="listbox" aria-label="ძიების შედეგები">
+              {userHits.length > 0 && (
+                <>
+                  <p className="search-suggest-title">მომხმარებლები</p>
+                  {userHits.map((u) => (
+                    <Link key={u.id} role="option" aria-selected={false} className="search-suggest-user" href={`/u/${encodeURIComponent(u.username)}`}>
+                      <i style={u.avatarUrl ? { backgroundImage: `url("${u.avatarUrl}")` } : undefined} aria-hidden="true">
+                        {u.avatarUrl ? '' : u.username.slice(0, 1).toUpperCase()}
+                      </i>
+                      <span>@{u.username}</span>
+                    </Link>
+                  ))}
+                </>
+              )}
+              <Link role="option" aria-selected={false} className="search-suggest-market" href={`/marketplace?q=${encodeURIComponent(search.trim())}`}>
+                მოძებნე მარკეტში: „{search.trim()}“
+              </Link>
+            </div>
+          )}
         </form>
       )}
 
