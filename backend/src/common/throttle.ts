@@ -5,3 +5,6 @@
 export const UPLOAD_THROTTLE = { default: { limit: 20, ttl: 60_000 } };
 export const MESSAGE_THROTTLE = { default: { limit: 40, ttl: 60_000 } };
 export const CREATE_THROTTLE = { default: { limit: 15, ttl: 60_000 } };
+// Account lookups (e.g. a tournament captain checking a teammate's username) — enough for filling a
+// roster, too few to walk the user table.
+export const LOOKUP_THROTTLE = { default: { limit: 30, ttl: 60_000 } };

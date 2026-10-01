@@ -22,6 +22,7 @@ function targetFor(notification: PublicNotification): string {
   if (metadata.sessionId) return `/coaching-sessions/${metadata.sessionId}`
   if (metadata.ticketId) return `/support/${metadata.ticketId}`
   if (metadata.withdrawRequestId) return '/wallet'
+  if (metadata.tournamentId) return `/tournaments/${metadata.tournamentId}`
   if (notification.type.startsWith('subscription_')) return '/plans'
   return '/orders'
 }

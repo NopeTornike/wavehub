@@ -586,8 +586,8 @@ export default function Home() {
             {tournament ? (
               <div className="featured-tournament">
                 <div
-                  className="tournament-cover"
-                  data-title={(() => {
+                  className={`tournament-cover${tournament.coverImageUrl ? ' has-photo' : ''}`}
+                  data-title={tournament.coverImageUrl ? undefined : (() => {
                     // The cover's big two-line title (the design's "WAVE / CUP") is the real name.
                     const words = tournament.name.toUpperCase().split(/\s+/)
                     const half = Math.ceil(words.length / 2)

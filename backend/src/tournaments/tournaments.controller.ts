@@ -14,8 +14,9 @@ import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
 import { Throttle } from '@nestjs/throttler';
-import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
-import { RegisterTeamDto } from './dto/register-team.dto';
+import { CREATE_THROTTLE, LOOKUP_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
+import { RegisterSoloDto, RegisterTeamDto } from './dto/register-team.dto';
+import { PlayerLookupDto } from './dto/player-lookup.dto';
 import { TeamStatusDto } from './dto/team-status.dto';
 import { MatchDto } from './dto/match.dto';
 
@@ -45,6 +46,15 @@ export class TournamentsController {
     return this.tournaments.listMyRegisteredIds(userId);
   }
 
+  // A captain checks a teammate's WaveHub account (username or id) before registering. Throttled
+  // like other lookups — usernames are public, but this shouldn't be a bulk enumeration endpoint.
+  @Get('tournaments/player-lookup')
+  @Throttle(LOOKUP_THROTTLE)
+  @UseGuards(AuthGuard)
+  lookupPlayer(@Query() query: PlayerLookupDto) {
+    return this.tournaments.lookupPlayer(query.q);
+  }
+
   @Get('tournaments/:id')
   findOne(@Param('id') id: string) {
     return this.tournaments.findPublicById(id);
@@ -70,8 +80,8 @@ export class TournamentsController {
   @HttpCode(HttpStatus.OK)
   @Throttle(CREATE_THROTTLE)
   @UseGuards(AuthGuard, VerifiedEmailGuard)
-  register(@CurrentUserId() userId: string, @Param('id') id: string) {
-    return this.tournaments.register(id, userId);
+  register(@CurrentUserId() userId: string, @Param('id') id: string, @Body() dto: RegisterSoloDto) {
+    return this.tournaments.register(id, userId, dto);
   }
 
   // Squad tournaments: the caller becomes the team captain.

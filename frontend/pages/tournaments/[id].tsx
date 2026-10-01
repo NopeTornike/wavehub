@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import type { MyTournamentEntry, PublicTournamentMatch, PublicTournamentSummary, PublicTournamentTeam } from '@wavehub/shared-types'
+import type { MyTournamentEntry, PublicTournamentMatch, PublicTournamentSummary, PublicTournamentTeam, TournamentPlayerLookup } from '@wavehub/shared-types'
 import { TOURNAMENT_DETAIL_KEYS, TournamentStatus, TournamentTeamStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
@@ -71,42 +71,90 @@ function SummaryCell({ icon, label, value, sub, tone }: { icon: string; label: s
   )
 }
 
-function TeamRegistrationModal({
+type PlayerRow = { player: string; inGameName: string; inGameId: string; account: TournamentPlayerLookup | null; checking: boolean; problem: string }
+const IN_GAME_ID = /^[\p{L}\p{N}#_.:\- ]{2,40}$/u
+
+// Registration form for every tournament (no one-click sign-up): each player gives their in-game
+// name and in-game ID. Squads: the captain (the signed-in user, always player 1) adds teammates by
+// WaveHub username or account ID; each one is looked up and shown with their profile photo before
+// the team is sent, and gets a notification once registered.
+function RegistrationModal({
   tournament,
-  username,
+  me,
   onClose,
   onDone,
 }: {
   tournament: PublicTournamentSummary
-  username: string
+  me: { id: string; username: string; avatarUrl?: string | null }
   onClose: () => void
   onDone: () => void
 }) {
+  const squad = tournament.teamSize > 1
   const [name, setName] = useState('')
   const [tag, setTag] = useState('')
   const [coach, setCoach] = useState('')
-  const [members, setMembers] = useState<string[]>(() => Array.from({ length: tournament.teamSize }, (_, i) => (i === 0 ? username : '')))
+  const [rows, setRows] = useState<PlayerRow[]>(() =>
+    Array.from({ length: tournament.teamSize }, (_, i) => ({
+      player: i === 0 ? me.username : '',
+      inGameName: '',
+      inGameId: '',
+      account: i === 0 ? { id: me.id, username: me.username, avatarUrl: me.avatarUrl ?? null } : null,
+      checking: false,
+      problem: '',
+    })),
+  )
   const [logo, setLogo] = useState<File | null>(null)
+  const [agreed, setAgreed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  const patchRow = (index: number, patch: Partial<PlayerRow>) => setRows((list) => list.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+
+  const lookup = async (index: number) => {
+    const query = rows[index].player.trim().replace(/^@/, '')
+    if (!query) return patchRow(index, { account: null, problem: '' })
+    if (rows[index].account && rows[index].account?.username.toLowerCase() === query.toLowerCase()) return
+    patchRow(index, { checking: true, problem: '', account: null })
+    try {
+      const account = await api.lookupTournamentPlayer(query)
+      const duplicate = rows.some((row, i) => i !== index && row.account?.id === account.id)
+      patchRow(index, { checking: false, account: duplicate ? null : account, problem: duplicate ? 'ეს მოთამაშე უკვე დამატებულია.' : '' })
+    } catch {
+      patchRow(index, { checking: false, account: null, problem: 'WaveHub-ის აქტიური ანგარიში ვერ მოიძებნა.' })
+    }
+  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
-    const roster = members.map((m) => m.trim())
-    if (roster.some((m) => !m)) return setError(`შეიყვანეთ ${tournament.teamSize}-ვე მოთამაშის სახელი.`)
-    if (new Set(roster.map((m) => m.toLowerCase())).size !== roster.length) return setError('მოთამაშეების სახელები არ უნდა მეორდებოდეს.')
-    if (tag && !/^[A-Za-z0-9]{1,6}$/.test(tag)) return setError('ტეგი: 1–6 ლათინური ასო ან ციფრი.')
-    if (logo && (!['image/png', 'image/jpeg', 'image/webp'].includes(logo.type) || logo.size > 2 * 1024 * 1024)) {
-      return setError('ლოგო უნდა იყოს PNG, JPG ან WEBP, მაქსიმუმ 2MB.')
+    const players = rows.map((row) => ({ ...row, inGameName: row.inGameName.trim(), inGameId: row.inGameId.trim() }))
+    if (players.some((p) => !p.inGameName)) return setError('შეიყვანეთ ყველა მოთამაშის თამაშის სახელი.')
+    if (players.some((p) => !IN_GAME_ID.test(p.inGameId))) return setError('თამაშის ID: 2–40 სიმბოლო (ასოები, ციფრები, #, -, _, ., :).')
+    if (new Set(players.map((p) => p.inGameName.toLowerCase())).size !== players.length) return setError('მოთამაშეების სახელები არ უნდა მეორდებოდეს.')
+    if (squad) {
+      if (players.some((p) => !p.account)) return setError('დაამატეთ და შეამოწმეთ ყველა თანაგუნდელის WaveHub ანგარიში.')
+      if (tag && !/^[A-Za-z0-9]{1,6}$/.test(tag)) return setError('ტეგი: 1–6 ლათინური ასო ან ციფრი.')
+      if (logo && (!['image/png', 'image/jpeg', 'image/webp'].includes(logo.type) || logo.size > 2 * 1024 * 1024)) {
+        return setError('ლოგო უნდა იყოს PNG, JPG ან WEBP, მაქსიმუმ 2MB.')
+      }
     }
+    if (!agreed) return setError('დაეთანხმეთ ტურნირის წესებს.')
     setBusy(true)
     try {
-      await api.registerTournamentTeam(tournament.id, { name: name.trim(), tag: tag.trim() || undefined, coachName: coach.trim() || undefined, members: roster })
-      if (logo) await api.uploadMyTeamLogo(tournament.id, logo).catch(() => undefined)
+      if (squad) {
+        await api.registerTournamentTeam(tournament.id, {
+          name: name.trim(),
+          tag: tag.trim() || undefined,
+          coachName: coach.trim() || undefined,
+          players: players.map((p) => ({ player: p.account!.id, inGameName: p.inGameName, inGameId: p.inGameId })),
+        })
+        if (logo) await api.uploadMyTeamLogo(tournament.id, logo).catch(() => undefined)
+      } else {
+        await api.registerForTournament(tournament.id, { inGameName: players[0].inGameName, inGameId: players[0].inGameId })
+      }
       onDone()
     } catch (err) {
-      setError(errorMessage(err, 'გუნდის რეგისტრაცია ვერ მოხერხდა.'))
+      setError(errorMessage(err, 'რეგისტრაცია ვერ მოხერხდა.'))
       setBusy(false)
     }
   }
@@ -117,39 +165,97 @@ function TeamRegistrationModal({
         <div className="seller-modal-head">
           <div>
             <p className="section-kicker">{tournament.name}</p>
-            <h2 id="teamModalTitle">გუნდის რეგისტრაცია</h2>
+            <h2 id="teamModalTitle">{squad ? 'გუნდის რეგისტრაცია' : 'რეგისტრაცია'}</h2>
           </div>
           <button className="seller-close-button" type="button" aria-label="დახურვა" onClick={onClose}>
             x
           </button>
         </div>
         <form className="seller-form listing-builder-form" onSubmit={submit}>
-          <section className="listing-builder-section">
-            <div className="listing-builder-grid">
-              <label>
-                <span>გუნდის სახელი *</span>
-                <input required minLength={2} maxLength={30} value={name} onChange={(e) => setName(e.target.value)} />
-              </label>
-              <label>
-                <span>ტეგი (მაგ. WRD)</span>
-                <input maxLength={6} value={tag} onChange={(e) => setTag(e.target.value.toUpperCase())} />
-              </label>
-              <label>
-                <span>ქოუჩი (არასავალდებულო)</span>
-                <input maxLength={30} value={coach} onChange={(e) => setCoach(e.target.value)} />
-              </label>
-              <label>
-                <span>ლოგო (არასავალდებულო)</span>
-                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setLogo(e.target.files?.[0] ?? null)} />
-              </label>
-              {members.map((member, index) => (
-                <label key={index}>
-                  <span>{index === 0 ? 'კაპიტანი' : `მოთამაშე ${index + 1}`} — თამაშის სახელი *</span>
-                  <input required maxLength={30} value={member} onChange={(e) => setMembers((list) => list.map((m, i) => (i === index ? e.target.value : m)))} />
+          {squad && (
+            <section className="listing-builder-section">
+              <h3>გუნდი</h3>
+              <div className="listing-builder-grid">
+                <label>
+                  <span>გუნდის სახელი *</span>
+                  <input required minLength={2} maxLength={30} value={name} onChange={(e) => setName(e.target.value)} />
                 </label>
+                <label>
+                  <span>ტეგი (მაგ. WRD)</span>
+                  <input maxLength={6} value={tag} onChange={(e) => setTag(e.target.value.toUpperCase())} />
+                </label>
+                <label>
+                  <span>ქოუჩი (არასავალდებულო)</span>
+                  <input maxLength={30} value={coach} onChange={(e) => setCoach(e.target.value)} />
+                </label>
+                <label>
+                  <span>ლოგო (არასავალდებულო)</span>
+                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setLogo(e.target.files?.[0] ?? null)} />
+                </label>
+              </div>
+            </section>
+          )}
+          <section className="listing-builder-section">
+            <h3>{squad ? `მოთამაშეები (${tournament.teamSize})` : 'მოთამაშე'}</h3>
+            {squad && <p className="tr-hint">დაამატეთ თანაგუნდელები WaveHub-ის მომხმარებლის სახელით ან ID-ით — მათი პროფილი ავტომატურად დაემატება გუნდს.</p>}
+            <div className="tr-players">
+              {rows.map((row, index) => (
+                <div key={index} className="tr-player">
+                  <div className="tr-player-account">
+                    {index === 0 ? (
+                      <span className="tr-player-label">{squad ? 'კაპიტანი (შენ)' : 'შენი ანგარიში'}</span>
+                    ) : (
+                      <label>
+                        <span>მოთამაშე {index + 1} — WaveHub username ან ID *</span>
+                        <span className="tr-lookup">
+                          <input
+                            value={row.player}
+                            maxLength={60}
+                            placeholder="@username"
+                            onChange={(e) => patchRow(index, { player: e.target.value, account: null, problem: '' })}
+                            onBlur={() => void lookup(index)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                void lookup(index)
+                              }
+                            }}
+                          />
+                          <button type="button" className="secondary-seller-action" disabled={row.checking || !row.player.trim()} onClick={() => void lookup(index)}>
+                            {row.checking ? '…' : 'შემოწმება'}
+                          </button>
+                        </span>
+                      </label>
+                    )}
+                    {row.account && (
+                      <a className="tr-account" href={`/u/${encodeURIComponent(row.account.username)}`} target="_blank" rel="noreferrer">
+                        <i style={row.account.avatarUrl ? { backgroundImage: `url("${row.account.avatarUrl}")` } : undefined}>
+                          {row.account.avatarUrl ? '' : row.account.username.slice(0, 1).toUpperCase()}
+                        </i>
+                        <span>@{row.account.username}</span>
+                        <b>✓</b>
+                      </a>
+                    )}
+                    {row.problem && <small className="tr-problem">{row.problem}</small>}
+                  </div>
+                  <label>
+                    <span>თამაშის სახელი (nickname) *</span>
+                    <input required maxLength={30} value={row.inGameName} onChange={(e) => patchRow(index, { inGameName: e.target.value })} />
+                  </label>
+                  <label>
+                    <span>თამაშის ID *</span>
+                    <input required maxLength={40} inputMode="text" value={row.inGameId} onChange={(e) => patchRow(index, { inGameId: e.target.value })} />
+                  </label>
+                </div>
               ))}
             </div>
-            <p className="seller-status">გუნდი დადასტურდება ტურნირის ადმინისტრაციის მიერ. რეგისტრაციით ეთანხმებით ტურნირის წესებს.</p>
+            <label className="tr-agree">
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+              <span>ვეთანხმები ტურნირის წესებს{squad ? ' და ვადასტურებ, რომ თანაგუნდელები თანახმა არიან მონაწილეობაზე' : ''}.</span>
+            </label>
+            <p className="seller-status">
+              {squad ? 'გუნდი დადასტურდება ტურნირის ადმინისტრაციის მიერ. ' : ''}თამაშის ID-ს ხედავს მხოლოდ ადმინისტრაცია და შენი გუნდი.
+            </p>
             {error && (
               <p className="seller-status error" role="alert">
                 {error}
@@ -161,7 +267,7 @@ function TeamRegistrationModal({
               გაუქმება
             </button>
             <button className="seller-submit-button" type="submit" disabled={busy}>
-              {busy ? 'იგზავნება…' : 'გუნდის რეგისტრაცია'}
+              {busy ? 'იგზავნება…' : squad ? 'გუნდის რეგისტრაცია' : 'რეგისტრაცია'}
             </button>
           </div>
         </form>
@@ -247,6 +353,7 @@ export default function TournamentDetail() {
   const details = t.details ?? {}
   const entryFee = details.entryFee || 'უფასო'
   const squad = t.teamSize > 1
+  const captain = Boolean(mine && me && mine.team.captainUsername === me.username)
   const full = t.registeredCount + t.teamSize > t.maxPlayers
   const open = t.status === TournamentStatus.Open
   const editable = t.status === TournamentStatus.Open || t.status === TournamentStatus.Upcoming
@@ -256,25 +363,13 @@ export default function TournamentDetail() {
   const rules = parseRules(t.rules)
   const prizes = t.prizes ?? { places: [], specialRewards: [], note: null }
 
-  const register = async () => {
+  const register = () => {
     if (!me) {
       router.push(`/login?next=/tournaments/${t.id}`)
       return
     }
-    if (squad) {
-      setTeamModal(true)
-      return
-    }
     setActionError('')
-    setBusy(true)
-    try {
-      await api.registerForTournament(t.id)
-      load()
-    } catch (err) {
-      setActionError(errorMessage(err, 'რეგისტრაცია ვერ მოხერხდა.'))
-    } finally {
-      setBusy(false)
-    }
+    setTeamModal(true)
   }
 
   const withdraw = async () => {
@@ -307,15 +402,9 @@ export default function TournamentDetail() {
         {mine.team.status === TournamentTeamStatus.Pending ? 'მოლოდინში — ჰაბი' : 'დარეგისტრირებული ✓'} <TIcon name="chevron" />
       </Link>
     )
-  } else if (!open && matches.length > 0) {
-    registerButton = (
-      <Link id="tdRegisterNow" className="wt-register-link" href={`/tournaments/${t.id}/matches`}>
-        მატჩების ნახვა <TIcon name="chevron" />
-      </Link>
-    )
   } else {
     registerButton = (
-      <button id="tdRegisterNow" type="button" disabled={busy || full || !open} onClick={() => void register()}>
+      <button id="tdRegisterNow" type="button" disabled={busy || full || !open} onClick={register}>
         {busy
           ? 'იგზავნება…'
           : full
@@ -326,7 +415,7 @@ export default function TournamentDetail() {
                 : 'რეგისტრაცია დახურულია'
               : squad
                 ? 'გუნდის რეგისტრაცია'
-                : 'Register Now'}
+                : 'რეგისტრაცია'}
         {open && !full && <TIcon name="chevron" />}
       </button>
     )
@@ -338,13 +427,25 @@ export default function TournamentDetail() {
     <Layout title={t.name} description={`${t.gameName} — ${t.description}`.slice(0, 200)}>
       <section className="tournament-results-page wt-page" id="tournamentDetailPage">
         <section className="prejoin-page">
-          <header className="prejoin-hero wt-hero" style={{ backgroundImage: `linear-gradient(180deg,rgba(2,6,14,.05),rgba(2,6,14,.55)),url('${cover}')` }}>
-            <div>
-              <span className="wt-hero-brand">WAVEHUBX</span>
-              <h1>{t.name}</h1>
-              <strong>{details.slogan || 'COMPETE. IMPROVE. WIN.'}</strong>
-            </div>
-          </header>
+          {/* An uploaded cover is shown as-is (staff design it, often with its own text); the
+              title then sits under it. Only the fallback game art gets the overlaid title. */}
+          {t.coverImageUrl ? (
+            <>
+              <header className="prejoin-hero wt-hero has-photo" style={{ backgroundImage: `url('${cover}')` }} aria-hidden="true"></header>
+              <div className="wt-hero-title">
+                <h1>{t.name}</h1>
+                {details.slogan && <strong>{details.slogan}</strong>}
+              </div>
+            </>
+          ) : (
+            <header className="prejoin-hero wt-hero" style={{ backgroundImage: `linear-gradient(180deg,rgba(2,6,14,.05),rgba(2,6,14,.55)),url('${cover}')` }}>
+              <div>
+                <span className="wt-hero-brand">WAVEHUBX</span>
+                <h1>{t.name}</h1>
+                <strong>{details.slogan || 'COMPETE. IMPROVE. WIN.'}</strong>
+              </div>
+            </header>
+          )}
 
           <section className="prejoin-summary">
             <SummaryCell
@@ -543,12 +644,22 @@ export default function TournamentDetail() {
                               </div>
                             </div>
                             <div className="team-members">
-                              {team.members.map((member) => (
-                                <span key={member}>
-                                  <i>{member.slice(0, 1).toUpperCase()}</i>
-                                  <small>{member}</small>
-                                </span>
-                              ))}
+                              {team.members.map((member, i) => {
+                                const player = team.players.find((p) => p.inGameName === member) ?? (i === 0 ? team.players[0] : undefined)
+                                return player?.username ? (
+                                  <Link key={member} href={`/u/${encodeURIComponent(player.username)}`} title={`@${player.username}`}>
+                                    <i style={player.avatarUrl ? { backgroundImage: `url("${player.avatarUrl}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+                                      {player.avatarUrl ? '' : member.slice(0, 1).toUpperCase()}
+                                    </i>
+                                    <small>{member}</small>
+                                  </Link>
+                                ) : (
+                                  <span key={member}>
+                                    <i>{member.slice(0, 1).toUpperCase()}</i>
+                                    <small>{member}</small>
+                                  </span>
+                                )
+                              })}
                             </div>
                             <div className="team-size">
                               <strong>
@@ -587,10 +698,18 @@ export default function TournamentDetail() {
             </div>
             {registerButton}
           </section>
-          {(actionError || (mine && editable)) && (
+          {matches.length > 0 && (
+            <p className="wt-matches-link">
+              <Link href={`/tournaments/${t.id}/matches`}>
+                მატჩები და შედეგები ({matches.length}) <TIcon name="chevron" />
+              </Link>
+            </p>
+          )}
+          {(actionError || mine) && (
             <p className={`seller-status${actionError ? ' error' : ''} wt-register-note`} role={actionError ? 'alert' : undefined}>
               {actionError || (mine?.team.status === TournamentTeamStatus.Pending ? 'გუნდი ელოდება ადმინისტრაციის დადასტურებას. ' : 'რეგისტრაცია დადასტურებულია. ')}
-              {mine && editable && (
+              {mine && !captain && !actionError && 'გუნდიდან გასვლა შეუძლია კაპიტანს. '}
+              {mine && captain && editable && (
                 <button type="button" className="wt-link-button" disabled={busy} onClick={() => void withdraw()}>
                   ტურნირიდან გასვლა
                 </button>
@@ -656,9 +775,9 @@ export default function TournamentDetail() {
       </section>
 
       {teamModal && me && (
-        <TeamRegistrationModal
+        <RegistrationModal
           tournament={t}
-          username={me.username}
+          me={me}
           onClose={() => setTeamModal(false)}
           onDone={() => {
             setTeamModal(false)

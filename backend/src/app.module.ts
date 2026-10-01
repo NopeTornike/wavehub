@@ -60,6 +60,7 @@ import { UserFollow } from './profiles/user-follow.entity';
 import { Tournament } from './tournaments/tournament.entity';
 import { TournamentRegistration } from './tournaments/tournament-registration.entity';
 import { TournamentTeam } from './tournaments/tournament-team.entity';
+import { TournamentTeamMember } from './tournaments/tournament-team-member.entity';
 import { TournamentMatch } from './tournaments/tournament-match.entity';
 import { CommonModule } from './common/common.module';
 import { CommunityModule } from './community/community.module';
@@ -129,6 +130,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
         Tournament,
         TournamentRegistration,
         TournamentTeam,
+        TournamentTeamMember,
         TournamentMatch,
         UserFollow,
         SubscriptionPlan,

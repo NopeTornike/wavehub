@@ -147,7 +147,7 @@ function TournamentFields({
           <input id={`${idPrefix}-team`} type="number" min={1} max={10} step={1} value={form.teamSize} onChange={(e) => onChange({ ...form, teamSize: Number(e.target.value) })} required />
         </label>
       </div>
-      <details className="field">
+      <details className="field" open>
         <summary>საპრიზო ფონდის განაწილება (Prize Pool ჩანართი)</summary>
         <label className="field" htmlFor={`${idPrefix}-places`}>
           ადგილები <small>თითო ხაზზე: ადგილი | თანხა | ჯილდოები მძიმით (მაგ. „1st Place | 500 GEL | Gaming Gear, Hotel Stay“)</small>
@@ -164,8 +164,8 @@ function TournamentFields({
           </label>
         </div>
       </details>
-      <details className="field">
-        <summary>ტურნირის დეტალები (არასავალდებულო — ცარიელი ველი საჯაროდ ჩანს როგორც „To be announced“)</summary>
+      <details className="field" open>
+        <summary>ფორმატი, ინფორმაცია და წესები (ცარიელი ველი საჯაროდ ჩანს როგორც „To be announced“)</summary>
         <div className="stack-form-grid">
           {TOURNAMENT_DETAIL_KEYS.map(([key, label]) => (
             <label key={key} className="field" htmlFor={`${idPrefix}-d-${key}`}>
@@ -208,10 +208,11 @@ export default function AdminTournaments() {
   const [coverTargetId, setCoverTargetId] = useState<string | null>(null)
   const [opsId, setOpsId] = useState<string | null>(null)
 
-  // Quiet refresh (no spinner flash) — used after every mutation.
+  // Quiet refresh (no spinner flash) — used after every mutation. Staff endpoint: the public one
+  // hides drafts, so an edited draft used to vanish from this list after saving.
   const reload = () =>
     api
-      .browseTournaments({ limit: 100 })
+      .adminBrowseTournaments(100)
       .then((res) => {
         setItems(res.items)
         setError('')

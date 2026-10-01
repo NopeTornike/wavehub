@@ -60,6 +60,7 @@ import type {
   PublicTournamentSummary,
   TournamentStatus,
   PublicTournamentTeam,
+  TournamentPlayerLookup,
   PublicTournamentMatch,
   MyTournamentEntry,
   TournamentPrizes,
@@ -848,9 +849,14 @@ export const api = {
 
   listMyTournamentRegistrations: () => request<string[]>('/tournaments/mine'),
 
-  registerForTournament: (id: string) => request<PublicTournamentSummary>(`/tournaments/${id}/register`, { method: 'POST' }),
+  registerForTournament: (id: string, payload: { inGameName: string; inGameId: string }) =>
+    request<PublicTournamentSummary>(`/tournaments/${id}/register`, { method: 'POST', body: JSON.stringify(payload) }),
+  lookupTournamentPlayer: (q: string) => request<TournamentPlayerLookup>(`/tournaments/player-lookup?q=${encodeURIComponent(q)}`),
 
-  registerTournamentTeam: (id: string, payload: { name: string; tag?: string; coachName?: string; members: string[] }) =>
+  registerTournamentTeam: (
+    id: string,
+    payload: { name: string; tag?: string; coachName?: string; players: Array<{ player: string; inGameName: string; inGameId: string }> },
+  ) =>
     request<PublicTournamentTeam>(`/tournaments/${id}/teams`, { method: 'POST', body: JSON.stringify(payload) }),
 
   uploadMyTeamLogo: (id: string, file: File) => upload<PublicTournamentTeam>(`/tournaments/${id}/teams/mine/logo`, file),

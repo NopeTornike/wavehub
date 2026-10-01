@@ -191,6 +191,7 @@ export enum NotificationType {
   SubscriptionExpiring = 'subscription_expiring',
   SubscriptionCancelled = 'subscription_cancelled',
   SubscriptionExpired = 'subscription_expired',
+  TournamentTeamAdded = 'tournament_team_added',
 }
 
 // Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
@@ -1030,8 +1031,27 @@ export interface PublicTournamentTeam {
   coachName: string | null;
   // In-game names as the captain entered them (exactly `teamSize` of them).
   members: string[];
+  // The linked WaveHub accounts, roster order (captain first). Teams registered before 2026-10-01
+  // list only their captain here; their other players exist only as `members` names.
+  players: TournamentTeamPlayer[];
   status: TournamentTeamStatus;
   createdAt: string;
+}
+
+export interface TournamentTeamPlayer {
+  username: string;
+  avatarUrl: string | null;
+  inGameName: string;
+  isCaptain: boolean;
+  // Only in staff views and the caller's own team (GET me/tournaments) — never on the public Teams tab.
+  inGameId?: string | null;
+}
+
+// GET tournaments/player-lookup — the captain checks a teammate's account before registering.
+export interface TournamentPlayerLookup {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
 }
 
 export interface TournamentTeamRef {

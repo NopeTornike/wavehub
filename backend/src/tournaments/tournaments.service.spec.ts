@@ -32,14 +32,28 @@ describe('TournamentsService', () => {
     };
   }
 
-  function build(opts: { tournament?: any; players?: number; teams?: number; registeredUserIds?: string[]; teamRows?: any[] } = {}) {
+  function build(opts: { tournament?: any; players?: number; teams?: number; registeredUserIds?: string[]; teamRows?: any[]; takenRows?: any[] } = {}) {
     const tournamentRow = opts.tournament === null ? null : opts.tournament ?? fakeTournament();
     const registered = new Set(opts.registeredUserIds ?? []);
     const saved: any[] = [];
     const countsRow = { teams: opts.teams ?? 0, players: opts.players ?? 0 };
 
+    // Active accounts a captain can add, by username (findPlayer's query builder is faked below).
+    const accounts = new Map(['player_one', 'b', 'c', 'd', 'ana2'].map((name, i) => [name, { id: i === 0 ? userId : `user-${name}`, username: name, avatarUrl: null }]));
+    const qb: any = {
+      params: {} as Record<string, string>,
+      where: jest.fn(function (this: any) { return this; }),
+      andWhere: jest.fn(function (this: any, _sql: string, params: any) { Object.assign(qb.params, params); return this; }),
+      getOne: jest.fn(async () => {
+        const found = qb.params.username ? accounts.get(qb.params.username.toLowerCase()) : [...accounts.values()].find((a) => a.id === qb.params.id);
+        qb.params = {};
+        return found ?? null;
+      }),
+    };
     const manager: any = {
       query: jest.fn(async () => [countsRow]),
+      getRepository: jest.fn(() => ({ createQueryBuilder: () => qb })),
+      find: jest.fn(async () => opts.takenRows ?? []),
       findOne: jest.fn(async (entity: any, { where }: any) => {
         if (entity === Tournament) return tournamentRow;
         if (entity === TournamentRegistration) return registered.has(where.userId) ? { id: 'r' } : null;
@@ -48,7 +62,8 @@ describe('TournamentsService', () => {
       findOneOrFail: jest.fn(async (entity: any) => (entity === User ? { id: userId, username: 'player_one' } : {})),
       create: jest.fn((_entity: any, data: any) => ({ id: `row-${saved.length + 1}`, createdAt: new Date(), ...data })),
       save: jest.fn(async (row: any) => {
-        saved.push(row);
+        if (Array.isArray(row)) saved.push(...row);
+        else saved.push(row);
         return row;
       }),
     };
@@ -78,75 +93,118 @@ describe('TournamentsService', () => {
       createQueryBuilder: jest.fn(),
     } as any;
     const storage = { save: jest.fn(async () => ({ url: 'http://x/uploads/file.png' })) } as any;
+    const members = { find: jest.fn(async () => []) } as any;
+    const notifications = { emit: jest.fn(async () => ({})) } as any;
 
-    const service = new TournamentsService(tournaments, registrations, teams, matches, dataSource, storage);
-    return { service, saved, tournaments, teams, matches };
+    const service = new TournamentsService(tournaments, registrations, teams, matches, members, dataSource, storage, notifications);
+    return { service, saved, tournaments, teams, matches, notifications };
   }
+
+  const solo = { inGameName: 'PlayerOne', inGameId: '5123456789' };
 
   describe('register (solo)', () => {
     it('rejects a tournament that does not exist', async () => {
       const { service } = build({ tournament: null });
-      await expect(service.register(tournamentId, userId)).rejects.toThrow(NotFoundException);
+      await expect(service.register(tournamentId, userId, solo)).rejects.toThrow(NotFoundException);
     });
 
     it('rejects registration when the tournament is not Open', async () => {
       const { service } = build({ tournament: fakeTournament({ status: TournamentStatus.Upcoming }) });
-      await expect(service.register(tournamentId, userId)).rejects.toThrow(ForbiddenException);
+      await expect(service.register(tournamentId, userId, solo)).rejects.toThrow(ForbiddenException);
     });
 
     it('rejects registration once the tournament is full', async () => {
       const { service } = build({ tournament: fakeTournament({ maxPlayers: 2 }), players: 2 });
-      await expect(service.register(tournamentId, userId)).rejects.toThrow('This tournament is full');
+      await expect(service.register(tournamentId, userId, solo)).rejects.toThrow('This tournament is full');
     });
 
     it('rejects a duplicate registration from the same user', async () => {
       const { service } = build({ registeredUserIds: [userId] });
-      await expect(service.register(tournamentId, userId)).rejects.toThrow('You are already registered for this tournament');
+      await expect(service.register(tournamentId, userId, solo)).rejects.toThrow('You are already registered for this tournament');
     });
 
     it('sends squad tournaments to team registration', async () => {
       const { service } = build({ tournament: fakeTournament({ teamSize: 4 }) });
-      await expect(service.register(tournamentId, userId)).rejects.toThrow(BadRequestException);
+      await expect(service.register(tournamentId, userId, solo)).rejects.toThrow(BadRequestException);
     });
 
-    it('creates a verified one-player team named after the user plus a registration pointing at it', async () => {
+    it('creates a verified one-player team named after the user, its member row and a registration', async () => {
       const { service, saved } = build();
-      await service.register(tournamentId, userId);
+      await service.register(tournamentId, userId, solo);
       const team = saved.find((row) => row.members);
-      expect(team).toMatchObject({ name: 'player_one', members: ['player_one'], status: TournamentTeamStatus.Verified, captainUserId: userId });
-      expect(saved.find((row) => row.teamId === team.id)).toMatchObject({ tournamentId, userId });
+      expect(team).toMatchObject({ name: 'player_one', members: ['PlayerOne'], status: TournamentTeamStatus.Verified, captainUserId: userId });
+      expect(saved.find((row) => row.teamId === team.id && row.inGameId)).toMatchObject({ userId, inGameName: 'PlayerOne', inGameId: '5123456789', position: 0 });
+      expect(saved.find((row) => row.teamId === team.id && !row.inGameId)).toMatchObject({ tournamentId, userId });
+    });
+
+    it('requires the in-game name and ID', async () => {
+      const { service } = build();
+      await expect(service.register(tournamentId, userId, { inGameName: ' ', inGameId: '12345' })).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('registerTeam (squad)', () => {
     const squad = () => fakeTournament({ teamSize: 4, maxPlayers: 16 });
-    const dto = (members: string[]) => ({ name: 'Wave Riders', tag: 'wrd', members });
+    // Players by WaveHub username; in-game names default to the upper-cased username.
+    const dto = (names: string[], inGame?: string[]) => ({
+      name: 'Wave Riders',
+      tag: 'wrd',
+      players: names.map((player, i) => ({ player, inGameName: inGame?.[i] ?? player.toUpperCase(), inGameId: `id-${i}0000` })),
+    });
 
     it('requires exactly teamSize players', async () => {
       const { service } = build({ tournament: squad() });
-      await expect(service.registerTeam(tournamentId, userId, dto(['a', 'b', 'c']))).rejects.toThrow('A team needs exactly 4 players');
+      await expect(service.registerTeam(tournamentId, userId, dto(['player_one', 'b', 'c']))).rejects.toThrow('A team needs exactly 4 players');
     });
 
     it('rejects duplicate player names (case-insensitive)', async () => {
       const { service } = build({ tournament: squad() });
-      await expect(service.registerTeam(tournamentId, userId, dto(['Ana', 'ana', 'b', 'c']))).rejects.toThrow('Player names must be different');
+      await expect(service.registerTeam(tournamentId, userId, dto(['player_one', 'b', 'c', 'd'], ['Ana', 'ana', 'x', 'y']))).rejects.toThrow('Player names must be different');
     });
 
     it('rejects a team that would exceed the player capacity', async () => {
       const { service } = build({ tournament: squad(), players: 13 });
-      await expect(service.registerTeam(tournamentId, userId, dto(['a', 'b', 'c', 'd']))).rejects.toThrow('This tournament is full');
+      await expect(service.registerTeam(tournamentId, userId, dto(['player_one', 'b', 'c', 'd']))).rejects.toThrow('This tournament is full');
     });
 
     it('is refused for a solo tournament', async () => {
       const { service } = build();
-      await expect(service.registerTeam(tournamentId, userId, dto(['a']))).rejects.toThrow(BadRequestException);
+      await expect(service.registerTeam(tournamentId, userId, dto(['player_one']))).rejects.toThrow(BadRequestException);
     });
 
-    it('saves a pending team with an upper-cased tag', async () => {
-      const { service, saved } = build({ tournament: squad() });
-      const team = await service.registerTeam(tournamentId, userId, dto(['a', 'b', 'c', 'd']));
-      expect(saved.find((row) => row.members)).toMatchObject({ status: TournamentTeamStatus.Pending, tag: 'WRD' });
-      expect(team.members).toEqual(['a', 'b', 'c', 'd']);
+    it('saves a pending team (captain first), one member row per account, and notifies teammates', async () => {
+      const { service, saved, notifications } = build({ tournament: squad() });
+      await service.registerTeam(tournamentId, userId, dto(['b', 'player_one', 'c', 'd']));
+      const team = saved.find((row) => row.members);
+      expect(team).toMatchObject({ status: TournamentTeamStatus.Pending, tag: 'WRD', members: ['PLAYER_ONE', 'B', 'C', 'D'] });
+      const rows = saved.filter((row) => row.inGameId);
+      expect(rows.map((r) => [r.userId, r.position])).toEqual([
+        [userId, 0],
+        ['user-b', 1],
+        ['user-c', 2],
+        ['user-d', 3],
+      ]);
+      expect(notifications.emit).toHaveBeenCalledTimes(3);
+    });
+
+    it('rejects an unknown or inactive account', async () => {
+      const { service } = build({ tournament: squad() });
+      await expect(service.registerTeam(tournamentId, userId, dto(['player_one', 'b', 'c', 'ghost']))).rejects.toThrow('No active WaveHub account "ghost"');
+    });
+
+    it('requires the captain to be on the team', async () => {
+      const { service } = build({ tournament: squad() });
+      await expect(service.registerTeam(tournamentId, userId, dto(['ana2', 'b', 'c', 'd']))).rejects.toThrow('captain plays too');
+    });
+
+    it('rejects the same account twice', async () => {
+      const { service } = build({ tournament: squad() });
+      await expect(service.registerTeam(tournamentId, userId, dto(['player_one', 'b', 'B', 'd'], ['p', 'x', 'y', 'z']))).rejects.toThrow('only be added once');
+    });
+
+    it('rejects a player already on another team in this tournament', async () => {
+      const { service } = build({ tournament: squad(), takenRows: [{ user: { username: 'c' } }] });
+      await expect(service.registerTeam(tournamentId, userId, dto(['player_one', 'b', 'c', 'd']))).rejects.toThrow('@c is already on a team');
     });
   });
 

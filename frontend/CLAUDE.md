@@ -717,3 +717,18 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   Admin → Listings → "ყველა განცხადება · რჩეული" (`al-` CSS).
 - Admin → Users: Super Admins get a "მართვა" panel (WaveCoin adjust, admin role) — `au-` CSS.
 - Sidebar has a "გამოწერები" (Subscriptions, `/plans`) item.
+
+## 2026-10-01 Tournament fixes
+- `/tournaments/[id]`: every registration opens `RegistrationModal` (in-game name + ID + rules
+  checkbox; squads add teammates by WaveHub username/ID with a live account lookup chip). The
+  register button is always the register button (state-labelled); recorded matches get their own
+  "მატჩები და შედეგები" link (previously the button turned into a matches link and registration
+  disappeared). Only the captain sees "withdraw".
+- **Uploaded covers are never drawn over**: the detail hero (`.wt-hero.has-photo` + `.wt-hero-title`
+  under it) and the home featured-tournament card (`.tournament-cover.has-photo`, no `data-title`)
+  show staff covers as-is; only fallback game art gets the overlaid title.
+- Teams tab and Admin → Tournaments → teams show real accounts (avatar/initial, link to `/u/…`);
+  the stock `team-player-portraits.png` sprite is no longer painted on players (rule #6).
+- Match stats tables keep all five columns on phones (compact + horizontal scroll fallback).
+- Admin → Tournaments: reload after save uses `adminBrowseTournaments` (the public list hid edited
+  drafts); prize / format-info-rules sections are expanded by default.

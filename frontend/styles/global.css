@@ -19702,3 +19702,53 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
 .steam-photo-main { background: #ff2f8f; color: #fff; }
 .steam-photo-grid figure .steam-photo-make-main { top: auto; right: auto; width: auto; height: auto; border-radius: 6px; background: rgba(0, 0, 0, .72); color: #fff; cursor: pointer; }
 .steam-photo-grid figure .steam-photo-make-main:hover { background: rgba(255, 47, 143, .85); }
+
+/* Tournament teams: players are real accounts — their own photo or initial, never the stock
+   portrait sprite (root CLAUDE.md rule #6). Linked players open their profile. */
+.team-members > a { display: grid !important; justify-items: center; gap: 3px; min-width: 42px; color: #dce1eb; text-decoration: none; }
+.team-members i, .team-members span:nth-child(n) i { background-image: none; background-size: cover; background-position: center; background-color: #1b1530; color: #fff; font-size: 16px; font-weight: 900; }
+.team-members > a:hover small { color: #ff8cc4; }
+
+/* Registration form (pages/tournaments/[id].tsx, tr- prefix). */
+.tr-hint { margin: 0 0 12px; color: #b9c0d0; font-size: 13px; }
+.tr-players { display: grid; gap: 12px; }
+.tr-player { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: end; border: 1px solid rgba(120, 130, 170, .2); border-radius: 10px; padding: 12px; background: rgba(5, 6, 16, .45); }
+.tr-player-account { display: grid; gap: 6px; min-width: 0; }
+.tr-player-label { color: #ff8cc4; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.tr-lookup { display: flex; gap: 6px; }
+.tr-lookup input { flex: 1; min-width: 0; }
+.tr-lookup button { flex: none; min-height: 40px; padding: 0 12px; }
+.tr-account { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; color: #e6e8f0; font-size: 13px; text-decoration: none; }
+.tr-account i { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #2a1d44 center / cover no-repeat; color: #fff; font-style: normal; font-weight: 900; }
+.tr-account span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-account b { color: #54e69a; }
+.tr-problem { color: #ff6b8a; font-size: 12px; }
+.tr-agree { display: flex !important; flex-direction: row !important; gap: 10px; align-items: flex-start; margin-top: 14px; color: #d6d9e3; font-size: 13px; }
+.tr-agree input { width: auto !important; min-height: 0 !important; margin-top: 2px; }
+@media (max-width: 700px) { .tr-player { grid-template-columns: minmax(0, 1fr); } }
+
+/* Uploaded tournament covers are shown without overlaid text; the title sits under them. */
+.wt-hero.has-photo { min-height: 0 !important; aspect-ratio: 16 / 6; background-size: cover; background-position: center; }
+.wt-hero-title { display: grid; gap: 10px; justify-items: center; padding: 22px 16px 10px; text-align: center; }
+.wt-hero-title h1 { margin: 0; color: #fff; font-size: clamp(28px, 4vw, 52px); font-style: italic; font-weight: 900; text-transform: uppercase; overflow-wrap: anywhere; }
+.wt-hero-title strong { padding: 7px 23px; background: linear-gradient(90deg, #e3165f, #ff2f8f); color: #fff; font-size: 18px; font-style: italic; clip-path: polygon(3% 0, 100% 6%, 97% 100%, 0 92%); }
+.tournament-cover.has-photo::before { content: none !important; }
+.tournament-cover.has-photo::after { background: linear-gradient(0deg, rgba(6, 7, 17, .35), transparent 45%); }
+.wt-matches-link { margin: 10px 0 0; text-align: right; }
+.wt-matches-link a { display: inline-flex; align-items: center; gap: 6px; color: #ff8cc4; font-weight: 800; }
+@media (max-width: 800px) { .wt-hero.has-photo { aspect-ratio: 16 / 9; } }
+
+/* Match stats on phones: every column stays visible (compact), and the table scrolls sideways
+   instead of being clipped by .wt-team-stats { overflow: hidden }. */
+.wt-stat-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 600px) {
+  .wt-stat-row { min-width: 330px; grid-template-columns: minmax(96px, 1.3fr) repeat(4, minmax(42px, .55fr)); gap: 4px; padding: 0 8px; font-size: 12px; min-height: 48px; }
+  .wt-stat-row.head { font-size: 10px; }
+  .wt-stat-row .wt-player i { width: 26px; height: 26px; }
+  .wt-stat-row .wt-player strong { display: block; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+.to-players { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; color: #d6d9e3; }
+.to-players li { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.to-players code { color: #ffc400; }
+.to-players a { color: #ff8cc4; }
+.to-players small { color: #7f8699; }

@@ -231,9 +231,28 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
                   {team.tag ? ` [${team.tag}]` : ''} — {TEAM_STATUS_LABEL[team.status]}
                 </strong>
                 <span className="note" style={{ margin: 0 }}>
-                  კაპიტანი @{team.captainUsername} · {team.members.join(', ')}
+                  კაპიტანი @{team.captainUsername}
                   {team.coachName ? ` · ქოუჩი: ${team.coachName}` : ''}
                 </span>
+                {/* Linked accounts with in-game name + ID (staff-only); older teams list names only. */}
+                <ul className="to-players">
+                  {team.members.map((member) => {
+                    const p = team.players.find((x) => x.inGameName === member)
+                    return (
+                      <li key={member}>
+                        <b>{member}</b>
+                        {p?.inGameId && <code>ID {p.inGameId}</code>}
+                        {p?.username ? (
+                          <a href={`/u/${encodeURIComponent(p.username)}`} target="_blank" rel="noreferrer">
+                            @{p.username}
+                          </a>
+                        ) : (
+                          <small>ანგარიში არ არის მიბმული</small>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
               </div>
               <div className="admin-row-actions">
                 {team.status !== TournamentTeamStatus.Verified && (

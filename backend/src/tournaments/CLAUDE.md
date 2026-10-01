@@ -171,3 +171,29 @@ harmless (no pollution), just clears the details.
 - Staff use `GET admin/tournaments` (all, incl. drafts) and `GET admin/tournaments/:id/matches`
   (tournament-management roles); `pages/admin/tournaments.tsx` and `TournamentOps` call these.
 - Publish = set the status to `open`/`upcoming`/… via the normal admin update.
+
+## 2026-10-01 Registration fields + linked team accounts (supersedes "one-click solo" / "in-game names only")
+- **No one-click registration.** Solo `POST tournaments/:id/register` takes `RegisterSoloDto`
+  (`inGameName` 1–30, `inGameId` 2–40, letters/digits/`#-_.:`/space — Riot `Name#TAG`, Steam `STEAM_0:1:…`).
+- **Squads link real accounts**: `RegisterTeamDto.players` = exactly `teamSize` × `{player, inGameName,
+  inGameId}`, where `player` is a WaveHub username (case-insensitive, leading `@` ok) or account id.
+  Every account must be `active`; the captain must be one of them (stored first); no account twice;
+  nobody already on a team in this tournament (409). Teammates get a `tournament_team_added`
+  notification (best-effort, deep-links to the tournament).
+- Table `tournament_team_members` (`tournament-team-member.entity.ts`, migration
+  `1784359000000-TournamentTeamMembers`): one row per player, `UNIQUE (tournamentId, userId)` named
+  `UQ_tournament_team_members_user` (the DB backstop; `registerLocked` maps its 23505 to 409 — the name
+  must not contain "name", which maps to the team-name conflict). The migration backfilled each
+  existing team's captain; older squads' other players remain names in `members` only.
+  `tournament_teams.members` (in-game names, roster order) is still written — match stats and the
+  player count use it.
+- `PublicTournamentTeam.players` (`username`, `avatarUrl`, `inGameName`, `isCaptain`); `inGameId` is
+  only included for staff (`GET admin/tournaments/:id/teams`, status changes) and the caller's own
+  team (`GET me/tournaments`, registration responses) — never on the public Teams tab (e2e-checked).
+- **Teammates are participants**: `GET me/tournaments`, `GET tournaments/mine` and
+  `GET me/tournament-matches` include teams the caller plays on, not just captains. Only the captain
+  withdraws (which cascades the member rows).
+- `GET tournaments/player-lookup?q=` (AuthGuard, `LOOKUP_THROTTLE` 30/min) → `{id, username,
+  avatarUrl}` of an active account, else 404; registered before `GET tournaments/:id`.
+- Tests: unit (roster rules, captain-first order, notifications), e2e `tournaments.e2e-spec.ts`
+  (linked accounts, lookup, privacy of in-game ids, teammates in My Tournaments/hub).

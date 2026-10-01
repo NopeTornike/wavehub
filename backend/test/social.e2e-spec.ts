@@ -39,10 +39,10 @@ describe('direct messaging + tournaments (e2e)', () => {
     });
     expect(t.status).toBeLessThan(300);
     const [a, b, c] = await Promise.all([registerUser(ctx, 'ta'), registerUser(ctx, 'tb'), registerUser(ctx, 'tc')]);
-    expect((await a.client.post(`/tournaments/${t.body.id}/register`)).status).toBe(200);
-    expect((await a.client.post(`/tournaments/${t.body.id}/register`)).status).toBeGreaterThanOrEqual(400);
-    expect((await b.client.post(`/tournaments/${t.body.id}/register`)).status).toBe(200);
-    expect((await c.client.post(`/tournaments/${t.body.id}/register`)).status).toBeGreaterThanOrEqual(400);
+    expect((await a.client.post(`/tournaments/${t.body.id}/register`, { inGameName: 'Player', inGameId: '51234567' })).status).toBe(200);
+    expect((await a.client.post(`/tournaments/${t.body.id}/register`, { inGameName: 'Player', inGameId: '51234567' })).status).toBeGreaterThanOrEqual(400);
+    expect((await b.client.post(`/tournaments/${t.body.id}/register`, { inGameName: 'Player', inGameId: '51234567' })).status).toBe(200);
+    expect((await c.client.post(`/tournaments/${t.body.id}/register`, { inGameName: 'Player', inGameId: '51234567' })).status).toBeGreaterThanOrEqual(400);
     expect((await a.client.post('/admin/tournaments', {})).status).toBe(403); // non-admin
   });
 });
