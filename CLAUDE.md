@@ -294,7 +294,9 @@ start postgresql@16`, then `createuser -s wavehub` (or `psql` `CREATE ROLE waveh
 PASSWORD 'wavehubpass' CREATEDB`) and `createdb -O wavehub wavehubdb` — these match
 `backend/.env.example`'s defaults exactly, so no further config is needed once `backend/.env`
 exists. Run `npm run backend:migrate` once, then `npm run backend:dev` / `npm run frontend:dev`
-(or the equivalent preview-tool launch configs) as usual.
+(or the equivalent preview-tool launch configs) as usual. Keep `TYPEORM_SYNC=false` in
+`backend/.env` (the example ships it that way since 2026-10-01): with `true`, TypeORM's synchronize
+rewrites uuid columns to varchar on boot and `npm run backend:test:e2e` fails on column types.
 
 ## E2E suite (`backend/test/`)
 
