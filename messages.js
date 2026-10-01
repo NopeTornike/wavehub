@@ -277,14 +277,30 @@ function renderDirectMessages() {
       directMessageHistory.appendChild(empty);
     }
     conversation.forEach((message) => {
+      const isMine = message.fromUsername === username;
+      const senderUsername = isMine ? username : activeParticipant;
+      const sender = isMine ? user : getUserByUsername(senderUsername);
+      const row = document.createElement('div');
+      row.className = `direct-message-row ${isMine ? 'mine' : 'theirs'}`;
       const bubble = document.createElement('article');
-      bubble.className = `direct-message-bubble ${message.fromUsername === username ? 'mine' : 'theirs'}`;
+      bubble.className = `direct-message-bubble ${isMine ? 'mine' : 'theirs'}`;
+      const meta = document.createElement('div');
+      meta.className = 'direct-message-meta';
+      const senderName = document.createElement('strong');
+      senderName.textContent = isMine ? 'You' : getDisplayName(sender || { username: senderUsername });
+      meta.appendChild(senderName);
       const body = document.createElement('p');
       body.textContent = message.body;
       const time = document.createElement('small');
-      time.textContent = `${formatMessageTime(message.createdAt)}${message.fromUsername === username && message.readAt ? ' · Read' : ''}`;
-      bubble.append(body, time);
-      directMessageHistory.appendChild(bubble);
+      time.textContent = `${formatMessageTime(message.createdAt)}${isMine && message.readAt ? ' · Seen' : ''}`;
+      meta.appendChild(time);
+      bubble.append(meta, body);
+      const avatar = document.createElement('span');
+      avatar.className = 'direct-message-avatar';
+      avatar.setAttribute('aria-hidden', 'true');
+      avatar.textContent = getInitials(sender || { username: senderUsername });
+      row.append(avatar, bubble);
+      directMessageHistory.appendChild(row);
     });
     directMessageHistory.scrollTop = directMessageHistory.scrollHeight;
   }

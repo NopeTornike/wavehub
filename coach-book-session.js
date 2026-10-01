@@ -497,7 +497,8 @@
               const icon = gameIconSource
                 ? `<img src="${gameIconSource}" alt="" aria-hidden="true">`
                 : escapeHtml(game.split(' ').map((part) => part[0]).join('').slice(0, 4));
-              return `<span${gameIconSource ? ' class="coach-game-item-with-image"' : ''}><b${gameIconSource ? ' class="coach-game-image-shell"' : ''}>${icon}</b>${escapeHtml(game)}${index === 0 ? '<small>Main Game</small>' : ''}</span>`;
+              const itemClasses = [gameIconSource ? 'coach-game-item-with-image' : '', index === 0 ? 'coach-game-item-main' : ''].filter(Boolean).join(' ');
+              return `<span${itemClasses ? ` class="${itemClasses}"` : ''}>${index === 0 ? '<small>Main Game</small>' : ''}<b${gameIconSource ? ' class="coach-game-image-shell"' : ''}>${icon}</b><em class="coach-game-name">${escapeHtml(game)}</em></span>`;
             }).join('')}
           </div>
         </article>
