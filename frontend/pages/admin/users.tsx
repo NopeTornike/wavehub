@@ -1,8 +1,102 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { AdminUserSummary } from '@wavehub/shared-types'
-import { UserStatus } from '@wavehub/shared-types'
+import { AdminRole, UserStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
+
+const ROLE_LABELS: Record<AdminRole, string> = {
+  [AdminRole.SuperAdmin]: 'Super Admin',
+  [AdminRole.OperationLead]: 'Operation Lead',
+  [AdminRole.MainAdministrator]: 'Main Administrator',
+  [AdminRole.MarketplaceCoachingOpsManager]: 'Marketplace & Coaching Ops',
+  [AdminRole.TrustSafetyOfficer]: 'Trust & Safety',
+  [AdminRole.SupportSpecialist]: 'Support Specialist',
+}
+
+// Super Admin tools for one user: WaveCoin adjustment and staff role, each with a mandatory
+// reason (audit-logged server-side). Mirrors WalletAdjustmentDto / SetAdminRoleDto bounds.
+function SuperAdminPanel({ item, onUpdated }: { item: AdminUserSummary; onUpdated: (u: AdminUserSummary) => void }) {
+  const [amount, setAmount] = useState('')
+  const [walletReason, setWalletReason] = useState('')
+  const [role, setRole] = useState<string>(item.adminRole ?? '')
+  const [roleReason, setRoleReason] = useState('')
+  const [busy, setBusy] = useState('')
+  const [message, setMessage] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
+
+  const run = async (key: string, fn: () => Promise<AdminUserSummary>, done: string) => {
+    setBusy(key)
+    setMessage(null)
+    try {
+      onUpdated(await fn())
+      setMessage({ kind: 'success', text: done })
+    } catch (err) {
+      setMessage({ kind: 'error', text: errorMessage(err, 'მოქმედება ვერ შესრულდა.') })
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const adjust = (event: FormEvent) => {
+    event.preventDefault()
+    const value = Number(amount)
+    if (!Number.isInteger(value) || value === 0 || Math.abs(value) > 100000) return setMessage({ kind: 'error', text: 'თანხა: მთელი რიცხვი, არა 0, მაქს. ±100000.' })
+    if (walletReason.trim().length < 5) return setMessage({ kind: 'error', text: 'მიზეზი: მინიმუმ 5 სიმბოლო.' })
+    if (!window.confirm(`${value > 0 ? 'დავამატოთ' : 'ჩამოვაჭრათ'} ${Math.abs(value)} WC მომხმარებელს @${item.username}?`)) return
+    void run('wallet', async () => {
+      const updated = await api.adminAdjustWallet(item.id, value, walletReason.trim())
+      setAmount('')
+      setWalletReason('')
+      return updated
+    }, 'ბალანსი განახლდა.')
+  }
+
+  const saveRole = (event: FormEvent) => {
+    event.preventDefault()
+    if (roleReason.trim().length < 3) return setMessage({ kind: 'error', text: 'მიზეზი: მინიმუმ 3 სიმბოლო.' })
+    void run('role', async () => {
+      const updated = await api.adminSetUserRole(item.id, (role || null) as AdminRole | null, roleReason.trim())
+      setRoleReason('')
+      return updated
+    }, 'როლი განახლდა.')
+  }
+
+  return (
+    <div className="au-panel">
+      <form className="au-form" onSubmit={adjust}>
+        <strong>
+          <span>ბალანსი:</span> {item.wavecoinBalance} WC
+        </strong>
+        <input type="number" step={1} placeholder="+100 ან -50" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="თანხა (WC)" />
+        <input maxLength={300} placeholder="მიზეზი (ჩანს აუდიტში)" value={walletReason} onChange={(e) => setWalletReason(e.target.value)} aria-label="მიზეზი" />
+        <button type="submit" className="button" disabled={busy === 'wallet'}>
+          ბალანსის შეცვლა
+        </button>
+      </form>
+      <form className="au-form" onSubmit={saveRole}>
+        <strong>ადმინ როლი</strong>
+        <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="ადმინ როლი">
+          <option value="">— არ აქვს —</option>
+          {Object.values(AdminRole).map((r) => (
+            <option key={r} value={r}>
+              {ROLE_LABELS[r]}
+            </option>
+          ))}
+        </select>
+        <input maxLength={300} placeholder="მიზეზი (ჩანს აუდიტში)" value={roleReason} onChange={(e) => setRoleReason(e.target.value)} aria-label="მიზეზი" />
+        <button type="submit" className="button" disabled={busy === 'role' || role === (item.adminRole ?? '')}>
+          როლის შენახვა
+        </button>
+      </form>
+      {message && (
+        <p className={`status-text ${message.kind === 'error' ? 'status-error' : 'status-success'}`} role={message.kind === 'error' ? 'alert' : 'status'}>
+          {message.text}
+        </p>
+      )}
+      <p className="au-note">WaveCoin-ის დამატება მყიდველს აძლევს დასახარჯ ბალანსს — ის არ ითვლება გასატან შემოსავლად.</p>
+    </div>
+  )
+}
 
 const STATUS_LABELS: Record<UserStatus, string> = {
   [UserStatus.PendingVerification]: 'დაუდასტურებელი',
@@ -12,6 +106,9 @@ const STATUS_LABELS: Record<UserStatus, string> = {
 }
 
 export default function AdminUsers() {
+  const { user: me } = useAuth()
+  const isSuperAdmin = me?.adminRole === AdminRole.SuperAdmin
+  const [openId, setOpenId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<UserStatus | ''>('')
   const [items, setItems] = useState<AdminUserSummary[]>([])
@@ -82,7 +179,7 @@ export default function AdminUsers() {
   return (
     <AdminLayout title="მომხმარებლები">
       <h1 className="page-title">მომხმარებლები</h1>
-      <p className="page-subtitle">ძებნა, შეჩერება, აღდგენა და დაბლოკვა</p>
+      <p className="page-subtitle">ძებნა, შეჩერება, აღდგენა და დაბლოკვა{isSuperAdmin ? ' · ბალანსი და ადმინ როლები' : ''}</p>
 
       <form
         className="admin-search-bar"
@@ -129,6 +226,9 @@ export default function AdminUsers() {
                   {STATUS_LABELS[item.status]}
                   {item.moderationReason ? ` — ${item.moderationReason}` : ''}
                 </span>
+                <span className="note" style={{ margin: 0 }}>
+                  {item.wavecoinBalance} WC{item.adminRole ? ` · ${ROLE_LABELS[item.adminRole]}` : ''}
+                </span>
               </div>
               <div className="admin-row-actions">
                 {item.status === UserStatus.Suspended ? (
@@ -149,7 +249,15 @@ export default function AdminUsers() {
                     დაბლოკვა
                   </button>
                 )}
+                {isSuperAdmin && (
+                  <button type="button" className="button ghost" aria-expanded={openId === item.id} onClick={() => setOpenId(openId === item.id ? null : item.id)}>
+                    {openId === item.id ? 'დახურვა' : 'მართვა'}
+                  </button>
+                )}
               </div>
+              {isSuperAdmin && openId === item.id && (
+                <SuperAdminPanel item={item} onUpdated={(updated) => setItems((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))} />
+              )}
             </div>
           ))}
         </div>

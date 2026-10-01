@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { ListingFavorite } from './listing-favorite.entity';
-import { KeyInventoryStatus, ListingStatus, ListingType } from '@wavehub/shared-types';
+import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType } from '@wavehub/shared-types';
 import type { AdminListingSummary, ListingForEdit, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { Listing } from './listing.entity';
@@ -70,6 +70,17 @@ export class ListingsService {
       );
     }
     assertCompareAtPrice(dto.attributes, dto.priceWaveCoin ?? null);
+    if (dto.type === ListingType.DigitalKey) {
+      // Steam games are published by the administration only (owner decision 2026-10-01).
+      const author = await this.listings.manager.getRepository(User).findOne({ where: { id: sellerId }, select: { id: true, adminRole: true } });
+      if (!author?.adminRole || !STEAM_PUBLISHER_ROLES.includes(author.adminRole)) {
+        throw new ForbiddenException('Only the WaveHub administration can publish Steam games');
+      }
+      const category = await this.categories.findOne({ where: { id: dto.categoryId } });
+      if (category?.slug !== STEAM_CATEGORY_SLUG) {
+        throw new ForbiddenException('Steam games must use the Steam games category');
+      }
+    }
     if (dto.type === ListingType.DigitalKey && dto.resaleRightsAttested !== true) {
       throw new ForbiddenException('You must confirm you have the legal right to resell these keys');
     }
@@ -123,6 +134,7 @@ export class ListingsService {
   // pre-filled.
   async findMine(sellerId: string): Promise<Array<Listing & { itemAttributes: Record<string, unknown> | null }>> {
     const rows = await this.listings.find({ where: { sellerId }, relations: ['game', 'images'], order: { createdAt: 'DESC' } });
+    rows.forEach(sortImages);
     const ids = rows.filter((row) => row.type !== ListingType.Service).map((row) => row.id);
     const details = ids.length ? await this.itemDetails.find({ where: { listingId: In(ids) }, select: ['listingId', 'attributes'] }) : [];
     const byId = new Map(details.map((d) => [d.listingId, d.attributes]));
@@ -172,13 +184,67 @@ export class ListingsService {
     await this.getOwnedListing(sellerId, listingId);
     const result = await this.images.delete({ id: imageId, listingId });
     if (!result.affected) throw new NotFoundException('Image not found');
+    await this.renumberImages(listingId);
     return { ok: true };
+  }
+
+  // The first image (sortOrder 0) is the listing's main photo everywhere it's shown. This moves the
+  // chosen one to the front and renumbers the rest in their current order.
+  async setCoverImage(sellerId: string, listingId: string, imageId: string): Promise<{ ok: true }> {
+    await this.getOwnedListing(sellerId, listingId);
+    const rows = await this.images.find({ where: { listingId }, order: { sortOrder: 'ASC', id: 'ASC' } });
+    const chosen = rows.find((img) => img.id === imageId);
+    if (!chosen) throw new NotFoundException('Image not found');
+    await this.renumberImages(listingId, [chosen, ...rows.filter((img) => img.id !== imageId)]);
+    return { ok: true };
+  }
+
+  private async renumberImages(listingId: string, ordered?: ListingImage[]) {
+    const rows = ordered ?? (await this.images.find({ where: { listingId }, order: { sortOrder: 'ASC', id: 'ASC' } }));
+    await Promise.all(rows.map((img, index) => (img.sortOrder === index ? null : this.images.update(img.id, { sortOrder: index }))));
   }
 
   // Backs the public seller-profile page (backend/src/users/users.controller.ts) — only counts
   // what's actually visible to a public visitor, same as browseActive's own status filter.
   countActiveBySeller(sellerId: string): Promise<number> {
     return this.listings.count({ where: { sellerId, status: ListingStatus.Active } });
+  }
+
+  // Admin → Listings search (any status) with the Featured flag, for picking Featured Items.
+  async adminSearch(query: { q?: string; status?: ListingStatus; type?: ListingType; featured?: boolean; limit?: number }): Promise<AdminListingSummary[]> {
+    const qb = this.listings
+      .createQueryBuilder('l')
+      .leftJoinAndSelect('l.seller', 'seller')
+      .leftJoinAndSelect('l.category', 'category')
+      .leftJoinAndSelect('l.game', 'game');
+    if (query.status) qb.andWhere('l.status = :status', { status: query.status });
+    if (query.type) qb.andWhere('l.type = :type', { type: query.type });
+    if (query.featured !== undefined) qb.andWhere('l.isFeatured = :featured', { featured: query.featured });
+    const q = query.q?.trim();
+    if (q) {
+      const pattern = `%${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+      qb.andWhere(new Brackets((w) => w.where('l.title ILIKE :p', { p: pattern }).orWhere('seller.username ILIKE :p', { p: pattern })));
+    }
+    const rows = await qb.orderBy('l.isFeatured', 'DESC').addOrderBy('l.createdAt', 'DESC').take(Math.min(query.limit ?? 50, 100)).getMany();
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      type: row.type,
+      sellerId: row.sellerId,
+      sellerUsername: row.seller.username,
+      categoryName: row.category.name,
+      gameName: row.game?.name ?? null,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      isFeatured: row.isFeatured,
+      priceWaveCoin: row.priceWaveCoin,
+    }));
+  }
+
+  async setFeatured(listingId: string, isFeatured: boolean): Promise<{ id: string; isFeatured: boolean }> {
+    const listing = await this.getListingOrThrow(listingId);
+    await this.listings.update(listing.id, { isFeatured });
+    return { id: listing.id, isFeatured };
   }
 
   // Backs the admin `GET listings/pending-review` route — the "what needs my approval" queue.
@@ -234,6 +300,9 @@ export class ListingsService {
     }
     if (filters.type) {
       qb.andWhere('listing.type = :type', { type: filters.type });
+    } else if (!filters.featured) {
+      // Steam games live on their own page (/steam-keys), never in the marketplace grid.
+      qb.andWhere('listing.type <> :steamType', { steamType: ListingType.DigitalKey });
     }
     if (filters.genre) {
       qb.andWhere(
@@ -279,7 +348,8 @@ export class ListingsService {
       // boolean/CASE expression passed directly, but orders correctly by a plain addSelect alias.
       .addSelect('CASE WHEN "sellerPlan"."id" IS NOT NULL THEN 1 ELSE 0 END', 'featured_boost');
     if (filters.featured) {
-      qb.andWhere('"sellerPlan"."id" IS NOT NULL');
+      // Featured = picked by an admin (isFeatured) or boosted by a seller's featured-listings perk.
+      qb.andWhere('("sellerPlan"."id" IS NOT NULL OR listing.isFeatured = true)');
     }
 
     // Sort key for price sorts: an item/key's own price, else the cheapest package (services).
@@ -296,7 +366,7 @@ export class ListingsService {
     } else if (filters.sort === 'popular') {
       qb.orderBy('listing.ordersCount', 'DESC').addOrderBy('listing.createdAt', 'DESC');
     } else {
-      qb.orderBy('featured_boost', 'DESC').addOrderBy('listing.isFeatured', 'DESC').addOrderBy('listing.createdAt', 'DESC');
+      qb.orderBy('listing.isFeatured', 'DESC').addOrderBy('featured_boost', 'DESC').addOrderBy('listing.createdAt', 'DESC');
     }
 
     const [items, total] = await qb
@@ -312,6 +382,7 @@ export class ListingsService {
   // count for digital keys, item attributes, and the favourite count. Shared by browse and the
   // favourites list so both return the exact same card shape.
   private async decorateSummaries(items: Listing[]) {
+    items.forEach(sortImages);
     const serviceListingIds = items.filter((item) => item.type === ListingType.Service).map((i) => i.id);
     const minPriceByListing = new Map<string, number>();
     if (serviceListingIds.length > 0) {
@@ -434,6 +505,7 @@ export class ListingsService {
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
+    sortImages(listing);
     void this.listings.increment({ id }, 'viewsCount', 1);
     const [favoriteCount, [{ sellerCompletedOrders }]] = await Promise.all([
       this.favorites.count({ where: { listingId: id } }),
@@ -763,3 +835,12 @@ function assertRequirementsSchema(fields: Array<{ key: string; type: string; opt
     }
   }
 }
+
+// listing.images comes back from a relation join in no particular order; the main photo is the
+// one with the lowest sortOrder.
+function sortImages(listing: { images?: ListingImage[] }) {
+  listing.images?.sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id));
+}
+
+export const STEAM_CATEGORY_SLUG = 'steam-games';
+const STEAM_PUBLISHER_ROLES: AdminRole[] = [AdminRole.SuperAdmin, AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];

@@ -45,9 +45,11 @@ export async function assertConserved(ctx: E2eApp): Promise<void> {
   expect(bad).toHaveLength(0);
   const topups = await q(`SELECT COALESCE(SUM("amountWaveCoin"),0) v FROM wallet_ledger_entries WHERE type = 'topup'`);
   const withdrawalNet = await q(`SELECT COALESCE(SUM("amountWaveCoin"),0) v FROM wallet_ledger_entries WHERE type = 'withdrawal'`);
+  // Super Admin balance adjustments add (or remove) coins outside the order/session flows.
+  const adjustments = await q(`SELECT COALESCE(SUM("amountWaveCoin"),0) v FROM wallet_ledger_entries WHERE type = 'admin_adjustment'`);
   const orderEscrow = await q(`SELECT COALESCE(SUM("priceWaveCoin"),0) v FROM orders WHERE status NOT IN ('completed','cancelled','refunded')`);
   const orderFees = await q(`SELECT COALESCE(SUM("priceWaveCoin" - "sellerPayoutWaveCoin"),0) v FROM orders WHERE status = 'completed'`);
   const sessEscrow = await q(`SELECT COALESCE(SUM("priceWaveCoin"),0) v FROM coaching_sessions WHERE status = 'scheduled'`);
   const sessFees = await q(`SELECT COALESCE(SUM("priceWaveCoin" - "coachPayoutWaveCoin"),0) v FROM coaching_sessions WHERE status = 'completed'`);
-  expect(balances).toBe(topups + withdrawalNet - orderEscrow - orderFees - sessEscrow - sessFees);
+  expect(balances).toBe(topups + adjustments + withdrawalNet - orderEscrow - orderFees - sessEscrow - sessFees);
 }

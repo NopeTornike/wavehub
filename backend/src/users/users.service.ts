@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
-import { AdminUserSummary, UserStatus } from '@wavehub/shared-types';
+import { AdminRole, AdminUserSummary, UserStatus } from '@wavehub/shared-types';
 import { User } from './user.entity';
 import { ListUsersDto } from './dto/list-users.dto';
 
@@ -122,6 +122,23 @@ export class UsersService {
     }
     await this.repo.update(id, { status: UserStatus.Suspended, moderationReason: reason });
     return this.toAdminUser({ ...user, status: UserStatus.Suspended, moderationReason: reason });
+  }
+
+  // Super Admin grants/changes/removes a staff role (admin-users.controller.ts). Guards: nobody changes
+  // their own role (no self-escalation or accidental self-lockout), staff must be an active,
+  // email-verified account, and the last Super Admin can't be demoted.
+  async setAdminRole(actorId: string, id: string, role: AdminRole | null): Promise<AdminUserSummary> {
+    if (actorId === id) throw new BadRequestException("You can't change your own staff role");
+    const user = await this.getOrThrow(id);
+    if (role && user.status !== UserStatus.Active) {
+      throw new BadRequestException('Only an active, email-verified account can be given a staff role');
+    }
+    if (user.adminRole === AdminRole.SuperAdmin && role !== AdminRole.SuperAdmin) {
+      const superAdmins = await this.repo.count({ where: { adminRole: AdminRole.SuperAdmin } });
+      if (superAdmins <= 1) throw new BadRequestException("The last Super Admin can't be demoted");
+    }
+    await this.repo.update(id, { adminRole: role });
+    return this.toAdminUser({ ...user, adminRole: role });
   }
 
   async restore(id: string): Promise<AdminUserSummary> {

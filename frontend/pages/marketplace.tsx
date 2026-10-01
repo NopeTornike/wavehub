@@ -24,7 +24,7 @@ import { useShell } from '../lib/shell'
 /* eslint-disable @next/next/no-img-element */
 
 const PAGE_SIZE = 24
-type Product = 'all' | 'account' | 'skin' | 'service' | 'key'
+type Product = 'all' | 'account' | 'skin' | 'service'
 type Sort = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 
 function queryString(value: string | string[] | undefined): string {
@@ -56,7 +56,7 @@ export default function Marketplace() {
 
   const filters = useMemo(() => {
     const byType =
-      product === 'service' ? { type: ListingType.Service } : product === 'key' ? { type: ListingType.DigitalKey } : {}
+      product === 'service' ? { type: ListingType.Service } : {}
     const categoryId =
       product === 'account' || product === 'skin'
         ? categories.find((c) => c.slug === (product === 'account' ? 'accounts' : 'skins'))?.id
@@ -118,7 +118,7 @@ export default function Marketplace() {
   )
 
   const listTitle =
-    product === 'account' ? 'ანგარიშები' : product === 'skin' ? 'სკინები' : product === 'service' ? 'სერვისები' : product === 'key' ? 'ციფრული გასაღებები' : 'ანგარიშები და სკინები'
+    product === 'account' ? 'ანგარიშები' : product === 'skin' ? 'სკინები' : product === 'service' ? 'სერვისები' : 'ანგარიშები და სკინები'
 
   return (
     <Layout
@@ -149,7 +149,6 @@ export default function Marketplace() {
             <option value="account">ანგარიშები</option>
             <option value="skin">სკინები</option>
             <option value="service">სერვისები</option>
-            <option value="key">ციფრული გასაღებები</option>
           </select>
         </label>
         <label>

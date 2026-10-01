@@ -1,5 +1,6 @@
 import type {
   AdminAnalytics,
+  AdminRole,
   AdminGame,
   FaqEntry,
   ListingForEdit,
@@ -419,6 +420,17 @@ export const api = {
   }) => request<MyListing>('/listings', { method: 'POST', body: JSON.stringify({ ...payload, type: 'service' }) }),
   getMyListing: (id: string) => request<ListingForEdit>(`/listings/mine/${id}`),
   adminGetListing: (id: string) => request<ListingForEdit>(`/admin/listings/${id}`),
+  adminSearchListings: (params: { q?: string; status?: string; featured?: boolean; limit?: number }) => {
+    const qs = new URLSearchParams()
+    if (params.q) qs.set('q', params.q)
+    if (params.status) qs.set('status', params.status)
+    if (params.featured !== undefined) qs.set('featured', String(params.featured))
+    if (params.limit) qs.set('limit', String(params.limit))
+    const query = qs.toString()
+    return request<AdminListingSummary[]>(`/admin/listings${query ? `?${query}` : ''}`)
+  },
+  adminSetListingFeatured: (id: string, isFeatured: boolean) =>
+    request<{ id: string; isFeatured: boolean }>(`/admin/listings/${id}/featured`, { method: 'POST', body: JSON.stringify({ isFeatured }) }),
   addListingPackage: (
     id: string,
     payload: { name: string; priceWaveCoin: number; deliveryTimeDays: number; features: string[]; revisionsIncluded: number },
@@ -459,6 +471,9 @@ export const api = {
 
   uploadListingImage: (listingId: string, file: File) => upload<{ id: string; url: string }>(`/listings/${listingId}/images`, file),
 
+  // Makes this photo the listing's main (cover) photo everywhere it's shown.
+  setListingCoverImage: (listingId: string, imageId: string) =>
+    request<{ ok: true }>(`/listings/${listingId}/images/${imageId}/cover`, { method: 'POST' }),
   removeListingImage: (listingId: string, imageId: string) =>
     request<{ ok: boolean }>(`/listings/${listingId}/images/${imageId}`, { method: 'DELETE' }),
 
@@ -678,6 +693,12 @@ export const api = {
     request<AdminUserSummary>(`/admin/users/${id}/ban`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
   adminUnbanUser: (id: string) => request<AdminUserSummary>(`/admin/users/${id}/unban`, { method: 'POST' }),
+
+  // Super Admin only (backend/src/users/admin-users.controller.ts): +/- spendable WaveCoin, and staff roles.
+  adminAdjustWallet: (id: string, amountWaveCoin: number, reason: string) =>
+    request<AdminUserSummary>(`/admin/users/${id}/wallet-adjustment`, { method: 'POST', body: JSON.stringify({ amountWaveCoin, reason }) }),
+  adminSetUserRole: (id: string, adminRole: AdminRole | null, reason: string) =>
+    request<AdminUserSummary>(`/admin/users/${id}/role`, { method: 'POST', body: JSON.stringify({ adminRole, reason }) }),
 
   adminGetPlatformSettings: () => request<PublicPlatformSettings>('/admin/platform-settings'),
 

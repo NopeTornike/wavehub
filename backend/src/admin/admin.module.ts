@@ -6,6 +6,7 @@ import { AdminGuard } from './admin-role.guard';
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminUsersController } from '../users/admin-users.controller';
+import { WalletModule } from '../wallet/wallet.module';
 
 // Imported by every module that has an admin-guarded route (ListingsModule, ReviewsModule,
 // DisputesModule, WithdrawalsModule so far) — exports both AdminGuard (needs UsersService, hence
@@ -18,7 +19,7 @@ import { AdminUsersController } from '../users/admin-users.controller';
 // such cycle, so this is where the controller lives — same file-location-vs-module-membership
 // split as disputes/CLAUDE.md documents for a different reason.
 @Module({
-  imports: [TypeOrmModule.forFeature([AuditLog]), UsersModule, AuthModule],
+  imports: [TypeOrmModule.forFeature([AuditLog]), UsersModule, AuthModule, WalletModule],
   controllers: [AdminUsersController],
   providers: [AdminGuard, AdminAuditService],
   exports: [AdminGuard, AdminAuditService],

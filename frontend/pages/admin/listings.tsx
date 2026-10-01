@@ -3,6 +3,7 @@ import type { AdminListingSummary, ListingForEdit } from '@wavehub/shared-types'
 import { ListingType } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
+import { LISTING_STATUS_LABELS } from '../../lib/labels'
 
 const TYPE_LABELS: Record<ListingType, string> = {
   [ListingType.Service]: 'სერვისი',
@@ -11,6 +12,117 @@ const TYPE_LABELS: Record<ListingType, string> = {
 }
 
 export default function AdminListings() {
+  const [tab, setTab] = useState<'queue' | 'all'>('queue')
+  return (
+    <AdminLayout title="განცხადებები">
+      <div className="al-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={tab === 'queue'} className={tab === 'queue' ? 'active' : ''} onClick={() => setTab('queue')}>
+          დასამტკიცებელი
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'all'} className={tab === 'all' ? 'active' : ''} onClick={() => setTab('all')}>
+          ყველა განცხადება · რჩეული
+        </button>
+      </div>
+      {tab === 'queue' ? <ReviewQueue /> : <AllListings />}
+    </AdminLayout>
+  )
+}
+
+// Every listing in any status, searchable by title or seller; staff pick which active ones the home
+// page's "Featured Items" rail shows (POST admin/listings/:id/featured, audit-logged).
+function AllListings() {
+  const [query, setQuery] = useState('')
+  const [search, setSearch] = useState('')
+  const [onlyFeatured, setOnlyFeatured] = useState(false)
+  const [items, setItems] = useState<AdminListingSummary[] | null>(null)
+  const [error, setError] = useState('')
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(query.trim()), 300)
+    return () => window.clearTimeout(timer)
+  }, [query])
+
+  useEffect(() => {
+    let cancelled = false
+    api
+      .adminSearchListings({ q: search || undefined, featured: onlyFeatured ? true : undefined, limit: 100 })
+      .then((data) => {
+        if (cancelled) return
+        setItems(data)
+        setError('')
+      })
+      .catch((err) => {
+        if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [search, onlyFeatured])
+
+  const toggle = async (item: AdminListingSummary) => {
+    setBusyId(item.id)
+    setError('')
+    try {
+      const res = await api.adminSetListingFeatured(item.id, !item.isFeatured)
+      setItems((prev) => (prev ?? []).map((row) => (row.id === item.id ? { ...row, isFeatured: res.isFeatured } : row)))
+    } catch (err) {
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <>
+      <h1 className="page-title">ყველა განცხადება</h1>
+      <p className="page-subtitle">
+        აირჩიე, რომელი აქტიური განცხადებები გამოჩნდეს მთავარ გვერდზე „რჩეულ პროდუქტებში“. მთავარ გვერდზე ჩანს პირველი 3.
+      </p>
+      <div className="al-toolbar">
+        <input type="search" placeholder="სათაური ან გამყიდველი…" value={query} onChange={(e) => setQuery(e.target.value)} maxLength={100} aria-label="ძიება" />
+        <label className="al-check">
+          <input type="checkbox" checked={onlyFeatured} onChange={(e) => setOnlyFeatured(e.target.checked)} />
+          <span>მხოლოდ რჩეული</span>
+        </label>
+      </div>
+      {error && <div className="status-text status-error" role="alert">{error}</div>}
+      {items === null ? (
+        <div className="empty-state">იტვირთება…</div>
+      ) : items.length === 0 ? (
+        <div className="empty-state">განცხადებები ვერ მოიძებნა.</div>
+      ) : (
+        <div className="order-list">
+          {items.map((item) => (
+            <div key={item.id} className={`admin-row${item.isFeatured ? ' al-featured' : ''}`}>
+              <div className="admin-row-main">
+                <strong>
+                  {item.isFeatured && <span className="al-star" aria-hidden="true">★ </span>}
+                  {item.title}
+                </strong>
+                <span className="note" style={{ margin: 0 }}>
+                  @{item.sellerUsername} · {TYPE_LABELS[item.type]} · {LISTING_STATUS_LABELS[item.status]}
+                  {item.gameName ? ` · ${item.gameName}` : ''}
+                  {item.priceWaveCoin != null ? ` · ${item.priceWaveCoin} GEL` : ''}
+                </span>
+              </div>
+              <div className="admin-row-actions">
+                <a className="button ghost" href={`/listings/${item.id}`} target="_blank" rel="noreferrer noopener">
+                  ნახვა
+                </a>
+                <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.isFeatured)} onClick={() => void toggle(item)}>
+                  {item.isFeatured ? 'რჩეულიდან ამოღება' : 'რჩეულად მონიშვნა'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+function ReviewQueue() {
   const [items, setItems] = useState<AdminListingSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -81,7 +193,7 @@ export default function AdminListings() {
   }
 
   return (
-    <AdminLayout title="განცხადებები">
+    <>
       <h1 className="page-title">დასამტკიცებელი განცხადებები</h1>
       <p className="page-subtitle">გამოქვეყნებამდე შემოწმებული განცხადებები</p>
 
@@ -128,7 +240,7 @@ export default function AdminListings() {
           ))}
         </div>
       )}
-    </AdminLayout>
+    </>
   )
 }
 

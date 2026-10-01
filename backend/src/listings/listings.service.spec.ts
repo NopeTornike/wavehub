@@ -40,6 +40,9 @@ describe('ListingsService.createDraft', () => {
     const categories = createFakeRepo();
     categories.rows.set('cat-1', { id: 'cat-1', type: 'service', isActive: true });
     categories.rows.set('cat-item', { id: 'cat-item', type: 'item', isActive: true });
+    categories.rows.set('cat-steam', { id: 'cat-steam', slug: 'steam-games', type: 'item', isActive: true });
+    // Steam games are staff-published: the author lookup goes through the listings repo's manager.
+    (listings as any).manager = { getRepository: () => ({ findOne: async () => ({ id: 'seller-1', adminRole: 'super_admin' }) }) };
     const games = createFakeRepo();
     const storage = { save: jest.fn() };
 
@@ -146,7 +149,7 @@ describe('ListingsService.createDraft', () => {
     await expect(
       service.createDraft(sellerId, {
         type: ListingType.DigitalKey,
-        categoryId: 'cat-1',
+        categoryId: 'cat-steam',
         title: 'A valid title here',
         description: 'A'.repeat(60),
         resaleRightsAttested: true,
@@ -160,7 +163,7 @@ describe('ListingsService.createDraft', () => {
     await expect(
       service.createDraft(sellerId, {
         type: ListingType.DigitalKey,
-        categoryId: 'cat-1',
+        categoryId: 'cat-steam',
         title: 'A valid title here',
         description: 'A'.repeat(60),
         priceWaveCoin: 100,
@@ -173,7 +176,7 @@ describe('ListingsService.createDraft', () => {
 
     const listing = await service.createDraft(sellerId, {
       type: ListingType.DigitalKey,
-      categoryId: 'cat-1',
+      categoryId: 'cat-steam',
       title: 'A valid title here',
       description: 'A'.repeat(60),
       priceWaveCoin: 100,
@@ -191,7 +194,7 @@ describe('ListingsService.createDraft', () => {
 
   it('rejects a compare-at ("was") price that is not above the real price', async () => {
     const { service } = build();
-    const base = { type: ListingType.DigitalKey, categoryId: 'cat-1', title: 'A valid title here', description: 'A'.repeat(60), priceWaveCoin: 100, resaleRightsAttested: true };
+    const base = { type: ListingType.DigitalKey, categoryId: 'cat-steam', title: 'A valid title here', description: 'A'.repeat(60), priceWaveCoin: 100, resaleRightsAttested: true };
     await expect(service.createDraft(sellerId, { ...base, attributes: { compareAtPrice: 100 } } as any)).rejects.toThrow(BadRequestException);
     await expect(service.createDraft(sellerId, { ...base, attributes: { compareAtPrice: '150' } } as any)).rejects.toThrow(BadRequestException);
     await expect(service.createDraft(sellerId, { ...base, attributes: { compareAtPrice: 150, genre: 'rpg' } } as any)).resolves.toBeDefined();

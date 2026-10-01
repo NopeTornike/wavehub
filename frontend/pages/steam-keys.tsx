@@ -7,6 +7,7 @@ import Layout from '../components/Layout'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { gameCover } from '../lib/games'
+import { canPublishSteam } from '../lib/roles'
 import { TIcon } from '../lib/tournaments'
 
 // docs/design-mockups/04-steam-games-list.jpg: title, search, sort (no genre filter — owner decision 2026-09-26), a row of large
@@ -112,9 +113,9 @@ export default function SteamGames() {
           >
             <TIcon name="back" /> უკან
           </button>
-          {user && (
+          {canPublishSteam(user) && (
             <Link className="wt-head-link" href="/sell/digital-keys">
-              გასაღებების გაყიდვა
+              თამაშების მართვა
             </Link>
           )}
         </div>
@@ -157,7 +158,7 @@ export default function SteamGames() {
           <div className="wt-empty">
             <img src="/assets/steam-logo.png" alt="" width={44} height={44} style={{ filter: 'invert(1)', opacity: 0.6 }} />
             <strong>თამაშები ვერ მოიძებნა</strong>
-            <p>{search ? 'სცადე სხვა ძიება.' : 'გამყიდველების მიერ დამატებული Steam გასაღებები აქ გამოჩნდება.'}</p>
+            <p>{search ? 'სცადე სხვა ძიება.' : 'WaveHub-ის მიერ დამატებული Steam თამაშები აქ გამოჩნდება.'}</p>
           </div>
         ) : (
           <>

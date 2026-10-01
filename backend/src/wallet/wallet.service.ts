@@ -76,6 +76,34 @@ export class WalletService {
     return manager ? run(manager) : this.dataSource.transaction(run);
   }
 
+  // Super Admin balance adjustment (admin-users.controller.ts): + adds, - removes spendable WaveCoin.
+  // Never lets a balance go negative. Not an "earning", so it never becomes withdrawable cash
+  // (getBalanceSummary only counts order/session releases as earnings).
+  async adminAdjust(userId: string, amountWaveCoin: number, adminId: string, reference: string): Promise<WalletLedgerEntry> {
+    if (!Number.isInteger(amountWaveCoin) || amountWaveCoin === 0) {
+      throw new Error('amountWaveCoin must be a non-zero integer');
+    }
+    return this.dataSource.transaction(async (m) => {
+      const user = await m.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
+      if (!user) throw new Error('USER_NOT_FOUND');
+      const balanceAfter = user.wavecoinBalance + amountWaveCoin;
+      if (balanceAfter < 0) throw new Error('INSUFFICIENT_BALANCE');
+      await m.update(User, userId, { wavecoinBalance: balanceAfter });
+      return m.save(
+        m.create(WalletLedgerEntry, {
+          userId,
+          orderId: null,
+          type: WalletLedgerType.AdminAdjustment,
+          amountWaveCoin,
+          balanceAfter,
+          status: WalletLedgerStatus.Available,
+          reference,
+          createdBy: adminId,
+        }),
+      );
+    });
+  }
+
   // Moves funds out of a buyer's spendable balance at checkout. Throws INSUFFICIENT_BALANCE
   // rather than allowing a negative balance — callers must not create an order if this throws (or,
   // when composed into the caller's own transaction via `manager`, the whole transaction rolls

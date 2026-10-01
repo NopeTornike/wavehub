@@ -7,6 +7,7 @@ import Layout from '../../../components/Layout'
 import { api, errorMessage, type MyListing } from '../../../lib/api'
 import { LISTING_STATUS_LABELS } from '../../../lib/labels'
 import { useAuth } from '../../../lib/auth'
+import { canPublishSteam } from '../../../lib/roles'
 import SteamFactsFields, { EMPTY_STEAM_FACTS, steamFactsToAttributes } from '../../../components/SteamFactsFields'
 
 // Steam Keys (LAUNCH_PLAN.md §2d). No generic "create any listing" page exists yet for Service/Item
@@ -60,10 +61,13 @@ export default function MyDigitalKeyListings() {
     }
   }, [userId])
 
-  // Keys are items, not services — hide service-only categories, but fall back to everything if
-  // the seed data has no item/both categories rather than presenting an empty dropdown.
-  const itemCategories = categories.filter((c) => c.type !== 'service')
-  const categoryOptions = itemCategories.length > 0 ? itemCategories : categories
+  // Steam games always use the dedicated Steam category (backend enforces it).
+  const steamCategory = categories.find((c) => c.slug === 'steam-games') ?? null
+  useEffect(() => {
+    // Selecting the only allowed category once the list arrives.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (steamCategory && !categoryId) setCategoryId(steamCategory.id)
+  }, [steamCategory, categoryId])
 
   const create = async (event: FormEvent) => {
     event.preventDefault()
@@ -104,6 +108,18 @@ export default function MyDigitalKeyListings() {
     )
   }
 
+  if (!canPublishSteam(user)) {
+    return (
+      <Layout title="Steam თამაშები" noIndex>
+        <div className="detail-page">
+          <div className="marketplace-empty">
+            Steam თამაშებს მხოლოდ WaveHub-ის ადმინისტრაცია ამატებს. <Link href="/steam-keys">Steam თამაშების ნახვა</Link>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout title="ჩემი გასაღებების განცხადებები" noIndex>
       {/* Steam Keys is net-new (LAUNCH_PLAN.md §2d) with no static-prototype page to port from, so
@@ -130,14 +146,7 @@ export default function MyDigitalKeyListings() {
             <div className="stack-form-grid">
               <label className="field">
                 კატეგორია
-                <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
-                  <option value="">აირჩიეთ კატეგორია</option>
-                  {categoryOptions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <input value={steamCategory?.name ?? 'Steam თამაშები'} readOnly aria-readonly="true" />
               </label>
               <label className="field">
                 თამაში <small>არასავალდებულო</small>

@@ -19616,6 +19616,14 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
 .al-description { white-space: pre-wrap; overflow-wrap: anywhere; }
 .al-photos { display: flex; flex-wrap: wrap; gap: 8px; }
 .al-photos a { width: 120px; aspect-ratio: 4 / 3; border-radius: 8px; background: #11131f center / cover no-repeat; }
+.al-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.al-tabs button { min-height: 38px; padding: 0 16px; border: 1px solid rgba(120, 130, 170, .28); border-radius: 999px; background: rgba(5, 6, 16, .6); color: #b9c0d0; font: inherit; font-weight: 700; cursor: pointer; }
+.al-tabs button.active { border-color: #ff4fa3; background: rgba(255, 79, 163, .14); color: #fff; }
+.al-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 14px; }
+.al-toolbar input[type="search"] { flex: 1 1 260px; min-width: 0; min-height: 40px; border: 1px solid rgba(120, 130, 170, .28); border-radius: 8px; background: rgba(5, 6, 16, .8); color: #fff; padding: 0 12px; font: inherit; }
+.al-check { display: inline-flex; gap: 8px; align-items: center; color: #d6d9e3; font-size: 14px; cursor: pointer; }
+.admin-row.al-featured { border-color: rgba(255, 196, 0, .45); }
+.al-star { color: #ffc400; }
 .seller-modal-alt { margin: 6px 0 0; color: #b9c0d0; font-size: 13px; }
 .seller-modal-alt a { color: #ff8cc4; font-weight: 700; }
 
@@ -19680,3 +19688,17 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
 .bl-tip { grid-column: 2; color: #9aa1b3; font-size: 12px; }
 @media (max-width: 1100px) { .an-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .an-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 480px) { .an-tiles { grid-template-columns: minmax(0, 1fr); } .an-range { margin-left: 0; width: 100%; } .bl-list li { grid-template-columns: minmax(70px, 110px) minmax(0, 1fr); } }
+
+/* Admin → Users Super Admin panel (pages/admin/users.tsx): balance adjustment + staff role. */
+.au-panel { flex: 1 1 100%; display: grid; gap: 10px; border-top: 1px solid var(--border); padding-top: 12px; }
+.au-form { display: grid; grid-template-columns: minmax(130px, auto) minmax(110px, 160px) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.au-form input, .au-form select { min-width: 0; min-height: 38px; border: 1px solid rgba(120, 130, 170, .28); border-radius: 8px; background: rgba(5, 6, 16, .8); color: #fff; padding: 0 10px; font: inherit; color-scheme: dark; }
+.au-form strong { color: #e6e8f0; font-size: 14px; }
+.au-note { margin: 0; color: #7f8699; font-size: 12px; }
+@media (max-width: 760px) { .au-form { grid-template-columns: minmax(0, 1fr); } }
+/* Steam game photo manager: main-photo badge / "make main" action (pages/sell/digital-keys/[id].tsx). */
+.steam-photo-grid figure { position: relative; }
+.steam-photo-main, .steam-photo-make-main { position: absolute; left: 6px; bottom: 6px; border: 0; border-radius: 6px; padding: 3px 8px; font: inherit; font-size: 11px; font-weight: 800; }
+.steam-photo-main { background: #ff2f8f; color: #fff; }
+.steam-photo-grid figure .steam-photo-make-main { top: auto; right: auto; width: auto; height: auto; border-radius: 6px; background: rgba(0, 0, 0, .72); color: #fff; cursor: pointer; }
+.steam-photo-grid figure .steam-photo-make-main:hover { background: rgba(255, 47, 143, .85); }

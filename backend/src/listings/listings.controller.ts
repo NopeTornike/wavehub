@@ -33,6 +33,7 @@ import { AdminGuard } from '../admin/admin-role.guard';
 import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
+import { AdminListingSearchDto, SetFeaturedDto } from './dto/admin-listings.dto';
 
 @Controller()
 export class ListingsController {
@@ -67,6 +68,30 @@ export class ListingsController {
   @UseGuards(AuthGuard)
   findMineById(@CurrentUserId() sellerId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.listings.findOwnedForEdit(sellerId, id);
+  }
+
+  // Moderator search across every status (Admin → Listings → all listings), with the Featured flag.
+  @Get('admin/listings')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  adminSearch(@Query() query: AdminListingSearchDto) {
+    return this.listings.adminSearch(query);
+  }
+
+  // Pick/unpick for the home page's "Featured Items" (shown via GET listings?featured=true).
+  @Post('admin/listings/:id/featured')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  async setFeatured(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetFeaturedDto,
+  ) {
+    const result = await this.listings.setFeatured(id, dto.isFeatured);
+    await this.audit.log({ adminId, adminRole, action: dto.isFeatured ? 'listing.feature' : 'listing.unfeature', entityType: 'listing', entityId: id });
+    return result;
   }
 
   // Moderator preview of any listing (description, packages, requirements, FAQ, photos) before
@@ -220,6 +245,14 @@ export class ListingsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.listings.addImage(sellerId, listingId, file);
+  }
+
+  // Make this photo the listing's main (cover) photo.
+  @Post('listings/:id/images/:imageId/cover')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  setCoverImage(@CurrentUserId() sellerId: string, @Param('id', ParseUUIDPipe) id: string, @Param('imageId', ParseUUIDPipe) imageId: string) {
+    return this.listings.setCoverImage(sellerId, id, imageId);
   }
 
   @Delete('listings/:id/images/:imageId')

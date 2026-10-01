@@ -278,3 +278,19 @@ Added while porting the prototype's marketplace/seller flow 1:1 (commits `fee10d
   item attributes, seller username only (no PII). Admin → Listings has a "Details" expander.
 - e2e: `test/services.e2e-spec.ts` (validation, package cap/order, submit gate, owner/stranger/admin
   views, approval, purchase with requirement answers, re-review on live edits).
+
+## 2026-10-01 Steam games are staff-published; admin-picked Featured Items
+- **Only staff create digital-key listings** (`STEAM_PUBLISHER_ROLES`: Super Admin, Operation Lead,
+  Main Administrator, Marketplace & Coaching Ops Manager — mirrored in `frontend/lib/roles.ts`) and
+  they **must** use the `steam-games` category (`STEAM_CATEGORY_SLUG`; migration
+  `1784358000000-SteamGamesCategory` created it and moved existing keys into it). Others get 403/400.
+- **Steam keys are not marketplace products**: `browseActive` with no `type` (and not `featured`)
+  excludes `digital_key`; they live on `/steam-keys` only. Community per-game counts exclude them.
+- **Main photo**: `POST listings/:id/images/:imageId/cover` (owner) moves an image to `sortOrder` 0;
+  every read path sorts images by `sortOrder` (`sortImages`), removal renumbers.
+- **Featured**: `GET admin/listings` (`AdminListingSearchDto`: `q` title/seller, `status`, `type`,
+  `featured`, `limit` ≤100) and `POST admin/listings/:id/featured` (`SetFeaturedDto`, audit
+  `listing.feature|unfeature`), Marketplace Ops role. Public `featured=true` = admin `isFeatured` OR
+  a featured-perk seller; the home "Featured Items" rail now requests `featured=true`.
+  UI: Admin → Listings → "ყველა განცხადება · რჩეული" tab.
+- e2e: `test/steam.e2e-spec.ts` (staff-only + category, main photo, featured), `digital-keys`.

@@ -3,12 +3,14 @@ import { useRouter } from 'next/router'
 import { useEffect, type ReactNode } from 'react'
 import Layout from './Layout'
 import { useAuth } from '../lib/auth'
+import { canPublishSteam } from '../lib/roles'
 
-const NAV_ITEMS: Array<{ href: string; label: string; superAdminOnly?: boolean }> = [
+const NAV_ITEMS: Array<{ href: string; label: string; superAdminOnly?: boolean; steamPublisherOnly?: boolean }> = [
   { href: '/admin', label: 'დაფა' },
   { href: '/admin/analytics', label: 'სტატისტიკა', superAdminOnly: true },
   { href: '/admin/listings', label: 'განცხადებები' },
   { href: '/admin/games', label: 'თამაშები' },
+  { href: '/sell/digital-keys', label: 'Steam თამაშები', steamPublisherOnly: true },
   { href: '/admin/reviews', label: 'შეფასებები' },
   { href: '/admin/disputes', label: 'დავები' },
   { href: '/admin/withdrawals', label: 'გატანები' },
@@ -73,7 +75,7 @@ export default function AdminLayout({ children, title }: { children: ReactNode; 
       <div className="page">
         <div className="page-inner">
           <nav className="admin-nav" aria-label="ადმინ პანელის სექციები">
-            {NAV_ITEMS.filter((item) => !item.superAdminOnly || user!.adminRole === 'super_admin').map((item) => (
+            {NAV_ITEMS.filter((item) => (!item.superAdminOnly || user!.adminRole === 'super_admin') && (!item.steamPublisherOnly || canPublishSteam(user))).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

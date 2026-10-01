@@ -92,7 +92,7 @@ export class CommunityService {
     const rows: Array<{ gameId: string; slug: string; name: string; count: number; iconUrl: string | null; coverUrl: string | null; tileUrl: string | null }> = await this.db.query(
       `SELECT g."id" AS "gameId", g."slug", g."name", g."iconUrl", g."coverUrl", g."tileUrl", count(l."id")::int AS "count"
        FROM "games" g
-       LEFT JOIN "listings" l ON l."gameId" = g."id" AND l."status" = 'active'
+       LEFT JOIN "listings" l ON l."gameId" = g."id" AND l."status" = 'active' AND l."type" <> 'digital_key'
        WHERE g."isActive" = true
        GROUP BY g."id"
        ORDER BY g."sortOrder" ASC, g."name" ASC`,

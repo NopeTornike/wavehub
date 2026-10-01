@@ -14,7 +14,7 @@ import { listingKind, normalizeAccountStatus } from '../components/ProductCard'
 // front of the FAQ). Real data behind every dynamic part:
 //   - game grid: the games table + live per-game active-listing counts (GET /stats/games)
 //   - "Featured Items" (right rail on desktop, 3-card strip otherwise): the prototype takes seller
-//     listings ordered featured-first then newest — exactly the backend's browse ordering (the
+//     staff-picked listings (featured=true: admin isFeatured or a featured-perk seller), ordered (the
 //     featuredListings perk boost, then isFeatured, then createdAt), so it's GET /listings as-is.
 //     Like the prototype, `featured-items-fallback` goes on <body> when there are none.
 //   - Top Coaches: real verified coaches, highest rated first. The prototype's three coach cards
@@ -162,7 +162,7 @@ export default function Home() {
 
   useEffect(() => {
     api
-      .browseListings({ limit: 3 })
+      .browseListings({ featured: true, limit: 3 })
       .then((res) => setFeatured(res.items))
       .catch(() => setFeatured([]))
     api

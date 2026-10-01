@@ -124,3 +124,14 @@ Seller/Coach plan, falling back to their Buyer plan, else `null`.
 `/u/[username]`, docs/design-mockups/12) — `PATCH /me/profile`. The public profile also carries
 computed facts from `backend/src/profiles/` (follows, role, deals, reviews, badges, online).
 
+
+## 2026-10-01 Super Admin powers (supersedes "no way to grant adminRole" in Status)
+- `POST admin/users/:id/role` (`SetAdminRoleDto`: `adminRole` enum or `null`, `reason` 3–300) —
+  **Super Admin only** (`@RequireAdminRole()`), audit `user.set_admin_role` with from/to/reason.
+  `UsersService#setAdminRole` refuses: changing your own role, giving a role to a non-`active`
+  account, and demoting the **last** Super Admin (409).
+- `POST admin/users/:id/wallet-adjustment` (`WalletAdjustmentDto`: integer ≠ 0, ±100000, `reason`
+  5–300) — Super Admin only (SPECIFICATION.md §5.13 explicitly forbids Support from changing
+  balances), audit `user.wallet_adjust`. Goes through `WalletService#adminAdjust` (see
+  `backend/src/wallet/CLAUDE.md`). `AdminModule` imports `WalletModule` for this.
+- UI: Admin → Users "მართვა" panel, rendered for Super Admins only. e2e: `test/admin-powers.e2e-spec.ts`.

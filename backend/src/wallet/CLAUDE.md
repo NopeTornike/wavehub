@@ -162,3 +162,11 @@ There's still no `WalletController` in this directory — see `backend/src/withd
 for where those routes actually live and why. `status: Held` on a ledger entry is finally used
 too, by `holdForWithdrawal` — the one prediction from an earlier version of this doc (that
 disputes would be the first to use it) turned out wrong, withdrawals got there instead.
+
+## 2026-10-01 Admin adjustment
+`adminAdjust(userId, amountWaveCoin, adminId, reference)` — the only non-order/non-payment writer:
+locks the user row, refuses a result below 0 (`INSUFFICIENT_BALANCE`), writes one
+`AdminAdjustment` ledger row (status `Available`, `createdBy` = the admin) and updates the balance in
+the same transaction. Added credit is spendable balance, **not** withdrawable earnings (withdrawals
+only count cleared sales). `test/flows.ts#assertConserved` counts `admin_adjustment` rows as an
+inflow. Called only from `POST admin/users/:id/wallet-adjustment` (Super Admin).

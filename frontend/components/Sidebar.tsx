@@ -41,6 +41,7 @@ const NAV: NavItem[] = [
   { id: 'wallet', label: 'საფულე', href: '/wallet', icon: 'wallet-icon.svg', iconClass: 'nav-icon-wallet', match: (p) => p.startsWith('/wallet') },
   { id: 'cart', label: 'კალათა', href: '/cart', icon: 'sidebar-cart-icon.svg', iconClass: 'nav-icon-cart', count: 'cart', match: (p) => p.startsWith('/cart') },
   { id: 'favorites', label: 'რჩეულები', href: '/favorites', icon: 'favorites-icon.svg', iconClass: 'nav-icon-heart', match: (p) => p.startsWith('/favorites') },
+  { id: 'plans', label: 'გამოწერები', href: '/plans', icon: 'plans-icon.svg', iconClass: 'nav-icon-home', match: (p) => p.startsWith('/plans') },
 ]
 
 // Signed-in only (docs/design-mockups/09).

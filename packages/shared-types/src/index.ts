@@ -769,6 +769,9 @@ export interface AdminListingSummary {
   gameName: string | null;
   status: ListingStatus;
   createdAt: string;
+  // Admin-chosen "Featured Items" (home page rail). Optional so older callers keep compiling.
+  isFeatured?: boolean;
+  priceWaveCoin?: number | null;
 }
 
 // What ReviewsService.listReported() returns for the admin `GET reviews/reported` queue — same

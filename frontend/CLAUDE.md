@@ -705,3 +705,15 @@ production Caddy layout it is `https://<domain>/api` — same origin as the site
 image. During Maintenance Mode a refused write surfaces the API's 503 text through `ApiError` (the
 frontend has no dedicated banner; `GET /health` exposes `maintenance` for a future one). See
 `docs/DEPLOY.md`.
+
+## 2026-10-01 Steam / featured / admin powers
+- `/sell/digital-keys` is **staff-only** (`lib/roles.ts#canPublishSteam`, UI only — the backend
+  enforces it): non-staff see a notice; the category is fixed to `steam-games`. Reached from Admin nav
+  "Steam თამაშები", the `/steam-keys` header ("თამაშების მართვა") and the seller modal — each shown
+  to Steam publishers only. `/sell/digital-keys/[id]` edits title/description/price + facts and
+  sets the main photo ("მთავარად დაყენება").
+- The marketplace product filter no longer offers keys (Steam keys aren't marketplace products).
+- Home "Featured Items" = `browseListings({ featured: true, limit: 3 })`; staff pick them in
+  Admin → Listings → "ყველა განცხადება · რჩეული" (`al-` CSS).
+- Admin → Users: Super Admins get a "მართვა" panel (WaveCoin adjust, admin role) — `au-` CSS.
+- Sidebar has a "გამოწერები" (Subscriptions, `/plans`) item.

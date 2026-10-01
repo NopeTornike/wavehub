@@ -16,8 +16,9 @@ describe('steam game listings (e2e)', () => {
     admin = await registerUser(ctx, 'sgadmin');
     await makeAdmin(ctx, admin);
     seller = await registerUser(ctx, 'sgseller');
+    await makeAdmin(ctx, seller, 'marketplace_coaching_ops_manager'); // Steam games: staff only
     other = await registerUser(ctx, 'sgother');
-    categoryId = (await seller.client.get('/categories')).body[0].id;
+    categoryId = (await seller.client.get('/categories')).body.find((c: { slug: string }) => c.slug === 'steam-games').id;
   });
   afterAll(async () => ctx.close());
 
@@ -66,5 +67,45 @@ describe('steam game listings (e2e)', () => {
     expect((await other.client.request('DELETE', `/listings/${created.body.id}/images/${img.body.id}`)).status).toBe(403);
     expect((await seller.client.request('DELETE', `/listings/${created.body.id}/images/${img.body.id}`)).status).toBe(200);
     expect((await seller.client.request('DELETE', `/listings/${created.body.id}/images/${img.body.id}`)).status).toBe(404);
+  });
+
+  it('only staff publish Steam games, in the Steam category; they stay out of the marketplace grid', async () => {
+    const accounts = (await other.client.get('/categories')).body.find((c: { slug: string }) => c.slug === 'accounts').id;
+    expect((await other.client.post('/listings', base('Not staff game'))).status).toBe(403);
+    expect((await seller.client.post('/listings', { ...base('Wrong category game'), categoryId: accounts })).status).toBe(403);
+
+    const id = (await seller.client.post('/listings', base(`Grid check ${Date.now() % 100000}`))).body.id as string;
+    await publish(id);
+    const steamPage = (await other.client.get('/listings?type=digital_key&limit=100')).body.items.map((l: { id: string }) => l.id);
+    expect(steamPage).toContain(id);
+    const marketplace = (await other.client.get('/listings?limit=100')).body.items.map((l: { id: string; type: string }) => l.type);
+    expect(marketplace).not.toContain('digital_key');
+  });
+
+  it('the seller chooses the main photo; images come back in order', async () => {
+    const id = (await seller.client.post('/listings', base(`Photo order ${Date.now() % 100000}`))).body.id as string;
+    const a = (await seller.client.upload(`/listings/${id}/images`, PNG, 'a.png', 'image/png')).body.id as string;
+    const b = (await seller.client.upload(`/listings/${id}/images`, PNG, 'b.png', 'image/png')).body.id as string;
+    const order = async () => (await seller.client.get(`/listings/mine/${id}`)).body.images.map((i: { id: string }) => i.id);
+    expect(await order()).toEqual([a, b]);
+    expect((await other.client.post(`/listings/${id}/images/${b}/cover`)).status).toBe(403);
+    expect((await seller.client.post(`/listings/${id}/images/${b}/cover`)).status).toBe(200);
+    expect(await order()).toEqual([b, a]);
+    await publish(id);
+    const card = (await other.client.get('/listings?type=digital_key&limit=100')).body.items.find((l: { id: string }) => l.id === id);
+    expect(card.images[0].id).toBe(b);
+  });
+
+  it('admins pick Featured Items; they show via ?featured=true', async () => {
+    const id = (await seller.client.post('/listings', base(`Featured ${Date.now() % 100000}`))).body.id as string;
+    await publish(id);
+    expect((await other.client.post(`/admin/listings/${id}/featured`, { isFeatured: true })).status).toBe(403);
+    expect((await admin.client.post(`/admin/listings/${id}/featured`, { isFeatured: true })).status).toBe(200);
+    const featured = (await other.client.get('/listings?featured=true&limit=50')).body.items.map((l: { id: string }) => l.id);
+    expect(featured).toContain(id);
+    const search = (await admin.client.get('/admin/listings?featured=true&limit=100')).body;
+    expect(search.find((l: { id: string }) => l.id === id)).toMatchObject({ isFeatured: true });
+    await admin.client.post(`/admin/listings/${id}/featured`, { isFeatured: false });
+    expect((await other.client.get('/listings?featured=true&limit=50')).body.items.map((l: { id: string }) => l.id)).not.toContain(id);
   });
 });

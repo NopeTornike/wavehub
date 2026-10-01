@@ -10,6 +10,8 @@ describe('digital keys (e2e)', () => {
     admin = await registerUser(ctx, 'admin');
     await makeAdmin(ctx, admin);
     seller = await registerUser(ctx, 'keyseller');
+    // Steam games are published by staff only (owner decision 2026-10-01).
+    await makeAdmin(ctx, seller, 'marketplace_coaching_ops_manager');
   });
   afterAll(async () => ctx.close());
 
@@ -17,7 +19,7 @@ describe('digital keys (e2e)', () => {
     const cats = await seller.client.get('/categories');
     const games = await seller.client.get('/games');
     const created = await seller.client.post('/listings', {
-      type: 'digital_key', categoryId: cats.body[0].id, gameId: games.body[0].id,
+      type: 'digital_key', categoryId: cats.body.find((c: { slug: string }) => c.slug === 'steam-games').id, gameId: games.body[0].id,
       title: `Key listing ${Math.random().toString(36).slice(2, 7)}`,
       description: 'Steam keys sold with confirmed resale rights, described in enough detail.', priceWaveCoin: price, resaleRightsAttested: true,
     });

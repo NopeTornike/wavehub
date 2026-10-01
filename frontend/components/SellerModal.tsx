@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { ItemAttributes, PublicCategory } from '@wavehub/shared-types'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { canPublishSteam } from '../lib/roles'
 import { useShell } from '../lib/shell'
 import GAME_DETAILS from '../lib/game-details.json'
 
@@ -230,6 +231,11 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
             <p className="seller-modal-alt">
               <span>სერვისს ყიდით (რანკის აწევა, დუო თამაში…)?</span> <Link href="/sell/services">სერვისის გაყიდვა →</Link>
             </p>
+            {canPublishSteam(user) && (
+              <p className="seller-modal-alt">
+                <span>Steam თამაშს ამატებთ (ადმინისტრაცია)?</span> <Link href="/sell/digital-keys">Steam თამაშის დამატება →</Link>
+              </p>
+            )}
           </div>
           <button className="seller-close-button" id="sellerCloseButton" type="button" aria-label="Close seller form" onClick={onClose}>
             x

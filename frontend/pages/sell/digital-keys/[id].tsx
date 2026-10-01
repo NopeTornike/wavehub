@@ -31,6 +31,7 @@ export default function ManageDigitalKeyListing() {
   const [factsStatus, setFactsStatus] = useState<{ kind: '' | 'error' | 'success'; text: string }>({ kind: '', text: '' })
   const [savingFacts, setSavingFacts] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
+  const [details, setDetails] = useState({ title: '', description: '', price: '' })
 
   useEffect(() => {
     if (checked && !user) {
@@ -46,6 +47,7 @@ export default function ManageDigitalKeyListing() {
       .then(([found, keyRows]) => {
         setListing(found)
         setFacts(steamFactsFrom(found?.itemAttributes))
+        setDetails({ title: found?.title ?? '', description: found?.description ?? '', price: String(found?.priceWaveCoin ?? '') })
         setKeys(keyRows)
         setError('')
       })
@@ -120,11 +122,17 @@ export default function ManageDigitalKeyListing() {
 
   const saveFacts = async () => {
     if (!id || !listing) return
-    const attributes = steamFactsToAttributes(facts, listing.priceWaveCoin ?? 0)
+    const title = details.title.trim()
+    const description = details.description.trim()
+    const price = Number(details.price)
+    if (title.length < 5 || title.length > 100) return setFactsStatus({ kind: 'error', text: 'სათაური უნდა იყოს 5–100 სიმბოლო.' })
+    if (description.length < 50 || description.length > 5000) return setFactsStatus({ kind: 'error', text: 'აღწერა უნდა იყოს 50–5000 სიმბოლო.' })
+    if (!Number.isInteger(price) || price < 1) return setFactsStatus({ kind: 'error', text: 'ფასი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 GEL.' })
+    const attributes = steamFactsToAttributes(facts, price)
     if (typeof attributes === 'string') return setFactsStatus({ kind: 'error', text: attributes })
     setSavingFacts(true)
     try {
-      await api.updateListing(id, { attributes })
+      await api.updateListing(id, { title, description, priceWaveCoin: price, attributes })
       await reload()
       setFactsStatus({
         kind: 'success',
@@ -151,6 +159,19 @@ export default function ManageDigitalKeyListing() {
       await reload()
     } catch (err) {
       setFactsStatus({ kind: 'error', text: err instanceof Error && !('status' in err) ? err.message : errorMessage(err, 'ფოტოს ატვირთვა ვერ მოხერხდა.') })
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  const makeCover = async (imageId: string) => {
+    if (!id) return
+    setPhotoBusy(true)
+    try {
+      await api.setListingCoverImage(id, imageId)
+      await reload()
+    } catch (err) {
+      setFactsStatus({ kind: 'error', text: errorMessage(err, 'მოქმედება ვერ შესრულდა.') })
     } finally {
       setPhotoBusy(false)
     }
@@ -238,13 +259,20 @@ export default function ManageDigitalKeyListing() {
 
         <section className="detail-section">
           <h2>თამაშის დეტალები და ფოტოები</h2>
-          <p className="note">ჩანს Steam თამაშების გვერდზე. პირველი ფოტო — ქავერი (მაქს. 6).</p>
+          <p className="note">ჩანს Steam თამაშების გვერდზე. „მთავარი“ ფოტო ქავერია — აირჩიეთ ნებისმიერი (მაქს. 6).</p>
           <div className="steam-photo-grid">
-            {(listing.images ?? []).map((img) => (
+            {(listing.images ?? []).map((img, index) => (
               <figure key={img.id} style={{ backgroundImage: `url("${img.url}")` }}>
                 <button type="button" aria-label="ფოტოს წაშლა" disabled={photoBusy} onClick={() => void removePhoto(img.id)}>
                   ×
                 </button>
+                {index === 0 ? (
+                  <span className="steam-photo-main">მთავარი</span>
+                ) : (
+                  <button type="button" className="steam-photo-make-main" disabled={photoBusy} onClick={() => void makeCover(img.id)}>
+                    მთავარად დაყენება
+                  </button>
+                )}
               </figure>
             ))}
             {(listing.images?.length ?? 0) < 6 && (
@@ -261,6 +289,18 @@ export default function ManageDigitalKeyListing() {
               void saveFacts()
             }}
           >
+            <label className="field">
+              სათაური
+              <input maxLength={100} value={details.title} onChange={(e) => setDetails((d) => ({ ...d, title: e.target.value }))} />
+            </label>
+            <label className="field">
+              ფასი (GEL)
+              <input type="number" min={1} step={1} value={details.price} onChange={(e) => setDetails((d) => ({ ...d, price: e.target.value }))} />
+            </label>
+            <label className="field">
+              აღწერა
+              <textarea rows={5} maxLength={5000} value={details.description} onChange={(e) => setDetails((d) => ({ ...d, description: e.target.value }))} />
+            </label>
             <SteamFactsFields facts={facts} onChange={setFacts} />
             {factsStatus.text && (
               <p className={`seller-status ${factsStatus.kind}`} role={factsStatus.kind === 'error' ? 'alert' : undefined}>
