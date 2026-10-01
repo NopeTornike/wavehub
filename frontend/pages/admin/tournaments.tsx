@@ -6,6 +6,7 @@ import TournamentOps from '../../components/admin/TournamentOps'
 import { api, errorMessage } from '../../lib/api'
 
 const STATUS_LABELS: Record<TournamentStatus, string> = {
+  [TournamentStatus.Draft]: 'დრაფტი (დამალული)',
   [TournamentStatus.Open]: 'რეგისტრაცია ღიაა',
   [TournamentStatus.Upcoming]: 'მოახლოებული',
   [TournamentStatus.InProgress]: 'მიმდინარე',
@@ -219,7 +220,7 @@ export default function AdminTournaments() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([api.listGames(), api.browseTournaments({ limit: 100 })])
+    Promise.all([api.listGames(), api.adminBrowseTournaments(100)])
       .then(([g, t]) => {
         if (cancelled) return
         setGames(g)

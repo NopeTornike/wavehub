@@ -203,8 +203,12 @@ export class TournamentsService {
 
   // --- Public: tournaments ---
 
-  async browse(filters: BrowseTournamentsDto): Promise<{ items: PublicTournamentSummary[]; total: number }> {
+  // Public list never includes drafts; the admin list (`includeDrafts`) shows everything.
+  async browse(filters: BrowseTournamentsDto, includeDrafts = false): Promise<{ items: PublicTournamentSummary[]; total: number }> {
     const qb = this.tournaments.createQueryBuilder('t').leftJoinAndSelect('t.game', 'game');
+    if (!includeDrafts) {
+      qb.andWhere('t.status <> :draft', { draft: TournamentStatus.Draft });
+    }
     if (filters.gameId) {
       qb.andWhere('t.gameId = :gameId', { gameId: filters.gameId });
     }
@@ -219,8 +223,15 @@ export class TournamentsService {
   }
 
   async findPublicById(id: string): Promise<PublicTournamentSummary> {
-    const tournament = await this.getOrThrow(id);
+    const tournament = await this.getPublishedOrThrow(id);
     return this.toPublic(tournament);
+  }
+
+  // A draft tournament doesn't exist as far as the public is concerned (same 404 as a missing one).
+  private async getPublishedOrThrow(id: string): Promise<Tournament> {
+    const tournament = await this.getOrThrow(id);
+    if (tournament.status === TournamentStatus.Draft) throw new NotFoundException('Tournament not found');
+    return tournament;
   }
 
   // --- Registration ---
@@ -346,7 +357,7 @@ export class TournamentsService {
   // --- Teams ---
 
   async listTeams(tournamentId: string): Promise<PublicTournamentTeam[]> {
-    await this.getOrThrow(tournamentId);
+    await this.getPublishedOrThrow(tournamentId);
     const rows = await this.teams.find({
       where: { tournamentId, status: In([TournamentTeamStatus.Verified, TournamentTeamStatus.Pending]) },
       relations: { captain: true },
@@ -379,8 +390,9 @@ export class TournamentsService {
       .leftJoinAndSelect('m.tournament', 'tournament');
   }
 
-  async listMatches(tournamentId: string): Promise<PublicTournamentMatch[]> {
-    await this.getOrThrow(tournamentId);
+  async listMatches(tournamentId: string, includeDraft = false): Promise<PublicTournamentMatch[]> {
+    if (includeDraft) await this.getOrThrow(tournamentId);
+    else await this.getPublishedOrThrow(tournamentId);
     const rows = await this.matchQuery()
       .where('m.tournamentId = :tournamentId', { tournamentId })
       .orderBy('m.scheduledAt', 'DESC', 'NULLS LAST')
@@ -390,6 +402,7 @@ export class TournamentsService {
   }
 
   async getMatch(tournamentId: string, matchId: string): Promise<PublicTournamentMatch> {
+    await this.getPublishedOrThrow(tournamentId);
     const row = await this.matchQuery().where('m.id = :matchId AND m.tournamentId = :tournamentId', { matchId, tournamentId }).getOne();
     if (!row) throw new NotFoundException('Match not found');
     return this.toPublicMatch(row);
@@ -463,7 +476,7 @@ export class TournamentsService {
     });
     const entries: MyTournamentEntry[] = [];
     for (const row of rows) {
-      if (!row.team) continue;
+      if (!row.team || row.tournament.status === TournamentStatus.Draft) continue;
       entries.push({ tournament: await this.toPublic(row.tournament), team: this.toPublicTeam(row.team), registeredAt: row.registeredAt.toISOString() });
     }
     return entries;
@@ -474,7 +487,8 @@ export class TournamentsService {
     const teamIds = (await this.teams.find({ where: { captainUserId: userId }, select: { id: true } })).map((t) => t.id);
     if (teamIds.length === 0) return [];
     const rows = await this.matchQuery()
-      .where('m.teamAId IN (:...teamIds) OR m.teamBId IN (:...teamIds)', { teamIds })
+      .where('(m.teamAId IN (:...teamIds) OR m.teamBId IN (:...teamIds))', { teamIds })
+      .andWhere('tournament.status <> :draft', { draft: TournamentStatus.Draft })
       .orderBy('m.scheduledAt', 'DESC', 'NULLS LAST')
       .addOrderBy('m.createdAt', 'DESC')
       .getMany();

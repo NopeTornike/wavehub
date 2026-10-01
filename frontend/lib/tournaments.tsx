@@ -6,6 +6,7 @@ import { gameCover } from './games'
 // Shared pieces of the tournament pages (docs/design-mockups 01–03, 07, 08, 10, 11, 13).
 
 export const TOURNAMENT_BADGE: Record<TournamentStatus, [label: string, tone: string]> = {
+  [TournamentStatus.Draft]: ['დრაფტი', 'completed'], // never public; admin views only
   [TournamentStatus.Open]: ['რეგისტრაცია ღიაა', 'open'],
   [TournamentStatus.Upcoming]: ['მალე', 'upcoming'],
   [TournamentStatus.InProgress]: ['მიმდინარე', 'live'],

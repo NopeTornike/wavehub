@@ -1399,5 +1399,6 @@
   "გაცემული (გატანა)": "Paid out (withdrawals)",
   "{0} მოთხოვნა": "{0} requests",
   "გასაცემი (მოლოდინში)": "To pay out (pending)",
-  "{0} მოთხოვნა — ახლა": "{0} requests — now"
+  "{0} მოთხოვნა — ახლა": "{0} requests — now",
+  "დრაფტი (დამალული)": "Draft (hidden)"
 }

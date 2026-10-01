@@ -131,4 +131,32 @@ describe('tournament teams + matches (e2e)', () => {
     expect(results.every((r) => r.status === 200 || r.status === 403)).toBe(true);
     expect((await admin.client.get(`/tournaments/${t.body.id}`)).body.registeredCount).toBe(2);
   });
+
+  it('draft tournaments are hidden from every public endpoint but visible to staff', async () => {
+    const visitor = await registerUser(ctx, 'tdraftv');
+    const created = await admin.client.post('/admin/tournaments', {
+      gameId, name: `Hidden Cup ${Date.now() % 100000}`, description: 'A draft tournament nobody should see yet.',
+      prize: '100 GEL', status: 'draft', startDate, maxPlayers: 8, teamSize: 1,
+    });
+    expect(created.status).toBeLessThan(300);
+    const id = created.body.id as string;
+
+    const publicIds = (await visitor.client.get('/tournaments?limit=100')).body.items.map((t: { id: string }) => t.id);
+    expect(publicIds).not.toContain(id);
+    expect((await visitor.client.get('/tournaments?status=draft')).body.items).toHaveLength(0);
+    expect((await visitor.client.get(`/tournaments/${id}`)).status).toBe(404);
+    expect((await visitor.client.get(`/tournaments/${id}/teams`)).status).toBe(404);
+    expect((await visitor.client.get(`/tournaments/${id}/matches`)).status).toBe(404);
+    expect((await visitor.client.post(`/tournaments/${id}/register`)).status).toBe(403);
+
+    // Staff still see and manage it.
+    expect((await visitor.client.get('/admin/tournaments')).status).toBe(403);
+    const adminIds = (await admin.client.get('/admin/tournaments?limit=100')).body.items.map((t: { id: string }) => t.id);
+    expect(adminIds).toContain(id);
+    expect((await admin.client.get(`/admin/tournaments/${id}/matches`)).status).toBe(200);
+
+    // Publishing makes it public again.
+    expect((await admin.client.post(`/admin/tournaments/${id}`, { status: 'open' })).status).toBe(200);
+    expect((await visitor.client.get(`/tournaments/${id}`)).status).toBe(200);
+  });
 });

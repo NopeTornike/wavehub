@@ -49,29 +49,30 @@ describe('admin analytics (e2e)', () => {
     const q = `/admin/analytics?from=${today}&to=${today}`;
     const before = (await superAdmin.client.get(q)).body;
 
-    await credit(ctx, buyer, 200);
-    await buyItem(ctx, seller, buyer, superAdmin, 50, 'completed');
-    await buyItem(ctx, seller, buyer, superAdmin, 30, 'paid');
-    const cancelled = await buyItem(ctx, seller, buyer, superAdmin, 20, 'paid');
+    // Large amounts so this seller always ranks in today's top 10, whatever other suites sold.
+    await credit(ctx, buyer, 20000);
+    await buyItem(ctx, seller, buyer, superAdmin, 5000, 'completed');
+    await buyItem(ctx, seller, buyer, superAdmin, 3000, 'paid');
+    const cancelled = await buyItem(ctx, seller, buyer, superAdmin, 2000, 'paid');
     expect((await buyer.client.post(`/orders/${cancelled}/cancel-as-buyer`)).status).toBeLessThan(300);
 
     const after = (await superAdmin.client.get(q)).body;
     const d = (path: (x: any) => number) => path(after) - path(before);
     expect(d((x) => x.sales.orders)).toBe(3);
-    expect(d((x) => x.sales.gmv)).toBe(80); // the cancelled 20 is excluded
+    expect(d((x) => x.sales.gmv)).toBe(8000); // the cancelled 2000 is excluded
     expect(d((x) => x.sales.completedOrders)).toBe(1);
-    expect(d((x) => x.sales.completedValue)).toBe(50);
-    expect(d((x) => x.sales.platformFees)).toBe(5); // 10% of the completed 50
+    expect(d((x) => x.sales.completedValue)).toBe(5000);
+    expect(d((x) => x.sales.platformFees)).toBe(500); // 10% of the completed 5000
     expect(d((x) => x.sales.refundedOrders)).toBe(1);
-    expect(d((x) => x.sales.refundedValue)).toBe(20);
-    expect(d((x) => x.sales.inEscrow)).toBe(30);
-    expect(d((x) => x.series[0].gmv)).toBe(80);
+    expect(d((x) => x.sales.refundedValue)).toBe(2000);
+    expect(d((x) => x.sales.inEscrow)).toBe(3000);
+    expect(d((x) => x.series[0].gmv)).toBe(8000);
     expect(d((x) => x.series[0].orders)).toBe(3);
 
     const sellerRow = after.topSellers.find((s: { username: string }) => s.username === seller.username);
-    expect(sellerRow).toMatchObject({ orders: 3, gmv: 80, platformFees: 5 });
+    expect(sellerRow).toMatchObject({ orders: 3, gmv: 8000, platformFees: 500 });
     const itemRow = after.byType.find((t: { key: string }) => t.key === 'item');
-    expect(itemRow.gmv - (before.byType.find((t: { key: string }) => t.key === 'item')?.gmv ?? 0)).toBe(80);
+    expect(itemRow.gmv - (before.byType.find((t: { key: string }) => t.key === 'item')?.gmv ?? 0)).toBe(8000);
     expect(after.users.sellersWithSales).toBeGreaterThanOrEqual(1);
 
     expect(JSON.stringify(after)).not.toMatch(/"(email|passwordHash|wavecoinBalance|payoutDetails)"/);

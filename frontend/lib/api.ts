@@ -811,6 +811,9 @@ export const api = {
   unfavoriteCoach: (coachId: string) => request<{ ok: boolean }>(`/coaches/${coachId}/favorite`, { method: 'DELETE' }),
 
   // --- Tournaments --- (backend/src/tournaments/tournaments.controller.ts)
+  // Staff views that include draft tournaments (backend/src/tournaments/tournaments.controller.ts).
+  adminBrowseTournaments: (limit = 100) => request<{ items: PublicTournamentSummary[]; total: number }>(`/admin/tournaments?limit=${limit}`),
+  adminListTournamentMatches: (id: string) => request<PublicTournamentMatch[]>(`/admin/tournaments/${id}/matches`),
   browseTournaments: (filters: { gameId?: string; status?: TournamentStatus; limit?: number; offset?: number } = {}) => {
     const params = new URLSearchParams()
     Object.entries(filters).forEach(([key, value]) => {

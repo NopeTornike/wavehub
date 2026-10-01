@@ -142,7 +142,7 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
   const [form, setForm] = useState<MatchForm>(emptyMatch)
 
   const load = useCallback(() => {
-    Promise.all([api.adminListTournamentTeams(tournament.id), api.listTournamentMatches(tournament.id)])
+    Promise.all([api.adminListTournamentTeams(tournament.id), api.adminListTournamentMatches(tournament.id)])
       .then(([t, m]) => {
         setTeams(t)
         setMatches(m)

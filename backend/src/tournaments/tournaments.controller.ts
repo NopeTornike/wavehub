@@ -111,6 +111,21 @@ export class TournamentsController {
     return this.tournaments.myMatches(userId);
   }
 
+  // Staff list: every tournament including drafts (the public GET tournaments hides drafts).
+  @Get('admin/tournaments')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  adminBrowse(@Query() query: BrowseTournamentsDto) {
+    return this.tournaments.browse(query, true);
+  }
+
+  @Get('admin/tournaments/:id/matches')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  adminListMatches(@Param('id') id: string) {
+    return this.tournaments.listMatches(id, true);
+  }
+
   @Post('admin/tournaments')
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)

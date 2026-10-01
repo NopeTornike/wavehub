@@ -970,6 +970,8 @@ export interface PublicCoachingSession {
 // same "ship the core, flag automation as a deliberate follow-up" pattern this repo has used
 // throughout (see backend/src/withdrawals/CLAUDE.md's manual-payout precedent).
 export enum TournamentStatus {
+  // Not published: hidden from every public list/page/endpoint; only staff see and manage it.
+  Draft = 'draft',
   Open = 'open',
   Upcoming = 'upcoming',
   // Registration closed, matches being played (the design's "IN PROGRESS" / Active group).

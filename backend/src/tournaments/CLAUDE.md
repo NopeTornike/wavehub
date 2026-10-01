@@ -162,3 +162,12 @@ unset fact, Entry Fee defaults to free, and the Rules tab lists the real rules (
 registration count — the prototype's invented prize split and demo teams are not ported (rule #6).
 Note: sending `{"details": {"__proto__": ...}}` is stripped by class-transformer and so saves `{}` —
 harmless (no pollution), just clears the details.
+
+## 2026-10-01 Draft status
+- `TournamentStatus.Draft` = not published. Public `GET tournaments` excludes drafts (even with
+  `?status=draft`), and `GET tournaments/:id`, `/teams`, `/matches`, `/matches/:matchId` answer 404 for
+  a draft (`getPublishedOrThrow`); drafts are also dropped from "My Tournaments" and the hub's matches.
+  Registration already requires `open`.
+- Staff use `GET admin/tournaments` (all, incl. drafts) and `GET admin/tournaments/:id/matches`
+  (tournament-management roles); `pages/admin/tournaments.tsx` and `TournamentOps` call these.
+- Publish = set the status to `open`/`upcoming`/… via the normal admin update.
