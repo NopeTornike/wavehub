@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#010713" />
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png?v=4" />
+  <title>Book Coaching | WaveHub</title>
+  <link rel="stylesheet" href="styles.css?v=20261002-coach-booking-flow-2" />
+</head>
+<body class="booking-flow-body">
+  <main class="booking-flow" id="coachBookingRoot" aria-live="polite"></main>
+
+  <script src="coaches-data.js?v=20260905-gel-1"></script>
+  <script src="state-sync.js?v=20260902-server-state-1"></script>
+  <script>
+    const bookingLanguage = localStorage.getItem('wavehub.language') || 'ka';
+    document.documentElement.lang = bookingLanguage;
+    const bookingScript = document.createElement('script');
+    bookingScript.src = bookingLanguage === 'en'
+      ? 'coach-booking-flow-en.js?v=20261002-coach-booking-en-2'
+      : 'coach-booking-flow.js?v=20261002-coach-booking-ka-2';
+    document.body.appendChild(bookingScript);
+  </script>
+</body>
+</html>

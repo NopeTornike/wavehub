@@ -2935,6 +2935,12 @@ button {
 .booking-slots { min-width: 0; max-width: 100%; }
 
 .booking-header { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
+.booking-header-actions { display: flex; align-items: center; gap: 22px; }
+.booking-language-switcher { display: inline-flex; overflow: hidden; border: 1px solid #354057; border-radius: 7px; background: #07101f; }
+.booking-language-switcher button { min-width: 54px; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 0; color: #b9bdca; background: transparent; font-size: 12px; font-weight: 800; }
+.booking-language-switcher img { width: 16px; height: 11px; object-fit: cover; border-radius: 1px; }
+.booking-language-switcher button + button { border-left: 1px solid #354057; }
+.booking-language-switcher button.is-active { color: white; background: linear-gradient(135deg, #e90061, #aa167f); }
 .booking-logo { width: 178px; height: 72px; display: flex; align-items: center; color: white; text-decoration: none; }
 .booking-logo img { width: 100%; height: 100%; display: block; object-fit: contain; filter: drop-shadow(0 0 12px rgba(244, 0, 103, .2)); }
 .booking-help { display: flex; align-items: center; gap: 9px; color: #f0edf4; text-decoration: none; font-size: 14px; }
@@ -3233,6 +3239,7 @@ button {
 @media (max-width: 620px) {
   .booking-shell { width: 100%; padding: 14px 12px 30px; }
   .booking-header { padding: 0 3px; }
+  .booking-header-actions { gap: 10px; }
   .booking-logo { width: 142px; height: 58px; }
   .booking-help span { display: none; }
   .booking-progress { margin: 20px -4px 27px; }

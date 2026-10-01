@@ -168,8 +168,12 @@ function getCoachInitials(coach) {
     .toUpperCase();
 }
 
-function getCoachBookingUrl(coach) {
+function getCoachDetailUrl(coach) {
   return `coach-book-session.html?coach=${encodeURIComponent(coach.id || coach.name || coach.game)}`;
+}
+
+function getCoachBookingUrl(coach) {
+  return `coach-booking.html?coach=${encodeURIComponent(coach.id || coach.name || coach.game)}`;
 }
 
 function getCoachSearchText(coach) {
@@ -281,7 +285,8 @@ function createSessionMeta(coach) {
 function createCoachCard(coach) {
   const card = document.createElement('article');
   const gameIcon = getGameIconPath(coach.game);
-  const detailUrl = getCoachBookingUrl(coach);
+  const detailUrl = getCoachDetailUrl(coach);
+  const bookingUrl = getCoachBookingUrl(coach);
   card.className = 'coach-card';
   card.dataset.game = coach.game;
   card.dataset.coachId = coach.id || '';
@@ -317,7 +322,7 @@ function createCoachCard(coach) {
 
     <div class="coach-price-row">
       <p><strong>${coach.priceText || `${coach.price} GEL/hour`}</strong></p>
-      <a href="${detailUrl}" aria-label="Book a session with ${coach.name || 'this coach'}">Book Session</a>
+      <a class="coach-book-primary" href="${bookingUrl}" data-booking-url="${bookingUrl}" aria-label="Book a session with ${coach.name || 'this coach'}">Book Session</a>
     </div>
 
     <div class="coach-card-tags">
@@ -333,6 +338,12 @@ function createCoachCard(coach) {
     const initials = avatar?.querySelector('span');
     if (initials) initials.textContent = '';
   }
+
+  const bookSessionButton = card.querySelector('[data-booking-url]');
+  bookSessionButton?.addEventListener('click', (event) => {
+    event.preventDefault();
+    window.location.assign(bookSessionButton.dataset.bookingUrl || detailUrl);
+  });
 
   card.addEventListener('click', (event) => {
     if (event.target.closest('a, button, input, select, textarea')) return;

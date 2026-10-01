@@ -12,15 +12,15 @@
   const sessionKey = 'wavehub.session';
   const usersKey = 'wavehub.users';
   const languageKey = 'wavehub.language';
-  let bookingLanguage = localStorage.getItem(languageKey) === 'en' ? 'en' : 'ka';
+  let bookingLanguage = 'en';
 
   const steps = [
-    ['პაკეტი', 'package'],
-    ['განრიგი', 'calendar'],
-    ['შენი მიზანი', 'target'],
-    ['შემოწმება', 'clipboard'],
-    ['გადახდა', 'card'],
-    ['დადასტურება', 'check'],
+    ['Session', 'package'],
+    ['Schedule', 'calendar'],
+    ['Your Goal', 'target'],
+    ['Review', 'clipboard'],
+    ['Payment', 'card'],
+    ['Confirmed', 'check'],
   ];
 
   const icons = {
@@ -202,15 +202,15 @@
   };
 
   const packages = [
-    { id: 'single', name: 'ერთი სესია', icon: 'rocket', tone: 'purple', sessions: 1, subtitle: 'ერთჯერადი დაჯავშნა · პაკეტისა და გამოწერის გარეშე', features: [['user', '1 პირდაპირი სესია'], ['clock', '60 წუთი'], ['check', 'გადახდა მხოლოდ ერთ სესიაზე'], ['check', 'გამოწერის გარეშე'], ['chat', 'ჩატის მხარდაჭერა']] },
-    { id: 'growth', name: 'განვითარება', icon: 'growth', tone: 'pink', sessions: 3, subtitle: 'საუკეთესოა სტაბილური პროგრესისთვის', popular: true, features: [['package', '3 პირდაპირი სესია'], ['clock', 'თითო 60 წუთი'], ['note', 'პროგრესის მონიტორინგი'], ['check', 'დავალებები'], ['chat', 'ჩატის მხარდაჭერა']] },
-    { id: 'elite', name: 'ელიტა', icon: 'crown', tone: 'gold', sessions: 5, subtitle: 'სერიოზული, გრძელვადიანი პროგრესისთვის', features: [['package', '5 პირდაპირი სესია'], ['clock', 'თითო 60 წუთი'], ['note', 'პერსონალიზებული გეგმა'], ['check', 'პრიორიტეტული მხარდაჭერა'], ['check', 'პროგრესის მონიტორინგი'], ['check', 'დავალებები']] },
+    { id: 'single', name: 'Single Session', icon: 'rocket', tone: 'purple', sessions: 1, subtitle: 'One-time booking · No package or subscription', features: [['user', '1 Live Session'], ['clock', '60 Minutes'], ['check', 'Pay for one session only'], ['check', 'No subscription'], ['chat', 'Chat Support']] },
+    { id: 'growth', name: 'Growth', icon: 'growth', tone: 'pink', sessions: 3, subtitle: 'Best for consistent improvement', popular: true, features: [['package', '3 Live Sessions'], ['clock', '60 Minutes Each'], ['note', 'Progress Tracking'], ['check', 'Homework & Tasks'], ['chat', 'Chat Support']] },
+    { id: 'elite', name: 'Elite', icon: 'crown', tone: 'gold', sessions: 5, subtitle: 'Best for serious long-term progress', features: [['package', '5 Live Sessions'], ['clock', '60 Minutes Each'], ['note', 'Personalized Plan'], ['check', 'Priority Support'], ['check', 'Progress Tracking'], ['check', 'Homework & Tasks']] },
   ];
 
   function selectedPackage() { return packages.find((item) => item.id === booking.packageId) || packages[1]; }
   function selectionTitle() {
     const option = selectedPackage();
-    return option.id === 'single' ? option.name : `${option.name} პაკეტი`;
+    return option.id === 'single' ? option.name : `${option.name} Package`;
   }
   function price() { return (Number(coach.price) || 15) * selectedPackage().sessions; }
   function money(value) {
@@ -248,7 +248,7 @@
   }
 
   function header() {
-    return `<header class="booking-header">${logo()}<div class="booking-header-actions"><div class="booking-language-switcher" role="group" aria-label="ენის არჩევა"><button type="button" data-booking-language="ka" class="${bookingLanguage === 'ka' ? 'is-active' : ''}" aria-pressed="${bookingLanguage === 'ka'}"><img src="assets/georgian-flag-icon.png" alt="" aria-hidden="true">ქა</button><button type="button" data-booking-language="en" class="${bookingLanguage === 'en' ? 'is-active' : ''}" aria-pressed="${bookingLanguage === 'en'}"><img src="assets/united-kingdom-flag.png" alt="" aria-hidden="true">EN</button></div><a class="booking-help" href="contact-information.html">${icon('help')}<span>დახმარება გჭირდება?</span></a></div></header>${progress()}`;
+    return `<header class="booking-header">${logo()}<div class="booking-header-actions"><div class="booking-language-switcher" role="group" aria-label="Language selector"><button type="button" data-booking-language="ka" aria-pressed="false"><img src="assets/georgian-flag-icon.png" alt="" aria-hidden="true">ქა</button><button type="button" data-booking-language="en" class="is-active" aria-pressed="true"><img src="assets/united-kingdom-flag.png" alt="" aria-hidden="true">EN</button></div><a class="booking-help" href="contact-information.html">${icon('help')}<span>Need help?</span></a></div></header>${progress()}`;
   }
 
   function progress() {
@@ -268,20 +268,20 @@
         <div class="booking-coach-name"><h2>${escapeHtml(coach.name)}</h2>${coach.verified ? '<span class="booking-verified">✓</span>' : ''}<em>${icon('shield')} ${escapeHtml(coach.service || 'Diamond Coach')}</em></div>
         <div class="booking-rating">${icon('star')}<strong>${Number(coach.rating || 5).toFixed(1)}</strong><span>(${Number(coach.reviews) || 0} reviews)</span></div>
         ${booking.step >= 3 ? renderCoachAvailability() : ''}
-        <div class="booking-coach-stats">${icon('user')} ${Number(coach.sessions) || 812} დასრულებული სესია <i>•</i> ${icon('thumb')} ${Number(coach.successRate) || 98}% დადებითი შეფასება</div>
+        <div class="booking-coach-stats">${icon('user')} ${Number(coach.sessions) || 812} Sessions Completed <i>•</i> ${icon('thumb')} ${Number(coach.successRate) || 98}% Positive Feedback</div>
       </div>
-      <div class="booking-score"><span>${icon('shield')}<strong>Wave ქულა</strong></span><b>${Number(coach.waveScore) || 96}<small>/100</small></b><em>შესანიშნავი</em></div>
+      <div class="booking-score"><span>${icon('shield')}<strong>Wave Score</strong></span><b>${Number(coach.waveScore) || 96}<small>/100</small></b><em>Excellent</em></div>
     </article>`;
   }
 
   function renderCoachAvailability() {
     if (!coach.isRealCoachListing) {
-      return coach.availability === 'now' ? '<div class="booking-online"><i></i> ონლაინ <b>დღეს ხელმისაწვდომია</b></div>' : '';
+      return coach.availability === 'now' ? '<div class="booking-online"><i></i> Online <b>Available Today</b></div>' : '';
     }
     const next = availableDates.find((item) => item.times.length);
-    if (!next) return '<div class="booking-online unavailable"><i></i> თავისუფალი დრო არ არის</div>';
-    if (next.key === dateKey(today)) return '<div class="booking-online"><i></i> დღეს ხელმისაწვდომია</div>';
-    return `<div class="booking-online upcoming"><i></i> შემდეგი ხელმისაწვდომი დრო: <b>${next.date.toLocaleDateString('ka-GE', { month: 'short', day: 'numeric' })}</b></div>`;
+    if (!next) return '<div class="booking-online unavailable"><i></i> No available slots</div>';
+    if (next.key === dateKey(today)) return '<div class="booking-online"><i></i> Available Today</div>';
+    return `<div class="booking-online upcoming"><i></i> Next available <b>${next.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</b></div>`;
   }
 
   function intro(kicker, title, subtitle) {
@@ -293,26 +293,26 @@
   }
 
   function navButtons(nextLabel, options = {}) {
-    return `<div class="booking-actions ${options.single ? 'single' : ''}">${options.back === false ? '' : `<button class="booking-back" type="button" data-back>${icon('arrowLeft')} უკან</button>`}<button class="booking-next" type="button" data-next>${options.lock ? icon('lock') : ''}${nextLabel}${icon('arrowRight')}</button></div>${secureNote(options.note)}`;
+    return `<div class="booking-actions ${options.single ? 'single' : ''}">${options.back === false ? '' : `<button class="booking-back" type="button" data-back>${icon('arrowLeft')} Back</button>`}<button class="booking-next" type="button" data-next>${options.lock ? icon('lock') : ''}${nextLabel}${icon('arrowRight')}</button></div>${secureNote(options.note)}`;
   }
 
   function renderPackage() {
-    return `${intro('', 'დაჯავშნე ქოუჩინგ სესია', 'აირჩიე ერთი სესია ან პაკეტი, რომელიც შენს მიზნებს შეესაბამება.')}${coachCard()}
-      <section class="booking-section-heading"><span>${icon('package')}</span><div><h2>აირჩიე სესიის ვარიანტი</h2><p>დაჯავშნე ერთი სესია გამოწერის გარეშე ან აირჩიე მრავალსესიანი პაკეტი. ყველა ვარიანტი მოიცავს ინდივიდუალურ ქოუჩინგს ${escapeHtml(coach.name)}-თან.</p></div></section>
+    return `${intro('', 'Book a Coaching Session', 'Choose a single session or a package that fits your goals.')}${coachCard()}
+      <section class="booking-section-heading"><span>${icon('package')}</span><div><h2>Choose Your Session Option</h2><p>Book one session with no subscription, or choose a multi-session package. Every option includes 1-on-1 coaching with ${escapeHtml(coach.name)}.</p></div></section>
       <div class="booking-packages">${packages.map((item) => {
         const selected = item.id === booking.packageId;
         const unavailable = coach.isRealCoachListing && item.sessions > availableSlotCount;
         const total = (Number(coach.price) || 15) * item.sessions;
-        return `<article class="booking-package ${item.tone} ${selected ? 'selected' : ''} ${unavailable ? 'unavailable' : ''}" data-package-card="${item.id}">${item.popular ? '<span class="booking-popular">ყველაზე პოპულარული</span>' : ''}<button class="booking-radio" type="button" data-package="${item.id}" aria-label="აირჩიე ${item.name}" ${unavailable ? 'disabled' : ''}>${selected ? icon('check') : ''}</button><div class="booking-package-icon">${icon(item.icon)}</div><h3>${item.name}</h3><p>${unavailable ? `ამჟამად მხოლოდ ${availableSlotCount} სესიის დროა ხელმისაწვდომი` : item.subtitle}</p><ul>${item.features.map(([name, label]) => `<li>${icon(name)} ${label}</li>`).join('')}</ul><div class="booking-package-price"><strong>${money(total)}</strong><span>სულ</span><small>${money(Number(coach.price) || 15)} / სესია</small></div><button class="booking-select" type="button" data-package="${item.id}" ${unavailable ? 'disabled' : ''}>${unavailable ? 'ამჟამად მიუწვდომელია' : selected ? `არჩეული ${icon('check')}` : item.id === 'single' ? 'ერთი სესიის არჩევა' : 'პაკეტის არჩევა'}</button></article>`;
+        return `<article class="booking-package ${item.tone} ${selected ? 'selected' : ''} ${unavailable ? 'unavailable' : ''}" data-package-card="${item.id}">${item.popular ? '<span class="booking-popular">MOST POPULAR</span>' : ''}<button class="booking-radio" type="button" data-package="${item.id}" aria-label="Select ${item.name}" ${unavailable ? 'disabled' : ''}>${selected ? icon('check') : ''}</button><div class="booking-package-icon">${icon(item.icon)}</div><h3>${item.name}</h3><p>${unavailable ? `Only ${availableSlotCount} session slot${availableSlotCount === 1 ? '' : 's'} currently available` : item.subtitle}</p><ul>${item.features.map(([name, label]) => `<li>${icon(name)} ${label}</li>`).join('')}</ul><div class="booking-package-price"><strong>${money(total)}</strong><span>total</span><small>${money(Number(coach.price) || 15)} / session</small></div><button class="booking-select" type="button" data-package="${item.id}" ${unavailable ? 'disabled' : ''}>${unavailable ? 'Currently Unavailable' : selected ? `Selected ${icon('check')}` : item.id === 'single' ? 'Select Single Session' : 'Select Package'}</button></article>`;
       }).join('')}</div>
-      <div class="booking-benefits"><div>${icon('shield')}<span><strong>უსაფრთხო და დაცული</strong><small>შენი გადახდა და პირადი ინფორმაცია ყოველთვის დაცულია.</small></span></div><div>${icon('calendar')}<span><strong>მოქნილი განრიგი</strong><small>აირჩიე შენთვის მოსახერხებელი დრო.</small></span></div><div>${icon('headset')}<span><strong>24/7 მხარდაჭერა</strong><small>ჩვენ ყოველთვის მზად ვართ დაგეხმაროთ.</small></span></div></div>
-      ${navButtons('განრიგზე გადასვლა', { back: false, single: true })}`;
+      <div class="booking-benefits"><div>${icon('shield')}<span><strong>Secure & Protected</strong><small>Your payment and personal information are always safe.</small></span></div><div>${icon('calendar')}<span><strong>Flexible Scheduling</strong><small>Choose a time that works best for you.</small></span></div><div>${icon('headset')}<span><strong>24/7 Support</strong><small>We're here to help you anytime you need us.</small></span></div></div>
+      ${navButtons('Continue to Schedule', { back: false, single: true })}`;
   }
 
   function dateLabel(date, index) {
-    if (dateKey(date) === dateKey(today)) return 'დღეს';
-    if (dateKey(date) === dateKey(addDays(1))) return 'ხვალ';
-    return date.toLocaleDateString('ka-GE', { weekday: 'long' });
+    if (dateKey(date) === dateKey(today)) return 'Today';
+    if (dateKey(date) === dateKey(addDays(1))) return 'Tomorrow';
+    return date.toLocaleDateString('en-US', { weekday: 'long' });
   }
 
   function slotsForSelectedDate() {
@@ -333,32 +333,32 @@
     const pkg = selectedPackage();
     const chosen = availableDates.find((item) => item.key === booking.date) || availableDates[0] || { date: today, key: '', times: [] };
     const slots = slotsForSelectedDate();
-    const displaySlots = slots.map((time) => ({ time, status: 'ხელმისაწვდომია' }));
+    const displaySlots = slots.map((time) => ({ time, status: 'Available' }));
     const visibleDates = booking.showAllDates ? availableDates : availableDates.slice(0, 5);
-    return `${intro('ეტაპი 2 / 6', 'აირჩიე სესიები', `აირჩიე <b>${pkg.sessions} დროის მონაკვეთი</b>, რომელიც შენთვის მოსახერხებელია.`)}${coachCard()}
-      <section class="booking-schedule-section"><h2>1. აირჩიე თარიღი</h2><div class="booking-dates">${visibleDates.map((item, index) => {
+    return `${intro('STEP 2 OF 6', 'Select Your Sessions', `Choose <b>${pkg.sessions} time slot${pkg.sessions === 1 ? '' : 's'}</b> that work best for you.`)}${coachCard()}
+      <section class="booking-schedule-section"><h2>1. Choose a Date</h2><div class="booking-dates">${visibleDates.map((item, index) => {
         const selected = item.key === booking.date;
         const slotsCount = item.times.length;
-        return `<button class="${selected ? 'selected' : ''}" type="button" data-date="${item.key}"><strong>${dateLabel(item.date, index)}</strong><span>${item.date.toLocaleDateString('ka-GE', { month: 'short', day: 'numeric' })}</span><small class="${slotsCount ? '' : 'full'}">${slotsCount ? `${slotsCount} დრო` : 'სავსეა'}</small></button>`;
-      }).join('') || '<p class="booking-no-availability">ამ ქოუჩს ჯერ ხელმისაწვდომი დროები არ დაუმატებია.</p>'}${availableDates.length > 5 ? `<button type="button" class="booking-more-dates" data-toggle-dates>${icon('calendar')}<strong>${booking.showAllDates ? 'ნაკლები თარიღი' : 'მეტი თარიღი'}</strong><small>${booking.showAllDates ? 'კალენდრის შეკეცვა' : 'კალენდრის ნახვა'}</small></button>` : ''}</div></section>
-      <section class="booking-schedule-section"><div class="booking-slot-title"><div><h2>2. აირჩიე დრო ${dateLabel(chosen.date)}, ${chosen.date.toLocaleDateString('ka-GE', { month: 'long', day: 'numeric' })}-სთვის</h2><p>${icon('alert')} შენი ${pkg.id === 'single' ? 'სესიისთვის' : 'პაკეტისთვის'} უნდა აირჩიო ${pkg.sessions} დროის მონაკვეთი.</p></div><span>◎ &nbsp;${escapeHtml(coach.timezone || 'GMT +4')}</span></div><div class="booking-slots">${displaySlots.map((slot) => {
+        return `<button class="${selected ? 'selected' : ''}" type="button" data-date="${item.key}"><strong>${dateLabel(item.date, index)}</strong><span>${item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span><small class="${slotsCount ? '' : 'full'}">${slotsCount ? `${slotsCount} slots` : 'Full'}</small></button>`;
+      }).join('') || '<p class="booking-no-availability">This coach has not published any available session times yet.</p>'}${availableDates.length > 5 ? `<button type="button" class="booking-more-dates" data-toggle-dates>${icon('calendar')}<strong>${booking.showAllDates ? 'Fewer Dates' : 'More Dates'}</strong><small>${booking.showAllDates ? 'Collapse Calendar' : 'View Calendar'}</small></button>` : ''}</div></section>
+      <section class="booking-schedule-section"><div class="booking-slot-title"><div><h2>2. Choose Your Time Slots for ${dateLabel(chosen.date)}, ${chosen.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</h2><p>${icon('alert')} You need to select ${pkg.sessions} time slot${pkg.sessions === 1 ? '' : 's'} for your ${pkg.id === 'single' ? 'single session' : 'package'}.</p></div><span>◎ &nbsp;${escapeHtml(coach.timezone || 'GMT +4')}</span></div><div class="booking-slots">${displaySlots.map((slot) => {
         const selected = booking.sessions.some((session) => session.date === booking.date && session.time === slot.time);
         const disabled = slot.status === 'Booked' || slot.status === 'Unavailable';
-        return `<button class="${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''} ${slot.status.startsWith('Limited') ? 'limited' : ''}" type="button" data-time="${escapeHtml(slot.time)}" ${disabled ? 'disabled' : ''}><strong>${escapeHtml(slot.time)}</strong><span>${selected ? 'არჩეულია' : slot.status}</span>${selected ? icon('check') : ''}</button>`;
-      }).join('') || '<p class="booking-no-availability">ამ თარიღზე თავისუფალი დრო არ არის.</p>'}</div></section>
-      <div class="booking-selected-slots"><span>არჩეული დროები:</span><div>${booking.sessions.map((session, index) => `<button type="button" data-remove-slot="${index}"><b>${index + 1}</b>${escapeHtml(sessionLabel(session))}${icon('close')}</button>`).join('') || '<small>დრო ჯერ არ აგირჩევია</small>'}</div><button type="button" data-clear-times>გასუფთავება ${icon('trash')}</button></div>
-      <p class="booking-form-error" id="bookingFormError"></p>${navButtons('მიზნებზე გადასვლა')}`;
+        return `<button class="${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''} ${slot.status.startsWith('Limited') ? 'limited' : ''}" type="button" data-time="${escapeHtml(slot.time)}" ${disabled ? 'disabled' : ''}><strong>${escapeHtml(slot.time)}</strong><span>${selected ? 'Selected' : slot.status}</span>${selected ? icon('check') : ''}</button>`;
+      }).join('') || '<p class="booking-no-availability">No available times on this date.</p>'}</div></section>
+      <div class="booking-selected-slots"><span>Selected Slots:</span><div>${booking.sessions.map((session, index) => `<button type="button" data-remove-slot="${index}"><b>${index + 1}</b>${escapeHtml(sessionLabel(session))}${icon('close')}</button>`).join('') || '<small>No slots selected yet</small>'}</div><button type="button" data-clear-times>Clear All ${icon('trash')}</button></div>
+      <p class="booking-form-error" id="bookingFormError"></p>${navButtons('Continue to Goals')}`;
   }
 
   function renderGoal() {
-    return `${intro('ეტაპი 3 / 6', 'რა არის შენი მიზანი?', 'დაეხმარე ქოუჩს გაიგოს, რის მიღწევა გსურს,<br>რათა შენთვის საუკეთესო სესია მოამზადოს.')}${coachCard()}
+    return `${intro('STEP 3 OF 6', "What's Your Goal?", 'Help your coach understand what you want to achieve<br>so they can prepare the best session for you.')}${coachCard()}
       <div class="booking-goal-layout"><section class="booking-goal-form">
         <label><span>${icon('target')}<b>Describe Your Goal</b><small>Tell your coach what you want to improve, achieve, or learn.</small></span><textarea id="bookingGoal" maxlength="500" placeholder="Example: I want to reach Immortal rank in Valorant and improve my aim and game sense...">${escapeHtml(booking.goal)}</textarea><em><b id="goalCount">${booking.goal.length}</b>/500</em></label>
         <label><span>${icon('gamepad')}<b>Any Specific Challenges? <small>(optional)</small></b><small>Mention any challenges or focus areas you want to work on.</small></span><textarea id="bookingChallenges" maxlength="300" placeholder="Example: I struggle with crosshair placement, need help with mid-round decisions...">${escapeHtml(booking.challenges)}</textarea><em><b id="challengeCount">${booking.challenges.length}</b>/300</em></label>
         <label class="booking-discord"><span>${icon('discord')}<b>Discord for Your Session</b><small>Enter your Discord username so your coach can find you and add you to the right channel before the session.</small></span><div><input id="bookingDiscord" value="${escapeHtml(booking.discord)}" placeholder="e.g. gio.wavehub" autocomplete="off"><b>${booking.discord ? '✓ Discord added' : ''}</b></div><p>${icon('lock')} Your Discord username will be shared only with your coach for this booking.</p></label>
         <div class="booking-discord-help">${icon('discord')}<span><strong>Don't have Discord?</strong><small>Discord is where your coaching session will take place.</small></span><a href="https://discord.com/register" target="_blank" rel="noreferrer">Create an account ${icon('external')}</a></div>
       </section><aside class="booking-tips"><h2>${icon('light')} Quick Tips</h2><ul><li>${icon('target')} Be specific about your current rank or level</li><li>${icon('gamepad')} Mention the game modes you play</li><li>${icon('alert')} Share your biggest challenges</li><li>${icon('chat')} The more details you give, the better your coach can help you</li></ul><div><h3>${icon('lock')} Private & Secure</h3><p>Your goal and Discord info are private and only visible to your coach.</p></div></aside></div>
-      <p class="booking-form-error" id="bookingFormError"></p>${navButtons('შემოწმებაზე გადასვლა')}`;
+      <p class="booking-form-error" id="bookingFormError"></p>${navButtons('Continue to Review')}`;
   }
 
   function chosenDate() { return availableDates.find((item) => item.key === booking.date)?.date || today; }
@@ -367,19 +367,19 @@
   function renderReview() {
     const firstSession = booking.sessions[0] || { date: booking.date, time: '' };
     const date = getSessionDate(firstSession);
-    return `${intro('ეტაპი 4 / 6', 'შეამოწმე ჯავშანი', 'გადახდამდე გადაამოწმე ყველა დეტალი.')}${coachCard()}<div class="booking-review-list">
+    return `${intro('STEP 4 OF 6', 'Review Your Booking', 'Please review all details before proceeding to payment.')}${coachCard()}<div class="booking-review-list">
       <article><span class="pink">${icon(selectedPackage().id === 'single' ? 'rocket' : 'growth')}</span><div><h2>Session Option</h2><strong>${selectionTitle()}</strong><small>${selectedPackage().sessions} Session${selectedPackage().sessions === 1 ? ' · No subscription' : 's'}</small></div><button type="button" data-go-step="1">Change ›</button></article>
       <article><span class="purple">${icon('calendar')}</span><div><h2>Schedule</h2><strong>${booking.sessions.length} selected session${booking.sessions.length === 1 ? '' : 's'}</strong><p>${booking.sessions.map((session, index) => `<span><b>${index + 1}</b><em>${escapeHtml(sessionLabel(session, true))}</em></span>`).join('')}</p></div><button type="button" data-go-step="2">Change ›</button></article>
       <article><span class="purple">${icon('target')}</span><div><h2>Your Goal</h2><strong>${escapeHtml(summaryGoal())}</strong></div><button type="button" data-go-step="3">Change ›</button></article>
       <article><span class="green">${icon('lari')}</span><div><h2>Total Price</h2><strong>${selectedPackage().id === 'single' ? 'One-time session · No subscription' : `Includes all ${selectedPackage().sessions} sessions`}</strong></div><b class="booking-total">${money(price())}</b></article>
-      </div><div class="booking-benefits review"><div>${icon('shield')}<span><strong>100%-ით უსაფრთხო გადახდა</strong><small>შენი მონაცემები ყოველთვის დაცულია</small></span></div><div>${icon('package')}<span><strong>კმაყოფილების გარანტია</strong><small>ჩვენ დაგეხმარებით მიზნის მიღწევაში</small></span></div><div>${icon('bolt')}<span><strong>მყისიერი წვდომა</strong><small>დაიწყე გადახდისთანავე</small></span></div></div>${navButtons('გადახდაზე გადასვლა')}`;
+      </div><div class="booking-benefits review"><div>${icon('shield')}<span><strong>100% Secure Checkout</strong><small>Your data is always protected</small></span></div><div>${icon('package')}<span><strong>Satisfaction Guaranteed</strong><small>We're here to help you succeed</small></span></div><div>${icon('bolt')}<span><strong>Instant Access</strong><small>Start right after payment</small></span></div></div>${navButtons('Continue to Payment')}`;
   }
 
   function renderPayment() {
-    return `${intro('ეტაპი 5 / 6', 'გადახდა', 'დაასრულე გადახდა და დაადასტურე ქოუჩინგ სესია.')}${coachCard()}
-      <section class="booking-payment-method"><h2>გადახდის მეთოდი</h2><div class="booking-bank-option"><i></i><span class="bog-mini">BG</span><div><strong>საქართველოს ბანკი</strong><small>გადაიხადე საქართველოს ბანკის ანგარიშით</small></div><em>ერთადერთი ხელმისაწვდომი მეთოდი</em></div><p>${icon('lock')} გადახდა უსაფრთხოდ მუშავდება საქართველოს ბანკის მიერ.</p></section>
-      <section class="booking-how"><div><h2>როგორ მუშაობს?</h2><ol><li><b>1</b>დააჭირე „გადახდას“ და გადახვალ საქართველოს ბანკის უსაფრთხო სისტემაში.</li><li><b>2</b>დაასრულე გადახდა საქართველოს ბანკის ანგარიშით.</li><li><b>3</b>წარმატებული გადახდის შემდეგ დაბრუნდები WaveHub-ზე.</li><li><b>4</b>ქოუჩინგ სესია დადასტურდება და გამოჩნდება შენს პროფილში.</li></ol></div><div class="bog-brand"><span>BG</span><strong>საქართველოს ბანკი<small>საქართველოს ბანკი</small></strong></div></section>
-      <article class="booking-payment-total"><span class="green">${icon('lari')}</span><div><h2>ჯამური ფასი</h2><small>${selectedPackage().id === 'single' ? 'ერთჯერადი სესია · გამოწერის გარეშე' : `მოიცავს ყველა ${selectedPackage().sessions} სესიას`}</small></div><b>${money(price())}</b></article>${navButtons('გადახდა', { lock: true, note: 'უსაფრთხო გადახდა • გადახდის შემდეგ WaveHub-ზე დაბრუნდები' })}`;
+    return `${intro('STEP 5 OF 6', 'Payment', 'Complete your payment to secure your coaching session.')}${coachCard()}
+      <section class="booking-payment-method"><h2>Payment Method</h2><div class="booking-bank-option"><i></i><span class="bog-mini">BG</span><div><strong>Bank of Georgia</strong><small>Pay directly with your Bank of Georgia account</small></div><em>Only available method</em></div><p>${icon('lock')} Your payment is processed securely through Bank of Georgia.</p></section>
+      <section class="booking-how"><div><h2>How it works?</h2><ol><li><b>1</b>Click “Pay Now” and you will be redirected to Bank of Georgia's secure system.</li><li><b>2</b>Complete the payment using your Bank of Georgia account.</li><li><b>3</b>Once the payment is successful, you will be redirected back to WaveHub.</li><li><b>4</b>Your coaching session will be confirmed and available in your dashboard.</li></ol></div><div class="bog-brand"><span>BG</span><strong>BANK OF GEORGIA<small>საქართველოს ბანკი</small></strong></div></section>
+      <article class="booking-payment-total"><span class="green">${icon('lari')}</span><div><h2>Total Price</h2><small>${selectedPackage().id === 'single' ? 'One-time session · No subscription' : `Includes all ${selectedPackage().sessions} sessions`}</small></div><b>${money(price())}</b></article>${navButtons('Pay Now', { lock: true, note: "Secure payment  •  You'll return to WaveHub after payment" })}`;
   }
 
   function persistPurchase() {
@@ -444,8 +444,8 @@
     const languageButton = target.closest('[data-booking-language]');
 
     if (languageButton) {
-      bookingLanguage = languageButton.dataset.bookingLanguage === 'en' ? 'en' : 'ka';
-      localStorage.setItem(languageKey, bookingLanguage);
+      const language = languageButton.dataset.bookingLanguage === 'ka' ? 'ka' : 'en';
+      localStorage.setItem(languageKey, language);
       window.location.reload();
       return;
     }
@@ -521,3 +521,4 @@
 
   render();
 }());
+

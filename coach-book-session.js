@@ -966,7 +966,8 @@
     const reviewItems = getReviewItems(coach);
     const availabilityText = availabilityLabels[coach.availability] || coach.availability || '';
     const overviewBlocks = [renderOverviewTop(coach), renderInfoGrid(coach), renderAchievements(coach)].filter(Boolean);
-    const bookButtonText = coach.isFixedSession ? 'Add Session to Cart' : 'Book Session';
+    const bookButtonText = coach.isFixedSession ? 'Book This Session' : 'Book Session';
+    const bookingFlowUrl = `coach-booking.html?coach=${encodeURIComponent(coach.id || coach.name || coach.game)}`;
     const messageUrl = coach.sellerUsername
       ? `messages.html?to=${encodeURIComponent(coach.sellerUsername)}`
       : 'messages.html';
@@ -1025,7 +1026,7 @@
             <span>${coach.isFixedSession ? 'Session price' : 'Starting from'}</span>
             <strong>${escapeHtml(coach.priceText || `${Number(coach.price) || 0} GEL/hour`)}</strong>
           </div>
-          <button class="coach-book-primary" type="button" data-action="book">${bookButtonText}</button>
+          <a class="coach-book-primary" href="${bookingFlowUrl}">${bookButtonText}</a>
           <a class="coach-book-secondary coach-message-secondary" href="${messageUrl}">Message Coach</a>
           <button class="coach-book-secondary" type="button" data-action="wishlist">Add to Wishlist</button>
         </div>
