@@ -490,3 +490,10 @@ rebuild the frontend. The session cookie is `SameSite=Lax`, which still works be
 | Registered users get no email | `EMAIL_PROVIDER=console`, unverified Resend domain, or a bad `RESEND_API_KEY` (backend logs the provider's HTTP status, never the address). |
 | `EACCES` on uploads | The `uploads` volume was created root-owned by an older image: `docker compose exec -u root backend chown -R node:node /data/uploads`. |
 | Everyone gets rate-limited / same IP | `TRUST_PROXY` missing, or backend port published directly (it must not be). |
+
+## Temporarily hiding everything (2026-10-01)
+On the owner's request every active/paused listing was set to `draft`, the coach to `suspended` and all
+tournaments to `draft` (new `TournamentStatus.Draft`), with each item's previous status recorded in
+`ops_visibility_freeze`. Restore with `scripts/visibility-restore.sql` (see its header); listings
+edited while hidden go to admin review rather than straight back to live.
+
