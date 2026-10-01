@@ -1030,7 +1030,8 @@ function createDetailReviewCard(review) {
   reviewerIdentity.className = 'public-review-reviewer-identity';
   const reviewerRank = document.createElement('small');
   reviewerRank.className = 'public-review-reviewer-rank';
-  reviewerRank.textContent = getReviewerWaveRank(reviewerUser);
+  const reviewerTier = getReviewerWaveRank(reviewerUser);
+  reviewerRank.innerHTML = `<img class="wave-rank-inline-icon" src="assets/rank-icons/rank%20icons/${encodeURIComponent(reviewerTier)}.png" alt="" />${escapeHtml(reviewerTier)}`;
   reviewerIdentity.append(buyer, reviewerRank);
   reviewerWrap.append(reviewerAvatar, reviewerIdentity);
 

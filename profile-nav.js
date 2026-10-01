@@ -20,6 +20,27 @@
     ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000],
   ];
 
+  const rankIconAliases = { 'WAVE MASTER': 'Wave Captain', 'WAVE ELITE': 'Wave Vanguard', 'WAVE PRIME': 'Wave Apex' };
+
+  function getRankIconName(value) {
+    const name = String(value || '').trim();
+    return waveRanks.some(([rank]) => rank === name) ? name : rankIconAliases[name.toUpperCase()] || 'Wave Spark';
+  }
+
+  function getRankIconPath(rankName) {
+    return `assets/rank-icons/rank%20icons/${encodeURIComponent(getRankIconName(rankName))}.png`;
+  }
+
+  function renderRankEmblems(root = document) {
+    root.querySelectorAll?.('.up-rank-gem, .seller-rank-emblem').forEach((emblem) => {
+      const label = emblem.dataset.rank || emblem.closest('.seller-rank-card')?.querySelector('strong')?.textContent || emblem.textContent;
+      const rank = getRankIconName(label);
+      emblem.dataset.rank = rank;
+      emblem.innerHTML = `<img src="${getRankIconPath(rank)}" alt="${rank} rank icon">`;
+      emblem.setAttribute('aria-label', rank);
+    });
+  }
+
   function isRecent(value) {
     const time = new Date(value || 0).getTime();
     return Number.isFinite(time) && time >= Date.now() - (30 * 24 * 60 * 60 * 1000);
@@ -195,8 +216,8 @@
               <strong id="profileFullName">Guest account</strong>
               <span class="profile-verified-mark" aria-label="Verified">&#10003;</span>
             </div>
-            <small><span class="profile-rank-gem" aria-hidden="true"></span><span id="profileDropdownRank">Wave Spark</span></small>
-            <span class="profile-tier"><span aria-hidden="true">&#9812;</span><b id="profileTierName">Wave Spark</b><i aria-hidden="true">&#8594;</i><strong id="profileNextTier">Wave Scout</strong></span>
+            <small><img class="profile-rank-icon" id="profileDropdownRankIcon" src="assets/rank-icons/rank%20icons/Wave%20Spark.png" alt="" aria-hidden="true"><span id="profileDropdownRank">Wave Spark</span></small>
+            <span class="profile-tier"><img class="profile-rank-icon" id="profileTierIcon" src="assets/rank-icons/rank%20icons/Wave%20Spark.png" alt="" aria-hidden="true"><b id="profileTierName">Wave Spark</b><i aria-hidden="true">&#8594;</i><strong id="profileNextTier">Wave Scout</strong></span>
           </div>
         </div>
         <div class="profile-level-row" aria-label="Account level">
@@ -416,7 +437,9 @@
     const profileFullName = document.getElementById('profileFullName');
     const profileHandle = document.getElementById('profileHandle');
     const profileDropdownRank = document.getElementById('profileDropdownRank');
+    const profileDropdownRankIcon = document.getElementById('profileDropdownRankIcon');
     const profileTierName = document.getElementById('profileTierName');
+    const profileTierIcon = document.getElementById('profileTierIcon');
     const profileNextTier = document.getElementById('profileNextTier');
     const profileDropdownLevel = document.getElementById('profileDropdownLevel');
     const profileDropdownXp = document.getElementById('profileDropdownXp');
@@ -446,7 +469,9 @@
     const profileXpGoal = 1000;
     const profileXp = rankMetrics.score;
     if (profileDropdownRank) profileDropdownRank.textContent = profileRank;
+    if (profileDropdownRankIcon) profileDropdownRankIcon.src = `assets/rank-icons/rank%20icons/${encodeURIComponent(profileRank)}.png`;
     if (profileTierName) profileTierName.textContent = profileRank;
+    if (profileTierIcon) profileTierIcon.src = `assets/rank-icons/rank%20icons/${encodeURIComponent(profileRank)}.png`;
     if (profileNextTier) profileNextTier.textContent = waveRanks[rankMetrics.tierIndex + 1]?.[0] || 'Wave Apex';
     if (profileDropdownLevel) profileDropdownLevel.textContent = String(profileLevel);
     if (profileDropdownXp) profileDropdownXp.textContent = String(profileXp);
@@ -909,6 +934,7 @@
   standardizeSidebars();
   standardizeTopbars();
   renderProfileSurfaces();
+  renderRankEmblems();
   renderMessageNotifications();
   bindProfileRoutes();
   renderMarketplaceGameMenu();
@@ -943,7 +969,13 @@
   });
 
   window.wavehubRenderProfileSurfaces = renderProfileSurfaces;
+  window.wavehubRenderRankEmblems = renderRankEmblems;
   window.wavehubRenderMessageNotifications = renderMessageNotifications;
   window.wavehubRefreshMessageNotifications = refreshServerMessages;
   window.wavehubRenderNotificationCenter = renderNotificationCenter;
+  new MutationObserver((records) => {
+    records.forEach((record) => record.addedNodes.forEach((node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) renderRankEmblems(node.parentElement || document);
+    }));
+  }).observe(document.body, { childList: true, subtree: true });
 }());

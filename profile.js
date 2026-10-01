@@ -13,6 +13,7 @@ const publicProfileBio = document.getElementById('publicProfileBio');
 const publicProfileMessage = document.getElementById('publicProfileMessage');
 const publicProfileRole = document.getElementById('publicProfileRole');
 const publicProfileRank = document.getElementById('publicProfileRank');
+const publicProfileRankIcon = document.getElementById('publicProfileRankIcon');
 const publicProfileRankCaption = document.getElementById('publicProfileRankCaption');
 const publicProfileRankProgress = document.getElementById('publicProfileRankProgress');
 const publicProfileRankMeta = document.getElementById('publicProfileRankMeta');
@@ -897,7 +898,8 @@ function createPublicReviewCard(review) {
   reviewerIdentity.className = 'public-review-reviewer-identity';
   const reviewerRank = document.createElement('small');
   reviewerRank.className = 'public-review-reviewer-rank';
-  reviewerRank.textContent = reviewerUser ? getWaveRankMetrics(reviewerUser).tier : 'Wave Spark';
+  const reviewerTier = reviewerUser ? getWaveRankMetrics(reviewerUser).tier : 'Wave Spark';
+  reviewerRank.innerHTML = `<img class="wave-rank-inline-icon" src="${getWaveRankIconPath(reviewerTier)}" alt="" />${escapeHtml(reviewerTier)}`;
   reviewerIdentity.append(reviewer, reviewerRank);
   reviewerWrap.append(reviewerAvatar, reviewerIdentity);
 
@@ -927,6 +929,10 @@ const waveRankTiers = [
   ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580],
   ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000],
 ];
+
+function getWaveRankIconPath(tier) {
+  return `assets/rank-icons/rank%20icons/${encodeURIComponent(tier)}.png`;
+}
 
 function isRecentWaveActivity(value) {
   const time = new Date(value || 0).getTime();
@@ -1148,6 +1154,7 @@ function renderPublicProfile(user) {
     if (publicProfileRole) publicProfileRole.textContent = 'Unavailable profile';
     if (publicProfileMessage) publicProfileMessage.hidden = true;
     if (publicProfileRank) publicProfileRank.textContent = '#-';
+    if (publicProfileRankIcon) publicProfileRankIcon.hidden = true;
     if (publicProfileRankCaption) publicProfileRankCaption.textContent = 'Profile unavailable';
     if (publicProfileRankProgress) publicProfileRankProgress.style.width = '0%';
     if (publicProfileRankMeta) publicProfileRankMeta.textContent = 'No ranking data';
@@ -1224,7 +1231,13 @@ function renderPublicProfile(user) {
       ? `${formatCount(listings.length)} listed · ${formatCount(soldItems.length)} orders`
       : 'WaveHub community member';
   }
-  if (publicProfileRank) publicProfileRank.textContent = rank ? rank.tier : 'Wave Spark';
+  const profileTier = rank ? rank.tier : 'Wave Spark';
+  if (publicProfileRank) publicProfileRank.textContent = profileTier;
+  if (publicProfileRankIcon) {
+    publicProfileRankIcon.hidden = false;
+    publicProfileRankIcon.src = getWaveRankIconPath(profileTier);
+    publicProfileRankIcon.alt = `${profileTier} rank icon`;
+  }
   if (publicProfileRankCaption) {
     publicProfileRankCaption.textContent = rank ? `${formatCount(rank.score)} Wave Points · Top ${rank.percentile}%` : 'Earn points through progress and activity';
   }

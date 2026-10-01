@@ -17,7 +17,7 @@
           </div>
         </div>
         <div class="seller-rank-card">
-          <span class="seller-rank-emblem">W</span>
+          <span class="seller-rank-emblem" data-rank="Wave Spark"></span>
           <div><small>RANK</small><strong data-preview-rank></strong><span>WaveHubX Rank</span></div>
           <p><span></span><small>Next: <b>PRIME</b></small></p>
         </div>
