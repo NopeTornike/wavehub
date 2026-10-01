@@ -67,7 +67,8 @@ describe('CoachingSessionsService', () => {
     const platformSettings = { getPlatformFeePercent: jest.fn(async () => 10) } as any;
     const notifications = { emit: jest.fn() } as any;
 
-    const service = new CoachingSessionsService(sessions, coaches, {} as any, dataSource, wallet, platformSettings, notifications, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any);
+    const packages = { findOne: jest.fn(async ({ where }: any) => (where.id === 'pkg-1' && where.coachId === coachRow?.id ? { id: 'pkg-1', name: 'VOD review', durationMinutes: 45, priceWaveCoin: 25 } : null)) } as any;
+    const service = new CoachingSessionsService(sessions, coaches, {} as any, packages, dataSource, wallet, platformSettings, notifications, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any);
     return { service, sessions, coaches, dataSource, wallet, platformSettings, notifications, sessionRows };
   }
 
@@ -128,6 +129,36 @@ describe('CoachingSessionsService', () => {
       );
       expect(wallet.debitForSession).toHaveBeenCalledWith(buyerId, sessionId, 30, manager);
       expect(result.priceWaveCoin).toBe(30);
+    });
+
+    it('a package fixes price and duration and is snapshotted with validated answers', async () => {
+      const questions = [
+        { key: 'rank', label: 'Current rank', type: 'dropdown', required: true, options: ['Gold', 'Platinum'] },
+        { key: 'goal', label: 'Goal', type: 'textarea', required: false },
+      ];
+      const { service, dataSource, wallet, sessions } = build({ coach: fakeCoach({ bookingQuestions: questions }) });
+      const manager = {
+        create: jest.fn((_entity: any, data: any) => data),
+        save: jest.fn(async (row: any) => ({ ...row, id: sessionId })),
+      };
+      dataSource.transaction.mockImplementation((fn: any) => fn(manager));
+      sessions.findOne.mockResolvedValue(fakeSession({ priceWaveCoin: 25, durationMinutes: 45 }));
+      const at = new Date(Date.now() + 86_400_000).toISOString();
+
+      // Answers are checked against the coach's questions.
+      await expect(service.request(buyerId, coachId, { scheduledAt: at, packageId: 'pkg-1', answers: {} })).rejects.toThrow('Please answer "Current rank"');
+      await expect(service.request(buyerId, coachId, { scheduledAt: at, packageId: 'pkg-1', answers: { rank: 'Bronze' } })).rejects.toThrow('one of the options');
+      await expect(service.request(buyerId, coachId, { scheduledAt: at, packageId: 'pkg-1', answers: { rank: 'Gold', other: 'x' } })).rejects.toThrow('Unknown answer');
+      // Another coach's package / no duration at all.
+      await expect(service.request(buyerId, coachId, { scheduledAt: at, packageId: 'pkg-x', answers: { rank: 'Gold' } })).rejects.toThrow(NotFoundException);
+      await expect(service.request(buyerId, coachId, { scheduledAt: at, answers: { rank: 'Gold' } })).rejects.toThrow('Choose a duration or a package');
+
+      await service.request(buyerId, coachId, { scheduledAt: at, packageId: 'pkg-1', answers: { rank: 'Gold', goal: '  Climb  ' } });
+      expect(manager.create).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ priceWaveCoin: 25, durationMinutes: 45, packageId: 'pkg-1', packageName: 'VOD review', answers: { rank: 'Gold', goal: 'Climb' } }),
+      );
+      expect(wallet.debitForSession).toHaveBeenCalledWith(buyerId, sessionId, 25, manager);
     });
 
     it("translates WalletService.debitForSession's INSUFFICIENT_BALANCE into a clean ForbiddenException", async () => {

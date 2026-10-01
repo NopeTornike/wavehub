@@ -11,7 +11,8 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { requestLogger } from './common/request-logger.middleware';
 import { resolveUploadsDir } from './storage/storage.service';
 
-const INLINE_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
+// Rendered in place (<img>/<video>); anything else is forced to download.
+const INLINE_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.mp4', '.webm']);
 const LOCAL_ORIGIN_PATTERN = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
 
 // Everything that isn't the listen() call, shared by main.ts and the e2e harness (backend/test/
@@ -39,7 +40,7 @@ export function configureApp(app: NestExpressApplication): void {
   // attacker-supplied and served from the API's own origin: nosniff so a browser never reinterprets
   // a body's type, a locked-down CSP (`sandbox` neuters any script even if something did render),
   // and non-image files (PDF/ZIP) forced to download rather than render inline. StorageService only
-  // ever writes sniffed jpg/png/webp/pdf/zip under random names, so this is defence in depth.
+  // ever writes sniffed jpg/png/webp/pdf/zip/mp4/webm under random names, so this is defence in depth.
   app.useStaticAssets(resolveUploadsDir(), {
     prefix: '/uploads',
     index: false,

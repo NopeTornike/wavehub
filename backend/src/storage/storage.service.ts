@@ -12,7 +12,8 @@ export interface StoredFile {
   contentType: string;
 }
 
-export type UploadKind = 'image' | 'attachment';
+// 'video' (MP4/WebM) is accepted only by callers that ask for it — never by 'attachment'.
+export type UploadKind = 'image' | 'attachment' | 'video';
 
 export function resolveUploadsDir(): string {
   return process.env.UPLOADS_DIR || join(process.cwd(), 'uploads');
@@ -55,11 +56,19 @@ export class StorageService {
 
   async save(buffer: Buffer, _originalName: string, kind: UploadKind = 'attachment'): Promise<StoredFile> {
     const sniffed = sniffFileType(buffer);
-    if (!sniffed || (kind === 'image' && !sniffed.isImage)) {
+    const accepted =
+      !!sniffed && (kind === 'image' ? sniffed.isImage : kind === 'video' ? !!sniffed.isVideo : !sniffed.isVideo);
+    if (!sniffed || !accepted) {
       throw new UnsupportedMediaTypeException(
-        kind === 'image' ? 'File is not a valid JPG, PNG, or WEBP image' : 'File is not a valid JPG, PNG, WEBP, PDF, or ZIP file',
+        kind === 'image'
+          ? 'File is not a valid JPG, PNG, or WEBP image'
+          : kind === 'video'
+            ? 'File is not a valid MP4 or WebM video'
+            : 'File is not a valid JPG, PNG, WEBP, PDF, or ZIP file',
       );
     }
+    // Videos play inline (<video>); everything else that isn't an image downloads.
+    const inline = sniffed.isImage || !!sniffed.isVideo;
     const filename = `${randomUUID()}${sniffed.ext}`;
 
     if (this.s3) {
@@ -67,7 +76,7 @@ export class StorageService {
         await putObject(this.s3, `uploads/${filename}`, buffer, {
           'content-type': sniffed.mime,
           'cache-control': 'public, max-age=31536000, immutable',
-          ...(sniffed.isImage ? {} : { 'content-disposition': 'attachment' }),
+          ...(inline ? {} : { 'content-disposition': 'attachment' }),
         });
       } catch (err) {
         this.logger.error('Object storage upload failed', err as Error);

@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -15,6 +15,8 @@ import { calculatePlatformFee } from '../wallet/fee.util';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { withTransactionRetry } from '../wallet/transaction-retry.util';
+import { CoachPackage } from './coach-package.entity';
+import { validateBookingAnswers } from './booking-questions';
 
 const DEFAULT_HOLD_DAYS = 7;
 
@@ -26,6 +28,7 @@ export class CoachingSessionsService {
     @InjectRepository(CoachingSession) private readonly sessions: Repository<CoachingSession>,
     @InjectRepository(Coach) private readonly coaches: Repository<Coach>,
     @InjectRepository(CoachingSessionReview) private readonly reviews: Repository<CoachingSessionReview>,
+    @InjectRepository(CoachPackage) private readonly packages: Repository<CoachPackage>,
     private readonly dataSource: DataSource,
     private readonly wallet: WalletService,
     private readonly platformSettings: PlatformSettingsService,
@@ -55,6 +58,8 @@ export class CoachingSessionsService {
       durationMinutes: session.durationMinutes,
       priceWaveCoin: session.priceWaveCoin,
       buyerMessage: session.buyerMessage,
+      packageName: session.packageName ?? null,
+      answers: session.answers ?? null,
       status: session.status,
       createdAt: session.createdAt.toISOString(),
     };
@@ -91,7 +96,17 @@ export class CoachingSessionsService {
       throw new ForbiddenException('scheduledAt must be in the future');
     }
 
-    const priceWaveCoin = Math.round((coach.hourlyRateWaveCoin * dto.durationMinutes) / 60);
+    // A package fixes price and duration; otherwise the hourly rate × the chosen duration.
+    let pkg: CoachPackage | null = null;
+    if (dto.packageId) {
+      pkg = await this.packages.findOne({ where: { id: dto.packageId, coachId: coach.id } });
+      if (!pkg) throw new NotFoundException('This package is not offered by this coach');
+    } else if (!dto.durationMinutes) {
+      throw new BadRequestException('Choose a duration or a package');
+    }
+    const durationMinutes = pkg ? pkg.durationMinutes : (dto.durationMinutes as number);
+    const answers = validateBookingAnswers(coach.bookingQuestions ?? [], dto.answers);
+    const priceWaveCoin = pkg ? pkg.priceWaveCoin : Math.round((coach.hourlyRateWaveCoin * durationMinutes) / 60);
     const platformFeePercent = await this.subscriptions.effectiveFeePercent(
       coach.userId,
       await this.platformSettings.getPlatformFeePercent(),
@@ -109,8 +124,11 @@ export class CoachingSessionsService {
         coachId: coach.id,
         buyerId,
         scheduledAt,
-        durationMinutes: dto.durationMinutes,
+        durationMinutes,
         priceWaveCoin,
+        packageId: pkg?.id ?? null,
+        packageName: pkg?.name ?? null,
+        answers,
         platformFeePercentSnapshot: platformFeePercent,
         platformFeeWaveCoin: feeWaveCoin,
         coachPayoutWaveCoin,

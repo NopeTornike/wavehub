@@ -62,6 +62,20 @@ describe('StorageService (local driver)', () => {
     expect(readdirSync(dir)).toHaveLength(0);
   });
 
+  it('accepts MP4/WebM only where a video is asked for', async () => {
+    const svc = new StorageService();
+    const mp4 = Buffer.concat([Buffer.from([0, 0, 0, 0x20]), Buffer.from('ftypisom'), Buffer.alloc(24)]);
+    const webm = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.alloc(8), Buffer.from('webm'), Buffer.alloc(24)]);
+    const mov = Buffer.concat([Buffer.from([0, 0, 0, 0x20]), Buffer.from('ftypqt  '), Buffer.alloc(24)]);
+    expect((await svc.save(mp4, 'clip.mp4', 'video')).contentType).toBe('video/mp4');
+    expect((await svc.save(webm, 'clip.webm', 'video')).url).toMatch(/\.webm$/);
+    await expect(svc.save(mov, 'clip.mov', 'video')).rejects.toThrow(UnsupportedMediaTypeException);
+    await expect(svc.save(PNG, 'x.png', 'video')).rejects.toThrow(UnsupportedMediaTypeException);
+    // Videos are never accepted as attachments or images.
+    await expect(svc.save(mp4, 'clip.mp4', 'attachment')).rejects.toThrow(UnsupportedMediaTypeException);
+    await expect(svc.save(mp4, 'clip.mp4', 'image')).rejects.toThrow(UnsupportedMediaTypeException);
+  });
+
   it('accepts documents when the kind is attachment', async () => {
     const svc = new StorageService();
     expect((await svc.save(PDF, 'a.pdf')).contentType).toBe('application/pdf');

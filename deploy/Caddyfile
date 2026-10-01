@@ -33,9 +33,11 @@
 	}
 
 	handle_path /api/* {
-		# Largest legitimate upload is 20 MB (delivery files / dispute evidence) plus multipart overhead.
+		# Largest legitimate upload is a 50 MB coach intro video (POST coaches/mine/video and the admin
+		# equivalent) plus multipart overhead. Every other upload route has its own smaller multer
+		# limit (5 MB images, 20 MB attachments), and JSON bodies are capped by Express.
 		request_body {
-			max_size 25MB
+			max_size 55MB
 		}
 		# Caddy sets X-Forwarded-For to the real client IP (overwriting any client-supplied value),
 		# which the backend's per-IP rate limiting relies on (TRUST_PROXY=1).

@@ -1,4 +1,6 @@
-import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { RequirementFieldDto } from '../../listings/dto/create-listing.dto';
 
 export const COACH_VIDEO_URL = /^https:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/\S+$/;
 
@@ -60,4 +62,12 @@ export class UpdateCoachProfileDto {
   @ArrayMaxSize(4)
   @IsUUID('4', { each: true })
   extraGameIds?: string[];
+
+  // Pre-booking questions (≤10), same shape and rules as a service listing's requirements form.
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => RequirementFieldDto)
+  bookingQuestions?: RequirementFieldDto[];
 }

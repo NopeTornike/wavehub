@@ -6,10 +6,13 @@ import { VerificationStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { CoachPackagesEditor, CoachQuestionsEditor, CoachVideoEditor } from '../../components/CoachExtras'
 
 // A coach editing the content of their public profile (docs/design-mockups/14): specialty, bio,
 // rate, rank, languages, main + extra games, intro video, quote and coaching-style points. Mirrors
-// UpdateCoachProfileDto's bounds. The photo is the account avatar (Settings).
+// UpdateCoachProfileDto's bounds. The photo is the account avatar (uploaded here or in Settings);
+// the uploaded video, packages and pre-booking questions save through their own endpoints
+// (components/CoachExtras.tsx).
 
 const LANGUAGE_OPTIONS: Array<[string, string]> = [
   ['ka', 'ქართული'],
@@ -23,7 +26,8 @@ const VIDEO_URL = /^https:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/\S+$/
 
 export default function CoachProfileEditor() {
   const router = useRouter()
-  const { user, checked } = useAuth()
+  const { user, checked, refresh } = useAuth()
+  const [photoStatus, setPhotoStatus] = useState('')
   const userId = user?.id
   const [games, setGames] = useState<PublicGame[]>([])
   const [profile, setProfile] = useState<MyCoachProfile | null>(null)
@@ -103,6 +107,21 @@ export default function CoachProfileEditor() {
     }
   }
 
+  const uploadPhoto = async (file: File | undefined) => {
+    if (!file) return
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      return setPhotoStatus('ფოტო: PNG, JPG ან WEBP, მაქსიმუმ 5MB.')
+    }
+    setPhotoStatus('იტვირთება…')
+    try {
+      await api.uploadAvatar(file)
+      await refresh()
+      setPhotoStatus('ფოტო განახლდა.')
+    } catch (err) {
+      setPhotoStatus(errorMessage(err, 'ატვირთვა ვერ მოხერხდა.'))
+    }
+  }
+
   return (
     <Layout title="ქოუჩის პროფილი" noIndex>
       <div className="coaching-body">
@@ -114,7 +133,7 @@ export default function CoachProfileEditor() {
             <div>
               <h1>ჩემი ქოუჩის პროფილი</h1>
               <p>
-                ეს ინფორმაცია ჩანს შენს საჯარო პროფილზე. ფოტოს შეცვლა — <Link href="/profile">პარამეტრებში</Link>.
+                ეს ინფორმაცია ჩანს შენს საჯარო პროფილზე.
                 {profile?.verificationStatus === VerificationStatus.Verified && (
                   <>
                     {' '}
@@ -124,6 +143,31 @@ export default function CoachProfileEditor() {
               </p>
             </div>
           </div>
+          {!missing && profile && (
+            <section className="coach-info-card coach-apply-card ce-photo">
+              <span className="ce-avatar" style={user?.avatarUrl ? { backgroundImage: `url("${user.avatarUrl}")` } : undefined} aria-hidden="true">
+                {user?.avatarUrl ? '' : (user?.username ?? '?').slice(0, 1).toUpperCase()}
+              </span>
+              <div>
+                <h3>პროფილის ფოტო</h3>
+                <p className="ce-hint">ჩანს ქოუჩების სიაში და შენს პროფილზე. PNG, JPG ან WEBP, მაქს. 5MB.</p>
+                <label className="button ce-file">
+                  ფოტოს ატვირთვა
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      e.target.value = ''
+                      void uploadPhoto(file)
+                    }}
+                  />
+                </label>
+                {photoStatus && <p className="seller-status">{photoStatus}</p>}
+              </div>
+            </section>
+          )}
           {missing ? (
             <div className="coach-info-card coach-apply-card">
               <p>
@@ -184,7 +228,7 @@ export default function CoachProfileEditor() {
                 </div>
               </fieldset>
               <label className="field">
-                გაცნობითი ვიდეო <small>YouTube / Vimeo ბმული</small>
+                ვიდეო ბმული <small>YouTube / Vimeo — ან ატვირთე ფაილი ქვემოთ</small>
                 <input type="url" maxLength={300} value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} />
               </label>
               <label className="field">
@@ -204,6 +248,13 @@ export default function CoachProfileEditor() {
                 {saving ? 'ინახება…' : 'შენახვა'}
               </button>
             </form>
+          )}
+          {!missing && profile && (
+            <div className="coach-info-card coach-apply-card">
+              <CoachVideoEditor videoFileUrl={profile.videoFileUrl} onUpload={api.uploadMyCoachVideo} onClear={api.clearMyCoachVideo} />
+              <CoachPackagesEditor initial={profile.packages} onSave={api.setMyCoachPackages} />
+              <CoachQuestionsEditor initial={profile.bookingQuestions} onSave={(bookingQuestions) => api.updateMyCoachProfile({ bookingQuestions })} />
+            </div>
           )}
         </div>
       </div>

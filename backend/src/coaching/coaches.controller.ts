@@ -1,12 +1,16 @@
-import { CREATE_THROTTLE } from '../common/throttle';
+import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
-import { CoachesService } from './coaches.service';
+import { CoachesService, MAX_COACH_VIDEO_BYTES } from './coaches.service';
 import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { RejectCoachDto } from './dto/reject-coach.dto';
 import { BrowseCoachesDto } from './dto/browse-coaches.dto';
 import { UpdateCoachProfileDto } from './dto/update-coach-profile.dto';
+import { SetCoachPackagesDto } from './dto/coach-packages.dto';
+import { AdminCreateCoachDto } from './dto/admin-coach.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
 import { AdminGuard } from '../admin/admin-role.guard';
@@ -20,6 +24,8 @@ import { AdminAuditService } from '../admin/admin-audit.service';
 // verification badge, ... temp suspend, restore coaching"). Super Admin passes any admin-guarded
 // route implicitly (see backend/src/admin/CLAUDE.md), not listed here.
 const COACH_MANAGEMENT_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];
+// Intro videos: byte-sniffed MP4/WebM, 50MB (multer limit + the service check).
+const VIDEO_UPLOAD = FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_COACH_VIDEO_BYTES } });
 
 @Controller()
 export class CoachesController {
@@ -51,6 +57,87 @@ export class CoachesController {
   @UseGuards(AuthGuard)
   updateMyProfile(@CurrentUserId() userId: string, @Body() dto: UpdateCoachProfileDto) {
     return this.coaches.updateMyProfile(userId, dto);
+  }
+
+  @Put('coaches/mine/packages')
+  @UseGuards(AuthGuard)
+  setMyPackages(@CurrentUserId() userId: string, @Body() dto: SetCoachPackagesDto) {
+    return this.coaches.setMyPackages(userId, dto.packages);
+  }
+
+  @Post('coaches/mine/video')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(UPLOAD_THROTTLE)
+  @UseGuards(AuthGuard)
+  @UseInterceptors(VIDEO_UPLOAD)
+  setMyVideo(@CurrentUserId() userId: string, @UploadedFile() file: Express.Multer.File) {
+    return this.coaches.setMyVideo(userId, file);
+  }
+
+  @Delete('coaches/mine/video')
+  @UseGuards(AuthGuard)
+  clearMyVideo(@CurrentUserId() userId: string) {
+    return this.coaches.clearMyVideo(userId);
+  }
+
+  // --- Admin: add / edit coaches (Coach Management roles, audit-logged) ---
+
+  @Post('admin/coaches')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...COACH_MANAGEMENT_ROLES)
+  async adminCreate(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Body() dto: AdminCreateCoachDto) {
+    const coach = await this.coaches.adminCreate(dto);
+    await this.audit.log({ adminId, adminRole, action: 'coach.create', entityType: 'coach', entityId: coach.id, metadata: { username: coach.username } });
+    return coach;
+  }
+
+  @Get('admin/coaches/:id/profile')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...COACH_MANAGEMENT_ROLES)
+  adminGetProfile(@Param('id') id: string) {
+    return this.coaches.adminGetProfile(id);
+  }
+
+  @Patch('admin/coaches/:id/profile')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...COACH_MANAGEMENT_ROLES)
+  async adminUpdate(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string, @Body() dto: UpdateCoachProfileDto) {
+    const profile = await this.coaches.adminUpdate(id, dto);
+    await this.audit.log({ adminId, adminRole, action: 'coach.update', entityType: 'coach', entityId: id, metadata: { fields: Object.keys(dto).join(',') } });
+    return profile;
+  }
+
+  @Put('admin/coaches/:id/packages')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...COACH_MANAGEMENT_ROLES)
+  async adminSetPackages(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string, @Body() dto: SetCoachPackagesDto) {
+    await this.coaches.adminCoachExists(id);
+    const packages = await this.coaches.setPackages(id, dto.packages);
+    await this.audit.log({ adminId, adminRole, action: 'coach.set_packages', entityType: 'coach', entityId: id, metadata: { count: String(packages.length) } });
+    return packages;
+  }
+
+  @Post('admin/coaches/:id/video')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(UPLOAD_THROTTLE)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...COACH_MANAGEMENT_ROLES)
+  @UseInterceptors(VIDEO_UPLOAD)
+  async adminSetVideo(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    await this.coaches.adminCoachExists(id);
+    const result = await this.coaches.setVideo(id, file);
+    await this.audit.log({ adminId, adminRole, action: 'coach.set_video', entityType: 'coach', entityId: id });
+    return result;
+  }
+
+  @Delete('admin/coaches/:id/video')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...COACH_MANAGEMENT_ROLES)
+  async adminClearVideo(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string) {
+    await this.coaches.adminCoachExists(id);
+    const result = await this.coaches.clearVideo(id);
+    await this.audit.log({ adminId, adminRole, action: 'coach.clear_video', entityType: 'coach', entityId: id });
+    return result;
   }
 
   @Get('me/coach-favorites/ids')

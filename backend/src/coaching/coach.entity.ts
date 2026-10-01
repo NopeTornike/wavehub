@@ -1,3 +1,4 @@
+import type { RequirementField } from '@wavehub/shared-types';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
 import { CoachStatus, VerificationStatus } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
@@ -57,6 +58,15 @@ export class Coach {
 
   @Column({ type: 'uuid', array: true, default: '{}' })
   extraGameIds: string[];
+
+  // An intro video uploaded to our storage (MP4/WebM, byte-sniffed) — preferred over `videoUrl`.
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  videoFileUrl: string | null;
+
+  // Pre-booking questions the buyer answers when booking (same shape as a service listing's
+  // requirements form).
+  @Column({ type: 'jsonb', default: [] })
+  bookingQuestions: RequirementField[];
 
   @Column({ type: 'varchar', default: VerificationStatus.Pending })
   verificationStatus: VerificationStatus;

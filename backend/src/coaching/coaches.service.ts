@@ -1,8 +1,8 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
-import { CoachStatus, SubscriptionAudience, VerificationStatus } from '@wavehub/shared-types';
-import type { AdminCoachSummary, MyCoachProfile, PublicCoachDetail, PublicCoachReview, PublicCoachSummary } from '@wavehub/shared-types';
+import { CoachStatus, SubscriptionAudience, UserStatus, VerificationStatus } from '@wavehub/shared-types';
+import type { AdminCoachSummary, MyCoachProfile, PublicCoachDetail, PublicCoachPackage, PublicCoachReview, PublicCoachSummary } from '@wavehub/shared-types';
 import { Coach } from './coach.entity';
 import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { BrowseCoachesDto } from './dto/browse-coaches.dto';
@@ -13,6 +13,15 @@ import { Game } from '../listings/game.entity';
 import { CoachFavorite } from './coach-favorite.entity';
 import { CoachingSessionReview } from './coaching-session-review.entity';
 import { UpdateCoachProfileDto } from './dto/update-coach-profile.dto';
+import { AdminCreateCoachDto } from './dto/admin-coach.dto';
+import { CoachPackageDto } from './dto/coach-packages.dto';
+import { CoachPackage } from './coach-package.entity';
+import { assertBookingQuestions } from './booking-questions';
+import { User } from '../users/user.entity';
+import { StorageService } from '../storage/storage.service';
+
+export const MAX_COACH_VIDEO_BYTES = 50 * 1024 * 1024;
+type UploadedFile = { buffer: Buffer; originalname: string; size: number };
 
 type CoachStats = { completed: number; cancelled: number; students: number };
 // A response time needs at least this many answered messages before it's shown.
@@ -25,6 +34,9 @@ export class CoachesService {
     @InjectRepository(Game) private readonly games: Repository<Game>,
     @InjectRepository(CoachFavorite) private readonly favorites: Repository<CoachFavorite>,
     @InjectRepository(CoachingSessionReview) private readonly reviews: Repository<CoachingSessionReview>,
+    @InjectRepository(CoachPackage) private readonly packages: Repository<CoachPackage>,
+    @InjectRepository(User) private readonly users: Repository<User>,
+    private readonly storage: StorageService,
     private readonly subscriptions: SubscriptionsService,
     private readonly community: CommunityService,
     private readonly dataSource: DataSource,
@@ -194,12 +206,13 @@ export class CoachesService {
       relations: ['user', 'game'],
     });
     if (!coach) throw new NotFoundException('Coach not found');
-    const [perks, stats, response, rank, extraGames] = await Promise.all([
+    const [perks, stats, response, rank, extraGames, packages] = await Promise.all([
       this.subscriptions.getActivePerks(coach.userId, SubscriptionAudience.SellerCoach),
       this.sessionStats([coach.id]),
       this.responseMinutes([coach.userId]),
       this.community.waveRank(coach.userId),
       coach.extraGameIds?.length ? this.games.find({ where: { id: In(coach.extraGameIds) } }) : Promise.resolve([] as Game[]),
+      this.listPackages(coach.id),
     ]);
     const s = stats.get(coach.id) ?? { completed: 0, cancelled: 0, students: 0 };
     const finished = s.completed + s.cancelled;
@@ -211,6 +224,9 @@ export class CoachesService {
       ...this.toSummary(coach, perks?.profileBadge ?? null, s.completed, response.get(coach.userId) ?? null),
       bio: coach.bio,
       videoUrl: coach.videoUrl,
+      videoFileUrl: coach.videoFileUrl ?? null,
+      packages,
+      bookingQuestions: coach.bookingQuestions ?? [],
       quote: coach.quote,
       coachingStyle: coach.coachingStyle ?? [],
       games,
@@ -227,7 +243,7 @@ export class CoachesService {
 
   // --- The coach's own profile ---
 
-  private toMyProfile(coach: Coach): MyCoachProfile {
+  private async toMyProfile(coach: Coach): Promise<MyCoachProfile> {
     return {
       id: coach.id,
       gameId: coach.gameId,
@@ -241,23 +257,36 @@ export class CoachesService {
       coachingStyle: coach.coachingStyle ?? [],
       extraGameIds: coach.extraGameIds ?? [],
       verificationStatus: coach.verificationStatus,
+      videoFileUrl: coach.videoFileUrl ?? null,
+      packages: await this.listPackages(coach.id),
+      bookingQuestions: coach.bookingQuestions ?? [],
     };
   }
 
-  async getMyProfile(userId: string): Promise<MyCoachProfile> {
+  private async mineOrThrow(userId: string): Promise<Coach> {
     const coach = await this.coaches.findOne({ where: { userId } });
     if (!coach) throw new NotFoundException('You are not a coach');
-    return this.toMyProfile(coach);
+    return coach;
+  }
+
+  async getMyProfile(userId: string): Promise<MyCoachProfile> {
+    return this.toMyProfile(await this.mineOrThrow(userId));
   }
 
   async updateMyProfile(userId: string, dto: UpdateCoachProfileDto): Promise<MyCoachProfile> {
-    const coach = await this.coaches.findOne({ where: { userId } });
-    if (!coach) throw new NotFoundException('You are not a coach');
+    const coach = await this.mineOrThrow(userId);
+    await this.applyProfile(coach, dto);
+    return this.toMyProfile(await this.coaches.findOneOrFail({ where: { id: coach.id } }));
+  }
+
+  // Shared by the coach's own editor and Admin → Coaches → edit.
+  private async applyProfile(coach: Coach, dto: UpdateCoachProfileDto): Promise<void> {
     const gameIds = [dto.gameId, ...(dto.extraGameIds ?? [])].filter((g): g is string => !!g);
     if (gameIds.length) {
       const known = await this.games.count({ where: { id: In([...new Set(gameIds)]) } });
       if (known !== new Set(gameIds).size) throw new BadRequestException('Unknown game');
     }
+    if (dto.bookingQuestions !== undefined) assertBookingQuestions(dto.bookingQuestions);
     const patch: Partial<Coach> = {};
     if (dto.gameId !== undefined) patch.gameId = dto.gameId;
     if (dto.specialty !== undefined) patch.specialty = dto.specialty.trim();
@@ -269,8 +298,73 @@ export class CoachesService {
     if (dto.quote !== undefined) patch.quote = dto.quote?.trim() || null;
     if (dto.coachingStyle !== undefined) patch.coachingStyle = dto.coachingStyle.map((c) => c.trim()).filter(Boolean);
     if (dto.extraGameIds !== undefined) patch.extraGameIds = [...new Set(dto.extraGameIds)].filter((g) => g !== (dto.gameId ?? coach.gameId));
-    await this.coaches.update(coach.id, patch);
-    return this.toMyProfile(await this.coaches.findOneOrFail({ where: { id: coach.id } }));
+    if (dto.bookingQuestions !== undefined) {
+      patch.bookingQuestions = dto.bookingQuestions.map((q) => ({
+        key: q.key,
+        label: q.label.trim(),
+        type: q.type,
+        required: q.required,
+        ...(q.type === 'dropdown' ? { options: (q.options ?? []).map((o) => o.trim()).filter(Boolean) } : {}),
+      }));
+    }
+    if (Object.keys(patch).length) await this.coaches.update(coach.id, patch);
+  }
+
+  // --- Packages ---
+
+  async listPackages(coachId: string): Promise<PublicCoachPackage[]> {
+    const rows = await this.packages.find({ where: { coachId }, order: { sortOrder: 'ASC', createdAt: 'ASC' } });
+    return rows.map((p) => ({ id: p.id, name: p.name, description: p.description, durationMinutes: p.durationMinutes, priceWaveCoin: p.priceWaveCoin }));
+  }
+
+  // Replaces the coach's packages with `list` (in order). Sessions already booked keep their
+  // snapshot; their packageId is cleared by the FK.
+  async setPackages(coachId: string, list: CoachPackageDto[]): Promise<PublicCoachPackage[]> {
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(CoachPackage, { coachId });
+      if (list.length) {
+        await manager.save(
+          list.map((p, i) =>
+            manager.create(CoachPackage, {
+              coachId,
+              name: p.name.trim(),
+              description: p.description?.trim() || null,
+              durationMinutes: p.durationMinutes,
+              priceWaveCoin: p.priceWaveCoin,
+              sortOrder: i,
+            }),
+          ),
+        );
+      }
+    });
+    return this.listPackages(coachId);
+  }
+
+  async setMyPackages(userId: string, list: CoachPackageDto[]): Promise<PublicCoachPackage[]> {
+    return this.setPackages((await this.mineOrThrow(userId)).id, list);
+  }
+
+  // --- Intro video (uploaded file) ---
+
+  async setVideo(coachId: string, file: UploadedFile | undefined): Promise<{ videoFileUrl: string }> {
+    if (!file) throw new BadRequestException('No file uploaded');
+    if (file.size > MAX_COACH_VIDEO_BYTES) throw new BadRequestException('The video must be 50MB or smaller');
+    const stored = await this.storage.save(file.buffer, file.originalname, 'video');
+    await this.coaches.update(coachId, { videoFileUrl: stored.url });
+    return { videoFileUrl: stored.url };
+  }
+
+  async clearVideo(coachId: string): Promise<{ ok: true }> {
+    await this.coaches.update(coachId, { videoFileUrl: null });
+    return { ok: true };
+  }
+
+  async setMyVideo(userId: string, file: UploadedFile | undefined) {
+    return this.setVideo((await this.mineOrThrow(userId)).id, file);
+  }
+
+  async clearMyVideo(userId: string) {
+    return this.clearVideo((await this.mineOrThrow(userId)).id);
   }
 
   // --- Saved coaches ("Add to Wishlist") ---
@@ -304,6 +398,53 @@ export class CoachesService {
   async listAll(): Promise<AdminCoachSummary[]> {
     const rows = await this.coaches.find({ relations: ['user', 'game'], order: { createdAt: 'DESC' } });
     return rows.map((row) => this.toAdminSummary(row));
+  }
+
+  // Staff add a coach directly: an existing active account becomes a verified, active coach. A
+  // pending/rejected application from that account is verified with these details; an already
+  // verified coach is a 409 (edit it instead).
+  async adminCreate(dto: AdminCreateCoachDto): Promise<AdminCoachSummary> {
+    const username = dto.username.trim().replace(/^@/, '');
+    const user = await this.users
+      .createQueryBuilder('u')
+      .where('lower(u.username) = lower(:username)', { username })
+      .andWhere('u.status = :active', { active: UserStatus.Active })
+      .getOne();
+    if (!user) throw new NotFoundException('No active WaveHub account with this username');
+    if (dto.gameId && !(await this.games.count({ where: { id: dto.gameId } }))) throw new BadRequestException('Unknown game');
+    const fields = {
+      gameId: dto.gameId ?? null,
+      specialty: dto.specialty.trim(),
+      bio: dto.bio.trim(),
+      languages: [...new Set(dto.languages ?? [])],
+      hourlyRateWaveCoin: dto.hourlyRateWaveCoin,
+      verificationStatus: VerificationStatus.Verified,
+      rejectionReason: null,
+    };
+    const existing = await this.coaches.findOne({ where: { userId: user.id } });
+    if (existing) {
+      if (existing.verificationStatus === VerificationStatus.Verified) {
+        throw new ConflictException('This account is already a coach — edit the existing profile');
+      }
+      await this.coaches.update(existing.id, fields);
+      return this.toAdminSummary(await this.getOrThrow(existing.id));
+    }
+    const created = await this.coaches.save(this.coaches.create({ userId: user.id, ...fields, status: CoachStatus.Active }));
+    return this.toAdminSummary(await this.getOrThrow(created.id));
+  }
+
+  async adminGetProfile(id: string): Promise<MyCoachProfile> {
+    return this.toMyProfile(await this.getOrThrow(id));
+  }
+
+  async adminUpdate(id: string, dto: UpdateCoachProfileDto): Promise<MyCoachProfile> {
+    const coach = await this.getOrThrow(id);
+    await this.applyProfile(coach, dto);
+    return this.toMyProfile(await this.getOrThrow(id));
+  }
+
+  async adminCoachExists(id: string): Promise<void> {
+    await this.getOrThrow(id);
   }
 
   async approve(id: string): Promise<AdminCoachSummary> {

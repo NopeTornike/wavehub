@@ -651,9 +651,23 @@ export interface PublicCoachGame {
   main: boolean;
 }
 
+// A fixed-price booking offer (coach_packages). Booking one snapshots price/duration/name.
+export interface PublicCoachPackage {
+  id: string;
+  name: string;
+  description: string | null;
+  durationMinutes: number;
+  priceWaveCoin: number;
+}
+
 export interface PublicCoachDetail extends PublicCoachSummary {
   bio: string;
   videoUrl: string | null;
+  // An uploaded intro video (MP4/WebM) — shown instead of `videoUrl` when present.
+  videoFileUrl: string | null;
+  packages: PublicCoachPackage[];
+  // Questions the buyer answers when booking (same shape as a service listing's requirements).
+  bookingQuestions: RequirementField[];
   quote: string | null;
   coachingStyle: string[];
   games: PublicCoachGame[];
@@ -686,6 +700,9 @@ export interface MyCoachProfile {
   coachingStyle: string[];
   extraGameIds: string[];
   verificationStatus: VerificationStatus;
+  videoFileUrl: string | null;
+  packages: PublicCoachPackage[];
+  bookingQuestions: RequirementField[];
 }
 
 // What CoachesService.listPendingVerification() / listAll() return for the admin queue.
@@ -966,6 +983,9 @@ export interface PublicCoachingSession {
   durationMinutes: number;
   priceWaveCoin: number;
   buyerMessage: string | null;
+  // Booked from a coach package (name snapshot) and the buyer's pre-booking answers.
+  packageName: string | null;
+  answers: Record<string, string> | null;
   status: CoachingSessionStatus;
   createdAt: string;
 }

@@ -63,6 +63,9 @@ export default function CoachProfile() {
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
   const [durationMinutes, setDurationMinutes] = useState(60)
+  // '' = hourly booking; otherwise one of the coach's packages (fixed price + duration).
+  const [packageId, setPackageId] = useState('')
+  const [answers, setAnswers] = useState<Record<string, string>>({})
   const [buyerMessage, setBuyerMessage] = useState('')
   const [bookingError, setBookingError] = useState('')
   const [booking, setBooking] = useState(false)
@@ -109,13 +112,15 @@ export default function CoachProfile() {
 
   const name = `${coach.firstName} ${coach.lastName}`.trim()
   const isOwnProfile = me?.username === coach.username
-  const sessionPrice = Math.round((coach.hourlyRateWaveCoin * durationMinutes) / 60)
+  const chosenPackage = coach.packages.find((p) => p.id === packageId) ?? null
+  const sessionPrice = chosenPackage ? chosenPackage.priceWaveCoin : Math.round((coach.hourlyRateWaveCoin * durationMinutes) / 60)
   const notEnoughBalance = !!me && me.wavecoinBalance < sessionPrice
   const initials = `${coach.firstName[0] ?? ''}${coach.lastName[0] ?? ''}`.toUpperCase()
   const rating = coach.ratingAvg ? Number(coach.ratingAvg) : null
   const fastResponder = coach.responseMinutes !== null && coach.responseMinutes <= 10
   const topRated = rating !== null && rating >= 4.8 && coach.ratingCount >= 5
   const video = coach.videoUrl && VIDEO_URL.test(coach.videoUrl) ? coach.videoUrl : null
+  const videoFile = coach.videoFileUrl
   const responseText = coach.responseMinutes === null ? null : coach.responseMinutes < 60 ? `~${coach.responseMinutes} წთ` : `~${Math.round(coach.responseMinutes / 60)} სთ`
   const metrics: Array<[string, string | null, string]> = [
     ['ST', String(coach.stats.students), 'სტუდენტი'],
@@ -158,9 +163,17 @@ export default function CoachProfile() {
     if (!scheduledDate || !scheduledTime) return setBookingError('აირჩიეთ თარიღი და დრო.')
     const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`)
     if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) return setBookingError('თარიღი უნდა იყოს მომავალში.')
+    const missing = coach.bookingQuestions.find((q) => q.required && !(answers[q.key] ?? '').trim())
+    if (missing) return setBookingError(`უპასუხეთ კითხვას: ${missing.label}`)
+    const cleanAnswers = Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v))
     setBooking(true)
     try {
-      const session = await api.requestCoachingSession(coach.id, { scheduledAt: scheduledAt.toISOString(), durationMinutes, buyerMessage: buyerMessage.trim() || undefined })
+      const session = await api.requestCoachingSession(coach.id, {
+        scheduledAt: scheduledAt.toISOString(),
+        ...(chosenPackage ? { packageId: chosenPackage.id } : { durationMinutes }),
+        answers: Object.keys(cleanAnswers).length ? cleanAnswers : undefined,
+        buyerMessage: buyerMessage.trim() || undefined,
+      })
       // Booking debits the balance — refresh the topbar before leaving.
       await refresh()
       router.push(`/coaching-sessions/${session.id}`)
@@ -285,9 +298,14 @@ export default function CoachProfile() {
 
           {tab === 'overview' ? (
             <section className="coach-profile-panel">
-              {(video || coach.quote) && (
+              {(videoFile || video || coach.quote) && (
                 <div className="coach-overview-top">
-                  {video && (
+                  {videoFile && (
+                    <article className="coach-video-card">
+                      <video className="coach-video-file" src={videoFile} controls preload="metadata" playsInline poster={coach.avatarUrl ?? undefined} />
+                    </article>
+                  )}
+                  {!videoFile && video && (
                     <article className="coach-video-card">
                       <a
                         className="coach-video-preview"
@@ -312,6 +330,36 @@ export default function CoachProfile() {
                     </article>
                   )}
                 </div>
+              )}
+              {coach.packages.length > 0 && (
+                <article className="coach-info-card coach-packages-card">
+                  <h2>პაკეტები</h2>
+                  <div className="coach-packages">
+                    {coach.packages.map((p) => (
+                      <div key={p.id} className="coach-package">
+                        <strong>{p.name}</strong>
+                        {p.description && <p>{p.description}</p>}
+                        <span>
+                          {p.durationMinutes} წთ · <b>{p.priceWaveCoin} GEL</b>
+                        </span>
+                        {!isOwnProfile && (
+                          <button
+                            type="button"
+                            className="coach-book-secondary"
+                            onClick={() => {
+                              if (!me) return void router.push(`/login?next=/coaching/${coach.id}`)
+                              setPackageId(p.id)
+                              setShowBooking(true)
+                              window.setTimeout(() => document.getElementById('coachBookingForm')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+                            }}
+                          >
+                            დაჯავშნა
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </article>
               )}
               <div className="coach-info-grid coach-info-grid-auto">
                 {coach.coachingStyle.length > 0 && (
@@ -410,7 +458,20 @@ export default function CoachProfile() {
             </div>
 
             {showBooking && me && !isOwnProfile && (
-              <form className="stack-form" onSubmit={book}>
+              <form className="stack-form" id="coachBookingForm" onSubmit={book}>
+                {coach.packages.length > 0 && (
+                  <label className="field field-wide">
+                    რას ჯავშნი
+                    <select value={packageId} onChange={(e) => setPackageId(e.target.value)}>
+                      <option value="">საათობრივი სესია — {coach.hourlyRateWaveCoin} GEL/სთ</option>
+                      {coach.packages.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} — {p.durationMinutes} წთ — {p.priceWaveCoin} GEL
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <label className="field">
                   თარიღი
                   <input type="date" min={todayIso} value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} required />
@@ -419,16 +480,44 @@ export default function CoachProfile() {
                   დრო
                   <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} required />
                 </label>
-                <label className="field">
-                  ხანგრძლივობა
-                  <select value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}>
-                    {DURATION_OPTIONS.map((minutes) => (
-                      <option key={minutes} value={minutes}>
-                        {minutes} წუთი — {Math.round((coach.hourlyRateWaveCoin * minutes) / 60)} GEL
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {!chosenPackage && (
+                  <label className="field">
+                    ხანგრძლივობა
+                    <select value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}>
+                      {DURATION_OPTIONS.map((minutes) => (
+                        <option key={minutes} value={minutes}>
+                          {minutes} წუთი — {Math.round((coach.hourlyRateWaveCoin * minutes) / 60)} GEL
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {coach.bookingQuestions.map((q) => (
+                  <label key={q.key} className={`field${q.type === 'textarea' ? ' field-wide' : ''}`}>
+                    {q.label}
+                    {q.required ? ' *' : ''}
+                    {q.type === 'dropdown' ? (
+                      <select value={answers[q.key] ?? ''} required={q.required} onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}>
+                        <option value="">—</option>
+                        {(q.options ?? []).map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))}
+                      </select>
+                    ) : q.type === 'textarea' ? (
+                      <textarea rows={3} maxLength={1000} required={q.required} value={answers[q.key] ?? ''} onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))} />
+                    ) : (
+                      <input
+                        type={q.type === 'number' ? 'number' : 'text'}
+                        maxLength={1000}
+                        required={q.required}
+                        value={answers[q.key] ?? ''}
+                        onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
+                      />
+                    )}
+                  </label>
+                ))}
                 <label className="field field-wide">
                   შეტყობინება ქოუჩს (არასავალდებულო)
                   <textarea rows={3} maxLength={1000} value={buyerMessage} onChange={(e) => setBuyerMessage(e.target.value)} />

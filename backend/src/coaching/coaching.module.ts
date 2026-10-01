@@ -4,7 +4,10 @@ import { Coach } from './coach.entity';
 import { CoachingSession } from './coaching-session.entity';
 import { CoachingSessionReview } from './coaching-session-review.entity';
 import { CoachFavorite } from './coach-favorite.entity';
+import { CoachPackage } from './coach-package.entity';
 import { Game } from '../listings/game.entity';
+import { User } from '../users/user.entity';
+import { StorageModule } from '../storage/storage.module';
 import { CoachesService } from './coaches.service';
 import { CoachesController } from './coaches.controller';
 import { CoachingSessionsService } from './coaching-sessions.service';
@@ -19,7 +22,7 @@ import { CommunityModule } from '../community/community.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Coach, CoachingSession, CoachingSessionReview, CoachFavorite, Game]),
+    TypeOrmModule.forFeature([Coach, CoachingSession, CoachingSessionReview, CoachFavorite, CoachPackage, Game, User]),
     AuthModule,
     AdminModule,
     WalletModule,
@@ -27,6 +30,7 @@ import { CommunityModule } from '../community/community.module';
     NotificationsModule,
     SubscriptionsModule,
     CommunityModule,
+    StorageModule,
   ],
   controllers: [CoachesController, CoachingSessionsController],
   providers: [CoachesService, CoachingSessionsService],

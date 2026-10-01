@@ -24,6 +24,24 @@ export default function CoachingSessionDetail() {
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
+  // Question labels for the stored answers (answers are keyed by question key). The coach's public
+  // profile carries the current questions; a removed question falls back to its key.
+  const [labels, setLabels] = useState<Record<string, string>>({})
+  const coachId = session?.coachId
+  const hasAnswers = Boolean(session?.answers && Object.keys(session.answers).length)
+  useEffect(() => {
+    if (!coachId || !hasAnswers) return
+    let cancelled = false
+    api
+      .getCoach(coachId)
+      .then((c) => {
+        if (!cancelled) setLabels(Object.fromEntries(c.bookingQuestions.map((q) => [q.key, q.label])))
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [coachId, hasAnswers])
 
   useEffect(() => {
     if (checked && !me && id) {
@@ -140,6 +158,24 @@ export default function CoachingSessionDetail() {
             მყიდველი:{' '}
             <Link href={`/u/${session.buyerUsername}`}>@{session.buyerUsername}</Link>
           </p>
+          {session.packageName && (
+            <p>
+              პაკეტი: <strong>{session.packageName}</strong>
+            </p>
+          )}
+          {session.answers && Object.keys(session.answers).length > 0 && (
+            <>
+              <h2>პასუხები ჯავშნისას</h2>
+              <dl className="cs-answers">
+                {Object.entries(session.answers).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{labels[key] ?? key}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </>
+          )}
           {session.buyerMessage && (
             <>
               <h2>შეტყობინება მწვრთნელს</h2>

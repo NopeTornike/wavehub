@@ -51,6 +51,7 @@ import type {
   PublicCoachDetail,
   PublicCoachReview,
   MyCoachProfile,
+  PublicCoachPackage,
   AdminCoachSummary,
   PublicCoachingSession,
   PublicContentPage,
@@ -110,6 +111,11 @@ export interface MyListing {
   images?: Array<{ id: string; url: string }>
   itemAttributes?: ItemAttributes | null
 }
+
+// What PATCH coaches/mine/profile (and the admin equivalent) accept — packages and the uploaded
+// video have their own endpoints.
+export type CoachProfilePatch = Partial<Omit<MyCoachProfile, 'id' | 'verificationStatus' | 'videoFileUrl' | 'packages'>>
+export type CoachPackageInput = { name: string; description?: string; durationMinutes: number; priceWaveCoin: number }
 
 // Raw Coach entity as returned to its own owner by GET /coaches/mine (null when the user never
 // applied) — only the fields the apply page reads.
@@ -793,7 +799,10 @@ export const api = {
   getUserProfile: (username: string) => request<PublicUserProfile>(`/users/${encodeURIComponent(username)}`),
 
   // --- Coaching sessions --- (backend/src/coaching/coaching-sessions.controller.ts)
-  requestCoachingSession: (coachId: string, payload: { scheduledAt: string; durationMinutes: number; buyerMessage?: string }) =>
+  requestCoachingSession: (
+    coachId: string,
+    payload: { scheduledAt: string; durationMinutes?: number; packageId?: string; answers?: Record<string, string>; buyerMessage?: string },
+  ) =>
     request<PublicCoachingSession>(`/coaches/${coachId}/sessions`, { method: 'POST', body: JSON.stringify(payload) }),
 
   listMySessionsAsBuyer: () => request<PublicCoachingSession[]>('/coaching-sessions/mine-as-buyer'),
@@ -816,8 +825,31 @@ export const api = {
   // --- Coach profile content, reviews, favourites (docs/design-mockups 06/14) ---
   getMyCoachProfile: () => request<MyCoachProfile>('/coaches/mine/profile'),
 
-  updateMyCoachProfile: (payload: Partial<Omit<MyCoachProfile, 'id' | 'verificationStatus'>>) =>
+  updateMyCoachProfile: (payload: CoachProfilePatch) =>
     request<MyCoachProfile>('/coaches/mine/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  setMyCoachPackages: (packages: CoachPackageInput[]) =>
+    request<PublicCoachPackage[]>('/coaches/mine/packages', { method: 'PUT', body: JSON.stringify({ packages }) }),
+
+  uploadMyCoachVideo: (file: File) => upload<{ videoFileUrl: string }>('/coaches/mine/video', file),
+
+  clearMyCoachVideo: () => request<{ ok: true }>('/coaches/mine/video', { method: 'DELETE' }),
+
+  // Staff: add / edit coaches (Coach Management roles).
+  adminCreateCoach: (payload: { username: string; gameId?: string; specialty: string; bio: string; languages?: string[]; hourlyRateWaveCoin: number }) =>
+    request<AdminCoachSummary>('/admin/coaches', { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminGetCoachProfile: (id: string) => request<MyCoachProfile>(`/admin/coaches/${id}/profile`),
+
+  adminUpdateCoachProfile: (id: string, payload: CoachProfilePatch) =>
+    request<MyCoachProfile>(`/admin/coaches/${id}/profile`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  adminSetCoachPackages: (id: string, packages: CoachPackageInput[]) =>
+    request<PublicCoachPackage[]>(`/admin/coaches/${id}/packages`, { method: 'PUT', body: JSON.stringify({ packages }) }),
+
+  adminUploadCoachVideo: (id: string, file: File) => upload<{ videoFileUrl: string }>(`/admin/coaches/${id}/video`, file),
+
+  adminClearCoachVideo: (id: string) => request<{ ok: true }>(`/admin/coaches/${id}/video`, { method: 'DELETE' }),
 
   listCoachReviews: (coachId: string) => request<PublicCoachReview[]>(`/coaches/${coachId}/reviews`),
 

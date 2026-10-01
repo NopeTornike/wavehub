@@ -49,6 +49,18 @@ export class CoachingSession {
   @Column({ type: 'text', nullable: true })
   buyerMessage: string | null;
 
+  // Set when booked from one of the coach's packages (name snapshotted; the id is cleared if the
+  // coach later removes the package).
+  @Column({ type: 'uuid', nullable: true })
+  packageId: string | null;
+
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  packageName: string | null;
+
+  // The buyer's answers to the coach's pre-booking questions (participants only).
+  @Column({ type: 'jsonb', nullable: true })
+  answers: Record<string, string> | null;
+
   @Column({ type: 'varchar', default: CoachingSessionStatus.Scheduled })
   status: CoachingSessionStatus;
 
