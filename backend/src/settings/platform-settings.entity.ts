@@ -1,4 +1,5 @@
 import { Entity, PrimaryColumn, Column, UpdateDateColumn } from 'typeorm';
+import type { SupportPermissions } from '@wavehub/shared-types';
 
 // Deliberately a singleton table — exactly one row, at a fixed well-known id (SINGLETON_ID below),
 // seeded by the CreatePlatformSettings migration. Simpler than a key/value settings table for the
@@ -27,6 +28,10 @@ export class PlatformSettings {
   // global maintenance-mode guard wasn't built in the same change that added this flag.
   @Column({ type: 'boolean', default: false })
   maintenanceMode: boolean;
+
+  // What the Support Specialist role may do beyond its defaults — set by Super Admin only.
+  @Column({ type: 'jsonb', default: { walletAdjust: false, walletAdjustMax: 100, suspendUsers: false } })
+  supportPermissions: SupportPermissions;
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;

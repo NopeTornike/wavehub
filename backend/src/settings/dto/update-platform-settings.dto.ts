@@ -1,4 +1,20 @@
-import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsInt, IsOptional, Max, Min, ValidateNested } from 'class-validator';
+
+// Every field required: the Super Admin sends the whole Support permission set at once.
+export class SupportPermissionsDto {
+  @IsBoolean()
+  walletAdjust: boolean;
+
+  // Largest single WaveCoin adjustment (either direction) Support may make.
+  @IsInt()
+  @Min(1)
+  @Max(100000)
+  walletAdjustMax: number;
+
+  @IsBoolean()
+  suspendUsers: boolean;
+}
 
 export class UpdatePlatformSettingsDto {
   @IsOptional()
@@ -15,4 +31,9 @@ export class UpdatePlatformSettingsDto {
   @IsOptional()
   @IsBoolean()
   maintenanceMode?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SupportPermissionsDto)
+  supportPermissions?: SupportPermissionsDto;
 }

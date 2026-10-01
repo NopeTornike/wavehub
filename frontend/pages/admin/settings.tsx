@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { PublicPlatformSettings } from '@wavehub/shared-types'
+import type { PublicPlatformSettings, SupportPermissions } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 
@@ -15,6 +15,8 @@ export default function AdminSettings() {
   const [platformFeePercent, setPlatformFeePercent] = useState(10)
   const [minWithdrawalWaveCoin, setMinWithdrawalWaveCoin] = useState(20)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
+  // What the Support Specialist role may do beyond its defaults (both off by default).
+  const [supportPerms, setSupportPerms] = useState<SupportPermissions>({ walletAdjust: false, walletAdjustMax: 100, suspendUsers: false })
 
   useEffect(() => {
     let cancelled = false
@@ -28,6 +30,7 @@ export default function AdminSettings() {
         setPlatformFeePercent(data.platformFeePercent)
         setMinWithdrawalWaveCoin(data.minWithdrawalWaveCoin)
         setMaintenanceMode(data.maintenanceMode)
+        if (data.supportPermissions) setSupportPerms(data.supportPermissions)
       })
       .catch((err) => {
         if (!cancelled) setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
@@ -44,12 +47,17 @@ export default function AdminSettings() {
     event.preventDefault()
     setError('')
     setSaved(false)
+    if (!Number.isInteger(supportPerms.walletAdjustMax) || supportPerms.walletAdjustMax < 1 || supportPerms.walletAdjustMax > 100000) {
+      setError('Support-ის ლიმიტი: მთელი რიცხვი, 1–100000 WC.')
+      return
+    }
     setSaving(true)
     try {
       const updated = await api.adminUpdatePlatformSettings({
         platformFeePercent,
         minWithdrawalWaveCoin,
         maintenanceMode,
+        supportPermissions: supportPerms,
       })
       setSettings(updated)
       setSaved(true)
@@ -63,7 +71,7 @@ export default function AdminSettings() {
   return (
     <AdminLayout title="პლატფორმის პარამეტრები">
       <h1 className="page-title">პლატფორმის პარამეტრები</h1>
-      <p className="page-subtitle">საკომისიო, გატანის მინიმუმი და ტექნიკური სამუშაოების რეჟიმი</p>
+      <p className="page-subtitle">საკომისიო, გატანის მინიმუმი, ტექნიკური სამუშაოების რეჟიმი და Support-ის უფლებები</p>
 
       {error && <div className="status-text status-error" role="alert">{error}</div>}
       {saved && <div className="status-text status-success" role="status">შენახულია.</div>}
@@ -115,6 +123,45 @@ export default function AdminSettings() {
               ჩართვისას საიტი უარყოფს ცვლილებებს ყველასგან, გარდა ადმინისტრაციისა.
             </p>
           </div>
+
+          <fieldset className="form-group sp-perms">
+            <legend>Support-ის უფლებები</legend>
+            <p className="note">
+              რას შეუძლია Support Specialist როლს ნაგულისხმევის გარდა. Support ვერასდროს გამოიყენებს ამას საკუთარ ან სხვა
+              თანამშრომლის ანგარიშზე; ყველა მოქმედება იწერება აუდიტში.
+            </p>
+            <label>
+              <input
+                type="checkbox"
+                checked={supportPerms.walletAdjust}
+                onChange={(event) => setSupportPerms({ ...supportPerms, walletAdjust: event.target.checked })}
+                style={{ marginRight: 8 }}
+              />
+              WaveCoin-ის დამატება / ჩამოჭრა
+            </label>
+            <label htmlFor="supportWalletMax" className="sp-perms-sub">
+              მაქსიმუმი ერთ ოპერაციაზე (WC)
+              <input
+                id="supportWalletMax"
+                className="input"
+                type="number"
+                min={1}
+                max={100000}
+                disabled={!supportPerms.walletAdjust}
+                value={supportPerms.walletAdjustMax}
+                onChange={(event) => setSupportPerms({ ...supportPerms, walletAdjustMax: Number(event.target.value) })}
+              />
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={supportPerms.suspendUsers}
+                onChange={(event) => setSupportPerms({ ...supportPerms, suspendUsers: event.target.checked })}
+                style={{ marginRight: 8 }}
+              />
+              მომხმარებლის შეჩერება / აღდგენა <small>(დაბლოკვა რჩება მხოლოდ Super Admin-ს)</small>
+            </label>
+          </fieldset>
 
           <button type="submit" className="button glow-on-hover" disabled={saving} style={{ alignSelf: 'flex-start' }}>
             შენახვა

@@ -844,7 +844,24 @@ export interface PublicPlatformSettings {
   platformFeePercent: number;
   minWithdrawalWaveCoin: number;
   maintenanceMode: boolean;
+  supportPermissions: SupportPermissions;
   updatedAt: string;
+}
+
+// Powers SPECIFICATION.md §5.13.6 withholds from Support by default, switchable by Super Admin
+// (Admin → Platform settings). Support can never use them on themselves or on other staff.
+export interface SupportPermissions {
+  walletAdjust: boolean;
+  walletAdjustMax: number;
+  suspendUsers: boolean;
+}
+
+// GET admin/platform-settings/my-permissions — what the calling staff member may do among those
+// powers (Super Admin: everything, no cap).
+export interface StaffPermissions {
+  walletAdjust: boolean;
+  walletAdjustMax: number | null;
+  suspendUsers: boolean;
 }
 
 // What backend/src/users/admin-users.controller.ts returns — a superset of PublicUser (adds

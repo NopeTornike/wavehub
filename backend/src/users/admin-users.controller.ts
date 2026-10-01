@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AdminRole } from '@wavehub/shared-types';
 import { UsersService } from './users.service';
@@ -12,6 +12,7 @@ import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
 import { WalletService } from '../wallet/wallet.service';
 import { SetAdminRoleDto, WalletAdjustmentDto } from './dto/admin-user-powers.dto';
+import { PlatformSettingsService } from '../settings/platform-settings.service';
 
 // View roles per SPECIFICATION.md §5.13: every role whose CAN list includes "view/search" a user
 // at all. Marketplace & Coaching Ops Manager is deliberately excluded — its own section only
@@ -30,6 +31,11 @@ const USER_VIEW_ROLES = [
 // Specialist's list explicitly says "CANNOT: ... suspend account".
 const USER_SUSPEND_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator];
 
+// Support Specialist may also suspend/restore and adjust WaveCoin — but only when a Super Admin has
+// switched that on (Admin → Platform settings → Support permissions), never on their own account or
+// another staff account, and (WaveCoin) only up to the Super-Admin-set per-adjustment cap.
+const SUPPORT_SWITCHABLE = AdminRole.SupportSpecialist;
+
 @Controller('admin/users')
 @UseGuards(AuthGuard, AdminGuard)
 export class AdminUsersController {
@@ -37,19 +43,34 @@ export class AdminUsersController {
     private readonly users: UsersService,
     private readonly audit: AdminAuditService,
     private readonly wallet: WalletService,
+    private readonly settings: PlatformSettingsService,
   ) {}
 
-  // Super Admin only (SPECIFICATION.md §5.13: "add/deduct funds, adjust balance" is a Super Admin
-  // capability; Support Specialist explicitly cannot change a wallet balance).
+  // Re-checked on every request (the UI hiding a control is not the gate).
+  private async assertSupportMay(adminRole: string, adminId: string, targetId: string, power: 'walletAdjust' | 'suspendUsers', amount?: number) {
+    if (adminRole !== SUPPORT_SWITCHABLE) return;
+    const perms = await this.settings.getSupportPermissions();
+    if (!perms[power]) throw new ForbiddenException('A Super Admin has not enabled this for Support');
+    if (targetId === adminId) throw new ForbiddenException('You cannot do this to your own account');
+    const target = await this.users.getAdminOne(targetId);
+    if (target.adminRole) throw new ForbiddenException('Support cannot do this to a staff account');
+    if (power === 'walletAdjust' && amount !== undefined && Math.abs(amount) > perms.walletAdjustMax) {
+      throw new ForbiddenException(`Support can adjust at most ${perms.walletAdjustMax} WC at a time`);
+    }
+  }
+
+  // Super Admin (SPECIFICATION.md §5.13: "add/deduct funds, adjust balance" is a Super Admin
+  // capability), plus Support Specialist when a Super Admin has enabled it (capped, non-staff only).
   @Post(':id/wallet-adjustment')
   @HttpCode(HttpStatus.OK)
-  @RequireAdminRole()
+  @RequireAdminRole(SUPPORT_SWITCHABLE)
   async adjustWallet(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: WalletAdjustmentDto,
   ) {
+    await this.assertSupportMay(adminRole, adminId, id, 'walletAdjust', dto.amountWaveCoin);
     try {
       const entry = await this.wallet.adminAdjust(id, dto.amountWaveCoin, adminId, `admin-adjust-${randomUUID()}`);
       await this.audit.log({
@@ -106,13 +127,14 @@ export class AdminUsersController {
 
   @Post(':id/suspend')
   @HttpCode(HttpStatus.OK)
-  @RequireAdminRole(...USER_SUSPEND_ROLES)
+  @RequireAdminRole(...USER_SUSPEND_ROLES, SUPPORT_SWITCHABLE)
   async suspend(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ModerateUserDto,
   ) {
+    await this.assertSupportMay(adminRole, adminId, id, 'suspendUsers');
     const user = await this.users.suspend(id, dto.reason);
     await this.audit.log({
       adminId,
@@ -127,8 +149,9 @@ export class AdminUsersController {
 
   @Post(':id/restore')
   @HttpCode(HttpStatus.OK)
-  @RequireAdminRole(...USER_SUSPEND_ROLES)
-  async restore(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string) {
+  @RequireAdminRole(...USER_SUSPEND_ROLES, SUPPORT_SWITCHABLE)
+  async restore(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string) {
+    await this.assertSupportMay(adminRole, adminId, id, 'suspendUsers');
     const user = await this.users.restore(id);
     await this.audit.log({ adminId, adminRole, action: 'user.restore', entityType: 'user', entityId: id });
     return user;

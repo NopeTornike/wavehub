@@ -1556,5 +1556,15 @@
   "რედაქტირება (ადმინი)": "Edit (admin)",
   "თამაშის რედაქტირება": "Edit game",
   "მოძებნე მარკეტში: „{0}“": "Search the marketplace: “{0}”",
-  "ძიების შედეგები": "Search results"
+  "ძიების შედეგები": "Search results",
+  "Support-ის უფლებები": "Support permissions",
+  "რას შეუძლია Support Specialist როლს ნაგულისხმევის გარდა. Support ვერასდროს გამოიყენებს ამას საკუთარ ან სხვა თანამშრომლის ანგარიშზე; ყველა მოქმედება იწერება აუდიტში.": "What the Support Specialist role may do beyond its defaults. Support can never use these on its own or another staff member's account; every action is recorded in the audit log.",
+  "WaveCoin-ის დამატება / ჩამოჭრა": "Add / deduct WaveCoin",
+  "მაქსიმუმი ერთ ოპერაციაზე (WC)": "Maximum per operation (WC)",
+  "მომხმარებლის შეჩერება / აღდგენა": "Suspend / restore users",
+  "(დაბლოკვა რჩება მხოლოდ Super Admin-ს)": "(banning stays with Super Admin only)",
+  "Support-ის ლიმიტი: მთელი რიცხვი, 1–100000 WC.": "Support limit: a whole number, 1–100000 WC.",
+  "საკომისიო, გატანის მინიმუმი, ტექნიკური სამუშაოების რეჟიმი და Support-ის უფლებები": "Fee, minimum withdrawal, maintenance mode and Support permissions",
+  "შენი ლიმიტია ±{0} WC ერთ ოპერაციაზე.": "Your limit is ±{0} WC per operation.",
+  "შენი ლიმიტი: ±{0} WC ერთ ოპერაციაზე (Super Admin-ის მიერ დადგენილი).": "Your limit: ±{0} WC per operation (set by Super Admin)."
 }

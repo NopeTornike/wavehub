@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import type { AdminUserSummary } from '@wavehub/shared-types'
+import type { AdminUserSummary, StaffPermissions } from '@wavehub/shared-types'
 import { AdminRole, UserStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
@@ -14,9 +14,20 @@ const ROLE_LABELS: Record<AdminRole, string> = {
   [AdminRole.SupportSpecialist]: 'Support Specialist',
 }
 
-// Super Admin tools for one user: WaveCoin adjustment and staff role, each with a mandatory
-// reason (audit-logged server-side). Mirrors WalletAdjustmentDto / SetAdminRoleDto bounds.
-function SuperAdminPanel({ item, onUpdated }: { item: AdminUserSummary; onUpdated: (u: AdminUserSummary) => void }) {
+// Management tools for one user, each with a mandatory reason (audit-logged server-side):
+// WaveCoin adjustment (Super Admin; Support when a Super Admin enabled it, up to `walletMax`) and
+// staff role (Super Admin only). Mirrors WalletAdjustmentDto / SetAdminRoleDto bounds.
+function SuperAdminPanel({
+  item,
+  onUpdated,
+  canSetRole,
+  walletMax,
+}: {
+  item: AdminUserSummary
+  onUpdated: (u: AdminUserSummary) => void
+  canSetRole: boolean
+  walletMax: number | null
+}) {
   const [amount, setAmount] = useState('')
   const [walletReason, setWalletReason] = useState('')
   const [role, setRole] = useState<string>(item.adminRole ?? '')
@@ -41,6 +52,7 @@ function SuperAdminPanel({ item, onUpdated }: { item: AdminUserSummary; onUpdate
     event.preventDefault()
     const value = Number(amount)
     if (!Number.isInteger(value) || value === 0 || Math.abs(value) > 100000) return setMessage({ kind: 'error', text: 'თანხა: მთელი რიცხვი, არა 0, მაქს. ±100000.' })
+    if (walletMax !== null && Math.abs(value) > walletMax) return setMessage({ kind: 'error', text: `შენი ლიმიტია ±${walletMax} WC ერთ ოპერაციაზე.` })
     if (walletReason.trim().length < 5) return setMessage({ kind: 'error', text: 'მიზეზი: მინიმუმ 5 სიმბოლო.' })
     if (!window.confirm(`${value > 0 ? 'დავამატოთ' : 'ჩამოვაჭრათ'} ${Math.abs(value)} WC მომხმარებელს @${item.username}?`)) return
     void run('wallet', async () => {
@@ -73,6 +85,8 @@ function SuperAdminPanel({ item, onUpdated }: { item: AdminUserSummary; onUpdate
           ბალანსის შეცვლა
         </button>
       </form>
+      {walletMax !== null && <p className="au-note">შენი ლიმიტი: ±{walletMax} WC ერთ ოპერაციაზე (Super Admin-ის მიერ დადგენილი).</p>}
+      {canSetRole && (
       <form className="au-form" onSubmit={saveRole}>
         <strong>ადმინ როლი</strong>
         <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="ადმინ როლი">
@@ -88,6 +102,7 @@ function SuperAdminPanel({ item, onUpdated }: { item: AdminUserSummary; onUpdate
           როლის შენახვა
         </button>
       </form>
+      )}
       {message && (
         <p className={`status-text ${message.kind === 'error' ? 'status-error' : 'status-success'}`} role={message.kind === 'error' ? 'alert' : 'status'}>
           {message.text}
@@ -108,6 +123,21 @@ const STATUS_LABELS: Record<UserStatus, string> = {
 export default function AdminUsers() {
   const { user: me } = useAuth()
   const isSuperAdmin = me?.adminRole === AdminRole.SuperAdmin
+  // Super-Admin-controlled powers (Support's switches); the backend re-checks every action.
+  const [perms, setPerms] = useState<StaffPermissions | null>(null)
+  useEffect(() => {
+    if (!me?.adminRole) return
+    api.adminMyPermissions().then(setPerms).catch(() => setPerms(null))
+  }, [me?.adminRole])
+  const isSupport = me?.adminRole === AdminRole.SupportSpecialist
+  // Support never acts on its own or another staff account.
+  const supportTarget = (item: AdminUserSummary) => !item.adminRole && item.id !== me?.id
+  const canSuspend = (item: AdminUserSummary) =>
+    isSuperAdmin ||
+    me?.adminRole === AdminRole.OperationLead ||
+    me?.adminRole === AdminRole.MainAdministrator ||
+    (isSupport && !!perms?.suspendUsers && supportTarget(item))
+  const canManage = (item: AdminUserSummary) => isSuperAdmin || (isSupport && !!perms?.walletAdjust && supportTarget(item))
   const [openId, setOpenId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<UserStatus | ''>('')
@@ -231,7 +261,7 @@ export default function AdminUsers() {
                 </span>
               </div>
               <div className="admin-row-actions">
-                {item.status === UserStatus.Suspended ? (
+                {!canSuspend(item) ? null : item.status === UserStatus.Suspended ? (
                   <button type="button" className="button" disabled={busyId === item.id} onClick={() => restore(item.id)}>
                     აღდგენა
                   </button>
@@ -240,7 +270,7 @@ export default function AdminUsers() {
                     შეჩერება
                   </button>
                 ) : null}
-                {item.status === UserStatus.Banned ? (
+                {!isSuperAdmin ? null : item.status === UserStatus.Banned ? (
                   <button type="button" className="button" disabled={busyId === item.id} onClick={() => unban(item.id)}>
                     განბლოკვა
                   </button>
@@ -249,14 +279,19 @@ export default function AdminUsers() {
                     დაბლოკვა
                   </button>
                 )}
-                {isSuperAdmin && (
+                {canManage(item) && (
                   <button type="button" className="button ghost" aria-expanded={openId === item.id} onClick={() => setOpenId(openId === item.id ? null : item.id)}>
                     {openId === item.id ? 'დახურვა' : 'მართვა'}
                   </button>
                 )}
               </div>
-              {isSuperAdmin && openId === item.id && (
-                <SuperAdminPanel item={item} onUpdated={(updated) => setItems((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))} />
+              {canManage(item) && openId === item.id && (
+                <SuperAdminPanel
+                  item={item}
+                  canSetRole={isSuperAdmin}
+                  walletMax={isSuperAdmin ? null : (perms?.walletAdjustMax ?? null)}
+                  onUpdated={(updated) => setItems((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))}
+                />
               )}
             </div>
           ))}

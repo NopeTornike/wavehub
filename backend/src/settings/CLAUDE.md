@@ -80,3 +80,23 @@ frontend has no dedicated banner — a refused write shows the 503 text where it
 SPECIFICATION.md §5.13.1's "Platform Settings" line mentions beyond these two numbers and the
 maintenance flag — those weren't concretely specified enough elsewhere in the source spec to model
 yet.
+
+## 2026-10-01 Support permissions (Super Admin-controlled)
+- `platform_settings.supportPermissions` (jsonb; migration `1784361000000-SupportPermissions`) =
+  `{walletAdjust, walletAdjustMax, suspendUsers}`. Both powers default **off**: SPECIFICATION.md
+  §5.13.6 lists them as Support CANNOTs until a Super Admin turns them on.
+- **Editing:** `POST admin/platform-settings` with `supportPermissions` (`SupportPermissionsDto`).
+  The whole set is required; the cap is 1–100000. Super Admin only, audit-logged.
+- **Reading:** `GET admin/platform-settings/my-permissions` (any staff role) → the caller's
+  `StaffPermissions`. Super Admin gets everything with no cap; Support gets the switches; every
+  other role gets none, its fixed role rules unchanged. The admin UI uses this to show or hide
+  controls.
+- **Enforcement** is in `users/admin-users.controller.ts` (`assertSupportMay`) on every request:
+  - `wallet-adjustment` and `suspend`/`restore` now admit Support Specialist, but only if the
+    switch is on, never on itself or a staff account, and (WaveCoin) only within the cap.
+  - Ban/unban and role changes stay Super Admin only.
+  - `AdminModule` provides its own `PlatformSettingsService` instance, because `SettingsModule`
+    already imports `AdminModule`.
+- UI: Admin → Platform settings "Support-ის უფლებები"; Admin → Users shows Support only what's on.
+- e2e: `test/support-permissions.e2e-spec.ts` (defaults, SA-only editing, cap, self/staff
+  refusals, audit, switching off takes effect at once).

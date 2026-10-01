@@ -8,6 +8,7 @@ import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
 import { PLATFORM_SETTINGS_SINGLETON_ID } from './platform-settings.entity';
+import { AdminRole } from '@wavehub/shared-types';
 
 // Super Admin only for both view and edit — SPECIFICATION.md §5.13.1 is the only role section
 // whose CAN list includes "Platform Settings" at all; every other role's CANNOT list explicitly
@@ -19,6 +20,14 @@ export class PlatformSettingsController {
     private readonly settings: PlatformSettingsService,
     private readonly audit: AdminAuditService,
   ) {}
+
+  // The caller's own Super-Admin-controlled powers (the admin UI shows/hides controls with this;
+  // the routes re-check on every request). Any staff role may ask about itself.
+  @Get('my-permissions')
+  @RequireAdminRole(...Object.values(AdminRole))
+  myPermissions(@CurrentAdminRole() adminRole: AdminRole) {
+    return this.settings.staffPermissions(adminRole);
+  }
 
   @Get()
   @RequireAdminRole()

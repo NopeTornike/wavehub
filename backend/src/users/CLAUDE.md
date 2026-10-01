@@ -146,3 +146,6 @@ computed facts from `backend/src/profiles/` (follows, role, deals, reviews, badg
 - **Route order**: registered before `GET users/:username`, which would otherwise swallow "search".
 
 Covered by `test/user-search.e2e-spec.ts`, and the `security.e2e-spec.ts` privacy sweep now walks it.
+
+- 2026-10-01: Support Specialist may also adjust WaveCoin (capped) and suspend/restore non-staff
+  users when a Super Admin enables it — see `backend/src/settings/CLAUDE.md` "Support permissions".

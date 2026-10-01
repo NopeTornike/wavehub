@@ -3,6 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PlatformSettings, PLATFORM_SETTINGS_SINGLETON_ID } from './platform-settings.entity';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
+import { AdminRole } from '@wavehub/shared-types';
+import type { StaffPermissions, SupportPermissions } from '@wavehub/shared-types';
+
+const NO_SUPPORT_PERMISSIONS: SupportPermissions = { walletAdjust: false, walletAdjustMax: 100, suspendUsers: false };
 
 const MAINTENANCE_CACHE_TTL_MS = 5_000;
 
@@ -51,8 +55,28 @@ export class PlatformSettingsService {
     }
   }
 
+  async getSupportPermissions(): Promise<SupportPermissions> {
+    return { ...NO_SUPPORT_PERMISSIONS, ...((await this.get()).supportPermissions ?? {}) };
+  }
+
+  // What the given staff role may do among the Super-Admin-controlled powers. Super Admin: all, no
+  // cap. Support Specialist: whatever the Super Admin switched on. Any other role: none (their
+  // fixed role permissions are unchanged).
+  async staffPermissions(role: AdminRole | null): Promise<StaffPermissions> {
+    if (role === AdminRole.SuperAdmin) return { walletAdjust: true, walletAdjustMax: null, suspendUsers: true };
+    if (role === AdminRole.SupportSpecialist) {
+      const p = await this.getSupportPermissions();
+      return { walletAdjust: p.walletAdjust, walletAdjustMax: p.walletAdjustMax, suspendUsers: p.suspendUsers };
+    }
+    return { walletAdjust: false, walletAdjustMax: null, suspendUsers: false };
+  }
+
   async update(patch: UpdatePlatformSettingsDto): Promise<PlatformSettings> {
-    await this.repo.update(PLATFORM_SETTINGS_SINGLETON_ID, patch);
+    const { supportPermissions, ...rest } = patch;
+    await this.repo.update(PLATFORM_SETTINGS_SINGLETON_ID, {
+      ...rest,
+      ...(supportPermissions ? { supportPermissions: { ...supportPermissions } } : {}),
+    });
     this.maintenanceCache = undefined;
     const row = await this.get();
     this.maintenanceCache = { value: row.maintenanceMode === true, expiresAt: Date.now() + MAINTENANCE_CACHE_TTL_MS };

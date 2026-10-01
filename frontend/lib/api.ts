@@ -40,6 +40,8 @@ import type {
   AdminListingSummary,
   AdminReviewSummary,
   PublicPlatformSettings,
+  StaffPermissions,
+  SupportPermissions,
   UserStatus,
   TicketCategory,
   TicketPriority,
@@ -732,10 +734,14 @@ export const api = {
 
   adminGetPlatformSettings: () => request<PublicPlatformSettings>('/admin/platform-settings'),
 
+  // The caller's Super-Admin-controlled powers (WaveCoin adjust + cap, suspend/restore).
+  adminMyPermissions: () => request<StaffPermissions>('/admin/platform-settings/my-permissions'),
+
   adminUpdatePlatformSettings: (patch: {
     platformFeePercent?: number
     minWithdrawalWaveCoin?: number
     maintenanceMode?: boolean
+    supportPermissions?: SupportPermissions
   }) =>
     request<PublicPlatformSettings>('/admin/platform-settings', {
       method: 'POST',

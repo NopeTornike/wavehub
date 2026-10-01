@@ -19836,3 +19836,6 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
 .marketplace-users a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; max-width: 100%; border: 1px solid rgba(120, 130, 170, .25); border-radius: 999px; background: rgba(255, 255, 255, .03); padding: 0 14px 0 6px; color: #e6e8f0; font-weight: 700; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .marketplace-users a:hover { border-color: #ff4fa3; }
 .marketplace-users i { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #2a1d44 center / cover no-repeat; color: #fff; font-style: normal; font-weight: 900; font-size: 13px; }
+.sp-perms { display: grid; gap: 10px; margin: 0; border: 1px solid rgba(120, 130, 170, .22); border-radius: 10px; padding: 14px 16px; }
+.sp-perms legend { padding: 0 6px; color: #fff; font-weight: 800; }
+.sp-perms-sub { display: grid; gap: 6px; max-width: 260px; padding-left: 26px; color: #b9c0d0; font-size: 13px; }
