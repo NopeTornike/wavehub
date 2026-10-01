@@ -294,3 +294,28 @@ Added while porting the prototype's marketplace/seller flow 1:1 (commits `fee10d
   a featured-perk seller; the home "Featured Items" rail now requests `featured=true`.
   UI: Admin → Listings → "ყველა განცხადება · რჩეული" tab.
 - e2e: `test/steam.e2e-spec.ts` (staff-only + category, main photo, featured), `digital-keys`.
+
+## 2026-10-01 Editing listings (bug 9) + Super Admin edits any listing
+- **Root cause of "sellers can't edit their products":** the edit API worked, but the UI barely
+  exposed it. The only editor was a modal hidden in Profile/Orders → My Listings, limited to
+  title/description/price. A seller's own listing page (`/listings/[id]`) had no edit action at
+  all, and the photos, main photo and per-game details (level, rank, region, platform…) entered at
+  creation could not be changed anywhere. A non-active item card even linked back to `/profile`.
+  Fixed with the full editor (`frontend/components/ListingEditor.tsx`, `/sell/items/[id]`), linked
+  from the listing page ("განცხადების რედაქტირება") and My Listings → Edit.
+- **New photos are now moderated:** `addImage` by the seller on an Active/Paused listing sends it back
+  to `PendingReview`, and is refused (409) while a review is pending — same rules as a text edit.
+  Previously a photo added after approval went live unseen. Removing photos and choosing the main
+  photo only touch approved images, so they never re-trigger review.
+- **Super Admin edits any listing**: `PATCH admin/listings/:id` (same `UpdateListingDto`),
+  `POST admin/listings/:id/images`, `POST admin/listings/:id/images/:imageId/cover`,
+  `DELETE admin/listings/:id/images/:imageId`, `POST/DELETE admin/listings/:id/packages[/:packageId]`.
+  These are `@RequireAdminRole()` (Super Admin only) and audit-logged as
+  `listing.admin_update|admin_add_image|admin_set_cover|admin_remove_image|admin_add_package|admin_remove_package`.
+  - The service methods take a `ListingEditor` — the seller's user id, or `STAFF_EDITOR`, which
+    skips the ownership check and the back-to-review / mid-review rules, since staff are the
+    moderators.
+  - UI: `/admin/listings/[id]`, linked from Admin → Listings rows and from "რედაქტირება (ადმინი)"
+    on any listing page.
+- e2e: `test/listing-edit.e2e-spec.ts` — draft/pending/active/rejected item edits, photo moderation,
+  and Super Admin edits (other staff 403, no re-review, audit).

@@ -1,9 +1,24 @@
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { AdminListingSummary, ListingForEdit } from '@wavehub/shared-types'
-import { ListingType } from '@wavehub/shared-types'
+import { AdminRole, ListingType } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 import { LISTING_STATUS_LABELS } from '../../lib/labels'
+import { useAuth } from '../../lib/auth'
+
+// Super Admin can open any listing in the full editor (/admin/listings/[id]).
+function useCanEditListings() {
+  return useAuth().user?.adminRole === AdminRole.SuperAdmin
+}
+
+function EditLink({ id }: { id: string }) {
+  return (
+    <Link className="button ghost" href={`/admin/listings/${id}`}>
+      რედაქტირება
+    </Link>
+  )
+}
 
 const TYPE_LABELS: Record<ListingType, string> = {
   [ListingType.Service]: 'სერვისი',
@@ -31,6 +46,7 @@ export default function AdminListings() {
 // Every listing in any status, searchable by title or seller; staff pick which active ones the home
 // page's "Featured Items" rail shows (POST admin/listings/:id/featured, audit-logged).
 function AllListings() {
+  const canEdit = useCanEditListings()
   const [query, setQuery] = useState('')
   const [search, setSearch] = useState('')
   const [onlyFeatured, setOnlyFeatured] = useState(false)
@@ -110,6 +126,7 @@ function AllListings() {
                 <a className="button ghost" href={`/listings/${item.id}`} target="_blank" rel="noreferrer noopener">
                   ნახვა
                 </a>
+                {canEdit && <EditLink id={item.id} />}
                 <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.isFeatured)} onClick={() => void toggle(item)}>
                   {item.isFeatured ? 'რჩეულიდან ამოღება' : 'რჩეულად მონიშვნა'}
                 </button>
@@ -123,6 +140,7 @@ function AllListings() {
 }
 
 function ReviewQueue() {
+  const canEdit = useCanEditListings()
   const [items, setItems] = useState<AdminListingSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -218,6 +236,7 @@ function ReviewQueue() {
                 <button type="button" className="button ghost" aria-expanded={Boolean(previews[item.id])} onClick={() => void togglePreview(item.id)}>
                   {previews[item.id] ? 'დახურვა' : 'დეტალები'}
                 </button>
+                {canEdit && <EditLink id={item.id} />}
                 <button
                   type="button"
                   className="button"

@@ -53,6 +53,7 @@ export default function SteamGameDetail({
   purchasing,
   status,
   isOwnListing,
+  editHref,
   notEnoughBalance,
   onBuy,
   onFavorite,
@@ -64,6 +65,8 @@ export default function SteamGameDetail({
   purchasing: boolean
   status: { kind: '' | 'error' | 'success'; text: string }
   isOwnListing: boolean
+  // Where the viewer can edit this game (its publisher, or Super Admin), else null.
+  editHref: string | null
   notEnoughBalance: boolean
   onBuy: () => void
   onFavorite: () => void
@@ -232,6 +235,11 @@ export default function SteamGameDetail({
                 {inCart ? 'კალათაშია ✓' : 'კალათაში დამატება'}
               </button>
             </div>
+            {editHref && (
+              <Link className="sd-edit" href={editHref}>
+                {isOwnListing ? 'თამაშის რედაქტირება' : 'რედაქტირება (ადმინი)'}
+              </Link>
+            )}
             <div className="sd-secondary">
               <button type="button" aria-pressed={saved} className={saved ? 'on' : undefined} onClick={onFavorite}>
                 <Icon name="heart" />

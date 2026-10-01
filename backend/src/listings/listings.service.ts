@@ -180,8 +180,9 @@ export class ListingsService {
     };
   }
 
-  async removeImage(sellerId: string, listingId: string, imageId: string): Promise<{ ok: true }> {
-    await this.getOwnedListing(sellerId, listingId);
+  // Removing or reordering already-moderated photos is harmless, so it never re-triggers review.
+  async removeImage(editor: ListingEditor, listingId: string, imageId: string): Promise<{ ok: true }> {
+    await this.getEditableListing(editor, listingId);
     const result = await this.images.delete({ id: imageId, listingId });
     if (!result.affected) throw new NotFoundException('Image not found');
     await this.renumberImages(listingId);
@@ -190,8 +191,8 @@ export class ListingsService {
 
   // The first image (sortOrder 0) is the listing's main photo everywhere it's shown. This moves the
   // chosen one to the front and renumbers the rest in their current order.
-  async setCoverImage(sellerId: string, listingId: string, imageId: string): Promise<{ ok: true }> {
-    await this.getOwnedListing(sellerId, listingId);
+  async setCoverImage(editor: ListingEditor, listingId: string, imageId: string): Promise<{ ok: true }> {
+    await this.getEditableListing(editor, listingId);
     const rows = await this.images.find({ where: { listingId }, order: { sortOrder: 'ASC', id: 'ASC' } });
     const chosen = rows.find((img) => img.id === imageId);
     if (!chosen) throw new NotFoundException('Image not found');
@@ -554,17 +555,17 @@ export class ListingsService {
 
   // Packages are what a buyer pays for, so changing them on a live (Active/Paused) service sends it
   // back to review exactly like any other edit (see #update); mid-review changes are refused.
-  async addPackage(sellerId: string, listingId: string, dto: CreatePackageDto): Promise<Package> {
-    const listing = await this.getOwnedListing(sellerId, listingId);
+  async addPackage(editor: ListingEditor, listingId: string, dto: CreatePackageDto): Promise<Package> {
+    const listing = await this.getEditableListing(editor, listingId);
     if (listing.type !== ListingType.Service) {
       throw new ForbiddenException('Only service listings have packages');
     }
-    this.assertPackagesEditable(listing);
+    if (editor !== STAFF_EDITOR) this.assertPackagesEditable(listing);
     const existing = await this.packages.count({ where: { listingId } });
     if (existing >= MAX_PACKAGES) {
       throw new ConflictException(`A service can have at most ${MAX_PACKAGES} packages`);
     }
-    await this.backToReviewIfLive(listing);
+    if (editor !== STAFF_EDITOR) await this.backToReviewIfLive(listing);
 
     const pkg = this.packages.create({
       listingId,
@@ -578,16 +579,17 @@ export class ListingsService {
     return this.packages.save(pkg);
   }
 
-  async removePackage(sellerId: string, listingId: string, packageId: string): Promise<void> {
-    const listing = await this.getOwnedListing(sellerId, listingId);
-    this.assertPackagesEditable(listing);
+  async removePackage(editor: ListingEditor, listingId: string, packageId: string): Promise<void> {
+    const listing = await this.getEditableListing(editor, listingId);
+    if (editor !== STAFF_EDITOR) this.assertPackagesEditable(listing);
     const result = await this.packages.delete({ id: packageId, listingId });
     if (!result.affected) {
       throw new NotFoundException('Package not found');
     }
-    await this.backToReviewIfLive(listing);
+    if (editor !== STAFF_EDITOR) await this.backToReviewIfLive(listing);
   }
 
+  // A seller can't change a listing while it's being reviewed (text, packages or new photos).
   private assertPackagesEditable(listing: Listing) {
     if (listing.status === ListingStatus.PendingReview) {
       throw new ConflictException('This listing is waiting for review — edit it after the decision');
@@ -609,12 +611,16 @@ export class ListingsService {
     }
   }
 
+  // A seller's new photo is unmoderated content: on a live (Active/Paused) listing it sends the
+  // listing back to review, and it's refused while a review is in progress — same rules as a text
+  // edit. Before this, a photo added after approval went live without anyone seeing it.
   async addImage(
-    sellerId: string,
+    editor: ListingEditor,
     listingId: string,
     file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
   ): Promise<ListingImage> {
-    await this.getOwnedListing(sellerId, listingId);
+    const listing = await this.getEditableListing(editor, listingId);
+    if (editor !== STAFF_EDITOR) this.assertPackagesEditable(listing);
 
     if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.mimetype)) {
       throw new ForbiddenException('Only JPG, PNG, or WEBP images are allowed');
@@ -630,15 +636,18 @@ export class ListingsService {
 
     const stored = await this.storage.save(file.buffer, file.originalname, 'image');
     const image = this.images.create({ listingId, url: stored.url, sortOrder: existingCount });
-    return this.images.save(image);
+    const saved = await this.images.save(image);
+    if (editor !== STAFF_EDITOR) await this.backToReviewIfLive(listing);
+    return saved;
   }
 
   // Seller edit. A Draft/Rejected listing just takes the changes (the seller submits it when ready);
   // an Active/Paused one goes back to PendingReview so the edited version is moderated before it's
   // buyable again. A listing already waiting for review can't be edited mid-review.
-  async update(sellerId: string, listingId: string, dto: UpdateListingDto): Promise<Listing> {
-    const listing = await this.getOwnedListing(sellerId, listingId);
-    if (listing.status === ListingStatus.PendingReview) {
+  async update(editor: ListingEditor, listingId: string, dto: UpdateListingDto): Promise<Listing> {
+    const listing = await this.getEditableListing(editor, listingId);
+    const staff = editor === STAFF_EDITOR;
+    if (!staff && listing.status === ListingStatus.PendingReview) {
       throw new ConflictException('This listing is waiting for review — edit it after the decision');
     }
     if (dto.priceWaveCoin !== undefined && listing.type === ListingType.Service) {
@@ -655,7 +664,7 @@ export class ListingsService {
     if (dto.title !== undefined) listing.title = dto.title;
     if (dto.description !== undefined) listing.description = dto.description;
     if (dto.priceWaveCoin !== undefined) listing.priceWaveCoin = dto.priceWaveCoin;
-    if (listing.status === ListingStatus.Active || listing.status === ListingStatus.Paused) {
+    if (!staff && (listing.status === ListingStatus.Active || listing.status === ListingStatus.Paused)) {
       assertValidTransition(listing.status, ListingStatus.PendingReview);
       listing.status = ListingStatus.PendingReview;
     }
@@ -801,6 +810,10 @@ export class ListingsService {
     return listing;
   }
 
+  private async getEditableListing(editor: ListingEditor, listingId: string): Promise<Listing> {
+    return editor === STAFF_EDITOR ? this.getListingOrThrow(listingId) : this.getOwnedListing(editor, listingId);
+  }
+
   private async getOwnedListing(sellerId: string, listingId: string): Promise<Listing> {
     const listing = await this.getListingOrThrow(listingId);
     if (listing.sellerId !== sellerId) {
@@ -843,4 +856,10 @@ function sortImages(listing: { images?: ListingImage[] }) {
 }
 
 export const STEAM_CATEGORY_SLUG = 'steam-games';
+
+// Who is editing a listing: its seller (by user id) or Super Admin staff (`STAFF_EDITOR`, the
+// admin/listings/:id routes). The seller's edits of a live listing go back through moderation;
+// staff are the moderators, so their edits apply as-is (and are audit-logged by the controller).
+export const STAFF_EDITOR = Symbol('staff-editor');
+export type ListingEditor = string | typeof STAFF_EDITOR;
 const STEAM_PUBLISHER_ROLES: AdminRole[] = [AdminRole.SuperAdmin, AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];

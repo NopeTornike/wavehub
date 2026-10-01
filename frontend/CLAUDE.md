@@ -749,3 +749,18 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   (`.cs-answers`).
 - `/coaching` header has a visible "გახდი ქოუჩი" button (`.coach-apply-cta`) next to the sort.
 
+
+## 2026-10-01 Listing editor (bug 9) + Super Admin edits
+- `components/ListingEditor.tsx` is the full editor for a listing: photos (add/main/remove), title,
+  price, description, and the item's game details. Every existing attribute key keeps its type;
+  the game's empty optional fields from `lib/game-details.json` can be filled in.
+  - `mode="owner"`: `/sell/items/[id]`. Live listing → saving or adding a photo goes back to
+    review; pending → read-only with a note; rejected → shows the reason plus a resubmit button.
+  - `mode="admin"`: `/admin/listings/[id]`, Super Admin only. Any type, applied as-is, plus a
+    service's packages.
+- My Listings: "Edit" opens the editor for the listing's type (items → `/sell/items/[id]`,
+  services → `/sell/services/[id]`, Steam keys → `/sell/digital-keys/[id]`). The old
+  title/price-only modal is gone.
+- Entry points: `/listings/[id]` shows "განცხადების რედაქტირება" to the owner and
+  "რედაქტირება (ადმინი)" to Super Admin. The Steam game page does the same via `editHref`.
+  Admin → Listings rows get "რედაქტირება" for Super Admin. CSS: `le-` block.

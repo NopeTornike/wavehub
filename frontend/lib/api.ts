@@ -112,6 +112,17 @@ export interface MyListing {
   itemAttributes?: ItemAttributes | null
 }
 
+// PATCH listings/:id (seller) and admin/listings/:id (Super Admin) — every field optional.
+export type ListingEditPayload = {
+  title?: string
+  description?: string
+  priceWaveCoin?: number
+  attributes?: ItemAttributes
+  requirementsSchema?: RequirementField[]
+  faq?: FaqEntry[]
+}
+export type PackageInput = { name: string; priceWaveCoin: number; deliveryTimeDays: number; features: string[]; revisionsIncluded: number }
+
 // What PATCH coaches/mine/profile (and the admin equivalent) accept — packages and the uploaded
 // video have their own endpoints.
 export type CoachProfilePatch = Partial<Omit<MyCoachProfile, 'id' | 'verificationStatus' | 'videoFileUrl' | 'packages'>>
@@ -438,18 +449,12 @@ export const api = {
   },
   adminSetListingFeatured: (id: string, isFeatured: boolean) =>
     request<{ id: string; isFeatured: boolean }>(`/admin/listings/${id}/featured`, { method: 'POST', body: JSON.stringify({ isFeatured }) }),
-  addListingPackage: (
-    id: string,
-    payload: { name: string; priceWaveCoin: number; deliveryTimeDays: number; features: string[]; revisionsIncluded: number },
-  ) => request<PublicPackage>(`/listings/${id}/packages`, { method: 'POST', body: JSON.stringify(payload) }),
+  addListingPackage: (id: string, payload: PackageInput) => request<PublicPackage>(`/listings/${id}/packages`, { method: 'POST', body: JSON.stringify(payload) }),
   removeListingPackage: (id: string, packageId: string) => request<void>(`/listings/${id}/packages/${packageId}`, { method: 'DELETE' }),
 
   // Seller edit/delete of their own listing. Editing a live listing sends it back to review;
   // delete only works for a listing that was never ordered (409 otherwise — pause it instead).
-  updateListing: (
-    id: string,
-    payload: { title?: string; description?: string; priceWaveCoin?: number; attributes?: ItemAttributes; requirementsSchema?: RequirementField[]; faq?: FaqEntry[] },
-  ) =>
+  updateListing: (id: string, payload: ListingEditPayload) =>
     request<MyListing>(`/listings/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
   deleteListing: (id: string) => request<void>(`/listings/${id}`, { method: 'DELETE' }),
@@ -483,6 +488,23 @@ export const api = {
     request<{ ok: true }>(`/listings/${listingId}/images/${imageId}/cover`, { method: 'POST' }),
   removeListingImage: (listingId: string, imageId: string) =>
     request<{ ok: boolean }>(`/listings/${listingId}/images/${imageId}`, { method: 'DELETE' }),
+
+  // Super Admin edits any listing (no re-review; audit-logged) — same shapes as the seller calls.
+  adminUpdateListing: (id: string, payload: ListingEditPayload) =>
+    request<MyListing>(`/admin/listings/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  adminUploadListingImage: (listingId: string, file: File) => upload<{ id: string; url: string }>(`/admin/listings/${listingId}/images`, file),
+
+  adminSetListingCoverImage: (listingId: string, imageId: string) =>
+    request<{ ok: true }>(`/admin/listings/${listingId}/images/${imageId}/cover`, { method: 'POST' }),
+
+  adminRemoveListingImage: (listingId: string, imageId: string) =>
+    request<{ ok: boolean }>(`/admin/listings/${listingId}/images/${imageId}`, { method: 'DELETE' }),
+
+  adminAddListingPackage: (id: string, payload: PackageInput) =>
+    request<PublicPackage>(`/admin/listings/${id}/packages`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminRemoveListingPackage: (id: string, packageId: string) => request<void>(`/admin/listings/${id}/packages/${packageId}`, { method: 'DELETE' }),
 
   // --- Favourites --- (backend/src/listings — `me/favorites*`, `listings/:id/favorite`)
   listFavorites: () => request<PublicListingSummary[]>('/me/favorites'),

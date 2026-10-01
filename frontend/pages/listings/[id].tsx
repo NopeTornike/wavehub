@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import type { PublicListingDetail, PublicReview } from '@wavehub/shared-types'
-import { ListingType } from '@wavehub/shared-types'
+import { AdminRole, ListingType } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import SteamGameDetail from '../../components/SteamGameDetail'
 import { accountStatusLabel, listingKind } from '../../components/ProductCard'
@@ -221,6 +221,7 @@ export default function ListingDetail() {
         purchasing={purchasing}
         status={status}
         isOwnListing={isOwnListing}
+        editHref={isOwnListing ? `/sell/digital-keys/${listing.id}` : me?.adminRole === AdminRole.SuperAdmin ? `/admin/listings/${listing.id}` : null}
         notEnoughBalance={notEnoughBalance}
         onBuy={() => void buy()}
         onFavorite={() => void toggleFavorite()}
@@ -584,7 +585,15 @@ export default function ListingDetail() {
             )}
 
             {isOwnListing ? (
-              <p className="note">ეს თქვენი განცხადებაა — საკუთარი განცხადების ყიდვა შეუძლებელია.</p>
+              <>
+                <p className="note">ეს თქვენი განცხადებაა — საკუთარი განცხადების ყიდვა შეუძლებელია.</p>
+                <Link
+                  className="detail-buy-button detail-edit-button"
+                  href={kind === 'service' ? `/sell/services/${listing.id}` : `/sell/items/${listing.id}`}
+                >
+                  განცხადების რედაქტირება
+                </Link>
+              </>
             ) : (
               <>
                 {notEnoughBalance && (
@@ -607,6 +616,11 @@ export default function ListingDetail() {
               <button id="wishlistButton" type="button" aria-pressed={saved} title="Add to wishlist" onClick={() => void toggleFavorite()}>
                 {saved ? 'რჩეულებშია ♥' : 'რჩეულებში დამატება'}
               </button>
+              {me?.adminRole === AdminRole.SuperAdmin && !isOwnListing && (
+                <Link className="detail-admin-edit" href={`/admin/listings/${listing.id}`}>
+                  რედაქტირება (ადმინი)
+                </Link>
+              )}
               {!isOwnListing && (
                 <button id="messageSellerButton" type="button" onClick={() => void messageSeller()}>
                   Message Seller

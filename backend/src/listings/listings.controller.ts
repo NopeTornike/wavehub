@@ -20,7 +20,7 @@ import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
-import { ListingsService } from './listings.service';
+import { ListingsService, STAFF_EDITOR } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
@@ -101,6 +101,97 @@ export class ListingsController {
   @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
   findForReview(@Param('id', ParseUUIDPipe) id: string) {
     return this.listings.findForReview(id);
+  }
+
+  // --- Super Admin edits any listing (2026-10-01) ---
+  // Same rules and DTOs as the seller's own edit, minus ownership and re-review: staff are the
+  // moderators, so the change applies as-is. Super Admin only; every change is audit-logged.
+
+  @Patch('admin/listings/:id')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  async adminUpdate(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateListingDto,
+  ) {
+    const listing = await this.listings.update(STAFF_EDITOR, id, dto);
+    await this.audit.log({ adminId, adminRole, action: 'listing.admin_update', entityType: 'listing', entityId: id, metadata: { fields: Object.keys(dto).join(',') } });
+    return listing;
+  }
+
+  @Post('admin/listings/:id/images')
+  @Throttle(UPLOAD_THROTTLE)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }))
+  async adminAddImage(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const image = await this.listings.addImage(STAFF_EDITOR, id, file);
+    await this.audit.log({ adminId, adminRole, action: 'listing.admin_add_image', entityType: 'listing', entityId: id, metadata: { imageId: image.id } });
+    return image;
+  }
+
+  @Post('admin/listings/:id/images/:imageId/cover')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  async adminSetCover(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+  ) {
+    const result = await this.listings.setCoverImage(STAFF_EDITOR, id, imageId);
+    await this.audit.log({ adminId, adminRole, action: 'listing.admin_set_cover', entityType: 'listing', entityId: id, metadata: { imageId } });
+    return result;
+  }
+
+  @Delete('admin/listings/:id/images/:imageId')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  async adminRemoveImage(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+  ) {
+    const result = await this.listings.removeImage(STAFF_EDITOR, id, imageId);
+    await this.audit.log({ adminId, adminRole, action: 'listing.admin_remove_image', entityType: 'listing', entityId: id, metadata: { imageId } });
+    return result;
+  }
+
+  @Post('admin/listings/:id/packages')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  async adminAddPackage(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreatePackageDto,
+  ) {
+    const pkg = await this.listings.addPackage(STAFF_EDITOR, id, dto);
+    await this.audit.log({ adminId, adminRole, action: 'listing.admin_add_package', entityType: 'listing', entityId: id, metadata: { packageId: pkg.id } });
+    return pkg;
+  }
+
+  @Delete('admin/listings/:id/packages/:packageId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  async adminRemovePackage(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string,
+  ) {
+    await this.listings.removePackage(STAFF_EDITOR, id, packageId);
+    await this.audit.log({ adminId, adminRole, action: 'listing.admin_remove_package', entityType: 'listing', entityId: id, metadata: { packageId } });
   }
 
   // Admin-only — the approval queue. MUST stay registered before `listings/:id` below: Express

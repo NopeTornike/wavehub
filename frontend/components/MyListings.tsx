@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ListingStatus, ListingType } from '@wavehub/shared-types'
 import { api, errorMessage, type MyListing } from '../lib/api'
 import { gameCover } from '../lib/games'
@@ -7,13 +7,22 @@ import { LISTING_STATUS_LABELS } from '../lib/labels'
 import RecordCard from './RecordCard'
 
 // The prototype's seller "My Listings" record panel — it appears on both profile.html (Settings) and
-// orders.html, each with the same Edit / Delete / View actions and edit modal. On real data: edit
-// goes back through moderation for a live listing (PATCH /listings/:id), delete is only possible for
+// orders.html, each with the same Edit / Delete / View actions. On real data: Edit opens the full
+// editor for the listing's type (/sell/items/[id] for accounts/skins — title, price, description,
+// game details, photos; /sell/services/[id]; /sell/digital-keys/[id]); editing a live listing goes
+// back through moderation (PATCH /listings/:id), delete is only possible for
 // a never-ordered listing (the API answers "pause it instead" otherwise), plus the real lifecycle's
 // pause / resume / submit-for-review. `query` narrows the grid (orders.html filters it with the
 // page search).
 
 type Status = { kind: '' | 'error' | 'success' | 'pending'; text: string }
+
+// The full editor for each listing type.
+function editHref(listing: MyListing): string {
+  if (listing.type === ListingType.Service) return `/sell/services/${listing.id}`
+  if (listing.type === ListingType.DigitalKey) return `/sell/digital-keys/${listing.id}`
+  return `/sell/items/${listing.id}`
+}
 
 function formatDate(value?: string | null) {
   if (!value) return ''
@@ -34,8 +43,6 @@ export default function MyListings({
 }) {
   const [listings, setListings] = useState<MyListing[] | null>(null)
   const [status, setStatus] = useState<Status>({ kind: '', text: '' })
-  const [editing, setEditing] = useState<MyListing | null>(null)
-  const [editForm, setEditForm] = useState({ title: '', description: '', price: '' })
 
   const reload = useCallback(
     () =>
@@ -62,26 +69,6 @@ export default function MyListings({
     } catch (err) {
       setStatus({ kind: 'error', text: errorMessage(err, 'მოქმედება ვერ შესრულდა.') })
     }
-  }
-
-  const saveEdit = async (event: FormEvent) => {
-    event.preventDefault()
-    if (!editing) return
-    const payload: { title?: string; description?: string; priceWaveCoin?: number } = {}
-    if (editForm.title.trim() !== editing.title) payload.title = editForm.title.trim()
-    if (editing.description !== undefined && editForm.description.trim() !== editing.description) payload.description = editForm.description.trim()
-    if (editing.type !== ListingType.Service && Number(editForm.price) !== editing.priceWaveCoin) payload.priceWaveCoin = Math.floor(Number(editForm.price))
-    if (Object.keys(payload).length === 0) {
-      setEditing(null)
-      return
-    }
-    await act(
-      () => api.updateListing(editing.id, payload),
-      editing.status === ListingStatus.Active || editing.status === ListingStatus.Paused
-        ? 'ცვლილებები შენახულია — განცხადება ხელახლა გადის შემოწმებას.'
-        : 'ცვლილებები შენახულია.',
-    )
-    setEditing(null)
   }
 
   const q = query.trim().toLowerCase()
@@ -113,9 +100,7 @@ export default function MyListings({
                   ? `/listings/${listing.id}`
                   : listing.type === ListingType.DigitalKey
                     ? `/sell/digital-keys/${listing.id}`
-                    : listing.type === ListingType.Service
-                      ? `/sell/services/${listing.id}`
-                      : '/profile'
+                    : editHref(listing)
               }
               image={gameCover(listing.game?.slug, listing.images?.[0]?.url ?? null)}
               fallback={(listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
@@ -124,23 +109,9 @@ export default function MyListings({
               footer={`${listing.priceWaveCoin ?? '—'} GEL / ${formatDate(listing.createdAt)}${listing.rejectionReason ? ` / ${listing.rejectionReason}` : ''}`}
               actions={
                 <>
-                  {listing.type === ListingType.Service && (
-                    <Link className="profile-record-action" href={`/sell/services/${listing.id}`}>
-                      Manage
-                    </Link>
-                  )}
-                  {listing.status !== ListingStatus.PendingReview && listing.type !== ListingType.Service && (
-                    <button
-                      className="profile-record-action"
-                      type="button"
-                      onClick={() => {
-                        setEditing(listing)
-                        setEditForm({ title: listing.title, description: listing.description ?? '', price: String(listing.priceWaveCoin ?? '') })
-                      }}
-                    >
-                      Edit
-                    </button>
-                  )}
+                  <Link className="profile-record-action" href={editHref(listing)}>
+                    Edit
+                  </Link>
                   {listing.status === ListingStatus.Active && (
                     <button className="profile-record-action" type="button" onClick={() => void act(() => api.pauseListing(listing.id), 'განცხადება შეჩერდა.')}>
                       Pause
@@ -180,54 +151,6 @@ export default function MyListings({
         </div>
       </section>
 
-      {editing && (
-        <div className="seller-modal" role="dialog" aria-modal="true" aria-labelledby="editListingTitle">
-          <div className="seller-modal-panel listing-builder-panel">
-            <div className="seller-modal-head">
-              <div>
-                <p className="section-kicker">განცხადების რედაქტირება</p>
-                <h2 id="editListingTitle">{editing.title}</h2>
-              </div>
-              <button className="seller-close-button" type="button" aria-label="Close" onClick={() => setEditing(null)}>
-                x
-              </button>
-            </div>
-            <form className="seller-form listing-builder-form" onSubmit={saveEdit}>
-              <section className="listing-builder-section">
-                <div className="listing-builder-grid">
-                  <label>
-                    <span>სათაური *</span>
-                    <input type="text" minLength={5} maxLength={100} required value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
-                  </label>
-                  {editing.type !== ListingType.Service && (
-                    <label>
-                      <span>ფასი (GEL) *</span>
-                      <input type="number" min={1} step={1} required value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} />
-                    </label>
-                  )}
-                  <label className="seller-description-field">
-                    <span>აღწერა *</span>
-                    <textarea minLength={50} maxLength={5000} required value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
-                    <small>
-                      {editing.status === ListingStatus.Active || editing.status === ListingStatus.Paused
-                        ? 'აქტიური განცხადების რედაქტირების შემდეგ ის ხელახლა გადის შემოწმებას.'
-                        : 'ცვლილებები შეინახება დრაფტში.'}
-                    </small>
-                  </label>
-                </div>
-              </section>
-              <div className="seller-modal-actions listing-builder-actions">
-                <button className="secondary-seller-action" type="button" onClick={() => setEditing(null)}>
-                  გაუქმება
-                </button>
-                <button className="seller-submit-button" type="submit">
-                  შენახვა
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </>
   )
 }

@@ -19792,3 +19792,29 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
   .coach-heading-row { flex-wrap: wrap; }
   .coach-video-file { min-height: 200px; }
 }
+
+/* Listing editor (components/ListingEditor.tsx — /sell/items/[id] and /admin/listings/[id]). */
+.le-page { display: grid; gap: 16px; min-width: 0; }
+.le-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.le-head h1 { margin: 4px 0 0; color: #fff; font-size: clamp(22px, 3vw, 30px); }
+.le-status { border: 1px solid rgba(120, 130, 170, .3); border-radius: 999px; padding: 6px 12px; color: #d6d9e3; font-size: 12px; font-weight: 800; }
+.le-status.s-active { border-color: rgba(48, 230, 127, .35); color: #54e995; }
+.le-status.s-pending_review { border-color: rgba(246, 181, 58, .35); color: #f2bd55; }
+.le-status.s-rejected { border-color: rgba(255, 90, 120, .4); color: #ff7a93; }
+.le-note { margin: 0; border: 1px solid rgba(120, 130, 170, .22); border-radius: 10px; background: rgba(255, 255, 255, .03); padding: 12px 14px; color: #d6d9e3; font-size: 14px; }
+.le-note.warn { border-color: rgba(246, 181, 58, .35); color: #f2d08a; }
+.le-card { display: grid; gap: 12px; border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px; background: rgba(9, 12, 24, .6); padding: 18px; }
+.le-card h2 { margin: 0; color: #fff; font-size: 17px; }
+.le-card h3 { margin: 8px 0 0; color: #ff8cc4; font-size: 14px; }
+.le-hint { margin: 0; color: #9aa1b3; font-size: 13px; }
+.le-fieldset { display: grid; gap: 12px; min-width: 0; margin: 0; border: 0; padding: 0; }
+.le-fieldset:disabled { opacity: .6; }
+.le-attrs { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.le-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.le-packages { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.le-packages li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(120, 130, 170, .14); padding-bottom: 8px; color: #d6d9e3; }
+.le-links { display: flex; flex-wrap: wrap; gap: 16px; margin: 0; }
+.le-links a { color: #ff8cc4; font-weight: 700; }
+.detail-edit-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.detail-admin-edit, .sd-edit { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; border: 1px solid rgba(255, 196, 0, .45); border-radius: 8px; color: #ffd24d; padding: 0 14px; font-weight: 800; text-decoration: none; }
+.sd-edit { width: 100%; margin-top: 10px; }
