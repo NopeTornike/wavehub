@@ -20,6 +20,13 @@ import { useShell } from '../../lib/shell'
 // Rank is coach-entered; response time is the coach's measured median (docs/design-mockups/06);
 // "Fast Responder" / "Top Rated" tags appear only when earned (≤10 min median / ≥4.8 from 5+ reviews).
 // The topbar search filters the loaded page by name / specialty / game, as coaching.js does.
+//
+// 2026-10-02: the page follows docs/design-mockups/06 (`cl-` CSS at the end of global.css): two-line
+// heading, sort + Grid/List toggle, game chips, and the mockup's coach card (photo with the real
+// online pill, plan badge, rank, rating, response time, game, price + Book Session, tag chips). The
+// filter panel stays beside the grid on desktop and folds behind a "Filters" button below 1000px.
+// Left out because there is no data for it: the mockup's "Top 1%" tag and a tier for coaches without
+// a plan badge.
 
 const PER_PAGE = 8
 const GAMES_COLLAPSED = 5
@@ -57,6 +64,7 @@ export default function CoachingDirectory() {
   const [showAllGames, setShowAllGames] = useState(false)
   const [showAllTabs, setShowAllTabs] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [result, setResult] = useState<{ items: PublicCoachSummary[]; total: number } | null>(null)
   const [error, setError] = useState('')
 
@@ -114,6 +122,7 @@ export default function CoachingDirectory() {
   const toggleGame = (id: string) => refilter(() => setCheckedGames((current) => (current.includes(id) ? current.filter((g) => g !== id) : [...current, id])))
   const priceLabel = maxRate >= PRICE_MAX ? `${PRICE_MAX} GEL+` : `მაქს. ${maxRate} GEL`
   const priceProgress = ((maxRate - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100
+  const activeFilters = checkedGames.length + (maxRate < PRICE_MAX ? 1 : 0) + (language !== 'all' ? 1 : 0)
   const fieldsetClass = (key: string) => (collapsed[key] ? 'is-collapsed' : undefined)
   const collapseButton = (key: string, label: string) => (
     <button className="coach-collapse" type="button" aria-label={label} aria-expanded={!collapsed[key]} onClick={() => setCollapsed((c) => ({ ...c, [key]: !c[key] }))}></button>
@@ -127,8 +136,8 @@ export default function CoachingDirectory() {
     >
       {/* .coaching-body scopes coaching.html's --coach-* variables (it's the prototype's <body> class). */}
       <div className="coaching-body">
-        <div className="coach-shell">
-          <aside className="coach-filter-panel" aria-label="ქოუჩების ფილტრები">
+        <div className={`cl-shell${filtersOpen ? ' filters-open' : ''}`}>
+          <aside className="coach-filter-panel" id="coachFilterPanel" aria-label="ქოუჩების ფილტრები">
             <div className="coach-filter-head">
               <strong>ფილტრები</strong>
               <button id="resetFilters" type="button" onClick={reset}>
@@ -186,39 +195,68 @@ export default function CoachingDirectory() {
             </form>
           </aside>
 
-          <section className="coach-browse" aria-labelledby="coachBrowseTitle">
-            <div className="coach-heading-row">
+          <section className="cl-browse" aria-labelledby="coachBrowseTitle">
+            <header className="cl-head">
               <div>
                 <h1 id="coachBrowseTitle">
-                  <span className="coach-heading-icon" aria-hidden="true"></span>ქოუჩების ნახვა
+                  იპოვე საუკეთესო ქოუჩი
+                  <span>თამაშის დონის ასამაღლებლად</span>
                 </h1>
-                <p>
-                  იპოვე შესაფერისი ქოუჩი თამაშის დონის ასამაღლებლად ·{' '}
-                  <Link href="/coaching-sessions">ჩემი სესიები</Link> · <Link href="/coaching/profile">ქოუჩის პროფილი</Link>
-                </p>
               </div>
-              <div className="coach-sort-row">
-                <Link className="coach-apply-cta" href="/coaching/apply">
+              <nav className="cl-links" aria-label="ქოუჩინგის ბმულები">
+                <Link href="/coaching-sessions">ჩემი სესიები</Link>
+                <Link href="/coaching/profile">ქოუჩის პროფილი</Link>
+                <Link className="cl-apply" href="/coaching/apply">
                   გახდი ქოუჩი
                 </Link>
-                <label>
-                  <span className="sr-only">ქოუჩების დალაგება</span>
-                  <select id="coachSort" value={sort} onChange={(event) => refilter(() => setSort(event.target.value))}>
-                    {SORTS.map(([value, label]) => (
-                      <option key={value} value={value}>
-                        დალაგება: {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="coach-view-toggle" aria-label="ხედის რეჟიმი">
-                  <button className={view === 'grid' ? 'active' : undefined} type="button" data-view="grid" aria-label="ბადის ხედი" aria-pressed={view === 'grid'} onClick={() => setView('grid')}></button>
-                  <button className={view === 'list' ? 'active' : undefined} type="button" data-view="list" aria-label="სიის ხედი" aria-pressed={view === 'list'} onClick={() => setView('list')}></button>
-                </div>
+              </nav>
+            </header>
+
+            <div className="cl-toolbar">
+              <button type="button" className={`cl-filter-toggle${filtersOpen ? ' active' : ''}`} aria-expanded={filtersOpen} aria-controls="coachFilterPanel" onClick={() => setFiltersOpen((v) => !v)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+                  <circle cx="16" cy="7" r="2" />
+                  <circle cx="8" cy="17" r="2" />
+                </svg>
+                ფილტრები
+                {activeFilters > 0 && <b>{activeFilters}</b>}
+              </button>
+              <label className="cl-sort">
+                <span className="sr-only">ქოუჩების დალაგება</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+                  <circle cx="16" cy="7" r="2" />
+                  <circle cx="8" cy="17" r="2" />
+                </svg>
+                <select id="coachSort" value={sort} onChange={(event) => refilter(() => setSort(event.target.value))}>
+                  {SORTS.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      დალაგება: {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="cl-view" role="group" aria-label="ხედის რეჟიმი">
+                <button className={view === 'grid' ? 'active' : undefined} type="button" aria-pressed={view === 'grid'} onClick={() => setView('grid')}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+                    <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+                    <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+                    <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+                  </svg>
+                  ბადე
+                </button>
+                <button className={view === 'list' ? 'active' : undefined} type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />
+                  </svg>
+                  სია
+                </button>
               </div>
             </div>
 
-            <div className="coach-game-tabs" id="coachGameTabs" role="group" aria-label="თამაშის ფილტრი">
+            <div className="cl-chips" id="coachGameTabs" role="group" aria-label="თამაშის ფილტრი">
               <button type="button" className={tab === 'all' ? 'active' : undefined} aria-pressed={tab === 'all'} onClick={() => refilter(() => setTab('all'))}>
                 ყველა თამაში
               </button>
@@ -234,10 +272,9 @@ export default function CoachingDirectory() {
               )}
             </div>
 
-            <div className="coach-result-row">
-              <span></span>
+            <p className="cl-count">
               <strong id="coachResultCount">{result?.total ?? 0} ქოუჩი მოიძებნა</strong>
-            </div>
+            </p>
 
             {error && (
               <p className="seller-status error" role="alert">
@@ -245,7 +282,7 @@ export default function CoachingDirectory() {
               </p>
             )}
 
-            <div className={`coach-grid${view === 'list' ? ' is-list' : ''}`} id="coachGrid">
+            <div className={`cl-grid${view === 'list' ? ' is-list' : ''}`} id="coachGrid">
               {shown.map((coach) => {
                 const name = `${coach.firstName} ${coach.lastName}`.trim()
                 const href = `/coaching/${coach.id}`
@@ -253,7 +290,7 @@ export default function CoachingDirectory() {
                 return (
                   <article
                     key={coach.id}
-                    className="coach-card"
+                    className="cl-card"
                     tabIndex={0}
                     role="link"
                     aria-label={`${name} — პროფილი`}
@@ -267,63 +304,115 @@ export default function CoachingDirectory() {
                       router.push(href)
                     }}
                   >
-                    <div className="coach-card-main">
-                      <div
-                        className={`coach-avatar-ring${coach.avatarUrl ? ' has-image' : ''}`}
-                        style={coach.avatarUrl ? { ['--coach-image' as string]: `url("${coach.avatarUrl}")` } : undefined}
-                      >
-                        <span aria-hidden="true">{coach.avatarUrl ? '' : `${coach.firstName[0] ?? ''}${coach.lastName[0] ?? ''}`.toUpperCase()}</span>
-                        {coach.online && <i title="ონლაინ" aria-label="ონლაინ"></i>}
+                    <div className="cl-card-top">
+                      <div className={`cl-photo${coach.avatarUrl ? ' has-image' : ''}`} style={coach.avatarUrl ? { backgroundImage: `url("${coach.avatarUrl}")` } : undefined}>
+                        {!coach.avatarUrl && <span aria-hidden="true">{`${coach.firstName[0] ?? ''}${coach.lastName[0] ?? ''}`.toUpperCase()}</span>}
+                        {coach.online && (
+                          <em className="cl-online">
+                            <i aria-hidden="true"></i>ონლაინ
+                          </em>
+                        )}
                       </div>
-                      <div className="coach-card-copy">
-                        <h2>{name}</h2>
+                      <div className="cl-info">
+                        <div className="cl-name-row">
+                          <h2>{name}</h2>
+                          {coach.profileBadge && (
+                            <span className="cl-tier">
+                              <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M6 4h12l4 6-10 11L2 10l4-6Z" />
+                                <path d="M2 10h20M9 4l-2 6 5 11 5-11-2-6" />
+                              </svg>
+                              {coach.profileBadge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="cl-specialty" title={coach.specialty}>
+                          {coach.specialty}
+                        </p>
                         {coach.rank && (
-                          <p className="coach-rank-line">
-                            <span className="coach-rank-dot" aria-hidden="true"></span>
+                          <p className="cl-line cl-rank">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <circle cx="12" cy="9" r="5.5" />
+                              <path d="m9 14-1.5 7 4.5-2.5 4.5 2.5L15 14" />
+                            </svg>
                             <span>{coach.rank}</span>
                           </p>
                         )}
-                        <p className="coach-rating-line">
+                        <p className="cl-line cl-rating">
                           {coach.ratingAvg ? (
                             <>
-                              <span aria-hidden="true">★</span> {Number(coach.ratingAvg).toFixed(1)} ({coach.ratingCount})
+                              <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                              </svg>
+                              <strong>{Number(coach.ratingAvg).toFixed(1)}</strong>
+                              <span>({coach.ratingCount})</span>
                             </>
                           ) : (
-                            'შეფასების გარეშე'
+                            <span>შეფასების გარეშე</span>
                           )}
                         </p>
                         {coach.responseMinutes !== null && (
-                          <p className="coach-session-meta">
-                            საშ. პასუხის დრო: ~{coach.responseMinutes < 60 ? `${coach.responseMinutes} წთ` : `${Math.round(coach.responseMinutes / 60)} სთ`}
+                          <p className="cl-line cl-response">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+                            </svg>
+                            <span>
+                              საშ. პასუხის დრო: ~{coach.responseMinutes < 60 ? `${coach.responseMinutes} წთ` : `${Math.round(coach.responseMinutes / 60)} სთ`}
+                            </span>
                           </p>
                         )}
+                        <p className="cl-line cl-game">
+                          <span className="cl-game-icon">{icon ? <img src={icon} alt="" aria-hidden="true" /> : (coach.gameName ?? 'WH').slice(0, 2).toUpperCase()}</span>
+                          <span>{coach.gameName ?? 'ზოგადი'}</span>
+                        </p>
                       </div>
                     </div>
 
-                    <div className="coach-game-row">
-                      <span className="coach-game-icon">{icon ? <img src={icon} alt="" aria-hidden="true" /> : (coach.gameName ?? 'WH').slice(0, 2).toUpperCase()}</span>
-                      <strong>{coach.gameName ?? 'ზოგადი'}</strong>
-                      <span className="coach-service-pill" title={coach.specialty}>
-                        {coach.specialty}
-                      </span>
-                    </div>
-
-                    <div className="coach-price-row">
-                      <p>
-                        <strong>{coach.hourlyRateWaveCoin} GEL/სთ</strong>
+                    <div className="cl-buy">
+                      <p className="cl-price">
+                        <strong>{coach.hourlyRateWaveCoin}</strong>
+                        <span>GEL/სთ</span>
                       </p>
-                      <Link href={href} aria-label={`სესიის დაჯავშნა — ${name}`}>
+                      <Link className="cl-book" href={`${href}/book`} aria-label={`სესიის დაჯავშნა — ${name}`}>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <rect x="3" y="5" width="18" height="16" rx="2" />
+                          <path d="M16 3v4M8 3v4M3 10h18" />
+                        </svg>
                         სესიის დაჯავშნა
+                        <b aria-hidden="true">›</b>
                       </Link>
                     </div>
 
-                    <div className="coach-card-tags">
-                      {coach.responseMinutes !== null && coach.responseMinutes <= 10 && <span className="fast">Fast Responder</span>}
-                      <span className="standard">Verified Coach</span>
-                      {coach.ratingAvg && Number(coach.ratingAvg) >= 4.8 && coach.ratingCount >= 5 && <span className="sessions">Top Rated</span>}
-                      {coach.profileBadge && <span className="sessions">★ {coach.profileBadge}</span>}
+                    <div className="cl-tags">
+                      {coach.responseMinutes !== null && coach.responseMinutes <= 10 && (
+                        <span className="fast">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+                          </svg>
+                          Fast Responder
+                        </span>
+                      )}
+                      <span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M12 3 4.5 6v6c0 4.5 3.2 7.6 7.5 9 4.3-1.4 7.5-4.5 7.5-9V6L12 3Z" />
+                          <path d="m9 12 2.2 2.2L15.2 10" />
+                        </svg>
+                        Verified Coach
+                      </span>
+                      {coach.ratingAvg && Number(coach.ratingAvg) >= 4.8 && coach.ratingCount >= 5 && (
+                        <span>
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3M12 14v4M8.5 20h7" />
+                          </svg>
+                          Top Rated
+                        </span>
+                      )}
                       {coach.languages.map((lang) => (
-                        <span key={lang} className="language">
+                        <span key={lang}>
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M3 12h18M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18" />
+                          </svg>
                           {lang.toUpperCase()}
                         </span>
                       ))}
@@ -332,15 +421,20 @@ export default function CoachingDirectory() {
                 )
               })}
             </div>
-            <div className="coach-empty" id="coachEmpty" hidden={result === null || shown.length > 0}>
+            <div className="cl-empty" id="coachEmpty" hidden={result === null || shown.length > 0}>
               ქოუჩი ვერ მოიძებნა.
             </div>
-            {result === null && <div className="coach-empty">იტვირთება…</div>}
+            {result === null && <div className="cl-empty">იტვირთება…</div>}
 
             {result !== null && result.total > 0 && page >= totalPages && (
-              <div className="coach-empty wc-end">
+              <div className="cl-empty cl-end">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="8" r="3.2" />
+                  <path d="M5.5 20a6.5 6.5 0 0 1 13 0M4.5 9.5a2.2 2.2 0 1 1 2.6-3M19.5 9.5a2.2 2.2 0 1 0-2.6-3M2.5 16.5a3.6 3.6 0 0 1 3-3M21.5 16.5a3.6 3.6 0 0 0-3-3" />
+                </svg>
                 <strong>მეტი ქოუჩი ვერ მოიძებნა</strong>
                 <span>ახალი ქოუჩები მალე შემოგვიერთდებიან.</span>
+                <i aria-hidden="true"></i>
               </div>
             )}
 

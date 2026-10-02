@@ -850,3 +850,24 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   listing page's remaining English review strings are now Georgian (with dictionary entries).
 - New strings are in `lib/i18n-ka-en.app.json`, including `{0}` patterns for the backend's
   notification texts.
+
+## 2026-10-02 Profile + coaching pages to the design mockups
+- **`/coaching` (mockup 06)** — rebuilt on its own `cl-` CSS block (end of `global.css`) instead of the
+  prototype's `.coach-shell`/`.coach-card` rules: two-line heading, toolbar (sort select + Grid/List
+  toggle), game chips (horizontal scroll on phones), and the mockup's coach card — photo (or
+  initials) with the real online pill, plan badge, specialty, rank, rating, measured response time,
+  game, price + "Book Session" (links straight to `/coaching/[id]/book`), tag chips with icons.
+  The filter panel keeps the prototype's `.coach-filter-panel` styling: beside the grid on desktop,
+  folded behind the toolbar's Filters button below 1000px (it used to sit above everything on phones).
+  Left out for lack of data (rule #6): "Top 1%", and a tier badge for coaches without a plan badge.
+  The home "View all" coach links already point here.
+- **"Profile" opens the mockup-12 page**: the phone bottom nav's Profile tab and the phone header
+  avatar now go to the signed-in user's `/u/[username]` (they opened the `/profile` Settings page, so
+  the owner never saw the redesigned profile). `/profile` stays the Settings editor, reached from
+  "Edit profile" on the user's own page and from the profile menu. Signed out, both still lead to login.
+- **`/u/[username]`**: hero wave artwork (inline SVG in CSS — the mockup's photo isn't an asset we
+  have) and an icon per game-profile fact (`.up-fact`).
+- `/coaching/[id]` (mockup 14) was already on the target design; unchanged apart from a
+  missing English unit (`წთ ·`).
+- Checked at 1440 / 1000 / 375px in Georgian and English: no horizontal scroll, no untranslated UI
+  strings (coach-entered text such as package names stays as written).

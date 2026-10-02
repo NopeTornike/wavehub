@@ -85,11 +85,11 @@ export default function PublicProfile() {
   const mainGame = p.mainGames[0] ?? null
   const joined = new Date(p.createdAt).toLocaleDateString('ka-GE', { month: 'short', year: 'numeric' })
   const rating = p.reviews.average
-  const gameFacts: Array<[string, string | null]> = [
-    ['ძირითადი თამაში', mainGame?.name ?? null],
-    ['პლატფორმა', p.platform],
-    ['სასურველი როლი / სტილი', p.preferredRole],
-    ['გამორჩეული მიღწევა', p.achievement],
+  const gameFacts: Array<[string, string | null, ReactNode]> = [
+    ['ძირითადი თამაში', mainGame?.name ?? null, <path key="i" d="M6 8h12a4 4 0 0 1 4 4v1a4 4 0 0 1-7 2.6L14 14h-4l-1 1.6A4 4 0 0 1 2 13v-1a4 4 0 0 1 4-4ZM7 11v3M5.5 12.5h3M16.5 11.5h.01M18.5 13.5h.01" />],
+    ['პლატფორმა', p.platform, <path key="i" d="M3 5h13v9H3zM7 18h5M9.5 14v4M18 9h3v10h-5v-3" />],
+    ['სასურველი როლი / სტილი', p.preferredRole, <path key="i" d="M12 3v3M12 18v3M3 12h3M18 12h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 11.5v1" />],
+    ['გამორჩეული მიღწევა', p.achievement, <path key="i" d="M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3M12 14v4M8.5 20h7" />],
   ]
 
   const toggleFollow = async () => {
@@ -287,8 +287,11 @@ export default function PublicProfile() {
               <dl>
                 {gameFacts
                   .filter(([, value]) => value)
-                  .map(([label, value]) => (
-                    <div key={label}>
+                  .map(([label, value, icon]) => (
+                    <div key={label} className="up-fact">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        {icon}
+                      </svg>
                       <dt>{label}</dt>
                       <dd>{value}</dd>
                     </div>

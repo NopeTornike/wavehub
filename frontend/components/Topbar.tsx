@@ -449,7 +449,7 @@ export default function Topbar({
         <Link className="join" href="/register">
           Join
         </Link>
-        <Link className="mobile-user-profile" id="mobileUserProfile" href={user ? '/profile' : loginHref} aria-label="Open profile">
+        <Link className="mobile-user-profile" id="mobileUserProfile" href={user ? `/u/${user.username}` : loginHref} aria-label="Open profile">
           <span className={avatarClass} id="mobileHeaderAvatar" style={avatarStyle}>
             {avatarText}
           </span>

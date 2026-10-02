@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useAuth } from '../lib/auth'
 
 // profile-nav.js#renderMobileNavigation — the phone-width bottom tab bar (hidden on desktop by CSS).
 const ROUTES: Array<{ id: string; href: string; label: string; icon: React.ReactNode }> = [
@@ -13,13 +14,17 @@ function activeRoute(path: string) {
   if (path.startsWith('/marketplace') || path.startsWith('/listings') || path.startsWith('/cart') || path.startsWith('/steam-keys')) return 'marketplace'
   if (path.startsWith('/orders')) return 'orders'
   if (path.startsWith('/wallet')) return 'wallet'
-  if (path.startsWith('/profile')) return 'profile'
+  if (path.startsWith('/profile') || path.startsWith('/u/')) return 'profile'
   return 'home'
 }
 
 export default function MobileBottomNav() {
   const { pathname } = useRouter()
+  const { user } = useAuth()
   const active = activeRoute(pathname)
+  // "Profile" opens the signed-in user's own profile page (docs/design-mockups/12); Settings is one
+  // tap away from there. Signed out it stays on /profile, which shows the login panel.
+  const hrefFor = (route: { id: string; href: string }) => (route.id === 'profile' && user ? `/u/${user.username}` : route.href)
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
       <Link className={`mobile-home-link${active === 'home' ? ' active' : ''}`} href="/" data-mobile-route="home">
@@ -29,7 +34,7 @@ export default function MobileBottomNav() {
         <span>მთავარი</span>
       </Link>
       {ROUTES.map((route) => (
-        <Link key={route.id} className={active === route.id ? 'active' : undefined} href={route.href} data-mobile-route={route.id}>
+        <Link key={route.id} className={active === route.id ? 'active' : undefined} href={hrefFor(route)} data-mobile-route={route.id}>
           <svg viewBox="0 0 24 24" aria-hidden="true">{route.icon}</svg>
           <span>{route.label}</span>
         </Link>
