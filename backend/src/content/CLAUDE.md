@@ -92,3 +92,10 @@ first all-caps `WAVEHUBX …` line is dropped (the title is shown instead); a si
 closing punctuation is a section heading (`"3 Heading"` keeps its number, unnumbered ones are
 numbered in order); lines starting `– `/`- `/`• ` become list items; a short `Label:` line is bold;
 text before the first heading is the hero intro. Admins editing a page should keep to that shape.
+
+## 2026-10-02 About page copy
+Migration `1784369000000-AboutUsGeorgianCopy` puts Tornike's Georgian policy-style About copy
+(`about-us.html` on main: intro + 4 numbered sections) into the `about` CMS page, which the footer's
+"ჩვენ შესახებ" opens. It only updates the row while it still holds the English marketing copy
+`SyncRealContentPageCopy` wrote, so an admin's own edit is never overwritten. Body blocks are
+separated by blank lines (the `/pages/[slug]` parser's format above).
