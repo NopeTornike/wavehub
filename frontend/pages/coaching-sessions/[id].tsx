@@ -33,6 +33,11 @@ function when(value: string | null | undefined): string {
   return `${t.getUTCDate()} ${MONTHS[t.getUTCMonth()]}, ${t.toISOString().slice(11, 16)}`
 }
 
+// Server clock minus this device's clock (0 when the response has no server time).
+function skewOf(session: PublicCoachingSession): number {
+  return session.serverNow ? new Date(session.serverNow).getTime() - Date.now() : 0
+}
+
 function untilText(ms: number): string {
   if (ms <= 0) return 'ახლა'
   const m = Math.round(ms / 60_000)
@@ -52,7 +57,11 @@ export default function CoachingSessionDetail() {
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [now, setNow] = useState(() => Date.now())
+  const [clock, setClock] = useState(() => Date.now())
+  // Server clock minus device clock: the start window is timed on the server's clock (a phone set to
+  // the wrong time used to show a Start button the server then refused).
+  const [skew, setSkew] = useState(0)
+  const now = clock + skew
   // Question labels for the stored answers (answers are keyed by question key).
   const [labels, setLabels] = useState<Record<string, string>>({})
   const coachId = session?.coachId
@@ -85,6 +94,8 @@ export default function CoachingSessionDetail() {
         .getCoachingSession(id)
         .then((s) => {
           setSession(s)
+          setSkew(skewOf(s))
+          setClock(Date.now())
           setError('')
         })
         .catch((err) => {
@@ -105,7 +116,7 @@ export default function CoachingSessionDetail() {
   useEffect(() => {
     if (!active) return
     const poll = window.setInterval(() => load(true), 20_000)
-    const tick = window.setInterval(() => setNow(Date.now()), 30_000)
+    const tick = window.setInterval(() => setClock(Date.now()), 15_000)
     return () => {
       window.clearInterval(poll)
       window.clearInterval(tick)
@@ -147,7 +158,9 @@ export default function CoachingSessionDetail() {
     setActionError('')
     setBusy(true)
     try {
-      setSession(await fn())
+      const next = await fn()
+      setSession(next)
+      setSkew(skewOf(next))
       // Completing pays the coach, cancelling refunds the student — keep the topbar balance fresh.
       await refresh()
     } catch (err) {

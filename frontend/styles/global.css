@@ -20276,3 +20276,57 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
 .up-game-body .up-fact { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 12px; align-items: center; }
 .up-game-body .up-fact svg { grid-row: span 2; width: 36px; height: 36px; padding: 8px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 9px; background: rgba(255, 255, 255, .03); color: #d9dcea; }
 .up-game-body .up-fact dd { overflow-wrap: anywhere; }
+
+/* 6-digit email verification code (components/EmailCodeForm.tsx) */
+.email-code-form { display: grid; gap: 6px; margin: 10px 0 4px; }
+.email-code-form label { color: #c3c9d6; font-size: 13px; font-weight: 600; }
+.email-code-form > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.email-code-form input { width: 150px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .18); border-radius: 10px; background: rgba(5, 6, 16, .7); color: #fff; font: 700 20px/1 'Courier New', monospace; letter-spacing: 6px; text-align: center; }
+.email-code-form input:focus { outline: none; border-color: #ff2f8f; box-shadow: 0 0 0 3px rgba(255, 47, 143, .18); }
+.email-code-form button { padding: 0 18px; min-height: 44px; border: 0; border-radius: 10px; background: linear-gradient(90deg, #ff2f8f, #d335e7); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.email-code-form button:disabled { opacity: .55; cursor: not-allowed; }
+.email-code-error { color: #ff8da0; font-size: 13px; }
+
+/* Coaching package cards (components/PackageCard.tsx) — one component for Starter / Growth / Elite.
+   Accents are the booking flow's existing colours. 3 per row on desktop, 2+1 on tablet, 1 on phones. */
+.pkg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+.pkg-card { --tone: #b850ff; display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 24px 22px 20px; border: 1px solid color-mix(in srgb, var(--tone) 50%, #2a3245); border-radius: 14px; background: linear-gradient(165deg, color-mix(in srgb, var(--tone) 9%, transparent), transparent 42%), rgba(4, 10, 22, .86); color: #e7e6ec; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.pkg-card.pink { --tone: #f40067; }
+.pkg-card.gold { --tone: #f4a92f; }
+.pkg-card.purple { --tone: #b850ff; }
+.pkg-card.selected { border-width: 2px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--tone) 16%, transparent), 0 0 28px color-mix(in srgb, var(--tone) 20%, transparent); transform: translateY(-1px); }
+.pkg-card header { display: grid; gap: 4px; padding-bottom: 14px; border-bottom: 1px solid #232a38; text-align: center; }
+.pkg-card h3 { margin: 0; color: var(--tone); font-size: 24px; font-weight: 900; letter-spacing: .06em; }
+.pkg-length { margin: 0; color: #d1cfd5; font-size: 14px; font-weight: 700; }
+.pkg-price { display: flex; gap: 8px; align-items: baseline; justify-content: center; margin: 6px 0 0; }
+.pkg-price strong { color: #fff; font-size: 34px; line-height: 1; }
+.pkg-price span { color: #9c9aa3; font-size: 13px; }
+.pkg-card section { display: grid; gap: 8px; }
+.pkg-card h4 { margin: 0; color: var(--tone); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.pkg-card section p { margin: 0; color: #c9c8d0; font-size: 14px; line-height: 1.55; }
+.pkg-card .pkg-tagline { color: #fff; font-weight: 700; }
+.pkg-card ul { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.pkg-card li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 9px; align-items: start; color: #d2d0d7; font-size: 13.5px; line-height: 1.45; }
+.pkg-card li svg { width: 18px; height: 18px; margin-top: 1px; color: var(--tone); }
+.pkg-cta { margin-top: auto; display: grid; place-items: center; min-height: 46px; border: 1px solid color-mix(in srgb, var(--tone) 60%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--tone) 12%, transparent); color: #fff; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; text-decoration: none; }
+.pkg-cta:hover { background: color-mix(in srgb, var(--tone) 22%, transparent); }
+.pkg-card.selected .pkg-cta { border-color: transparent; background: linear-gradient(90deg, #f40067, #dc087c); }
+@media (max-width: 1100px) {
+  .pkg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pkg-grid > .pkg-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+@media (max-width: 680px) {
+  .pkg-grid { grid-template-columns: 1fr; }
+  .pkg-card { padding: 20px 16px 16px; }
+}
+
+/* Admin → Coaching packages (pages/admin/coaching-packages.tsx) */
+.acp-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 20px; align-items: start; }
+.acp-fields { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.acp-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.acp-active { display: flex; gap: 8px; align-items: center; color: #d3d8e3; font-size: 14px; }
+.acp-preview { display: grid; gap: 8px; position: sticky; top: 90px; }
+@media (max-width: 1000px) {
+  .acp-row { grid-template-columns: 1fr; }
+  .acp-preview { position: static; }
+}

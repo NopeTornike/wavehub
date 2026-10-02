@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { randomBytes, createHash } from 'crypto';
+import { randomBytes, randomInt, createHash, timingSafeEqual } from 'crypto';
 import { NotificationType, UserStatus } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { EmailVerificationToken } from './email-verification-token.entity';
@@ -13,6 +13,8 @@ import { Notification } from '../notifications/notification.entity';
 
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+// Wrong 6-digit code entries before the code (and its link) stop working.
+export const MAX_CODE_ATTEMPTS = 5;
 
 function hashToken(rawToken: string): string {
   return createHash('sha256').update(rawToken).digest('hex');
@@ -136,15 +138,18 @@ export class AuthService {
 
   async sendEmailVerification(user: User): Promise<void> {
     const rawToken = randomBytes(32).toString('hex');
+    // Also a 6-digit code: Gmail disables links in mail it files as spam, so the user can type it.
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     const token = this.verificationTokens.create({
       userId: user.id,
       tokenHash: hashToken(rawToken),
+      codeHash: hashToken(`${user.id}:${code}`),
       expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS),
     });
     await this.verificationTokens.save(token);
 
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${rawToken}`;
-    await this.email.send(user.email, 'დაადასტურეთ ელფოსტა · Verify your WaveHub email', verificationEmail(user.firstName, verifyUrl));
+    await this.email.send(user.email, `${code} — WaveHub-ის დადასტურების კოდი · Verify your email`, verificationEmail(user.firstName, verifyUrl, code));
   }
 
   async verifyEmail(rawToken: string): Promise<void> {
@@ -160,6 +165,24 @@ export class AuthService {
       status: UserStatus.Active,
       emailVerifiedAt: new Date(),
     });
+  }
+
+  // The signed-in (pending) user types the 6-digit code from the email. Checked against their newest
+  // live token; every wrong try counts and MAX_CODE_ATTEMPTS burns it, so the 10^6 space can't be
+  // walked (on top of the route's per-IP throttle).
+  async verifyEmailCode(userId: string, code: string): Promise<void> {
+    const token = await this.verificationTokens.findOne({ where: { userId }, order: { createdAt: 'DESC' } });
+    if (!token || !token.codeHash || token.consumedAt || token.expiresAt < new Date()) {
+      throw new Error('INVALID_OR_EXPIRED_TOKEN');
+    }
+    const given = Buffer.from(hashToken(`${userId}:${code}`));
+    if (!timingSafeEqual(given, Buffer.from(token.codeHash))) {
+      const attempts = token.codeAttempts + 1;
+      await this.verificationTokens.update(token.id, { codeAttempts: attempts, ...(attempts >= MAX_CODE_ATTEMPTS ? { consumedAt: new Date() } : {}) });
+      throw new Error(attempts >= MAX_CODE_ATTEMPTS ? 'CODE_LOCKED' : 'INVALID_CODE');
+    }
+    await this.verificationTokens.update(token.id, { consumedAt: new Date() });
+    await this.users.update(userId, { status: UserStatus.Active, emailVerifiedAt: new Date() });
   }
 
   async requestPasswordReset(email: string): Promise<void> {

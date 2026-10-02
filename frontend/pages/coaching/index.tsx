@@ -6,6 +6,7 @@ import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { gameIcon } from '../../lib/games'
 import { useShell } from '../../lib/shell'
+import { useCoachingFromPrice } from '../../lib/coaching-price'
 
 /* eslint-disable @next/next/no-img-element */
 // The prototype's coaching.html (coaching.js), on real data: the filter panel (Game checkboxes with
@@ -51,6 +52,7 @@ function pageList(total: number, active: number): number[] {
 }
 
 export default function CoachingDirectory() {
+  const fromPrice = useCoachingFromPrice()
   const router = useRouter()
   const { games } = useShell()
   const [checkedGames, setCheckedGames] = useState<string[]>([])
@@ -162,6 +164,8 @@ export default function CoachingDirectory() {
                   </button>
                 )}
               </fieldset>
+              {/* Hourly-rate filter only while no platform package is active (packages cost the same for every coach). */}
+              {fromPrice === null && (
               <fieldset className={fieldsetClass('price')}>
                 <legend>ფასის დიაპაზონი</legend>
                 <input
@@ -181,6 +185,7 @@ export default function CoachingDirectory() {
                   <span id="priceRangeLabel">{priceLabel}</span>
                 </div>
               </fieldset>
+              )}
               <label className="coach-select-label">
                 <span>ენა</span>
                 <select id="languageFilter" value={language} onChange={(event) => refilter(() => setLanguage(event.target.value))}>
@@ -230,7 +235,7 @@ export default function CoachingDirectory() {
                   <circle cx="8" cy="17" r="2" />
                 </svg>
                 <select id="coachSort" value={sort} onChange={(event) => refilter(() => setSort(event.target.value))}>
-                  {SORTS.map(([value, label]) => (
+                  {SORTS.filter(([value]) => fromPrice === null || !value.startsWith('price')).map(([value, label]) => (
                     <option key={value} value={value}>
                       დალაგება: {label}
                     </option>
@@ -370,8 +375,8 @@ export default function CoachingDirectory() {
 
                     <div className="cl-buy">
                       <p className="cl-price">
-                        <strong>{coach.hourlyRateWaveCoin}</strong>
-                        <span>GEL/სთ</span>
+                        <strong>{fromPrice !== null ? `${fromPrice}₾` : coach.hourlyRateWaveCoin}</strong>
+                        <span>{fromPrice !== null ? '-დან' : 'GEL/სთ'}</span>
                       </p>
                       <Link className="cl-book" href={`${href}/book`} aria-label={`სესიის დაჯავშნა — ${name}`}>
                         <svg viewBox="0 0 24 24" aria-hidden="true">

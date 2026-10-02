@@ -10,18 +10,19 @@ const ROUTES: Array<{ id: string; href: string; label: string; icon: React.React
   { id: 'profile', href: '/profile', label: 'პროფილი', icon: <><circle cx="12" cy="7" r="4" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></> },
 ]
 
-function activeRoute(path: string) {
+// `own` = the viewer is on their own /u/[username] page — someone else's profile isn't "Profile".
+function activeRoute(path: string, own: boolean) {
   if (path.startsWith('/marketplace') || path.startsWith('/listings') || path.startsWith('/cart') || path.startsWith('/steam-keys')) return 'marketplace'
   if (path.startsWith('/orders')) return 'orders'
   if (path.startsWith('/wallet')) return 'wallet'
-  if (path.startsWith('/profile') || path.startsWith('/u/')) return 'profile'
+  if (path.startsWith('/profile') || (path.startsWith('/u/') && own)) return 'profile'
   return 'home'
 }
 
 export default function MobileBottomNav() {
-  const { pathname } = useRouter()
+  const { pathname, query } = useRouter()
   const { user } = useAuth()
-  const active = activeRoute(pathname)
+  const active = activeRoute(pathname, Boolean(user) && query.username === user?.username)
   // "Profile" opens the signed-in user's own profile page (docs/design-mockups/12); Settings is one
   // tap away from there. Signed out it stays on /profile, which shows the login panel.
   const hrefFor = (route: { id: string; href: string }) => (route.id === 'profile' && user ? `/u/${user.username}` : route.href)

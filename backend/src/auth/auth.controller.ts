@@ -67,6 +67,12 @@ class VerifyEmailDto {
   token: string;
 }
 
+class VerifyEmailCodeDto {
+  @IsString()
+  @Matches(/^\d{6}$/, { message: 'The code is 6 digits' })
+  code: string;
+}
+
 class RequestPasswordResetDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
   @IsEmail()
@@ -179,6 +185,24 @@ export class AuthController {
       return { ok: true };
     } catch {
       throw new HttpException({ ok: false, error: 'Invalid or expired verification link' }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  // The 6-digit code from the verification email, typed by the signed-in pending user.
+  @Post('verify-email-code')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
+  @Throttle(AUTH_THROTTLE)
+  async verifyEmailCode(@CurrentUserId() userId: string, @Body() body: VerifyEmailCodeDto) {
+    try {
+      await this.auth.verifyEmailCode(userId, body.code);
+      return { ok: true };
+    } catch (err) {
+      const locked = (err as Error).message === 'CODE_LOCKED';
+      throw new HttpException(
+        { ok: false, error: locked ? 'Too many wrong codes — request a new email' : 'Wrong or expired code' },
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 

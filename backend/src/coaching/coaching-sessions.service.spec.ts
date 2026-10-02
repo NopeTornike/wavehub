@@ -67,8 +67,13 @@ describe('CoachingSessionsService', () => {
     const platformSettings = { getPlatformFeePercent: jest.fn(async () => 10) } as any;
     const notifications = { emit: jest.fn() } as any;
 
-    const packages = { findOne: jest.fn(async ({ where }: any) => (where.id === 'pkg-1' && where.coachId === coachRow?.id ? { id: 'pkg-1', name: 'VOD review', durationMinutes: 45, priceWaveCoin: 25 } : null)) } as any;
-    const service = new CoachingSessionsService(sessions, coaches, {} as any, packages, dataSource, wallet, platformSettings, notifications, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any);
+    const packages = {
+      getActive: jest.fn(async (id: string) => {
+        if (id !== 'pkg-1') throw new NotFoundException('This package is not available');
+        return { id: 'pkg-1', name: 'VOD review', sessionsCount: 1, durationMinutes: 45, priceWaveCoin: 25 };
+      }),
+    } as any;
+    const service = new CoachingSessionsService(sessions, coaches, {} as any, dataSource, wallet, platformSettings, notifications, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any, packages);
     return { service, sessions, coaches, dataSource, wallet, platformSettings, notifications, sessionRows };
   }
 

@@ -871,3 +871,20 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   missing English unit (`წთ ·`).
 - Checked at 1440 / 1000 / 375px in Georgian and English: no horizontal scroll, no untranslated UI
   strings (coach-entered text such as package names stays as written).
+
+## 2026-10-02 Launch fixes: packages, email code, session clock
+- **`components/PackageCard.tsx`** — the one card for the platform's Starter / Growth / Elite
+  (owner spec): name, length (`3 × 50 წუთი`), price + "სრული ფასი", tagline + description, "რას
+  მოიცავს" bullets, CTA "პაკეტის არჩევა". Accents keep the booking colours (Starter pink, Growth
+  gold, Elite purple). `.pkg-grid`: 3 per row, 2+1 below 1100px, 1 column below 680px. Used on
+  `/coaching/[id]` (CTA → `/coaching/[id]/book?package=…`) and booking step 1 (CTA selects).
+- Booking step 1 shows only the packages (the hourly single session is the fallback when none is
+  active). Coach cards (home, `/coaching`) and the profile show the cheapest package ("19₾-დან",
+  `lib/coaching-price.ts`); `/coaching` hides the price sort and price filter while packages exist.
+- **Admin → Coaching packages** (`pages/admin/coaching-packages.tsx`, nav under "ხალხი"): edit each
+  package with a live card preview; Super Admin only (others read-only). The coach's own package
+  editor (`CoachPackagesEditor`) is gone from `/coaching/profile` and Admin → Coaches.
+- **`components/EmailCodeForm.tsx`** — the 6-digit code from the verification email (links are dead
+  in Gmail's spam folder): in `VerifyEmailBanner`, after registering, and on `/verify-email`.
+- `/coaching-sessions/[id]` times the start window on the server clock (`session.serverNow`).
+- The phone bottom nav highlights "Profile" only on the viewer's own `/u/[username]`.

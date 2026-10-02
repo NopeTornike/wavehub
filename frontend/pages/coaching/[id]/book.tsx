@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import PackageCard from '../../../components/PackageCard'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { DEFAULT_COACH_AVAILABILITY, coachAvailabilityProblem, coachAvailabilityStarts, type PublicCoachDetail, type PublicCoachingSession } from '@wavehub/shared-types'
 import PageHead from '../../../components/PageHead'
@@ -10,7 +11,8 @@ import { useAuth } from '../../../lib/auth'
 
 // Tornike's 6-step coach booking (prototype coach-booking.html + coach-booking-flow.js, 38b086d),
 // markup and `booking-*` classes 1:1, on real data:
-//   1 package — the coach's hourly single session + their real packages (no invented tiers);
+//   1 package — the platform's Starter / Growth / Elite (components/PackageCard; the hourly single
+//     session only if no package is active);
 //   2 schedule — 14 days × hourly slots (Tbilisi time), the coach's booked times greyed out
 //     (GET coaches/:id/busy); a package needs its sessionsCount slots;
 //   3 goal — goal + Discord required, challenges optional, plus the coach's own questions;
@@ -216,8 +218,6 @@ const STEPS: Array<[string, IconName]> = [
   ['გადახდა', 'card'],
   ['დადასტურება', 'check'],
 ]
-const TONES = ['pink', 'gold', 'purple']
-const PKG_ICONS: IconName[] = ['growth', 'crown', 'rocket']
 const WEEKDAYS = ['კვირა', 'ორშაბათი', 'სამშაბათი', 'ოთხშაბათი', 'ხუთშაბათი', 'პარასკევი', 'შაბათი']
 const MONTHS = ['იან', 'თებ', 'მარ', 'აპრ', 'მაი', 'ივნ', 'ივლ', 'აგვ', 'სექ', 'ოქტ', 'ნოე', 'დეკ']
 // Coaches are in Georgia: slots are Tbilisi time (UTC+4, no DST).
@@ -226,7 +226,7 @@ const DAYS = 14
 const SINGLE = 'single'
 const SINGLE_MINUTES = 60
 
-type Option = { id: string; name: string; subtitle: string; sessions: number; minutes: number; total: number; icon: IconName; tone: string; features: Array<[IconName, string]> }
+type Option = { id: string; name: string; sessions: number; minutes: number; total: number }
 type Draft = { step: number; option: string; slots: string[]; goal: string; challenges: string; discord: string; answers: Record<string, string> }
 
 // The Tbilisi calendar date of `ms` as YYYY-MM-DD.
@@ -334,44 +334,14 @@ export default function CoachBooking() {
     if (user) loadBusy()
   }, [user, loadBusy])
 
+  // The platform's packages (Starter / Growth / Elite — the same for every coach, staff-edited).
+  // Only if none is active does the single hourly session remain as a fallback.
   const options: Option[] = useMemo(() => {
     if (!coach) return []
-    const single: Option = {
-      id: SINGLE,
-      name: 'ერთი სესია',
-      subtitle: 'ერთჯერადი დაჯავშნა · პაკეტისა და გამოწერის გარეშე',
-      sessions: 1,
-      minutes: SINGLE_MINUTES,
-      total: Math.round((coach.hourlyRateWaveCoin * SINGLE_MINUTES) / 60),
-      icon: 'rocket',
-      tone: 'purple',
-      features: [
-        ['user', '1 პირდაპირი სესია'],
-        ['clock', `${SINGLE_MINUTES} წუთი`],
-        ['check', 'გადახდა მხოლოდ ერთ სესიაზე'],
-        ['check', 'გამოწერის გარეშე'],
-        ['chat', 'ჩატი ქოუჩთან'],
-      ],
+    if (coach.packages.length) {
+      return coach.packages.map((p): Option => ({ id: p.id, name: p.name, sessions: p.sessionsCount, minutes: p.durationMinutes, total: p.priceWaveCoin }))
     }
-    return [
-      single,
-      ...coach.packages.map((p, i): Option => ({
-        id: p.id,
-        name: p.name,
-        subtitle: p.description || `${p.sessionsCount} სესიიანი პაკეტი`,
-        sessions: p.sessionsCount,
-        minutes: p.durationMinutes,
-        total: p.priceWaveCoin,
-        icon: PKG_ICONS[i % PKG_ICONS.length],
-        tone: TONES[i % TONES.length],
-        features: [
-          ['package', `${p.sessionsCount} პირდაპირი სესია`],
-          ['clock', `თითო ${p.durationMinutes} წუთი`],
-          ['check', 'თანხა დაცულია სესიების დასრულებამდე'],
-          ['chat', 'ჩატი ქოუჩთან'],
-        ],
-      })),
-    ]
+    return [{ id: SINGLE, name: 'ერთი სესია', sessions: 1, minutes: SINGLE_MINUTES, total: Math.round((coach.hourlyRateWaveCoin * SINGLE_MINUTES) / 60) }]
   }, [coach])
 
   const option = options.find((o) => o.id === draft.option) ?? options[0]
@@ -592,57 +562,37 @@ export default function CoachBooking() {
   if (step === 1) {
     body = (
       <>
-        {intro('', 'დაჯავშნე ქოუჩინგ სესია', 'აირჩიე ერთი სესია ან პაკეტი, რომელიც შენს მიზნებს შეესაბამება.')}
+        {intro('', 'დაჯავშნე ქოუჩინგ სესია', 'აირჩიე პაკეტი, რომელიც შენს მიზნებს შეესაბამება.')}
         {coachCard}
         <section className="booking-section-heading">
           <span>
             <Icon name="package" />
           </span>
           <div>
-            <h2>აირჩიე სესიის ვარიანტი</h2>
-            <p>დაჯავშნე ერთი სესია ან ქოუჩის პაკეტი. ყველა ვარიანტი მოიცავს ინდივიდუალურ ქოუჩინგს {name}-თან.</p>
+            <h2>აირჩიე პაკეტი</h2>
+            <p>ყველა პაკეტი მოიცავს ინდივიდუალურ ქოუჩინგს {name}-თან.</p>
           </div>
         </section>
-        <div className="booking-packages">
-          {options.map((o) => {
-            const selected = o.id === option.id
-            const choose = () => setDraft((d) => ({ ...d, option: o.id, slots: d.option === o.id ? d.slots : [] }))
-            return (
-              <article key={o.id} className={`booking-package ${o.tone}${selected ? ' selected' : ''}`}>
-                <button className="booking-radio" type="button" aria-label={`აირჩიე ${o.name}`} onClick={choose}>
-                  {selected && <Icon name="check" />}
-                </button>
-                <div className="booking-package-icon">
-                  <Icon name={o.icon} />
-                </div>
-                <h3>{o.name}</h3>
-                <p>{o.subtitle}</p>
-                <ul>
-                  {o.features.map(([icon, label]) => (
-                    <li key={label}>
-                      <Icon name={icon} /> {label}
-                    </li>
-                  ))}
-                </ul>
-                <div className="booking-package-price">
-                  <strong>{money(o.total)}</strong>
-                  <span>სულ</span>
-                  <small>{money(Math.round(o.total / o.sessions))} / სესია</small>
-                </div>
-                <button className="booking-select" type="button" onClick={choose}>
-                  {selected ? (
-                    <>
-                      არჩეული <Icon name="check" />
-                    </>
-                  ) : o.id === SINGLE ? (
-                    'ერთი სესიის არჩევა'
-                  ) : (
-                    'პაკეტის არჩევა'
-                  )}
-                </button>
-              </article>
-            )
-          })}
+        <div className="pkg-grid">
+          {coach.packages.length
+            ? coach.packages.map((p, i) => (
+                <PackageCard
+                  key={p.id}
+                  pkg={p}
+                  index={i}
+                  selected={p.id === option.id}
+                  onSelect={() => setDraft((d) => ({ ...d, option: p.id, slots: d.option === p.id ? d.slots : [] }))}
+                />
+              ))
+            : options.map((o) => (
+                <PackageCard
+                  key={o.id}
+                  pkg={{ id: o.id, key: 'single', name: o.name, tagline: 'ერთჯერადი ინდივიდუალური სესია.', description: `${o.minutes} წუთი ${name}-თან.`, features: [], sessionsCount: 1, durationMinutes: o.minutes, priceWaveCoin: o.total }}
+                  index={2}
+                  selected={o.id === option.id}
+                  onSelect={() => setDraft((d) => ({ ...d, option: o.id }))}
+                />
+              ))}
         </div>
         <div className="booking-benefits">
           <div>

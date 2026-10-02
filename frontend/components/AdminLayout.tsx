@@ -63,6 +63,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { href: '/admin/users', label: 'მომხმარებლები', icon: 'users' },
       { href: '/admin/coaches', label: 'ქოუჩები', icon: 'coach' },
+      { href: '/admin/coaching-packages', label: 'ქოუჩინგის პაკეტები', icon: 'crown' },
       { href: '/admin/tickets', label: 'მხარდაჭერა', icon: 'ticket' },
     ],
   },

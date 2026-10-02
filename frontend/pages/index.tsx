@@ -9,6 +9,7 @@ import { useShell } from '../lib/shell'
 import { gameCover, gameDisplayName, gameTile } from '../lib/games'
 import { listingKind, normalizeAccountStatus } from '../components/ProductCard'
 import RankIcon from '../components/RankIcon'
+import { useCoachingFromPrice } from '../lib/coaching-price'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
 // the prototype's final DOM order (its script moves competition/steam/featured/how-it-works in
@@ -144,6 +145,7 @@ const TOURNAMENT_STATUS: Record<TournamentStatus, string> = {
 }
 
 export default function Home() {
+  const fromPrice = useCoachingFromPrice()
   const { user } = useAuth()
   const { games, waveRank } = useShell()
   const [featured, setFeatured] = useState<PublicListingSummary[] | null>(null)
@@ -512,7 +514,15 @@ export default function Home() {
                         </ul>
                         <footer>
                           <strong>
-                            {coach.hourlyRateWaveCoin} GEL <small>/ საათი</small>
+                            {fromPrice !== null ? (
+                              <>
+                                {fromPrice}₾ <small>-დან</small>
+                              </>
+                            ) : (
+                              <>
+                                {coach.hourlyRateWaveCoin} GEL <small>/ საათი</small>
+                              </>
+                            )}
                           </strong>
                           <span>სესიის დაჯავშნა →</span>
                         </footer>

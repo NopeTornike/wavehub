@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { UserStatus } from '@wavehub/shared-types'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import EmailCodeForm from './EmailCodeForm'
 
 // The backend's VerifiedEmailGuard (backend/src/auth/verified-email.guard.ts) answers 403 to
 // every money-moving / marketplace-mutating route while an account is `pending_verification`
@@ -30,7 +31,7 @@ export default function VerifyEmailBanner() {
     setSending(true)
     try {
       await api.resendVerification()
-      setMessage({ kind: 'ok', text: 'დამადასტურებელი წერილი გამოგზავნილია. შეამოწმეთ ელფოსტა (სპამის საქაღალდეც).' })
+      setMessage({ kind: 'ok', text: 'ახალი წერილი გამოგზავნილია. შეამოწმეთ ელფოსტა (სპამის საქაღალდეც) და შეიყვანეთ კოდი ან დააჭირეთ ღილაკს.' })
       setCooldown(RESEND_COOLDOWN_SECONDS)
     } catch (err) {
       setMessage({ kind: 'error', text: errorMessage(err, 'წერილის გაგზავნა ვერ მოხერხდა.') })
@@ -46,7 +47,7 @@ export default function VerifyEmailBanner() {
     setRechecking(true)
     await refresh()
     setRechecking(false)
-    setMessage({ kind: 'error', text: 'ელფოსტა ჯერ არ არის დადასტურებული. გახსენით წერილში მითითებული ბმული.' })
+    setMessage({ kind: 'error', text: 'ელფოსტა ჯერ არ არის დადასტურებული. შეიყვანეთ წერილში მოცემული კოდი ან გახსენით ბმული.' })
   }
 
   return (
@@ -57,6 +58,7 @@ export default function VerifyEmailBanner() {
           სანამ ელფოსტას არ დაადასტურებთ, ვერ შეძლებთ შეკვეთის გაფორმებას, განცხადების შექმნას, ბალანსის შევსებას,
           თანხის გატანას, სესიის დაჯავშნას, ტურნირზე რეგისტრაციას და მიმოწერის დაწყებას.
         </span>
+        <EmailCodeForm />
         {message && (
           <span className={message.kind === 'ok' ? 'verify-banner-ok' : 'verify-banner-error'} role="status">
             {message.text}

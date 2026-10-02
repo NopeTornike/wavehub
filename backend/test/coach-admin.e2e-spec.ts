@@ -1,11 +1,12 @@
 import { assertConserved } from './flows';
 import { balanceOf, createApp, credit, E2eApp, makeAdmin, registerUser, TestUser, openAllHours } from './helpers';
 
-// Staff add/edit coaches, coach packages + pre-booking questions, uploaded intro videos, and booking
-// a package with answers (coaching/CLAUDE.md, 2026-10-01).
+// Staff add/edit coaches, the platform coaching packages (Starter/Growth/Elite — staff-edited only),
+// pre-booking questions, uploaded intro videos, and booking a package with answers (coaching/CLAUDE.md).
 describe('coach admin, packages, questions, video (e2e)', () => {
   let ctx: E2eApp;
   let ops: TestUser;
+  let superAdmin: TestUser;
   let coachUser: TestUser;
   let buyer: TestUser;
   let coachId: string;
@@ -17,6 +18,8 @@ describe('coach admin, packages, questions, video (e2e)', () => {
     ctx = await createApp();
     ops = await registerUser(ctx, 'cops');
     await makeAdmin(ctx, ops, 'marketplace_coaching_ops_manager');
+    superAdmin = await registerUser(ctx, 'csuper');
+    await makeAdmin(ctx, superAdmin);
     coachUser = await registerUser(ctx, 'addedcoach');
     buyer = await registerUser(ctx, 'pkgbuyer');
     await credit(ctx, buyer, 500);
@@ -53,7 +56,7 @@ describe('coach admin, packages, questions, video (e2e)', () => {
     expect(audit.map((a: { action: string }) => a.action)).toContain('coach.create');
   });
 
-  it('coach and staff edit packages and booking questions; bounds are enforced', async () => {
+  it('coach and staff edit booking questions; staff edit the coach profile', async () => {
     const questions = [
       { key: 'rank', label: 'Current rank', type: 'dropdown', required: true, options: ['Gold', 'Platinum'] },
       { key: 'goal', label: 'Your goal', type: 'textarea', required: false },
@@ -62,26 +65,49 @@ describe('coach admin, packages, questions, video (e2e)', () => {
     expect((await coachUser.client.request('PATCH', '/coaches/mine/profile', { bookingQuestions: [{ ...questions[0], options: [] }] })).status).toBe(400);
     expect((await coachUser.client.request('PATCH', '/coaches/mine/profile', { bookingQuestions: questions })).status).toBe(200);
 
-    const pkg = (name: string, priceWaveCoin = 25) => ({ name, description: 'Review of one recorded match.', durationMinutes: 45, priceWaveCoin });
-    expect((await coachUser.client.request('PUT', '/coaches/mine/packages', { packages: Array.from({ length: 7 }, (_, i) => pkg(`P${i}`)) })).status).toBe(400);
-    expect((await coachUser.client.request('PUT', '/coaches/mine/packages', { packages: [{ ...pkg('Bad'), durationMinutes: 5 }] })).status).toBe(400);
-    const saved = await coachUser.client.request('PUT', '/coaches/mine/packages', { packages: [pkg('VOD review'), pkg('Bootcamp', 120)] });
-    expect(saved.status).toBe(200);
-    expect(saved.body.map((p: { name: string }) => p.name)).toEqual(['VOD review', 'Bootcamp']);
-
     // Staff edit the same coach (audit-logged); a stranger can't.
     expect((await buyer.client.request('PATCH', `/admin/coaches/${coachId}/profile`, { rank: 'Ace' })).status).toBe(403);
     const edited = await ops.client.request('PATCH', `/admin/coaches/${coachId}/profile`, { rank: 'Conqueror', hourlyRateWaveCoin: 50 });
     expect(edited.body).toMatchObject({ rank: 'Conqueror', hourlyRateWaveCoin: 50 });
-    expect((await ops.client.get(`/admin/coaches/${coachId}/profile`)).body.packages).toHaveLength(2);
 
     const detail = (await buyer.client.get(`/coaches/${coachId}`)).body;
-    expect(detail.packages.map((p: { name: string; priceWaveCoin: number }) => [p.name, p.priceWaveCoin])).toEqual([
-      ['VOD review', 25],
-      ['Bootcamp', 120],
-    ]);
     expect(detail.bookingQuestions).toEqual(questions);
     expect(detail.rank).toBe('Conqueror');
+  });
+
+  it('platform packages: the spec\'s Starter/Growth/Elite for every coach; only Super Admin edits them', async () => {
+    const list = (await buyer.client.get('/coaching-packages')).body;
+    expect(list.map((p: { key: string; sessionsCount: number; durationMinutes: number; priceWaveCoin: number }) => [p.key, p.sessionsCount, p.durationMinutes, p.priceWaveCoin])).toEqual([
+      ['starter', 1, 40, 19],
+      ['growth', 3, 50, 39],
+      ['elite', 6, 60, 69],
+    ]);
+    expect(list.map((p: { features: string[] }) => p.features.length)).toEqual([6, 8, 16]);
+    expect(list[0].tagline).toContain('საიდან დაიწყო');
+    expect((await buyer.client.get(`/coaches/${coachId}`)).body.packages).toEqual(list);
+
+    // Coaches no longer set their own packages; only staff see the admin list; only Super Admin edits.
+    expect((await coachUser.client.request('PUT', '/coaches/mine/packages', { packages: [] })).status).toBe(404);
+    expect((await buyer.client.get('/admin/coaching-packages')).status).toBe(403);
+    expect((await ops.client.get('/admin/coaching-packages')).status).toBe(200);
+    const starter = list[0];
+    expect((await ops.client.request('PATCH', `/admin/coaching-packages/${starter.id}`, { priceWaveCoin: 25 })).status).toBe(403);
+    expect((await superAdmin.client.request('PATCH', `/admin/coaching-packages/${starter.id}`, { sessionsCount: 11 })).status).toBe(400);
+    expect((await superAdmin.client.request('PATCH', `/admin/coaching-packages/${starter.id}`, { features: ['x'] })).status).toBe(400);
+    const changed = await superAdmin.client.request('PATCH', `/admin/coaching-packages/${starter.id}`, { priceWaveCoin: 25, features: ['One session', 'Personal advice'] });
+    expect(changed.status).toBe(200);
+    expect(changed.body).toMatchObject({ priceWaveCoin: 25, features: ['One session', 'Personal advice'], active: true });
+    const audit = await ctx.dataSource.query(`SELECT metadata FROM audit_logs WHERE action = 'coaching_package.update' AND "entityId" = $1`, [starter.id]);
+    expect(audit[0].metadata.before.priceWaveCoin).toBe(19);
+    await superAdmin.client.request('PATCH', `/admin/coaching-packages/${starter.id}`, { priceWaveCoin: 19, features: starter.features });
+
+    // A deactivated package disappears and can't be booked.
+    const growth = list[1];
+    await superAdmin.client.request('PATCH', `/admin/coaching-packages/${growth.id}`, { active: false });
+    expect((await buyer.client.get('/coaching-packages')).body.map((p: { key: string }) => p.key)).toEqual(['starter', 'elite']);
+    const slots = [1, 3, 5].map((h) => new Date(Date.now() + (200 + h) * 3600_000).toISOString());
+    expect((await buyer.client.post(`/coaches/${coachId}/bookings`, { packageId: growth.id, slots, goal: 'Improve my aim a lot.', discord: 'pkg.buyer', answers: { rank: 'Gold' } })).status).toBe(404);
+    await superAdmin.client.request('PATCH', `/admin/coaching-packages/${growth.id}`, { active: true });
   });
 
   it('intro video: MP4/WebM only, served inline; staff can replace or remove it', async () => {
@@ -105,7 +131,7 @@ describe('coach admin, packages, questions, video (e2e)', () => {
 
   it('booking a package charges its price and stores the answers for the participants only', async () => {
     const detail = (await buyer.client.get(`/coaches/${coachId}`)).body;
-    const vod = detail.packages[0];
+    const vod = detail.packages.find((p: { key: string }) => p.key === 'starter');
     const before = await balanceOf(ctx, buyer);
 
     expect((await buyer.client.post(`/coaches/${coachId}/sessions`, { scheduledAt: inOneDay(), packageId: vod.id })).status).toBe(400); // rank required
@@ -120,17 +146,18 @@ describe('coach admin, packages, questions, video (e2e)', () => {
       answers: { rank: 'Gold', goal: 'Reach Platinum' },
     });
     expect(booked.status).toBe(201);
-    expect(booked.body).toMatchObject({ priceWaveCoin: 25, durationMinutes: 45, packageName: 'VOD review', answers: { rank: 'Gold', goal: 'Reach Platinum' } });
-    expect(await balanceOf(ctx, buyer)).toBe(before - 25);
+    expect(booked.body).toMatchObject({ priceWaveCoin: 19, durationMinutes: 40, packageName: 'STARTER', answers: { rank: 'Gold', goal: 'Reach Platinum' } });
+    expect(await balanceOf(ctx, buyer)).toBe(before - 19);
 
     // The coach sees the answers; a stranger can't open the session.
     expect((await coachUser.client.get(`/coaching-sessions/${booked.body.id}`)).body.answers).toEqual({ rank: 'Gold', goal: 'Reach Platinum' });
     const stranger = await registerUser(ctx, 'pkgstranger');
     expect((await stranger.client.get(`/coaching-sessions/${booked.body.id}`)).status).toBeGreaterThanOrEqual(403);
 
-    // Removing the package keeps the session's snapshot.
-    await coachUser.client.request('PUT', '/coaches/mine/packages', { packages: [] });
-    expect((await buyer.client.get(`/coaching-sessions/${booked.body.id}`)).body.packageName).toBe('VOD review');
+    // Renaming the package later keeps the session's snapshot.
+    await superAdmin.client.request('PATCH', `/admin/coaching-packages/${vod.id}`, { name: 'STARTER PLUS' });
+    expect((await buyer.client.get(`/coaching-sessions/${booked.body.id}`)).body.packageName).toBe('STARTER');
+    await superAdmin.client.request('PATCH', `/admin/coaching-packages/${vod.id}`, { name: 'STARTER' });
     expect((await buyer.client.post(`/coaching-sessions/${booked.body.id}/cancel`)).status).toBeLessThan(300);
     expect(await balanceOf(ctx, buyer)).toBe(before);
   });

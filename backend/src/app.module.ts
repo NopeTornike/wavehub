@@ -52,7 +52,7 @@ import { Coach } from './coaching/coach.entity';
 import { CoachingSession } from './coaching/coaching-session.entity';
 import { CoachingSessionReview } from './coaching/coaching-session-review.entity';
 import { CoachFavorite } from './coaching/coach-favorite.entity';
-import { CoachPackage } from './coaching/coach-package.entity';
+import { CoachingPackage } from './coaching/coaching-package.entity';
 import { ContentModule } from './content/content.module';
 import { ContentPage } from './content/content-page.entity';
 import { TournamentsModule } from './tournaments/tournaments.module';
@@ -127,7 +127,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
         CoachingSession,
         CoachingSessionReview,
         CoachFavorite,
-        CoachPackage,
+        CoachingPackage,
         ContentPage,
         Tournament,
         TournamentRegistration,

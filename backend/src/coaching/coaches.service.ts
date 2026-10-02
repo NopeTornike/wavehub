@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { CoachStatus, DEFAULT_COACH_AVAILABILITY, NotificationType, SubscriptionAudience, UserStatus, VerificationStatus } from '@wavehub/shared-types';
-import type { AdminCoachSummary, CoachAvailability, MyCoachProfile, PublicCoachDetail, PublicCoachPackage, PublicCoachReview, PublicCoachSummary } from '@wavehub/shared-types';
+import type { AdminCoachSummary, CoachAvailability, MyCoachProfile, PublicCoachDetail, PublicCoachReview, PublicCoachSummary } from '@wavehub/shared-types';
 import { Coach } from './coach.entity';
 import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { BrowseCoachesDto } from './dto/browse-coaches.dto';
@@ -14,8 +14,7 @@ import { CoachFavorite } from './coach-favorite.entity';
 import { CoachingSessionReview } from './coaching-session-review.entity';
 import { UpdateCoachProfileDto } from './dto/update-coach-profile.dto';
 import { AdminCreateCoachDto } from './dto/admin-coach.dto';
-import { CoachPackageDto } from './dto/coach-packages.dto';
-import { CoachPackage } from './coach-package.entity';
+import { CoachingPackagesService } from './coaching-packages.service';
 import { assertBookingQuestions } from './booking-questions';
 import { User } from '../users/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -54,13 +53,13 @@ export class CoachesService {
     @InjectRepository(Game) private readonly games: Repository<Game>,
     @InjectRepository(CoachFavorite) private readonly favorites: Repository<CoachFavorite>,
     @InjectRepository(CoachingSessionReview) private readonly reviews: Repository<CoachingSessionReview>,
-    @InjectRepository(CoachPackage) private readonly packages: Repository<CoachPackage>,
     @InjectRepository(User) private readonly users: Repository<User>,
     private readonly storage: StorageService,
     private readonly subscriptions: SubscriptionsService,
     private readonly community: CommunityService,
     private readonly dataSource: DataSource,
     private readonly notifications: NotificationsService,
+    private readonly packages: CoachingPackagesService,
   ) {}
 
   private async notifyApproved(userId: string): Promise<void> {
@@ -243,7 +242,7 @@ export class CoachesService {
       this.responseMinutes([coach.userId]),
       this.community.waveRank(coach.userId),
       coach.extraGameIds?.length ? this.games.find({ where: { id: In(coach.extraGameIds) } }) : Promise.resolve([] as Game[]),
-      this.listPackages(coach.id),
+      this.packages.listActive(),
     ]);
     const s = stats.get(coach.id) ?? { completed: 0, cancelled: 0, students: 0 };
     const finished = s.completed + s.cancelled;
@@ -290,7 +289,6 @@ export class CoachesService {
       extraGameIds: coach.extraGameIds ?? [],
       verificationStatus: coach.verificationStatus,
       videoFileUrl: coach.videoFileUrl ?? null,
-      packages: await this.listPackages(coach.id),
       bookingQuestions: coach.bookingQuestions ?? [],
       availability: coach.availability ?? null,
     };
@@ -342,41 +340,6 @@ export class CoachesService {
       }));
     }
     if (Object.keys(patch).length) await this.coaches.update(coach.id, patch);
-  }
-
-  // --- Packages ---
-
-  async listPackages(coachId: string): Promise<PublicCoachPackage[]> {
-    const rows = await this.packages.find({ where: { coachId }, order: { sortOrder: 'ASC', createdAt: 'ASC' } });
-    return rows.map((p) => ({ id: p.id, name: p.name, description: p.description, sessionsCount: p.sessionsCount ?? 1, durationMinutes: p.durationMinutes, priceWaveCoin: p.priceWaveCoin }));
-  }
-
-  // Replaces the coach's packages with `list` (in order). Sessions already booked keep their
-  // snapshot; their packageId is cleared by the FK.
-  async setPackages(coachId: string, list: CoachPackageDto[]): Promise<PublicCoachPackage[]> {
-    await this.dataSource.transaction(async (manager) => {
-      await manager.delete(CoachPackage, { coachId });
-      if (list.length) {
-        await manager.save(
-          list.map((p, i) =>
-            manager.create(CoachPackage, {
-              coachId,
-              name: p.name.trim(),
-              description: p.description?.trim() || null,
-              sessionsCount: p.sessionsCount ?? 1,
-              durationMinutes: p.durationMinutes,
-              priceWaveCoin: p.priceWaveCoin,
-              sortOrder: i,
-            }),
-          ),
-        );
-      }
-    });
-    return this.listPackages(coachId);
-  }
-
-  async setMyPackages(userId: string, list: CoachPackageDto[]): Promise<PublicCoachPackage[]> {
-    return this.setPackages((await this.mineOrThrow(userId)).id, list);
   }
 
   // --- Intro video (uploaded file) ---

@@ -115,3 +115,16 @@ status is `active`. Applied to: `POST /orders`, `POST /listings`, `POST /coaches
 `POST /payments/bog/create-order`, `POST /tournaments/:id/register`, `POST /direct-messages/start`,
 `POST /withdrawals`, `POST /subscriptions/checkout`. Reads, `/auth/me`, support tickets and
 verification itself stay open. **Any new money-moving or marketplace-mutating route must add it.**
+
+## 2026-10-02 6-digit email code (client: "the link in spam doesn't work")
+Gmail disables every link in a message it files as spam, and Gmail rate-limits/spam-files mail from
+the VPS's OVH IP range (`421-4.7.28 … unusual rate of unsolicited mail … from your IP Netblock`,
+`/var/log/mail.log`) even though SPF, DKIM (selector `wh2026`), DMARC and PTR all pass. The lasting
+fix is sending through a reputable provider (`EMAIL_PROVIDER=resend` + domain DNS) — an owner task.
+In code: migration `1784370000000-EmailVerificationCode` adds `codeHash`/`codeAttempts` to
+`email_verification_tokens`. `sendEmailVerification` also issues a 6-digit code (`randomInt`, stored
+as SHA-256 of `userId:code`), shown in the email (and its subject) next to the button.
+`POST auth/verify-email-code { code }` (AuthGuard — the pending user is signed in after registering;
+`AUTH_THROTTLE`) checks the user's newest live token; `MAX_CODE_ATTEMPTS` (5) wrong codes consume
+it (a fresh email is needed). Frontend: `components/EmailCodeForm.tsx` in the verify banner, after
+registration, and on `/verify-email`. Test: `test/auth.e2e-spec.ts`.

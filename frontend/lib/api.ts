@@ -40,6 +40,7 @@ import type {
   AdminListingSummary,
   AdminReviewSummary,
   AdminReviewRow,
+  AdminCoachingPackage,
   OrderReviewState,
   PendingReview,
   PublicPlatformSettings,
@@ -131,8 +132,7 @@ export type PackageInput = { name: string; priceWaveCoin: number; deliveryTimeDa
 
 // What PATCH coaches/mine/profile (and the admin equivalent) accept — packages and the uploaded
 // video have their own endpoints.
-export type CoachProfilePatch = Partial<Omit<MyCoachProfile, 'id' | 'verificationStatus' | 'videoFileUrl' | 'packages'>>
-export type CoachPackageInput = { name: string; description?: string; sessionsCount?: number; durationMinutes: number; priceWaveCoin: number }
+export type CoachProfilePatch = Partial<Omit<MyCoachProfile, 'id' | 'verificationStatus' | 'videoFileUrl'>>
 
 // Raw Coach entity as returned to its own owner by GET /coaches/mine (null when the user never
 // applied) — only the fields the apply page reads.
@@ -350,6 +350,9 @@ export const api = {
 
   // Requires an active session (the backend guards this route) — only call it while logged in.
   resendVerification: () => request<{ ok: true }>('/auth/resend-verification', { method: 'POST' }),
+
+  // The 6-digit code from the verification email (signed-in pending accounts).
+  verifyEmailCode: (code: string) => request<{ ok: true }>('/auth/verify-email-code', { method: 'POST', body: JSON.stringify({ code }) }),
 
   // --- Marketplace (listings/categories/games/reviews) ---
   // Note: unlike the auth endpoints above, these are NOT wrapped in `{ ok: true, ... }` — they
@@ -907,9 +910,6 @@ export const api = {
   updateMyCoachProfile: (payload: CoachProfilePatch) =>
     request<MyCoachProfile>('/coaches/mine/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
 
-  setMyCoachPackages: (packages: CoachPackageInput[]) =>
-    request<PublicCoachPackage[]>('/coaches/mine/packages', { method: 'PUT', body: JSON.stringify({ packages }) }),
-
   uploadMyCoachVideo: (file: File) => upload<{ videoFileUrl: string }>('/coaches/mine/video', file),
 
   clearMyCoachVideo: () => request<{ ok: true }>('/coaches/mine/video', { method: 'DELETE' }),
@@ -923,8 +923,13 @@ export const api = {
   adminUpdateCoachProfile: (id: string, payload: CoachProfilePatch) =>
     request<MyCoachProfile>(`/admin/coaches/${id}/profile`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
-  adminSetCoachPackages: (id: string, packages: CoachPackageInput[]) =>
-    request<PublicCoachPackage[]>(`/admin/coaches/${id}/packages`, { method: 'PUT', body: JSON.stringify({ packages }) }),
+  // Platform coaching packages (Starter / Growth / Elite): public list; staff list; Super Admin edits.
+  listCoachingPackages: () => request<PublicCoachPackage[]>('/coaching-packages'),
+
+  adminListCoachingPackages: () => request<AdminCoachingPackage[]>('/admin/coaching-packages'),
+
+  adminUpdateCoachingPackage: (id: string, payload: Partial<Pick<AdminCoachingPackage, 'name' | 'sessionsCount' | 'durationMinutes' | 'priceWaveCoin' | 'tagline' | 'description' | 'features' | 'active'>>) =>
+    request<AdminCoachingPackage>(`/admin/coaching-packages/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
   adminUploadCoachVideo: (id: string, file: File) => upload<{ videoFileUrl: string }>(`/admin/coaches/${id}/video`, file),
 

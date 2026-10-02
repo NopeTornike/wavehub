@@ -318,3 +318,34 @@ for) a session that never happened** — client bug #7.
 - e2e: `coaching-lifecycle.e2e-spec.ts` (validation, inside/outside hours, day off, notice, horizon,
   past-midnight, reset to default); the other coaching specs call `helpers.ts#openAllHours` first so
   their fixed slots stay bookable.
+
+## 2026-10-02 Platform packages (owner spec), session clock + auto-end (client launch fixes)
+Migration `1784371000000-CoachingPackages`.
+- **Packages are the platform's, not the coach's** (owner spec "WaveHubX Coaching Packages —
+  Developer UI / Content Specification"): `coaching-package.entity.ts` → `coaching_packages`
+  (`key` starter|growth|elite, `name`, `sessionsCount` 1–10, `durationMinutes` 15–480,
+  `priceWaveCoin` whole GEL, `tagline` (the bold question), `description`, `features` jsonb
+  bullets, `sortOrder`, `active`). Seeded: STARTER 1×40 19₾, GROWTH 3×50 39₾, ELITE 6×60 69₾ with
+  the spec's copy. **Elite**: the spec's summary and bullets say 6 sessions, one title line said 5 —
+  6 was used; change it on Admin → Coaching packages if the owner confirms 5.
+- Every verified coach offers the active packages: `PublicCoachDetail.packages` comes from
+  `CoachingPackagesService.listActive()`; booking a `packageId` takes `getActive()` (inactive → 404).
+  The per-coach `coach_packages` table, `PUT coaches/mine/packages` and
+  `PUT admin/coaches/:id/packages` are gone (404); booked sessions keep their `packageName`
+  snapshot (their `packageId` was cleared — it pointed at the dropped table).
+- Routes (`coaching-packages.controller.ts`): `GET coaching-packages` (public),
+  `GET admin/coaching-packages` (`COACH_MANAGEMENT_ROLES` + Super Admin),
+  `PATCH admin/coaching-packages/:id` (**Super Admin only** — prices are money; audit-logged
+  `coaching_package.update` with before/after).
+- The single hourly session stays in the API (`durationMinutes` × hourly rate) and is the booking
+  page's fallback only when no package is active.
+- **Session clock** (client bug "pressed Start, it still says 15 minutes before"): the start window
+  was timed on the device clock; a phone with a wrong clock showed a Start button the server then
+  refused (409s in production logs). `PublicCoachingSession.serverNow` lets the page time everything
+  on the server's clock.
+- **Auto-end** (client: "when the time is over the end isn't confirmed"): the sweep moves an
+  `in_progress` session to `awaiting_confirmation` `END_GRACE_MINUTES` (15) after its booked end and
+  asks the student to confirm (`sweep()` returns `autoEnded`). `complete()` and the sweep share
+  `markDone()`.
+- Tests: `coach-admin.e2e-spec.ts` (spec values, staff-only edit, deactivation, snapshot on rename),
+  `coaching-lifecycle.e2e-spec.ts` (Growth booking split 13/13/13, auto-end, `serverNow`).

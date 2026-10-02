@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicCoachDetail, PublicCoachReview } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
+import PackageCard, { lari } from '../../components/PackageCard'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gameIcon } from '../../lib/games'
@@ -108,7 +109,7 @@ export default function CoachProfile() {
   const videoFile = coach.videoFileUrl
   const responseText = coach.responseMinutes === null ? null : coach.responseMinutes < 60 ? `~${coach.responseMinutes} წთ` : `~${Math.round(coach.responseMinutes / 60)} სთ`
   const metrics: Array<[string, string | null, string]> = [
-    ['ST', String(coach.stats.students), 'სტუდენტი'],
+    ['ST', String(coach.stats.students), 'სტუდენტები'],
     ['SE', String(coach.stats.sessions), 'დასრულებული სესია'],
     ['SR', coach.stats.successRate === null ? null : `${coach.stats.successRate}%`, 'წარმატების მაჩვენებელი'],
     ['RT', responseText, 'საშ. პასუხის დრო'],
@@ -297,20 +298,9 @@ export default function CoachProfile() {
               {coach.packages.length > 0 && (
                 <article className="coach-info-card coach-packages-card">
                   <h2>პაკეტები</h2>
-                  <div className="coach-packages">
-                    {coach.packages.map((p) => (
-                      <div key={p.id} className="coach-package">
-                        <strong>{p.name}</strong>
-                        {p.description && <p>{p.description}</p>}
-                        <span>
-                          {p.durationMinutes} წთ · <b>{p.priceWaveCoin} GEL</b>
-                        </span>
-                        {!isOwnProfile && (
-                          <Link className="coach-book-secondary" href={`/coaching/${coach.id}/book?package=${p.id}`}>
-                            დაჯავშნა
-                          </Link>
-                        )}
-                      </div>
+                  <div className="pkg-grid">
+                    {coach.packages.map((p, i) => (
+                      <PackageCard key={p.id} pkg={p} index={i} href={isOwnProfile ? undefined : `/coaching/${coach.id}/book?package=${p.id}`} />
                     ))}
                   </div>
                 </article>
@@ -382,9 +372,18 @@ export default function CoachProfile() {
           <section className="coach-booking-panel" aria-label="სესიის დაჯავშნა">
             <div className="coach-booking-main">
               <div className="coach-starting-price">
-                <span>საათობრივი ფასი</span>
+                <span>{coach.packages.length ? 'პაკეტები' : 'საათობრივი ფასი'}</span>
                 <strong>
-                  {coach.hourlyRateWaveCoin} <small>GEL/სთ</small>
+                  {coach.packages.length ? (
+                    <>
+                      {lari(Math.min(...coach.packages.map((p) => p.priceWaveCoin)))}
+                      <small>-დან</small>
+                    </>
+                  ) : (
+                    <>
+                      {coach.hourlyRateWaveCoin} <small>GEL/სთ</small>
+                    </>
+                  )}
                 </strong>
               </div>
               {isOwnProfile ? (

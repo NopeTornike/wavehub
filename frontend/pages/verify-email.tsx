@@ -6,6 +6,8 @@ import AuthCardTop from '../components/AuthCardTop'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import PageHead from '../components/PageHead'
 import { useAuth } from '../lib/auth'
+import { UserStatus } from '@wavehub/shared-types'
+import EmailCodeForm from '../components/EmailCodeForm'
 
 type Status = 'pending' | 'verifying' | 'success' | 'error'
 
@@ -61,16 +63,20 @@ export default function VerifyEmail() {
           <h1 id="authTitle">Email-ის დადასტურება</h1>
         </div>
 
-        {(!router.isReady || status === 'pending' || status === 'verifying') && (
+        {(!router.isReady || (token && (status === 'pending' || status === 'verifying'))) && (
           <p className="auth-status" aria-live="polite">
             მოწმდება...
           </p>
         )}
 
-        {router.isReady && !token && (
-          <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
-            ბმული არასწორია — token ვერ მოიძებნა.
+        {router.isReady && !token && user?.status !== UserStatus.PendingVerification && status !== 'success' && (
+          <p className="auth-status" aria-live="polite">
+            {user ? 'ელფოსტა უკვე დადასტურებულია.' : 'შედით ანგარიშზე და შეიყვანეთ წერილში მოცემული 6-ციფრიანი კოდი, ან გახსენით წერილის ბმული.'}
           </p>
+        )}
+
+        {router.isReady && status !== 'success' && user?.status === UserStatus.PendingVerification && (
+          <EmailCodeForm onVerified={() => setStatus('success')} />
         )}
 
         {status === 'success' && (

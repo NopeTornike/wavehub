@@ -1,6 +1,6 @@
 import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
@@ -9,7 +9,6 @@ import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { RejectCoachDto } from './dto/reject-coach.dto';
 import { BrowseCoachesDto } from './dto/browse-coaches.dto';
 import { UpdateCoachProfileDto } from './dto/update-coach-profile.dto';
-import { SetCoachPackagesDto } from './dto/coach-packages.dto';
 import { AdminCreateCoachDto } from './dto/admin-coach.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
@@ -23,7 +22,7 @@ import { AdminAuditService } from '../admin/admin-audit.service';
 // Marketplace & Coaching Ops Manager (§5.13.4: "approve/reject verification, grant/remove
 // verification badge, ... temp suspend, restore coaching"). Super Admin passes any admin-guarded
 // route implicitly (see backend/src/admin/CLAUDE.md), not listed here.
-const COACH_MANAGEMENT_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];
+export const COACH_MANAGEMENT_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];
 // Intro videos: byte-sniffed MP4/WebM, 50MB (multer limit + the service check).
 const VIDEO_UPLOAD = FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_COACH_VIDEO_BYTES } });
 
@@ -57,12 +56,6 @@ export class CoachesController {
   @UseGuards(AuthGuard)
   updateMyProfile(@CurrentUserId() userId: string, @Body() dto: UpdateCoachProfileDto) {
     return this.coaches.updateMyProfile(userId, dto);
-  }
-
-  @Put('coaches/mine/packages')
-  @UseGuards(AuthGuard)
-  setMyPackages(@CurrentUserId() userId: string, @Body() dto: SetCoachPackagesDto) {
-    return this.coaches.setMyPackages(userId, dto.packages);
   }
 
   @Post('coaches/mine/video')
@@ -105,16 +98,6 @@ export class CoachesController {
     const profile = await this.coaches.adminUpdate(id, dto);
     await this.audit.log({ adminId, adminRole, action: 'coach.update', entityType: 'coach', entityId: id, metadata: { fields: Object.keys(dto).join(',') } });
     return profile;
-  }
-
-  @Put('admin/coaches/:id/packages')
-  @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole(...COACH_MANAGEMENT_ROLES)
-  async adminSetPackages(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string, @Body() dto: SetCoachPackagesDto) {
-    await this.coaches.adminCoachExists(id);
-    const packages = await this.coaches.setPackages(id, dto.packages);
-    await this.audit.log({ adminId, adminRole, action: 'coach.set_packages', entityType: 'coach', entityId: id, metadata: { count: String(packages.length) } });
-    return packages;
   }
 
   @Post('admin/coaches/:id/video')

@@ -6,7 +6,7 @@ import { VerificationStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
-import { CoachHoursEditor, CoachPackagesEditor, CoachQuestionsEditor, CoachVideoEditor, LANGUAGE_OPTIONS } from '../../components/CoachExtras'
+import { CoachHoursEditor, CoachQuestionsEditor, CoachVideoEditor, LANGUAGE_OPTIONS } from '../../components/CoachExtras'
 
 // A coach editing the content of their public profile (docs/design-mockups/14): specialty, bio,
 // rate, rank, languages, main + extra games, intro video, quote and coaching-style points. Mirrors
@@ -244,7 +244,6 @@ export default function CoachProfileEditor() {
           {!missing && profile && (
             <div className="coach-info-card coach-apply-card">
               <CoachVideoEditor videoFileUrl={profile.videoFileUrl} onUpload={api.uploadMyCoachVideo} onClear={api.clearMyCoachVideo} />
-              <CoachPackagesEditor initial={profile.packages} onSave={api.setMyCoachPackages} />
               <CoachHoursEditor initial={profile.availability} onSave={(availability) => api.updateMyCoachProfile({ availability })} />
               <CoachQuestionsEditor initial={profile.bookingQuestions} onSave={(bookingQuestions) => api.updateMyCoachProfile({ bookingQuestions })} />
             </div>

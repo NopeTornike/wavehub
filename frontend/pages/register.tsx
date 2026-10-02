@@ -1,10 +1,13 @@
 import Link from 'next/link'
+import { useRouter } from 'next/router'
+import { UserStatus } from '@wavehub/shared-types'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { api, errorMessage } from '../lib/api'
 import AuthCardTop from '../components/AuthCardTop'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import PageHead from '../components/PageHead'
 import { useAuth } from '../lib/auth'
+import EmailCodeForm from '../components/EmailCodeForm'
 
 const USERNAME_PATTERN = /^[a-z0-9_-]+$/
 // Mirrors backend/src/auth/password-policy.ts — keep these in sync if that changes.
@@ -22,7 +25,8 @@ export default function Register() {
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const { refresh } = useAuth()
+  const { user, refresh } = useAuth()
+  const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [checkingUsername, setCheckingUsername] = useState(false)
@@ -140,7 +144,7 @@ export default function Register() {
         password: form.password,
       })
       setSuccess(
-        'რეგისტრაცია წარმატებით დასრულდა! დამადასტურებელი წერილი გამოგიგზავნეთ ელფოსტაზე — სანამ ბმულზე არ გადახვალთ, ყიდვა, გაყიდვა და ბალანსის შევსება ვერ იქნება ხელმისაწვდომი.',
+        'რეგისტრაცია წარმატებით დასრულდა! ელფოსტაზე გამოგიგზავნეთ წერილი 6-ციფრიანი კოდით — შეიყვანეთ ის ქვემოთ (ან დააჭირეთ წერილში ღილაკს). თუ წერილი სპამში მოხვდა, კოდი მაინც მუშაობს.',
       )
       // Registration also logs the new account in (session cookie) — sync the shared auth state so
       // the topbar and the verify-your-email banner show up without a reload.
@@ -252,6 +256,12 @@ export default function Register() {
           {success && (
             <p className="auth-status" aria-live="polite" style={{ color: 'var(--green)' }}>
               {success}
+            </p>
+          )}
+          {success && user?.status === UserStatus.PendingVerification && <EmailCodeForm onVerified={() => void router.push('/')} />}
+          {success && user && user.status !== UserStatus.PendingVerification && (
+            <p className="auth-status" style={{ color: 'var(--green)' }}>
+              ელფოსტა დადასტურებულია — ანგარიში აქტიურია.
             </p>
           )}
 

@@ -18,7 +18,8 @@ import { calculatePlatformFee } from '../wallet/fee.util';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { withTransactionRetry } from '../wallet/transaction-retry.util';
-import { CoachPackage } from './coach-package.entity';
+import { CoachingPackage } from './coaching-package.entity';
+import { CoachingPackagesService } from './coaching-packages.service';
 import { validateBookingAnswers } from './booking-questions';
 
 const DEFAULT_HOLD_DAYS = 7;
@@ -27,6 +28,9 @@ export const START_EARLY_MINUTES = 15; // the start can be confirmed this early
 export const START_GRACE_MINUTES = 60; // …and until this long after the scheduled time
 export const REMINDER_EVERY_MINUTES = 10;
 export const AUTO_CONFIRM_HOURS = 48; // "coach marked done" auto-confirms after this
+// An in-progress session is marked done automatically this long after its booked end time (client,
+// 2026-10-02: "when the time is over the end isn't confirmed").
+export const END_GRACE_MINUTES = 15;
 const MINUTE = 60_000;
 // Sessions that hold a coach's time (no overlapping bookings).
 const OCCUPYING = [CoachingSessionStatus.Scheduled, CoachingSessionStatus.InProgress, CoachingSessionStatus.AwaitingConfirmation];
@@ -53,12 +57,12 @@ export class CoachingSessionsService {
     @InjectRepository(CoachingSession) private readonly sessions: Repository<CoachingSession>,
     @InjectRepository(Coach) private readonly coaches: Repository<Coach>,
     @InjectRepository(CoachingSessionReview) private readonly reviews: Repository<CoachingSessionReview>,
-    @InjectRepository(CoachPackage) private readonly packages: Repository<CoachPackage>,
     private readonly dataSource: DataSource,
     private readonly wallet: WalletService,
     private readonly platformSettings: PlatformSettingsService,
     private readonly notifications: NotificationsService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly packages: CoachingPackagesService,
   ) {}
 
   // Best-effort: a failed notification never undoes the action that triggered it.
@@ -103,6 +107,7 @@ export class CoachingSessionsService {
       coachPayoutWaveCoin: session.coachPayoutWaveCoin,
       status: session.status,
       createdAt: session.createdAt.toISOString(),
+      serverNow: new Date().toISOString(),
     };
   }
 
@@ -156,10 +161,10 @@ export class CoachingSessionsService {
 
     // A package fixes the number of sessions, their length and the total price; otherwise one
     // session of the chosen length at the hourly rate.
-    let pkg: CoachPackage | null = null;
+    // Packages are the platform's (the same for every coach — coaching-packages.service.ts).
+    let pkg: CoachingPackage | null = null;
     if (dto.packageId) {
-      pkg = await this.packages.findOne({ where: { id: dto.packageId, coachId: coach.id } });
-      if (!pkg) throw new NotFoundException('This package is not offered by this coach');
+      pkg = await this.packages.getActive(dto.packageId);
     } else if (!dto.durationMinutes) {
       throw new BadRequestException('Choose a duration or a package');
     }
@@ -420,26 +425,31 @@ export class CoachingSessionsService {
       throw new ConflictException('Both sides must confirm the session started before it can be completed');
     }
     assertValidSessionTransition(session.status, CoachingSessionStatus.AwaitingConfirmation);
+    await this.markDone(session.id, false);
+    return this.toPublic(await this.getJoinedOrThrow(session.id));
+  }
+
+  // InProgress → AwaitingConfirmation, by the coach or (auto) by the sweep after the booked end.
+  private async markDone(sessionId: string, auto: boolean): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      await this.lockAndRevalidate(manager, session.id, CoachingSessionStatus.AwaitingConfirmation);
-      await manager.update(CoachingSession, session.id, { status: CoachingSessionStatus.AwaitingConfirmation, coachCompletedAt: new Date() });
+      await this.lockAndRevalidate(manager, sessionId, CoachingSessionStatus.AwaitingConfirmation);
+      await manager.update(CoachingSession, sessionId, { status: CoachingSessionStatus.AwaitingConfirmation, coachCompletedAt: new Date() });
     });
-    const full = await this.getJoinedOrThrow(session.id);
+    const full = await this.getJoinedOrThrow(sessionId);
     await this.notify(
       full.buyerId,
       NotificationType.SessionAwaitingConfirmation,
       'დაადასტურე სესიის დასრულება',
-      `ქოუჩმა @${full.coach.user.username}-მა სესია დასრულებულად მონიშნა. დაადასტურე, რომ სესია შედგა — თუ ${AUTO_CONFIRM_HOURS} საათში არ უპასუხებ, ავტომატურად დადასტურდება.`,
+      `${auto ? 'სესიის დრო დასრულდა.' : `ქოუჩმა @${full.coach.user.username}-მა სესია დასრულებულად მონიშნა.`} დაადასტურე, რომ სესია შედგა — თუ ${AUTO_CONFIRM_HOURS} საათში არ უპასუხებ, ავტომატურად დადასტურდება.`,
       full.id,
     );
     await this.notify(
       full.coach.userId,
       NotificationType.SessionAwaitingConfirmation,
-      'სესია დასრულებულად მოინიშნა',
+      auto ? 'სესიის დრო დასრულდა' : 'სესია დასრულებულად მოინიშნა',
       `ველოდებით @${full.buyer.username}-ის დადასტურებას. ${full.coachPayoutWaveCoin} GEL ჩაგერიცხება დადასტურებისთანავე (არაუგვიანეს ${AUTO_CONFIRM_HOURS} საათისა).`,
       full.id,
     );
-    return this.toPublic(full);
   }
 
   // Student-only, AwaitingConfirmation only: confirms the session happened → escrow released.
@@ -524,10 +534,11 @@ export class CoachingSessionsService {
 
   // 1. Starting soon / started: remind whoever hasn't confirmed the start, every 10 minutes.
   // 2. Start window over without both confirmations: cancel and refund the student.
-  // 3. "Coach marked done" unanswered for 48h: confirm automatically and pay the coach.
+  // 3. In progress past the booked end + END_GRACE_MINUTES: mark done (the student confirms).
+  // 4. "Done" unanswered for 48h: confirm automatically and pay the coach.
   // Public so the e2e suite can run it deterministically.
-  async sweep(now = new Date()): Promise<{ reminded: number; cancelled: number; autoCompleted: number }> {
-    const result = { reminded: 0, cancelled: 0, autoCompleted: 0 };
+  async sweep(now = new Date()): Promise<{ reminded: number; cancelled: number; autoEnded: number; autoCompleted: number }> {
+    const result = { reminded: 0, cancelled: 0, autoEnded: 0, autoCompleted: 0 };
     const t = now.getTime();
 
     const waiting = await this.sessions
@@ -564,6 +575,22 @@ export class CoachingSessionsService {
       for (const userId of pending) await this.notify(userId, NotificationType.SessionStarting, title, body, s.id);
       await this.sessions.update(s.id, { lastReminderAt: now, remindersSent: (s.remindersSent ?? 0) + 1 });
       result.reminded += pending.length;
+    }
+
+    // 3. In progress past the booked end (+ grace): mark done so the student can confirm.
+    const ended = await this.sessions
+      .createQueryBuilder('s')
+      .select(['s.id'])
+      .where('s.status = :inProgress', { inProgress: CoachingSessionStatus.InProgress })
+      .andWhere(`s.scheduledAt + make_interval(mins => s.durationMinutes + :grace) <= :now`, { grace: END_GRACE_MINUTES, now })
+      .getMany();
+    for (const s of ended) {
+      try {
+        await this.markDone(s.id, true);
+        result.autoEnded++;
+      } catch {
+        // the coach marked it or cancelled a moment ago
+      }
     }
 
     const overdue = await this.sessions

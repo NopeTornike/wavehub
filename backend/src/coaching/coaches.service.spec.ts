@@ -38,8 +38,8 @@ describe('CoachesService', () => {
     const reviews = {} as any;
     const community = { waveRank: jest.fn(async () => ({ score: 0, name: 'Rookie' })) } as any;
     const dataSource = { query: jest.fn(async () => []) } as any;
-    const packages = { find: jest.fn(async () => []) } as any;
-    const service = new CoachesService(repo, games, favorites, reviews, packages, {} as any, {} as any, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any, community, dataSource, { tryEmit: jest.fn(async () => undefined) } as any);
+    const packages = { listActive: jest.fn(async () => []) } as any;
+    const service = new CoachesService(repo, games, favorites, reviews, {} as any, {} as any, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any, community, dataSource, { tryEmit: jest.fn(async () => undefined) } as any, packages);
     return { service, repo, rows };
   }
 

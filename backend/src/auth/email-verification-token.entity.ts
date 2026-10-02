@@ -21,6 +21,14 @@ export class EmailVerificationToken {
   @Column({ type: 'timestamptz' })
   expiresAt: Date;
 
+  // SHA-256 of `${userId}:${code}` for the 6-digit code in the same email; null on older tokens.
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  codeHash: string | null;
+
+  // Wrong code entries; at MAX_CODE_ATTEMPTS the token is consumed (a fresh email is needed).
+  @Column({ type: 'integer', default: 0 })
+  codeAttempts: number;
+
   @Column({ type: 'timestamptz', nullable: true })
   consumedAt: Date | null;
 

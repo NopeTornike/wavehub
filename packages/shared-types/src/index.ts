@@ -666,15 +666,26 @@ export interface PublicCoachGame {
   main: boolean;
 }
 
-// A fixed-price booking offer (coach_packages). Booking one snapshots price/duration/name.
+// A platform coaching package (coaching_packages — Starter / Growth / Elite, the same for every
+// coach, edited by staff only). Booking one snapshots its name; price is whole GEL (₾ is UI only).
 export interface PublicCoachPackage {
   id: string;
+  key: string; // starter | growth | elite — the card's accent follows it
   name: string;
-  description: string | null;
+  tagline: string; // the bold question line
+  description: string;
+  features: string[]; // "რას მოიცავს"
   // Sessions in the package (each durationMinutes long).
   sessionsCount: number;
   durationMinutes: number;
   priceWaveCoin: number;
+}
+
+// GET admin/coaching-packages — includes inactive ones.
+export interface AdminCoachingPackage extends PublicCoachPackage {
+  active: boolean;
+  sortOrder: number;
+  updatedAt: string;
 }
 
 export interface PublicCoachDetail extends PublicCoachSummary {
@@ -720,7 +731,6 @@ export interface MyCoachProfile {
   extraGameIds: string[];
   verificationStatus: VerificationStatus;
   videoFileUrl: string | null;
-  packages: PublicCoachPackage[];
   bookingQuestions: RequirementField[];
   // null = not set yet (DEFAULT_COACH_AVAILABILITY applies).
   availability: CoachAvailability | null;
@@ -1159,6 +1169,9 @@ export interface PublicCoachingSession {
   platformFeeWaveCoin: number;
   coachPayoutWaveCoin: number;
   status: CoachingSessionStatus;
+  // The server's clock when this was sent — the page times the start window from it, not from the
+  // device clock (a phone set to the wrong time showed a Start button the server then refused).
+  serverNow: string;
   createdAt: string;
 }
 

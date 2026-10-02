@@ -51,7 +51,7 @@ export const recordedResponses: { method: string; path: string; status: number; 
 // per-IP throttles never collide between users.
 export class Client {
   private cookie = '';
-  private readonly ip = `10.${(ipCounter >> 8) & 255}.${ipCounter++ & 255}.1`;
+  ip = `10.${(ipCounter >> 8) & 255}.${ipCounter++ & 255}.1`;
   constructor(private readonly baseUrl: string) {}
 
   async request(method: string, path: string, body?: unknown): Promise<{ status: number; body: any }> {

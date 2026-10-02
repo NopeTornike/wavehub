@@ -93,3 +93,8 @@ forever.
 - Remaining factor is sender reputation: a new domain sending from its own VPS starts with none.
   Recipients marking "Not spam" builds it; a transactional provider (`EMAIL_PROVIDER=resend`) gives
   the best inbox placement from day one.
+
+## 2026-10-02 Verification code in the email
+`verificationEmail(name, url, code?)` shows the 6-digit code (large, monospace) above the button in
+both language blocks and in the text part; the subject starts with the code so it's visible in the
+inbox list. See `backend/src/auth/CLAUDE.md` for why (Gmail disables links in spam).

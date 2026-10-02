@@ -16,18 +16,22 @@ export function escapeHtml(value: string): string {
 
 interface ActionEmail {
   name: string;
+  // A one-time code shown above the button (email verification) — works even when the mail client
+  // disables links, as Gmail does for anything in Spam.
+  code?: { ka: string; en: string; value: string };
   ka: { heading: string; intro: string; button: string; expiry: string; ignore: string };
   en: { heading: string; intro: string; button: string; expiry: string; ignore: string };
   url: string;
 }
 
-function actionEmail({ name, ka, en, url }: ActionEmail): RenderedEmail {
+function actionEmail({ name, ka, en, url, code }: ActionEmail): RenderedEmail {
   const safeName = escapeHtml(name);
   const safeUrl = escapeHtml(url);
   const text = [
     `გამარჯობა ${name},`,
     '',
     ka.intro,
+    ...(code ? ['', `${code.ka}: ${code.value}`, ''] : []),
     url,
     '',
     ka.expiry,
@@ -38,6 +42,7 @@ function actionEmail({ name, ka, en, url }: ActionEmail): RenderedEmail {
     `Hi ${name},`,
     '',
     en.intro,
+    ...(code ? ['', `${code.en}: ${code.value}`, ''] : []),
     url,
     '',
     en.expiry,
@@ -51,6 +56,12 @@ function actionEmail({ name, ka, en, url }: ActionEmail): RenderedEmail {
         <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#15131f">${escapeHtml(copy.heading)}</h1>
         <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#3b3748">${lang === 'ka' ? 'გამარჯობა' : 'Hi'} ${safeName},</p>
         <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3b3748">${escapeHtml(copy.intro)}</p>
+        ${
+          code
+            ? `<p style="margin:0 0 6px;font-size:13px;color:#6b6778">${escapeHtml(lang === 'ka' ? code.ka : code.en)}</p>
+        <p style="margin:0 0 20px;font-size:30px;font-weight:800;letter-spacing:8px;color:#15131f;font-family:'Courier New',monospace">${escapeHtml(code.value)}</p>`
+            : ''
+        }
         <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td style="border-radius:8px;background:${BRAND}">
           <a href="${safeUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">${escapeHtml(copy.button)}</a>
         </td></tr></table>
@@ -81,10 +92,11 @@ function actionEmail({ name, ka, en, url }: ActionEmail): RenderedEmail {
   return { text, html };
 }
 
-export function verificationEmail(name: string, url: string): RenderedEmail {
+export function verificationEmail(name: string, url: string, code?: string): RenderedEmail {
   return actionEmail({
     name,
     url,
+    code: code ? { ka: 'ან შეიყვანეთ ეს კოდი საიტზე', en: 'Or enter this code on the site', value: code } : undefined,
     ka: {
       heading: 'დაადასტურეთ თქვენი ელფოსტა',
       intro: 'მადლობა, რომ დარეგისტრირდით WaveHub-ზე. ანგარიშის გასააქტიურებლად დაადასტურეთ ელფოსტა.',

@@ -4,7 +4,9 @@ import { Coach } from './coach.entity';
 import { CoachingSession } from './coaching-session.entity';
 import { CoachingSessionReview } from './coaching-session-review.entity';
 import { CoachFavorite } from './coach-favorite.entity';
-import { CoachPackage } from './coach-package.entity';
+import { CoachingPackage } from './coaching-package.entity';
+import { CoachingPackagesService } from './coaching-packages.service';
+import { CoachingPackagesController } from './coaching-packages.controller';
 import { Game } from '../listings/game.entity';
 import { User } from '../users/user.entity';
 import { StorageModule } from '../storage/storage.module';
@@ -22,7 +24,7 @@ import { CommunityModule } from '../community/community.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Coach, CoachingSession, CoachingSessionReview, CoachFavorite, CoachPackage, Game, User]),
+    TypeOrmModule.forFeature([Coach, CoachingSession, CoachingSessionReview, CoachFavorite, CoachingPackage, Game, User]),
     AuthModule,
     AdminModule,
     WalletModule,
@@ -32,8 +34,8 @@ import { CommunityModule } from '../community/community.module';
     CommunityModule,
     StorageModule,
   ],
-  controllers: [CoachesController, CoachingSessionsController],
-  providers: [CoachesService, CoachingSessionsService],
+  controllers: [CoachesController, CoachingSessionsController, CoachingPackagesController],
+  providers: [CoachesService, CoachingSessionsService, CoachingPackagesService],
   exports: [CoachesService, CoachingSessionsService],
 })
 export class CoachingModule {}
