@@ -820,3 +820,33 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   developer note citing SPECIFICATION.md is gone.
 - **`/u/[username]`**: calmer glows, thinner photo ring, rank icons, compact phone hero (end of
   `global.css`).
+
+## 2026-10-02 Working hours, notifications, order reviews, Admin → Reviews
+- **Coach working hours**: `CoachHoursEditor` (`components/CoachExtras.tsx`) — per-weekday ranges
+  (30-minute steps), "apply to all days", days off, minimum notice, "reset to default". Used by the
+  coach (`/coaching/profile`) and by staff (`/admin/coaches`). `availability: null` means the default
+  schedule (every day 10:00–24:00).
+  `pages/coaching/[id]/book.tsx` no longer hard-codes 10:00–23:00: slots come from
+  `coachAvailabilityStarts` and are filtered with `coachAvailabilityProblem` (both from
+  `@wavehub/shared-types`, the same functions the backend enforces), the calendar opens on the first
+  day with bookable time, and a non-working day says so. All times are Tbilisi time.
+- **Notifications**:
+  - `lib/shell.tsx` polls `unread-count` every **15s** and on every `routeChangeComplete`, and
+    exposes `latestNotificationAt`.
+  - `components/NotificationToasts.tsx` (mounted in `_app.tsx`) pops up to 3 toasts when
+    `latestNotificationAt` changes: unread, younger than 6h, not yet shown in this browser (ids kept
+    per user in `localStorage`, try/catch-wrapped). Clicking opens the target and marks it read.
+  - `pages/notifications.tsx`: full list, All / Unread filter, "load more", mark all read. The bell
+    panel footer links to it.
+  - `lib/notifications.ts`: `notificationTarget` (follows `metadata.link` only when it is a
+    same-site path), `notificationKind`, `formatNotificationTime` — shared by all three.
+- **Order reviews**: `components/OrderReview.tsx` replaces the inline form on `/orders/[id]`
+  (anchor `#review`): loads `GET reviews/order/:id`, shows the existing review and its moderation
+  state, the buyer's form if there is none, and the seller's one-time reply form. Listing and Steam
+  game pages show "you bought this — write a review" when `GET reviews/pending` has a matching order.
+  A digital-key order page has no delivery-files section and no "request revision".
+- **`/admin/reviews`**: tabs Reported / Products / Coaches, search, status filter (products), 25 per
+  page; Super Admin gets an edit form (stars, text, seller reply) and coach-review delete. The
+  listing page's remaining English review strings are now Georgian (with dictionary entries).
+- New strings are in `lib/i18n-ka-en.app.json`, including `{0}` patterns for the backend's
+  notification texts.
