@@ -125,7 +125,7 @@ export default function Wallet() {
     Promise.all([api.listOrdersAsBuyer().catch(() => []), api.listMySessionsAsBuyer().catch(() => [])]).then(([orders, sessions]) => {
       const held =
         orders.filter((order) => OPEN_ORDER_STATUSES.includes(order.status)).reduce((sum, order) => sum + order.priceWaveCoin, 0) +
-        sessions.filter((session) => session.status === CoachingSessionStatus.Scheduled).reduce((sum, session) => sum + session.priceWaveCoin, 0)
+        sessions.filter((session) => [CoachingSessionStatus.Scheduled, CoachingSessionStatus.InProgress, CoachingSessionStatus.AwaitingConfirmation].includes(session.status)).reduce((sum, session) => sum + session.priceWaveCoin, 0)
       setEscrow(held)
     })
   }, [])

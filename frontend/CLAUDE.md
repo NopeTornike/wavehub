@@ -772,3 +772,34 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   - a final "მოძებნე მარკეტში" row that searches the marketplace.
   - `.search-box.is-suggesting` lifts the box's `overflow: hidden` while the dropdown is open.
 - **`/marketplace?q=`** lists matching users above the products (`.marketplace-users`).
+
+## 2026-10-02 Coaching: 6-step booking, session lifecycle, rank icons
+- **`/coaching/[id]/book`** = Tornike's `coach-booking.html` 6-step flow (`booking-*` CSS,
+  `booking-flow-body` on `<body>`), on real data:
+  - **packages**: the hourly single session + the coach's real packages;
+  - **schedule**: 14 days × 10:00–23:00 Tbilisi slots, the coach's busy times greyed out, N slots
+    for an N-session package;
+  - **goal**: goal + Discord + the coach's questions;
+  - **review**;
+  - **payment**: from the WaveCoin balance, with a top-up link when short (the draft survives in
+    `sessionStorage`);
+  - **confirmation**.
+  - The coach page's "სესიის დაჯავშნა" and the packages' "დაჯავშნა" link here; the old inline form
+    is gone.
+- **`/coaching-sessions/[id]`** (`cs-` CSS):
+  - a 4-step tracker and one "what to do now" card per side (confirm start / mark done / confirm
+    done / cancel per the lifecycle rules);
+  - polls every 20 s;
+  - fee breakdown for the coach;
+  - goal / Discord / answers;
+  - review after completion;
+  - dates are formatted manually in Tbilisi time (`ka-GE` locale data isn't everywhere).
+- `/coaching-sessions` opens on the coach tab for coaches with live sessions (bug #2). The dashboard
+  next-session card counts both sides.
+- `lib/api.ts#send` turns an empty body into `null` (it used to be `{}`).
+- **Rank icons** (Tornike's `a46894e`):
+  - names: the owner's 10 tier names (`WAVE_RANK_TIERS`);
+  - icon: `waveRankIcon(name)` → `/assets/rank-icons/rank-N.png` (resized to 164px);
+    `components/RankIcon.tsx`;
+  - shown in the profile menu, the mobile home profile, the dashboard, `/u/[username]` (rank card +
+    tier badge), review authors and the coach Wave Score.

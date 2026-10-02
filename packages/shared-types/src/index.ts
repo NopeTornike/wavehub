@@ -192,6 +192,11 @@ export enum NotificationType {
   SubscriptionCancelled = 'subscription_cancelled',
   SubscriptionExpired = 'subscription_expired',
   TournamentTeamAdded = 'tournament_team_added',
+  SessionStarting = 'session_starting',
+  SessionStarted = 'session_started',
+  SessionAwaitingConfirmation = 'session_awaiting_confirmation',
+  SessionReviewRequest = 'session_review_request',
+  Welcome = 'welcome',
 }
 
 // Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
@@ -656,6 +661,8 @@ export interface PublicCoachPackage {
   id: string;
   name: string;
   description: string | null;
+  // Sessions in the package (each durationMinutes long).
+  sessionsCount: number;
   durationMinutes: number;
   priceWaveCoin: number;
 }
@@ -983,6 +990,10 @@ export interface MyProfile {
 // Scheduled (refunds the buyer).
 export enum CoachingSessionStatus {
   Scheduled = 'scheduled',
+  // Both sides confirmed the start.
+  InProgress = 'in_progress',
+  // The coach marked it done; waiting for the student (auto-confirms after 48h).
+  AwaitingConfirmation = 'awaiting_confirmation',
   Completed = 'completed',
   Cancelled = 'cancelled',
 }
@@ -1003,6 +1014,25 @@ export interface PublicCoachingSession {
   // Booked from a coach package (name snapshot) and the buyer's pre-booking answers.
   packageName: string | null;
   answers: Record<string, string> | null;
+  // 6-step booking (2026-10-02): sessions booked together share a bookingGroupId.
+  bookingGroupId: string | null;
+  goal: string | null;
+  challenges: string | null;
+  discord: string | null;
+  // Lifecycle v2: start/finish confirmations and the deadlines the reminder sweep enforces.
+  coachStartConfirmedAt: string | null;
+  buyerStartConfirmedAt: string | null;
+  startedAt: string | null;
+  coachCompletedAt: string | null;
+  completedAt: string | null;
+  // Until when the start can be confirmed (then it auto-cancels with a refund), and when an
+  // unanswered "coach marked done" auto-confirms.
+  startDeadline: string;
+  autoConfirmAt: string | null;
+  // Fee split (snapshot at booking): what the platform keeps and what the coach receives.
+  platformFeePercent: number;
+  platformFeeWaveCoin: number;
+  coachPayoutWaveCoin: number;
   status: CoachingSessionStatus;
   createdAt: string;
 }
@@ -1311,12 +1341,25 @@ export interface WaveRank {
   progressToNext: number; // 0..100
 }
 
-// Same tier names/thresholds as the prototype's profile-nav.js `waveRanks`.
+// Tier names (owner's list, 2026-10-02) with the prototype's thresholds (profile-nav.js
+// `waveRanks`). Each tier has an icon: /assets/rank-icons/rank-<n>.png, n = tier index + 1
+// (Tornike's rank-icon art, in the same order).
 export const WAVE_RANK_TIERS: ReadonlyArray<readonly [string, number]> = [
-  ['Wave Spark', 0], ['Wave Scout', 70], ['Wave Rider', 140], ['Wave Surfer', 220],
-  ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580],
-  ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000],
+  ['Starter', 0], ['Bronze Core', 70], ['Silver Vanguard', 140], ['Gold Sovereign', 220],
+  ['Platinum Sentinel', 320], ['Diamond Ascendant', 440], ['Obsidian Warlord', 580],
+  ['Crimson Monarch', 720], ['Mythic Prime', 860], ['WaveHub Apex', 1000],
 ];
+
+// The prototype's previous tier names, so an old string still finds its icon.
+const LEGACY_RANK_NAMES = ['Wave Spark', 'Wave Scout', 'Wave Rider', 'Wave Surfer', 'Wave Breaker', 'Wave Current', 'Wave Captain', 'Wave Vanguard', 'Wave Legend', 'Wave Apex'];
+
+// Icon path for a tier name (falls back to the first tier's icon).
+export function waveRankIcon(name: string | null | undefined): string {
+  const value = String(name ?? '').trim().toLowerCase();
+  let index = WAVE_RANK_TIERS.findIndex(([tier]) => tier.toLowerCase() === value);
+  if (index < 0) index = LEGACY_RANK_NAMES.findIndex((tier) => tier.toLowerCase() === value);
+  return `/assets/rank-icons/rank-${Math.max(0, index) + 1}.png`;
+}
 
 // Marketplace position of each seller (GET /stats/seller-ranks) — the prototype's
 // getMarketplaceSellerWaveRank order: completed sales, then reviews, then active listings, then

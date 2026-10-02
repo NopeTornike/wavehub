@@ -9,6 +9,7 @@ import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
 import LanguageSwitcher from './LanguageSwitcher'
 import NotificationCenter from './NotificationCenter'
+import RankIcon from './RankIcon'
 
 // The static prototype's global topbar (profile-nav.js#standardizeTopbars + getProfileMenuMarkup),
 // markup-for-markup, on real data: the search box submits to /marketplace?q=, the message/cart/
@@ -334,11 +335,11 @@ export default function Topbar({
                   )}
                 </div>
                 <small>
-                  <span className="profile-rank-gem" aria-hidden="true"></span>
+                  <RankIcon name={rankName} className="profile-rank-icon" />
                   <span id="profileDropdownRank">{rankName}</span>
                 </small>
                 <span className="profile-tier">
-                  <span aria-hidden="true">♔</span>
+                  <RankIcon name={rankName} className="profile-rank-icon" />
                   <b id="profileTierName">{rankName}</b>
                   <i aria-hidden="true">→</i>
                   <strong id="profileNextTier">{nextRank}</strong>

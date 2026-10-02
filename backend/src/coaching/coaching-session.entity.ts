@@ -4,8 +4,7 @@ import { Coach } from './coach.entity';
 import { User } from '../users/user.entity';
 
 // A booked, paid coaching session — see coaching-session-lifecycle.ts for the status graph and
-// CLAUDE.md for why this is deliberately simpler than the static prototype's booking mock (no
-// availability calendar, no coach accept/decline step).
+// coaching/CLAUDE.md ("Lifecycle v2") for the start/finish confirmations and the reminder sweep.
 @Entity('coaching_sessions')
 export class CoachingSession {
   @PrimaryGeneratedColumn('uuid')
@@ -60,6 +59,43 @@ export class CoachingSession {
   // The buyer's answers to the coach's pre-booking questions (participants only).
   @Column({ type: 'jsonb', nullable: true })
   answers: Record<string, string> | null;
+
+  // The booking (6-step flow) this session belongs to — a multi-session package books several.
+  @Column({ type: 'uuid', nullable: true })
+  bookingGroupId: string | null;
+
+  // What the student wrote in step 3 (participants only). Discord is how the session happens.
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  goal: string | null;
+
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  challenges: string | null;
+
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  discord: string | null;
+
+  // Lifecycle v2 (coaching-session-lifecycle.ts): both sides confirm the start, the coach marks it
+  // done, the student confirms the end (or it auto-confirms) — only then is the coach paid.
+  @Column({ type: 'timestamptz', nullable: true })
+  coachStartConfirmedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  buyerStartConfirmedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  startedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  coachCompletedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  completedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lastReminderAt: Date | null;
+
+  @Column({ type: 'integer', default: 0 })
+  remindersSent: number;
 
   @Column({ type: 'varchar', default: CoachingSessionStatus.Scheduled })
   status: CoachingSessionStatus;

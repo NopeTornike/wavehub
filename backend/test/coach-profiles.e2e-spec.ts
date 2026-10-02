@@ -1,4 +1,4 @@
-import { assertConserved } from './flows';
+import { assertConserved, completeSession } from './flows';
 import { createApp, credit, E2eApp, makeAdmin, registerUser, TestUser } from './helpers';
 
 // Coach profile content, session reviews → rating aggregate, stats, favourites (docs/design-mockups 06/14).
@@ -53,14 +53,14 @@ describe('coach profiles, reviews, favourites (e2e)', () => {
   it('only the buyer of a completed session reviews it, once; the rating aggregate follows', async () => {
     const session = (await buyer.client.post(`/coaches/${coachId}/sessions`, { scheduledAt: inOneDay(), durationMinutes: 60 })).body;
     expect((await buyer.client.post(`/coaching-sessions/${session.id}/review`, { rating: 5 })).status).toBe(409); // not completed yet
-    expect((await coachUser.client.post(`/coaching-sessions/${session.id}/complete`)).status).toBe(200);
+    await completeSession(ctx, coachUser, buyer, session.id);
     expect((await stranger.client.post(`/coaching-sessions/${session.id}/review`, { rating: 5 })).status).toBe(403);
     expect((await coachUser.client.post(`/coaching-sessions/${session.id}/review`, { rating: 5 })).status).toBe(403);
     expect((await buyer.client.post(`/coaching-sessions/${session.id}/review`, { rating: 6 })).status).toBe(400);
     const review = await buyer.client.post(`/coaching-sessions/${session.id}/review`, { rating: 4, body: 'Great session, clear tips.' });
     expect(review.status).toBe(201);
     expect((await buyer.client.post(`/coaching-sessions/${session.id}/review`, { rating: 5 })).status).toBe(409);
-    expect((await coachUser.client.get(`/coaching-sessions/${session.id}/review`)).body.rating).toBe(4);
+    expect((await coachUser.client.get(`/coaching-sessions/${session.id}/review`)).body.review.rating).toBe(4);
     expect((await stranger.client.get(`/coaching-sessions/${session.id}/review`)).status).toBe(403);
 
     const pub = (await stranger.client.get(`/coaches/${coachId}`)).body;

@@ -11,6 +11,7 @@ import { useAuth } from '../../lib/auth'
 import { useFavorites } from '../../lib/favorites'
 import { gameCover, gameIcon } from '../../lib/games'
 import GAME_DETAILS from '../../lib/game-details.json'
+import RankIcon from '../../components/RankIcon'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
 // the game's title icon, About card, the game-specific details grid, Access & Delivery, Linked
@@ -467,7 +468,12 @@ export default function ListingDetail() {
                             <span className="message-avatar">{review.buyer.username[0]?.toUpperCase()}</span>
                             <span className="public-review-reviewer-identity">
                               <strong>{review.buyer.username}</strong>
-                              {review.buyerRank && <small className="public-review-reviewer-rank">{review.buyerRank}</small>}
+                              {review.buyerRank && (
+                                <small className="public-review-reviewer-rank">
+                                  <RankIcon name={review.buyerRank} />
+                                  {review.buyerRank}
+                                </small>
+                              )}
                             </span>
                           </Link>
                           <span className="public-review-rating">

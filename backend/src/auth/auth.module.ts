@@ -10,6 +10,7 @@ import { PasswordResetToken } from './password-reset-token.entity';
 import { User } from '../users/user.entity';
 import { EmailModule } from '../email/email.module';
 import { UsersModule } from '../users/users.module';
+import { Notification } from '../notifications/notification.entity';
 
 // JWT_SECRET is required in production and falls back to an insecure dev-only default locally
 // (loudly logged) so `npm run start:dev`/CI don't need it configured just to boot. Never let this
@@ -25,7 +26,7 @@ if (!jwtSecret) {
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, EmailVerificationToken, PasswordResetToken]),
+    TypeOrmModule.forFeature([User, EmailVerificationToken, PasswordResetToken, Notification]),
     JwtModule.register({ secret: jwtSecret || 'dev-only-insecure-secret-do-not-use-in-production' }),
     EmailModule,
     UsersModule,

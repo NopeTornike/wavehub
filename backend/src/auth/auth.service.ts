@@ -1,14 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { randomBytes, createHash } from 'crypto';
-import { UserStatus } from '@wavehub/shared-types';
+import { NotificationType, UserStatus } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { EmailVerificationToken } from './email-verification-token.entity';
 import { PasswordResetToken } from './password-reset-token.entity';
 import { EmailService } from '../email/email.service';
 import { passwordResetEmail, verificationEmail } from '../email/templates';
+import { Notification } from '../notifications/notification.entity';
 
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
@@ -19,14 +20,36 @@ function hashToken(rawToken: string): string {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(EmailVerificationToken)
     private readonly verificationTokens: Repository<EmailVerificationToken>,
     @InjectRepository(PasswordResetToken)
     private readonly resetTokens: Repository<PasswordResetToken>,
+    @InjectRepository(Notification)
+    private readonly notifications: Repository<Notification>,
     private readonly email: EmailService,
   ) {}
+
+  // The in-app welcome (client request, 2026-10-02). Written directly to the notifications table:
+  // NotificationsModule imports AuthModule, so injecting NotificationsService here would be circular.
+  // Best-effort — never blocks registration.
+  private async welcome(user: User): Promise<void> {
+    try {
+      await this.notifications.save(
+        this.notifications.create({
+          userId: user.id,
+          type: NotificationType.Welcome,
+          title: 'კეთილი იყოს შენი მობრძანება WaveHub-ზე!',
+          body: 'დაადასტურე ელფოსტა და შემდეგ შეგიძლია იყიდო და გაყიდო ანგარიშები, დაჯავშნო ქოუჩინგი და მიიღო მონაწილეობა ტურნირებში.',
+          metadata: null,
+        }),
+      );
+    } catch (err) {
+      this.logger.warn(`welcome notification failed: ${(err as Error).message}`);
+    }
+  }
 
   async usernameExists(username: string) {
     const existing = await this.users.findOne({ where: { username } });
@@ -70,6 +93,7 @@ export class AuthService {
     try {
       const saved = await this.users.save(user);
       await this.sendEmailVerification(saved);
+      await this.welcome(saved);
       return saved;
     } catch (err: any) {
       if (err?.code === '23505' || err?.message?.includes('duplicate')) {

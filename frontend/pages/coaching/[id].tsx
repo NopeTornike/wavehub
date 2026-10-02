@@ -7,17 +7,17 @@ import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gameIcon } from '../../lib/games'
+import RankIcon from '../../components/RankIcon'
 
 // docs/design-mockups/14-coach-profile.jpg on the prototype's coach-profile classes: portrait with
 // the real online pill, verified mark, badges (rank, plan badge, Fast Responder / Top Rated when
 // earned, Verified Coach, languages), specialty and bio, Wave Score + Rating cards, the four
 // metrics, Overview / Student Review tabs, intro video + quote, coaching style, games, languages,
-// and the Book / Message / Wishlist bar with the real booking form. Every value is real: the coach
+// and the Book / Message / Wishlist bar (Book opens the 6-step flow, /coaching/[id]/book). Every value is real: the coach
 // wrote the profile content; students / sessions / success rate come from sessions, response time
 // from their chats (median, shown after 3 answered messages), Wave Score from their Wave rank,
 // ratings from buyers' session reviews. Anything the coach hasn't filled in is left out.
 
-const DURATION_OPTIONS = [30, 60, 90, 120]
 const LANGUAGES: Record<string, [label: string, flag?: string]> = {
   en: ['English', '/assets/united-kingdom-flag.png'],
   ka: ['ქართული', '/assets/georgian-flag-icon.png'],
@@ -57,18 +57,6 @@ export default function CoachProfile() {
   const [tab, setTab] = useState<'overview' | 'reviews'>('overview')
   const [saved, setSaved] = useState(false)
   const [status, setStatus] = useState('')
-  const [showBooking, setShowBooking] = useState(false)
-
-  const [todayIso] = useState(() => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10))
-  const [scheduledDate, setScheduledDate] = useState('')
-  const [scheduledTime, setScheduledTime] = useState('')
-  const [durationMinutes, setDurationMinutes] = useState(60)
-  // '' = hourly booking; otherwise one of the coach's packages (fixed price + duration).
-  const [packageId, setPackageId] = useState('')
-  const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [buyerMessage, setBuyerMessage] = useState('')
-  const [bookingError, setBookingError] = useState('')
-  const [booking, setBooking] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -112,9 +100,6 @@ export default function CoachProfile() {
 
   const name = `${coach.firstName} ${coach.lastName}`.trim()
   const isOwnProfile = me?.username === coach.username
-  const chosenPackage = coach.packages.find((p) => p.id === packageId) ?? null
-  const sessionPrice = chosenPackage ? chosenPackage.priceWaveCoin : Math.round((coach.hourlyRateWaveCoin * durationMinutes) / 60)
-  const notEnoughBalance = !!me && me.wavecoinBalance < sessionPrice
   const initials = `${coach.firstName[0] ?? ''}${coach.lastName[0] ?? ''}`.toUpperCase()
   const rating = coach.ratingAvg ? Number(coach.ratingAvg) : null
   const fastResponder = coach.responseMinutes !== null && coach.responseMinutes <= 10
@@ -157,31 +142,6 @@ export default function CoachProfile() {
     }
   }
 
-  const book = async (event: FormEvent) => {
-    event.preventDefault()
-    setBookingError('')
-    if (!scheduledDate || !scheduledTime) return setBookingError('აირჩიეთ თარიღი და დრო.')
-    const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`)
-    if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) return setBookingError('თარიღი უნდა იყოს მომავალში.')
-    const missing = coach.bookingQuestions.find((q) => q.required && !(answers[q.key] ?? '').trim())
-    if (missing) return setBookingError(`უპასუხეთ კითხვას: ${missing.label}`)
-    const cleanAnswers = Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v))
-    setBooking(true)
-    try {
-      const session = await api.requestCoachingSession(coach.id, {
-        scheduledAt: scheduledAt.toISOString(),
-        ...(chosenPackage ? { packageId: chosenPackage.id } : { durationMinutes }),
-        answers: Object.keys(cleanAnswers).length ? cleanAnswers : undefined,
-        buyerMessage: buyerMessage.trim() || undefined,
-      })
-      // Booking debits the balance — refresh the topbar before leaving.
-      await refresh()
-      router.push(`/coaching-sessions/${session.id}`)
-    } catch (err) {
-      setBookingError(errorMessage(err, 'სესიის დაჯავშნა ვერ მოხერხდა.'))
-      setBooking(false)
-    }
-  }
 
   return (
     <Layout title={`${name} — ქოუჩი`} description={`${coach.specialty}${coach.gameName ? ` (${coach.gameName})` : ''}. ${coach.bio}`.slice(0, 160)}>
@@ -235,7 +195,10 @@ export default function CoachProfile() {
                   {coach.waveScore.score}
                   <small>/100</small>
                 </strong>
-                <em>{coach.waveScore.tier}</em>
+                <em>
+                  <RankIcon name={coach.waveScore.tier} />
+                  {coach.waveScore.tier}
+                </em>
                 <i>
                   <b style={{ width: `${Math.min(100, coach.waveScore.score)}%` }}></b>
                 </i>
@@ -343,18 +306,9 @@ export default function CoachProfile() {
                           {p.durationMinutes} წთ · <b>{p.priceWaveCoin} GEL</b>
                         </span>
                         {!isOwnProfile && (
-                          <button
-                            type="button"
-                            className="coach-book-secondary"
-                            onClick={() => {
-                              if (!me) return void router.push(`/login?next=/coaching/${coach.id}`)
-                              setPackageId(p.id)
-                              setShowBooking(true)
-                              window.setTimeout(() => document.getElementById('coachBookingForm')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
-                            }}
-                          >
+                          <Link className="coach-book-secondary" href={`/coaching/${coach.id}/book?package=${p.id}`}>
                             დაჯავშნა
-                          </button>
+                          </Link>
                         )}
                       </div>
                     ))}
@@ -438,14 +392,9 @@ export default function CoachProfile() {
                   პროფილის რედაქტირება
                 </Link>
               ) : (
-                <button
-                  className="coach-book-primary"
-                  type="button"
-                  onClick={() => (me ? setShowBooking((v) => !v) : router.push(`/login?next=/coaching/${coach.id}`))}
-                  aria-expanded={showBooking}
-                >
+                <Link className="coach-book-primary" href={`/coaching/${coach.id}/book`}>
                   სესიის დაჯავშნა
-                </button>
+                </Link>
               )}
               {!isOwnProfile && (
                 <button className="coach-book-secondary coach-message-secondary" type="button" onClick={() => void messageCoach()}>
@@ -457,86 +406,6 @@ export default function CoachProfile() {
               </button>
             </div>
 
-            {showBooking && me && !isOwnProfile && (
-              <form className="stack-form" id="coachBookingForm" onSubmit={book}>
-                {coach.packages.length > 0 && (
-                  <label className="field field-wide">
-                    რას ჯავშნი
-                    <select value={packageId} onChange={(e) => setPackageId(e.target.value)}>
-                      <option value="">საათობრივი სესია — {coach.hourlyRateWaveCoin} GEL/სთ</option>
-                      {coach.packages.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} — {p.durationMinutes} წთ — {p.priceWaveCoin} GEL
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                <label className="field">
-                  თარიღი
-                  <input type="date" min={todayIso} value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} required />
-                </label>
-                <label className="field">
-                  დრო
-                  <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} required />
-                </label>
-                {!chosenPackage && (
-                  <label className="field">
-                    ხანგრძლივობა
-                    <select value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}>
-                      {DURATION_OPTIONS.map((minutes) => (
-                        <option key={minutes} value={minutes}>
-                          {minutes} წუთი — {Math.round((coach.hourlyRateWaveCoin * minutes) / 60)} GEL
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                {coach.bookingQuestions.map((q) => (
-                  <label key={q.key} className={`field${q.type === 'textarea' ? ' field-wide' : ''}`}>
-                    {q.label}
-                    {q.required ? ' *' : ''}
-                    {q.type === 'dropdown' ? (
-                      <select value={answers[q.key] ?? ''} required={q.required} onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}>
-                        <option value="">—</option>
-                        {(q.options ?? []).map((o) => (
-                          <option key={o} value={o}>
-                            {o}
-                          </option>
-                        ))}
-                      </select>
-                    ) : q.type === 'textarea' ? (
-                      <textarea rows={3} maxLength={1000} required={q.required} value={answers[q.key] ?? ''} onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))} />
-                    ) : (
-                      <input
-                        type={q.type === 'number' ? 'number' : 'text'}
-                        maxLength={1000}
-                        required={q.required}
-                        value={answers[q.key] ?? ''}
-                        onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
-                      />
-                    )}
-                  </label>
-                ))}
-                <label className="field field-wide">
-                  შეტყობინება ქოუჩს (არასავალდებულო)
-                  <textarea rows={3} maxLength={1000} value={buyerMessage} onChange={(e) => setBuyerMessage(e.target.value)} />
-                </label>
-                {bookingError && (
-                  <p className="coach-booking-status" role="alert">
-                    {bookingError}
-                  </p>
-                )}
-                {notEnoughBalance && (
-                  <p className="coach-booking-status">
-                    თქვენი ბალანსია {me.wavecoinBalance} WC — ამ სესიისთვის არ გყოფნით. <Link href="/wallet">შეავსეთ საფულე</Link>
-                  </p>
-                )}
-                <button className="coach-book-primary" type="submit" disabled={booking}>
-                  {booking ? 'იჯავშნება…' : `დადასტურება — ${sessionPrice} GEL`}
-                </button>
-              </form>
-            )}
 
             <p className="coach-booking-status" aria-live="polite">
               {status || 'სესიის თანხა ინახება escrow-ში მანამ, სანამ სესია არ დასრულდება — ქოუჩი ვერიფიცირებულია WaveHubX-ის მიერ.'}

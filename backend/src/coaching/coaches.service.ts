@@ -314,7 +314,7 @@ export class CoachesService {
 
   async listPackages(coachId: string): Promise<PublicCoachPackage[]> {
     const rows = await this.packages.find({ where: { coachId }, order: { sortOrder: 'ASC', createdAt: 'ASC' } });
-    return rows.map((p) => ({ id: p.id, name: p.name, description: p.description, durationMinutes: p.durationMinutes, priceWaveCoin: p.priceWaveCoin }));
+    return rows.map((p) => ({ id: p.id, name: p.name, description: p.description, sessionsCount: p.sessionsCount ?? 1, durationMinutes: p.durationMinutes, priceWaveCoin: p.priceWaveCoin }));
   }
 
   // Replaces the coach's packages with `list` (in order). Sessions already booked keep their
@@ -329,6 +329,7 @@ export class CoachesService {
               coachId,
               name: p.name.trim(),
               description: p.description?.trim() || null,
+              sessionsCount: p.sessionsCount ?? 1,
               durationMinutes: p.durationMinutes,
               priceWaveCoin: p.priceWaveCoin,
               sortOrder: i,

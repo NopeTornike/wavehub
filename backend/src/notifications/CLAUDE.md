@@ -79,3 +79,9 @@ default first page is ever requested).
 ## Subscription hooks
 `SubscriptionsService` emits `subscription_granted|past_due|expiring|cancelled|expired` (metadata `{ subscriptionId }`,
 plus an email to the user). See `backend/src/subscriptions/CLAUDE.md` for exactly when each fires.
+
+## 2026-10-02 New types
+- `welcome`: written at registration by `AuthService#welcome`, straight into the table, because
+  NotificationsModule imports AuthModule.
+- Coaching lifecycle v2 types: `session_starting`, `session_started`,
+  `session_awaiting_confirmation`, `session_review_request` (see `backend/src/coaching/CLAUDE.md`).

@@ -36,6 +36,8 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 
 export const SESSION_STATUS_LABELS: Record<CoachingSessionStatus, string> = {
   [CoachingSessionStatus.Scheduled]: 'დაგეგმილია',
+  [CoachingSessionStatus.InProgress]: 'მიმდინარეობს',
+  [CoachingSessionStatus.AwaitingConfirmation]: 'ელოდება დადასტურებას',
   [CoachingSessionStatus.Completed]: 'დასრულებულია',
   [CoachingSessionStatus.Cancelled]: 'გაუქმებულია',
 }

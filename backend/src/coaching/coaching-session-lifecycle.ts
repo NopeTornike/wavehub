@@ -1,11 +1,17 @@
 import { CoachingSessionStatus } from '@wavehub/shared-types';
 
-// A much smaller graph than order-lifecycle.ts's — no InProgress/Delivered split, since a session
-// is a single point-in-time event rather than delivered work. `Scheduled` is the only non-terminal
-// state; both terminal states (`Completed`/`Cancelled`) are reachable directly from it and neither
-// transitions further.
+// Lifecycle v2 (2026-10-02). Money only moves on Completed (escrow → coach) and Cancelled
+// (escrow → student):
+//   Scheduled ──both confirm the start──▶ InProgress ──coach marks done──▶ AwaitingConfirmation
+//   AwaitingConfirmation ──student confirms (or 48h pass)──▶ Completed
+//   Scheduled ──either cancels / nobody confirms within the start window──▶ Cancelled
+//   InProgress ──coach cancels──▶ Cancelled
+// A coach can no longer complete (and get paid for) a session that never started.
+const S = CoachingSessionStatus;
 const ALLOWED_TRANSITIONS: Partial<Record<CoachingSessionStatus, CoachingSessionStatus[]>> = {
-  [CoachingSessionStatus.Scheduled]: [CoachingSessionStatus.Completed, CoachingSessionStatus.Cancelled],
+  [S.Scheduled]: [S.InProgress, S.Cancelled],
+  [S.InProgress]: [S.AwaitingConfirmation, S.Cancelled],
+  [S.AwaitingConfirmation]: [S.Completed],
 };
 
 export class InvalidCoachingSessionTransitionError extends Error {

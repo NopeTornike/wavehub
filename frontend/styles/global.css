@@ -19839,3 +19839,75 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
 .sp-perms { display: grid; gap: 10px; margin: 0; border: 1px solid rgba(120, 130, 170, .22); border-radius: 10px; padding: 14px 16px; }
 .sp-perms legend { padding: 0 6px; color: #fff; font-weight: 800; }
 .sp-perms-sub { display: grid; gap: 6px; max-width: 260px; padding-left: 26px; color: #b9c0d0; font-size: 13px; }
+
+/* Wave rank icons (Tornike's a46894e "ranking fix", 2026-10-02; tier names from the owner's list).
+   Icons: /assets/rank-icons/rank-1..10.png (resized from his 2 MB originals to 164px). */
+.public-profile-rank-icon { position: absolute; z-index: 1; right: 20px; top: 50%; width: 82px; height: 82px; object-fit: contain; transform: translateY(-50%); filter: drop-shadow(0 0 10px rgba(105, 185, 255, .36)); }
+.profile-rank-icon, .wave-rank-inline-icon { width: 18px; height: 18px; flex: 0 0 auto; object-fit: contain; vertical-align: middle; filter: drop-shadow(0 0 4px rgba(93, 169, 255, .42)); }
+.wave-rank-inline-icon { width: 16px; height: 16px; margin-right: 5px; }
+.seller-rank-emblem, .up-rank-gem { grid-row: span 2; width: 74px; height: 82px; display: grid; place-items: center; border: 0 !important; clip-path: none !important; background: none !important; }
+.seller-rank-emblem img, .up-rank-gem img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 10px rgba(99, 165, 255, .45)); }
+.up-badge-rank { width: 26px; height: 26px; object-fit: contain; }
+.db-rank-icon { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(99, 165, 255, .45)); }
+.coach-score-card em .wave-rank-inline-icon { width: 18px; height: 18px; }
+
+/* Booking header language switcher (Tornike's 38b086d). */
+.booking-header-actions { display: flex; align-items: center; gap: 22px; }
+.booking-language-switcher { display: inline-flex; overflow: hidden; border: 1px solid #354057; border-radius: 7px; background: #07101f; }
+.booking-language-switcher button { min-width: 54px; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 0; color: #b9bdca; background: transparent; font-size: 12px; font-weight: 800; }
+.booking-language-switcher img { width: 16px; height: 11px; object-fit: cover; border-radius: 1px; }
+.booking-language-switcher button + button { border-left: 1px solid #354057; }
+.booking-language-switcher button.is-active { color: white; background: linear-gradient(135deg, #e90061, #aa167f); }
+@media (max-width: 620px) { .booking-header-actions { gap: 10px; } }
+.ce-package { grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, .6fr)); }
+
+/* Coaching session page, lifecycle v2 (pages/coaching-sessions/[id].tsx, cs- prefix). */
+.cs-page { display: grid; gap: 16px; }
+.cs-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.cs-head h1 { margin: 4px 0 2px; color: #fff; font-size: clamp(24px, 3vw, 32px); }
+.cs-when { margin: 0; color: #b9c0d0; }
+.cs-status { border: 1px solid rgba(120, 130, 170, .3); border-radius: 999px; padding: 7px 14px; color: #d6d9e3; font-size: 12px; font-weight: 800; }
+.cs-status.s-in_progress { border-color: rgba(84, 168, 255, .45); color: #7cc0ff; }
+.cs-status.s-awaiting_confirmation { border-color: rgba(246, 181, 58, .45); color: #f2bd55; }
+.cs-status.s-completed { border-color: rgba(48, 230, 127, .4); color: #54e995; }
+.cs-status.s-cancelled { border-color: rgba(255, 90, 120, .4); color: #ff7a93; }
+.cs-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.cs-steps li { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px; background: rgba(9, 12, 24, .6); padding: 12px; color: #8f97aa; }
+.cs-steps li b { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border: 1px solid rgba(120, 130, 170, .35); border-radius: 50%; font-size: 13px; }
+.cs-steps li span { display: grid; min-width: 0; }
+.cs-steps li strong { color: inherit; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-steps li small { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-steps li.done { color: #54e995; border-color: rgba(48, 230, 127, .3); }
+.cs-steps li.done b { border-color: #2fd47a; background: rgba(47, 212, 122, .15); }
+.cs-steps li.current { color: #fff; border-color: #ff4fa3; background: rgba(255, 79, 163, .08); }
+.cs-steps li.current b { border-color: #ff4fa3; background: linear-gradient(135deg, #f40067, #bd087b); }
+.cs-action { display: grid; gap: 10px; border: 1px solid rgba(255, 79, 163, .45); border-radius: 14px; background: linear-gradient(135deg, rgba(244, 0, 103, .1), rgba(123, 63, 228, .08)); padding: 20px; }
+.cs-action h2 { margin: 0; color: #fff; font-size: 20px; }
+.cs-action p { margin: 0; color: #d6d9e3; line-height: 1.5; }
+.cs-action-buttons { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cs-action-buttons .detail-buy-button { width: auto; min-width: 200px; }
+.cs-confirms { display: flex; flex-wrap: wrap; gap: 8px; }
+.cs-confirms span { border: 1px solid rgba(120, 130, 170, .3); border-radius: 999px; padding: 5px 12px; color: #b9c0d0; font-size: 13px; font-weight: 700; }
+.cs-confirms span.ok { border-color: rgba(48, 230, 127, .45); color: #54e995; }
+.cs-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.cs-card { display: grid; gap: 12px; align-content: start; margin: 0; }
+.cs-card h2 { margin: 0; }
+.cs-wide { grid-column: 1 / -1; }
+.cs-facts { display: grid; gap: 8px; margin: 0; }
+.cs-facts > div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgba(120, 130, 170, .14); padding-bottom: 8px; }
+.cs-facts dt { color: #9aa1b3; }
+.cs-facts dd { margin: 0; color: #e6e9f2; font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+.cs-facts .cs-total dd { color: #54e995; font-size: 18px; }
+.cs-goal { margin: 0; border-left: 3px solid #ff4fa3; padding-left: 12px; color: #fff; font-size: 16px; line-height: 1.5; white-space: pre-wrap; }
+@media (max-width: 760px) {
+  .cs-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cs-grid { grid-template-columns: minmax(0, 1fr); }
+  .cs-action-buttons .detail-buy-button { width: 100%; }
+}
+
+/* 6-step booking (pages/coaching/[id]/book.tsx) — app additions on top of Tornike's booking-* rules. */
+.booking-flow-body .booking-header-actions .language-switcher { margin: 0; }
+.booking-goal-form select, .booking-goal-form input:not([type="checkbox"]) { width: 100%; min-height: 44px; border: 1px solid var(--bk-line, #202a3c); border-radius: 8px; background: var(--bk-card-2, #07101f); color: #fff; padding: 0 12px; font: inherit; }
+.booking-next[href] { text-decoration: none; }
+.booking-next:disabled { opacity: .6; cursor: progress; }
+.booking-slots button.disabled { opacity: .38; cursor: not-allowed; }

@@ -1,4 +1,5 @@
-import { assertConserved, clearHold } from './flows';
+import { assertConserved, clearHold, startSession } from './flows';
+import { CoachingSessionsService } from '../src/coaching/coaching-sessions.service';
 import { balanceOf, createApp, credit, E2eApp, makeAdmin, registerUser, TestUser } from './helpers';
 
 describe('coaching sessions (e2e)', () => {
@@ -7,7 +8,9 @@ describe('coaching sessions (e2e)', () => {
   let coachUser: TestUser;
   let buyer: TestUser;
   let coachId: string;
-  const inOneDay = () => new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  // Each booking gets its own slot: a coach can't be double-booked (lifecycle v2).
+  let slot = 0;
+  const inOneDay = () => new Date(Date.now() + (24 + 2 * slot++) * 3600 * 1000).toISOString();
 
   beforeAll(async () => {
     ctx = await createApp();
@@ -75,6 +78,9 @@ describe('coaching sessions (e2e)', () => {
 
   it('only the coach completes; payout is escrow minus the snapshotted fee, under the 7-day hold, paid once', async () => {
     const sess = (await book(buyer)).body;
+    // Lifecycle v2: a session that never started can't be completed (the coach can't just take it).
+    expect((await coachUser.client.post(`/coaching-sessions/${sess.id}/complete`)).status).toBe(409);
+    await startSession(ctx, coachUser, buyer, sess.id);
     expect((await buyer.client.post(`/coaching-sessions/${sess.id}/complete`)).status).toBe(403);
     const stranger = await registerUser(ctx, 'cstranger');
     expect((await stranger.client.post(`/coaching-sessions/${sess.id}/complete`)).status).toBe(403);
@@ -84,11 +90,16 @@ describe('coaching sessions (e2e)', () => {
     await admin.client.post('/admin/platform-settings', { platformFeePercent: 30 });
     const coachBefore = await balanceOf(ctx, coachUser);
     expect((await coachUser.client.post(`/coaching-sessions/${sess.id}/complete`)).status).toBe(200);
+    // Not paid until the student confirms.
+    expect(await balanceOf(ctx, coachUser)).toBe(coachBefore);
+    expect((await coachUser.client.post(`/coaching-sessions/${sess.id}/confirm-complete`)).status).toBe(403);
+    expect((await buyer.client.post(`/coaching-sessions/${sess.id}/confirm-complete`)).status).toBe(200);
     expect(await balanceOf(ctx, coachUser)).toBe(coachBefore + 135);
     const wallet = (await coachUser.client.get('/wallet/balance')).body;
     expect(wallet.pendingClearance).toBeGreaterThanOrEqual(135);
 
     expect((await coachUser.client.post(`/coaching-sessions/${sess.id}/complete`)).status).toBe(409);
+    expect((await buyer.client.post(`/coaching-sessions/${sess.id}/confirm-complete`)).status).toBe(409);
     expect((await buyer.client.post(`/coaching-sessions/${sess.id}/cancel`)).status).toBe(409);
     expect(await balanceOf(ctx, coachUser)).toBe(coachBefore + 135);
 
@@ -130,18 +141,16 @@ describe('coaching sessions (e2e)', () => {
     expect(await balanceOf(ctx, buyer)).toBe(before);
   });
 
-  it('a concurrent complete + cancel pays out or refunds, never both', async () => {
-    const buyerBefore = await balanceOf(ctx, buyer);
+  it('the student confirming at the same moment as the 48h auto-confirm pays the coach exactly once', async () => {
     const coachBefore = await balanceOf(ctx, coachUser);
     const sess = (await book(buyer)).body;
-    const [c, x] = await Promise.all([
-      coachUser.client.post(`/coaching-sessions/${sess.id}/complete`),
-      buyer.client.post(`/coaching-sessions/${sess.id}/cancel`),
-    ]);
-    expect([c.status, x.status].filter((s) => s === 200)).toHaveLength(1);
-    const paid = c.status === 200;
-    expect(await balanceOf(ctx, coachUser)).toBe(coachBefore + (paid ? 135 : 0));
-    expect(await balanceOf(ctx, buyer)).toBe(buyerBefore - (paid ? 150 : 0));
+    await startSession(ctx, coachUser, buyer, sess.id);
+    expect((await coachUser.client.post(`/coaching-sessions/${sess.id}/complete`)).status).toBe(200);
+    await ctx.dataSource.query(`UPDATE coaching_sessions SET "coachCompletedAt" = now() - interval '49 hours' WHERE id = $1`, [sess.id]);
+    const sessionsService = ctx.app.get(CoachingSessionsService);
+    await Promise.all([buyer.client.post(`/coaching-sessions/${sess.id}/confirm-complete`), sessionsService.sweep()]);
+    expect((await sessionRow(sess.id)).status).toBe('completed');
+    expect(await balanceOf(ctx, coachUser)).toBe(coachBefore + 135);
   });
 
   it('a suspended coach cannot be booked; restoring re-opens booking', async () => {

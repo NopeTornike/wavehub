@@ -4,6 +4,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } f
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { CoachingSessionsService } from './coaching-sessions.service';
 import { RequestSessionDto } from './dto/request-session.dto';
+import { BookSessionsDto } from './dto/book-sessions.dto';
 import { ReviewSessionDto } from './dto/review-session.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
@@ -20,6 +21,20 @@ export class CoachingSessionsController {
     return this.sessions.request(buyerId, coachId, dto);
   }
 
+  // The 6-step booking flow: one hourly session or a package's sessions, paid into escrow.
+  @Post('coaches/:id/bookings')
+  @Throttle(CREATE_THROTTLE)
+  @UseGuards(VerifiedEmailGuard)
+  book(@CurrentUserId() buyerId: string, @Param('id') coachId: string, @Body() dto: BookSessionsDto) {
+    return this.sessions.book(buyerId, coachId, dto);
+  }
+
+  // The coach's booked times (next 60 days) for the booking calendar — times only.
+  @Get('coaches/:id/busy')
+  busy(@Param('id') coachId: string) {
+    return this.sessions.busy(coachId);
+  }
+
   @Get('coaching-sessions/mine-as-buyer')
   findMineAsBuyer(@CurrentUserId() userId: string) {
     return this.sessions.findMineAsBuyer(userId);
@@ -33,6 +48,20 @@ export class CoachingSessionsController {
   @Get('coaching-sessions/:id')
   getOne(@CurrentUserId() userId: string, @Param('id') id: string) {
     return this.sessions.getForParticipant(id, userId);
+  }
+
+  // Either side confirms the session started (both → InProgress).
+  @Post('coaching-sessions/:id/confirm-start')
+  @HttpCode(HttpStatus.OK)
+  confirmStart(@CurrentUserId() userId: string, @Param('id') id: string) {
+    return this.sessions.confirmStart(id, userId);
+  }
+
+  // The student confirms the coach's "done" → the coach is paid.
+  @Post('coaching-sessions/:id/confirm-complete')
+  @HttpCode(HttpStatus.OK)
+  confirmComplete(@CurrentUserId() userId: string, @Param('id') id: string) {
+    return this.sessions.confirmComplete(id, userId);
   }
 
   @Post('coaching-sessions/:id/complete')

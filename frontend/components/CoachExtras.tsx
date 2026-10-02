@@ -22,7 +22,7 @@ export const MAX_VIDEO_BYTES = 50 * 1024 * 1024
 const MAX_PACKAGES = 6
 
 type Status = { kind: '' | 'error' | 'success'; text: string }
-type PackageRow = { name: string; description: string; durationMinutes: number; priceWaveCoin: number }
+type PackageRow = { name: string; description: string; sessionsCount: number; durationMinutes: number; priceWaveCoin: number }
 
 function StatusLine({ status }: { status: Status }) {
   if (!status.text) return null
@@ -111,7 +111,7 @@ export function CoachVideoEditor({
 
 export function CoachPackagesEditor({ initial, onSave }: { initial: PublicCoachPackage[]; onSave: (list: CoachPackageInput[]) => Promise<PublicCoachPackage[]> }) {
   const [rows, setRows] = useState<PackageRow[]>(() =>
-    initial.map((p) => ({ name: p.name, description: p.description ?? '', durationMinutes: p.durationMinutes, priceWaveCoin: p.priceWaveCoin })),
+    initial.map((p) => ({ name: p.name, description: p.description ?? '', sessionsCount: p.sessionsCount ?? 1, durationMinutes: p.durationMinutes, priceWaveCoin: p.priceWaveCoin })),
   )
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>({ kind: '', text: '' })
@@ -121,13 +121,14 @@ export function CoachPackagesEditor({ initial, onSave }: { initial: PublicCoachP
     for (const [i, r] of rows.entries()) {
       if (r.name.trim().length < 2 || r.name.trim().length > 60) return setStatus({ kind: 'error', text: `პაკეტი #${i + 1}: სახელი 2–60 სიმბოლო.` })
       if (r.description.length > 300) return setStatus({ kind: 'error', text: `პაკეტი #${i + 1}: აღწერა მაქს. 300 სიმბოლო.` })
+      if (!Number.isInteger(r.sessionsCount) || r.sessionsCount < 1 || r.sessionsCount > 10) return setStatus({ kind: 'error', text: `პაკეტი #${i + 1}: სესიების რაოდენობა 1–10.` })
       if (!Number.isInteger(r.durationMinutes) || r.durationMinutes < 15 || r.durationMinutes > 480) return setStatus({ kind: 'error', text: `პაკეტი #${i + 1}: ხანგრძლივობა 15–480 წუთი.` })
       if (!Number.isInteger(r.priceWaveCoin) || r.priceWaveCoin < 1 || r.priceWaveCoin > 100000) return setStatus({ kind: 'error', text: `პაკეტი #${i + 1}: ფასი 1–100000 GEL.` })
     }
     setBusy(true)
     try {
-      const saved = await onSave(rows.map((r) => ({ name: r.name.trim(), description: r.description.trim() || undefined, durationMinutes: r.durationMinutes, priceWaveCoin: r.priceWaveCoin })))
-      setRows(saved.map((p) => ({ name: p.name, description: p.description ?? '', durationMinutes: p.durationMinutes, priceWaveCoin: p.priceWaveCoin })))
+      const saved = await onSave(rows.map((r) => ({ name: r.name.trim(), description: r.description.trim() || undefined, sessionsCount: r.sessionsCount, durationMinutes: r.durationMinutes, priceWaveCoin: r.priceWaveCoin })))
+      setRows(saved.map((p) => ({ name: p.name, description: p.description ?? '', sessionsCount: p.sessionsCount ?? 1, durationMinutes: p.durationMinutes, priceWaveCoin: p.priceWaveCoin })))
       setStatus({ kind: 'success', text: 'პაკეტები შენახულია.' })
     } catch (err) {
       setStatus({ kind: 'error', text: errorMessage(err, 'შენახვა ვერ მოხერხდა.') })
@@ -139,7 +140,7 @@ export function CoachPackagesEditor({ initial, onSave }: { initial: PublicCoachP
   return (
     <section className="ce-section">
       <h3>პაკეტები</h3>
-      <p className="ce-hint">ფიქსირებული ფასის შეთავაზებები საათობრივი ფასის გვერდით (მაგ. „მატჩის ანალიზი — 45 წთ — 25 GEL“). მაქს. {MAX_PACKAGES}.</p>
+      <p className="ce-hint">ფიქსირებული ფასის შეთავაზებები საათობრივი ფასის გვერდით (მაგ. „ზრდა — 3 სესია × 60 წთ — 100 GEL“). სტუდენტი ჯავშნისას იმდენ დროს ირჩევს, რამდენი სესიაცაა პაკეტში. მაქს. {MAX_PACKAGES}.</p>
       <div className="sv-rows">
         {rows.length === 0 && <p className="sv-muted">პაკეტები არ არის — მყიდველი ჯავშნის საათობრივი ფასით.</p>}
         {rows.map((r, i) => (
@@ -151,6 +152,10 @@ export function CoachPackagesEditor({ initial, onSave }: { initial: PublicCoachP
             <label className="sp-field">
               <span>წუთი</span>
               <input type="number" min={15} max={480} step={5} value={r.durationMinutes} onChange={(e) => patch(i, { durationMinutes: Number(e.target.value) })} />
+            </label>
+            <label className="sp-field">
+              <span>სესიები</span>
+              <input type="number" min={1} max={10} step={1} value={r.sessionsCount} onChange={(e) => patch(i, { sessionsCount: Number(e.target.value) })} />
             </label>
             <label className="sp-field">
               <span>ფასი (GEL)</span>
@@ -166,7 +171,7 @@ export function CoachPackagesEditor({ initial, onSave }: { initial: PublicCoachP
           </div>
         ))}
         {rows.length < MAX_PACKAGES && (
-          <button type="button" className="sv-add" onClick={() => setRows((list) => [...list, { name: '', description: '', durationMinutes: 60, priceWaveCoin: 20 }])}>
+          <button type="button" className="sv-add" onClick={() => setRows((list) => [...list, { name: '', description: '', sessionsCount: 1, durationMinutes: 60, priceWaveCoin: 20 }])}>
             + პაკეტის დამატება
           </button>
         )}

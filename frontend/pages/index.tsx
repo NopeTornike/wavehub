@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
 import { gameCover, gameDisplayName, gameTile } from '../lib/games'
 import { listingKind, normalizeAccountStatus } from '../components/ProductCard'
+import RankIcon from '../components/RankIcon'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
 // the prototype's final DOM order (its script moves competition/steam/featured/how-it-works in
@@ -295,10 +296,8 @@ export default function Home() {
               {user?.status === 'active' && <i aria-label="Verified">✓</i>}
             </h2>
             <p>
-              <span className="mobile-rank-icon" aria-hidden="true">
-                ◆
-              </span>
-              <strong id="mobileProfileRank">{waveRank?.name ?? 'Wave Spark'}</strong>
+              <RankIcon name={waveRank?.name} className="profile-rank-icon" />
+              <strong id="mobileProfileRank">{waveRank?.name ?? 'Starter'}</strong>
             </p>
             <Link href={user ? '/profile' : '/login'}>
               პროფილის ნახვა <span aria-hidden="true">›</span>

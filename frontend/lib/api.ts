@@ -129,7 +129,7 @@ export type PackageInput = { name: string; priceWaveCoin: number; deliveryTimeDa
 // What PATCH coaches/mine/profile (and the admin equivalent) accept — packages and the uploaded
 // video have their own endpoints.
 export type CoachProfilePatch = Partial<Omit<MyCoachProfile, 'id' | 'verificationStatus' | 'videoFileUrl' | 'packages'>>
-export type CoachPackageInput = { name: string; description?: string; durationMinutes: number; priceWaveCoin: number }
+export type CoachPackageInput = { name: string; description?: string; sessionsCount?: number; durationMinutes: number; priceWaveCoin: number }
 
 // Raw Coach entity as returned to its own owner by GET /coaches/mine (null when the user never
 // applied) — only the fields the apply page reads.
@@ -259,13 +259,22 @@ async function send(path: string, init: RequestInit): Promise<unknown> {
     throw new ApiError(0, 'Network error')
   }
 
-  const data = await res.json().catch(() => ({}))
+  // An empty body (e.g. a handler returning null/undefined) is `null`, not `{}` — `{}` read as a real
+  // object made SessionReview think a review already existed and hide the form (bug, 2026-10-02).
+  const text = await res.text().catch(() => '')
+  let data: any = null
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    data = null
+  }
 
   if (!res.ok) {
     // Two backend error shapes: Nest's built-in exceptions (`{ statusCode, message, error: 'Forbidden' }`
     // — the human text is in `message`, `error` is just the HTTP status name) and this app's own
     // `{ ok: false, error: '<text>' }` (no `message`). So `message` must win when present; reading
     // `error` first surfaced every built-in exception as a bare "Forbidden"/"Bad Request".
+    data = data ?? {}
     const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
     throw new ApiError(res.status, message || data?.error || 'Request failed')
   }
@@ -844,6 +853,19 @@ export const api = {
 
   cancelCoachingSession: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/cancel`, { method: 'POST' }),
 
+  // Lifecycle v2: both sides confirm the start; the student confirms the coach's "done".
+  confirmCoachingSessionStart: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/confirm-start`, { method: 'POST' }),
+
+  confirmCoachingSessionComplete: (id: string) => request<PublicCoachingSession>(`/coaching-sessions/${id}/confirm-complete`, { method: 'POST' }),
+
+  // The 6-step booking flow (/coaching/[id]/book).
+  bookCoachSessions: (
+    coachId: string,
+    payload: { packageId?: string; durationMinutes?: number; slots: string[]; goal: string; challenges?: string; discord: string; answers?: Record<string, string> },
+  ) => request<PublicCoachingSession[]>(`/coaches/${coachId}/bookings`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  coachBusyTimes: (coachId: string) => request<Array<{ start: string; end: string }>>(`/coaches/${coachId}/busy`),
+
   // --- Follows (docs/design-mockups/12) ---
   getFollowStatus: (username: string) => request<{ following: boolean }>(`/users/${encodeURIComponent(username)}/follow-status`),
 
@@ -882,7 +904,8 @@ export const api = {
 
   listCoachReviews: (coachId: string) => request<PublicCoachReview[]>(`/coaches/${coachId}/reviews`),
 
-  getCoachingSessionReview: (sessionId: string) => request<PublicCoachReview | null>(`/coaching-sessions/${sessionId}/review`),
+  getCoachingSessionReview: (sessionId: string) =>
+    request<{ review: PublicCoachReview | null }>(`/coaching-sessions/${sessionId}/review`).then((res) => res?.review ?? null),
 
   reviewCoachingSession: (sessionId: string, payload: { rating: number; body?: string }) =>
     request<PublicCoachReview>(`/coaching-sessions/${sessionId}/review`, { method: 'POST', body: JSON.stringify(payload) }),

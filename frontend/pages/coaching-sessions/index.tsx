@@ -12,10 +12,24 @@ import { SESSION_STATUS_LABELS } from '../../lib/labels'
 // Mirrors orders/index.tsx's structure exactly — same .orders-page-head/.orders-tabs/.order-card
 // design, since coaching sessions are conceptually a sibling of orders (a paid, escrowed
 // transaction) with no static-prototype page of its own to port from.
+const LIVE = [CoachingSessionStatus.Scheduled, CoachingSessionStatus.InProgress, CoachingSessionStatus.AwaitingConfirmation]
+
 export default function CoachingSessions() {
   const router = useRouter()
   const { user, checked } = useAuth()
   const [tab, setTab] = useState<'buyer' | 'coach'>('buyer')
+  // A coach lands on their students' sessions (client bug #2: the page always opened on "my
+  // bookings", so a coach's active sessions looked missing). Decided once, on the first load.
+  const [tabChosen, setTabChosen] = useState(false)
+  const userId = user?.id
+  useEffect(() => {
+    if (!userId || tabChosen) return
+    Promise.all([api.listMySessionsAsCoach().catch(() => []), api.listMySessionsAsBuyer().catch(() => [])]).then(([asCoach, asBuyer]) => {
+      const live = (list: PublicCoachingSession[]) => list.some((x) => LIVE.includes(x.status))
+      if (asCoach.length > 0 && (live(asCoach) || !live(asBuyer))) setTab('coach')
+      setTabChosen(true)
+    })
+  }, [userId, tabChosen])
   const [sessions, setSessions] = useState<PublicCoachingSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -27,7 +41,7 @@ export default function CoachingSessions() {
   }, [checked, user, router])
 
   useEffect(() => {
-    if (!user) return
+    if (!user || !tabChosen) return
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
@@ -47,7 +61,7 @@ export default function CoachingSessions() {
     return () => {
       cancelled = true
     }
-  }, [tab, user])
+  }, [tab, user, tabChosen])
 
   const totalPrice = sessions.reduce((sum, session) => sum + session.priceWaveCoin, 0)
 

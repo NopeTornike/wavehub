@@ -21,6 +21,10 @@ export class CoachPackage {
   @Column({ type: 'varchar', length: 300, nullable: true })
   description: string | null;
 
+  // Sessions in the package (each `durationMinutes` long); booking it schedules this many.
+  @Column({ type: 'integer', default: 1 })
+  sessionsCount: number;
+
   @Column({ type: 'integer' })
   durationMinutes: number;
 

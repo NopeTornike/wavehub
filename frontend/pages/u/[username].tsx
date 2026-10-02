@@ -6,6 +6,7 @@ import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gameCover } from '../../lib/games'
+import RankIcon from '../../components/RankIcon'
 
 // docs/design-mockups/12-public-profile.jpg: hero (photo with real online dot, name, @handle,
 // WaveHubX ID with copy, role, location, join date, tagline, Message / Follow), the Wave Rank panel,
@@ -206,7 +207,7 @@ export default function PublicProfile() {
             <small>WAVE RANK</small>
             <div>
               <span className="up-rank-gem" aria-hidden="true">
-                <svg viewBox="0 0 24 24">{BADGE_ICON.tier}</svg>
+                <RankIcon name={p.waveRank.name} className="" />
               </span>
               <span>
                 <strong>{p.waveRank.name}</strong>
@@ -321,7 +322,7 @@ export default function PublicProfile() {
               {p.badges.map((badge) => (
                 <div key={badge.key} className={`up-badge ${badge.key}`}>
                   <span aria-hidden="true">
-                    <svg viewBox="0 0 24 24">{BADGE_ICON[badge.key] ?? BADGE_ICON.tier}</svg>
+                    {badge.key === 'tier' ? <RankIcon name={badge.label} className="up-badge-rank" /> : <svg viewBox="0 0 24 24">{BADGE_ICON[badge.key] ?? BADGE_ICON.tier}</svg>}
                   </span>
                   <small>{badge.label}</small>
                 </div>

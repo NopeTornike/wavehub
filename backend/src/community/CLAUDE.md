@@ -50,3 +50,6 @@ Wave rank counts coaching too: a completed session is a sale for the coach and a
 student, a session review counts like a seller review, and completed sessions in the last 30 days
 are recent events. `CommunityService` is exported (coach profiles show the coach's rank as a
 0–100 "Wave Score").
+
+- 2026-10-02: tier names are the owner's list (Starter → WaveHub Apex), same thresholds; each tier has
+  an icon (`waveRankIcon` in shared-types, `/assets/rank-icons/rank-N.png`).

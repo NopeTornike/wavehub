@@ -9,6 +9,7 @@ import { useAuth } from '../lib/auth'
 import { gameCover } from '../lib/games'
 import { ORDER_STATUS_LABELS } from '../lib/labels'
 import { useShell } from '../lib/shell'
+import RankIcon from '../components/RankIcon'
 
 // docs/design-mockups/09-user-dashboard.jpg for the signed-in user: welcome, the next coaching
 // session with a live countdown, coaching progress, marketplace / tournament summaries, the most
@@ -76,7 +77,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!userId) return
-    api.listMySessionsAsBuyer().then(setSessions).catch(() => setSessions([]))
+    // Both sides: a coach's next session is one a student booked with them.
+    Promise.all([api.listMySessionsAsBuyer().catch(() => []), api.listMySessionsAsCoach().catch(() => [])]).then(([asBuyer, asCoach]) =>
+      setSessions([...asBuyer, ...asCoach]),
+    )
     Promise.all([api.listOrdersAsBuyer().catch(() => []), api.listOrdersAsSeller().catch(() => [])]).then(([bought, sold]) =>
       setOrders([...bought, ...sold].sort((a, b) => b.createdAt.localeCompare(a.createdAt))),
     )
@@ -85,7 +89,12 @@ export default function Dashboard() {
 
   const now = useNow(true)
   const upcoming = (sessions ?? [])
-    .filter((s) => s.status === CoachingSessionStatus.Scheduled && new Date(s.scheduledAt).getTime() > now - 3_600_000)
+    .filter(
+      (s) =>
+        s.status === CoachingSessionStatus.InProgress ||
+        s.status === CoachingSessionStatus.AwaitingConfirmation ||
+        (s.status === CoachingSessionStatus.Scheduled && new Date(s.scheduledAt).getTime() > now - 3_600_000),
+    )
     .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
   const next = upcoming[0] ?? null
 
@@ -299,6 +308,7 @@ export default function Dashboard() {
               </div>
               <div className="db-rank">
                 <small>რანგი</small>
+                {waveRank && <RankIcon name={waveRank.name} className="db-rank-icon" />}
                 <strong>{waveRank?.name ?? '—'}</strong>
                 <small>Wave Score</small>
                 <b>{waveRank?.score ?? 0}</b>

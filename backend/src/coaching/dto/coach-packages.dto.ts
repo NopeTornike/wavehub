@@ -13,6 +13,13 @@ export class CoachPackageDto {
   @MaxLength(300)
   description?: string;
 
+  // Sessions in the package (each durationMinutes long). Defaults to 1.
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  sessionsCount?: number;
+
   @IsInt()
   @Min(15)
   @Max(480)

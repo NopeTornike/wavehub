@@ -249,3 +249,48 @@ Migration `1784360000000-CoachPackagesVideo` (runs on boot).
 - Tests: `test/coach-admin.e2e-spec.ts` (staff-only create, package/question bounds for coach and
   staff, video MP4/WebM-only + served inline, booking a package charges its price and stores the
   answers for participants only).
+
+## 2026-10-02 Lifecycle v2 + the 6-step booking (client feedback)
+Migration `1784362000000-CoachingLifecycle`. **The coach can no longer complete (and get paid
+for) a session that never happened** — client bug #7.
+- **Statuses** (`coaching-session-lifecycle.ts`): `scheduled → in_progress → awaiting_confirmation →
+  completed`, and `scheduled|in_progress → cancelled`. Money moves only on `completed` (escrow →
+  coach, 7-day hold) and `cancelled` (escrow → student).
+- **Start**: `POST coaching-sessions/:id/confirm-start`, either side, from 15 min before
+  (`START_EARLY_MINUTES`) until 60 min after (`START_GRACE_MINUTES`) the scheduled time; both →
+  `in_progress`. **Finish**: `POST …/complete` (coach, only `in_progress`) → `awaiting_confirmation`;
+  `POST …/confirm-complete` (student) → `completed` + payout. The student can cancel only while
+  `scheduled`; the coach also while `in_progress` (full refund).
+- **Sweep** `@Cron('*/2 * * * *') sweepCron → sweep(now)` (public for e2e):
+  - "starting soon" plus reminders every 10 min (`REMINDER_EVERY_MINUTES`) to whoever hasn't
+    confirmed the start;
+  - after the start window → cancel + refund + notify both;
+  - `awaiting_confirmation` older than 48h (`AUTO_CONFIRM_HOURS`) → auto-complete.
+  - Each change re-checks under the row lock (`lockAndRevalidate`), so a user action at the same
+    moment can't double-pay or double-refund.
+- **Notifications** — natural Georgian with Tbilisi times (`formatSessionTime`); EN patterns live in
+  `frontend/lib/i18n-ka-en.app.json`:
+  - booking: the student and the coach (#6);
+  - "confirm start", plus the other side confirmed;
+  - started;
+  - coach marked done → student asked to confirm; coach told it's waiting (#5);
+  - completed → coach told the payout **and the fee %/amount** (#9); student asked for a review (#4);
+  - cancelled / auto-cancelled.
+- **6-step booking**: `POST coaches/:id/bookings` (`BookSessionsDto`):
+  - single session (`durationMinutes`) or a package (`packageId`, now with `sessionsCount` 1–10)
+    with exactly that many `slots`;
+  - `goal` (5–500, required), `challenges` (≤300), `discord` (required), `answers`;
+  - one escrow debit per session; a package total is split over its sessions (remainder on the
+    first); sessions share a `bookingGroupId`;
+  - **no double-booking**: the coach row is locked and overlapping `scheduled|in_progress|awaiting`
+    sessions → 409.
+- `GET coaches/:id/busy` → `{start,end}[]` for the booking calendar (times only).
+- `PublicCoachingSession` gained:
+  - `goal`/`challenges`/`discord`/`bookingGroupId`;
+  - the confirmation timestamps;
+  - `startDeadline`/`autoConfirmAt`;
+  - `platformFeePercent`/`platformFeeWaveCoin`/`coachPayoutWaveCoin` (participants only).
+- `GET coaching-sessions/:id/review` now answers `{ review }` — a bare `null` sent an empty body that
+  the frontend read as "already reviewed" and hid the form (client bug #3).
+- e2e: `test/coaching-lifecycle.e2e-spec.ts`; `test/flows.ts#startSession/completeSession`.
+  `coaching.e2e-spec.ts` books distinct slots (overlaps are refused now).

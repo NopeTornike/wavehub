@@ -53,3 +53,24 @@ export async function assertConserved(ctx: E2eApp): Promise<void> {
   const sessFees = await q(`SELECT COALESCE(SUM("priceWaveCoin" - "coachPayoutWaveCoin"),0) v FROM coaching_sessions WHERE status = 'completed'`);
   expect(balances).toBe(topups + adjustments + withdrawalNet - orderEscrow - orderFees - sessEscrow - sessFees);
 }
+
+// Coaching lifecycle v2: move a booked session's time to "now" (so the start can be confirmed),
+// then both sides confirm the start → InProgress. Returns the session as the coach sees it.
+export async function startSession(ctx: E2eApp, coach: TestUser, buyer: TestUser, sessionId: string): Promise<any> {
+  await ctx.dataSource.query(`UPDATE coaching_sessions SET "scheduledAt" = now() - interval '2 minutes' WHERE id = $1`, [sessionId]);
+  const a = await coach.client.post(`/coaching-sessions/${sessionId}/confirm-start`);
+  if (a.status !== 200) throw new Error(`coach confirm-start failed: ${JSON.stringify(a.body)}`);
+  const b = await buyer.client.post(`/coaching-sessions/${sessionId}/confirm-start`);
+  if (b.status !== 200) throw new Error(`buyer confirm-start failed: ${JSON.stringify(b.body)}`);
+  return b.body;
+}
+
+// …then the coach marks it done and the student confirms → Completed (coach paid).
+export async function completeSession(ctx: E2eApp, coach: TestUser, buyer: TestUser, sessionId: string): Promise<any> {
+  await startSession(ctx, coach, buyer, sessionId);
+  const done = await coach.client.post(`/coaching-sessions/${sessionId}/complete`);
+  if (done.status !== 200) throw new Error(`complete failed: ${JSON.stringify(done.body)}`);
+  const confirmed = await buyer.client.post(`/coaching-sessions/${sessionId}/confirm-complete`);
+  if (confirmed.status !== 200) throw new Error(`confirm-complete failed: ${JSON.stringify(confirmed.body)}`);
+  return confirmed.body;
+}

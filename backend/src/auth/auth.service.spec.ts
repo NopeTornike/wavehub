@@ -6,7 +6,7 @@ describe('AuthService.login', () => {
   function build(status: UserStatus) {
     const passwordHash = bcrypt.hashSync('Passw0rd!', 4);
     const users = { findOne: jest.fn(async () => ({ id: 'u1', username: 'u', passwordHash, status })) } as any;
-    return new AuthService(users, {} as any, {} as any, {} as any);
+    return new AuthService(users, {} as any, {} as any, { create: (x: any) => x, save: async (x: any) => x } as any, {} as any);
   }
 
   it('logs in an active user', async () => {
