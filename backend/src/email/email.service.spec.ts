@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { EmailService } from './email.service';
+import { verificationEmail, passwordResetEmail, plainEmail } from './templates';
 
 describe('EmailService', () => {
   const savedEnv = { ...process.env };
@@ -127,9 +128,6 @@ describe('EmailService', () => {
 });
 
 describe('email templates', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { verificationEmail, passwordResetEmail, plainEmail } = require('./templates');
-
   it('renders text + HTML with the link, and escapes user-supplied names', () => {
     const mail = verificationEmail('<script>x</script>', 'https://wavehubx.com/verify-email?token=abc');
     expect(mail.text).toContain('https://wavehubx.com/verify-email?token=abc');
