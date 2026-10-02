@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { PublicCoachPackage, RequirementField } from '@wavehub/shared-types'
+import { DEFAULT_COACH_AVAILABILITY, tbilisiLocal, type CoachAvailability, type CoachAvailabilityRange, type PublicCoachPackage, type RequirementField } from '@wavehub/shared-types'
 import { errorMessage, type CoachPackageInput } from '../lib/api'
 import { cleanRequirements, RequirementsEditor, validateServiceExtras } from './ServiceEditors'
 
@@ -214,6 +214,188 @@ export function CoachQuestionsEditor({ initial, onSave }: { initial: Requirement
         <button type="button" className="button" disabled={busy} onClick={() => void save()}>
           {busy ? 'ინახება…' : 'კითხვების შენახვა'}
         </button>
+      </div>
+      <StatusLine status={status} />
+    </section>
+  )
+}
+
+// Weekly working hours + days off + minimum notice (coaches.availability, Tbilisi time). The
+// booking calendar only offers starts inside these hours and the backend refuses anything outside.
+const WEEK: Array<[number, string]> = [
+  [1, 'ორშაბათი'],
+  [2, 'სამშაბათი'],
+  [3, 'ოთხშაბათი'],
+  [4, 'ხუთშაბათი'],
+  [5, 'პარასკევი'],
+  [6, 'შაბათი'],
+  [0, 'კვირა'],
+]
+const HALF_HOURS = Array.from({ length: 49 }, (_, i) => i * 30)
+const NOTICE_OPTIONS = [0, 1, 2, 3, 6, 12, 24, 48, 72]
+const MAX_DAYS_OFF = 90
+
+export function hm(minutes: number): string {
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+}
+
+export function CoachHoursEditor({ initial, onSave }: { initial: CoachAvailability | null; onSave: (value: CoachAvailability | null) => Promise<unknown> }) {
+  const [isDefault, setIsDefault] = useState(initial === null)
+  const [hours, setHours] = useState<CoachAvailability>(() => initial ?? DEFAULT_COACH_AVAILABILITY)
+  const [dayOff, setDayOff] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState<Status>({ kind: '', text: '' })
+  const [today] = useState(() => tbilisiLocal(Date.now()).date)
+
+  const edit = (change: (h: CoachAvailability) => CoachAvailability) => {
+    setHours(change)
+    setStatus({ kind: '', text: '' })
+  }
+  const rangesOf = (day: number) => hours.weekly.filter((r) => r.day === day)
+  const setDay = (day: number, ranges: Array<Omit<CoachAvailabilityRange, 'day'>>) =>
+    edit((h) => ({ ...h, weekly: [...h.weekly.filter((r) => r.day !== day), ...ranges.map((r) => ({ day, from: r.from, to: r.to }))] }))
+  const copyToAll = (day: number) => {
+    const ranges = rangesOf(day)
+    edit((h) => ({ ...h, weekly: WEEK.flatMap(([d]) => ranges.map((r) => ({ day: d, from: r.from, to: r.to }))) }))
+  }
+
+  const problem = (): string | null => {
+    for (const [day, label] of WEEK) {
+      const ranges = rangesOf(day).sort((a, b) => a.from - b.from)
+      for (const [i, r] of ranges.entries()) {
+        if (r.from >= r.to) return `${label}: დასრულება უნდა იყოს დაწყების შემდეგ.`
+        if (i > 0 && r.from < ranges[i - 1].to) return `${label}: დროები ერთმანეთს ფარავს.`
+      }
+    }
+    return null
+  }
+
+  const save = async (value: CoachAvailability | null) => {
+    if (value) {
+      const p = problem()
+      if (p) return setStatus({ kind: 'error', text: p })
+    }
+    setBusy(true)
+    try {
+      await onSave(value ? { ...value, daysOff: value.daysOff.filter((d) => d >= today) } : null)
+      setIsDefault(value === null)
+      if (!value) setHours(DEFAULT_COACH_AVAILABILITY)
+      setStatus({ kind: 'success', text: value ? 'სამუშაო საათები შენახულია.' : 'დაბრუნდა სტანდარტული საათები.' })
+    } catch (err) {
+      setStatus({ kind: 'error', text: errorMessage(err, 'შენახვა ვერ მოხერხდა.') })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const timeSelect = (value: number, onChange: (v: number) => void, min: number, max: number, label: string) => (
+    <select aria-label={label} value={value} onChange={(e) => onChange(Number(e.target.value))}>
+      {HALF_HOURS.filter((m) => m >= min && m <= max).map((m) => (
+        <option key={m} value={m}>
+          {hm(m)}
+        </option>
+      ))}
+    </select>
+  )
+
+  return (
+    <section className="ce-section ce-hours">
+      <h3>სამუშაო საათები</h3>
+      <p className="ce-hint">
+        როდის შეუძლიათ მოსწავლეებს შენთან სესიის დაჯავშნა (თბილისის დრო). ჯავშნის კალენდარში მხოლოდ ეს დროები გამოჩნდება.
+        {isDefault && ' ახლა მოქმედებს სტანდარტული განრიგი: ყოველდღე 10:00–24:00.'}
+      </p>
+      <div className="ce-week">
+        {WEEK.map(([day, label]) => {
+          const ranges = rangesOf(day)
+          return (
+            <div key={day} className={`ce-day${ranges.length ? '' : ' off'}`}>
+              <label className="ce-day-toggle">
+                <input type="checkbox" checked={ranges.length > 0} onChange={(e) => setDay(day, e.target.checked ? [{ from: 600, to: 1440 }] : [])} />
+                <strong>{label}</strong>
+              </label>
+              <div className="ce-ranges">
+                {ranges.length === 0 && <span className="ce-closed">დასვენება</span>}
+                {ranges.map((r, i) => (
+                  <span key={i} className="ce-range">
+                    {timeSelect(r.from, (from) => setDay(day, ranges.map((x, j) => (j === i ? { ...x, from } : x))), 0, 1410, `${label} — დაწყება`)}
+                    <span aria-hidden="true">–</span>
+                    {timeSelect(r.to, (to) => setDay(day, ranges.map((x, j) => (j === i ? { ...x, to } : x))), 30, 1440, `${label} — დასრულება`)}
+                    <button type="button" className="sv-remove" aria-label="დროის წაშლა" onClick={() => setDay(day, ranges.filter((_, j) => j !== i))}>
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="ce-day-actions">
+                {ranges.length > 0 && ranges.length < 4 && (
+                  <button type="button" className="ce-link" onClick={() => setDay(day, [...ranges, { from: Math.min(1410, ranges[ranges.length - 1].to), to: 1440 }])}>
+                    + დრო
+                  </button>
+                )}
+                {ranges.length > 0 && (
+                  <button type="button" className="ce-link" onClick={() => copyToAll(day)}>
+                    ყველა დღეზე
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="ce-hours-extra">
+        <label className="sp-field">
+          <span>მინიმალური წინასწარი შეტყობინება</span>
+          <select value={hours.noticeHours} onChange={(e) => edit((h) => ({ ...h, noticeHours: Number(e.target.value) }))}>
+            {NOTICE_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n === 0 ? 'არ არის საჭირო' : `${n} საათით ადრე`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="sp-field">
+          <span>დასვენების დღეები</span>
+          <div className="ce-dayoff-add">
+            <input type="date" min={today} value={dayOff} onChange={(e) => setDayOff(e.target.value)} aria-label="დასვენების დღე" />
+            <button
+              type="button"
+              className="button ghost"
+              disabled={!dayOff || dayOff < today || hours.daysOff.includes(dayOff) || hours.daysOff.length >= MAX_DAYS_OFF}
+              onClick={() => {
+                edit((h) => ({ ...h, daysOff: [...h.daysOff, dayOff].sort() }))
+                setDayOff('')
+              }}
+            >
+              დამატება
+            </button>
+          </div>
+          <div className="ce-chips">
+            {hours.daysOff.filter((d) => d >= today).length === 0 && <span className="sv-muted">არ არის</span>}
+            {hours.daysOff
+              .filter((d) => d >= today)
+              .map((d) => (
+                <span key={d} className="ce-chip">
+                  {d.split('-').reverse().join('.')}
+                  <button type="button" aria-label="დასვენების დღის წაშლა" onClick={() => edit((h) => ({ ...h, daysOff: h.daysOff.filter((x) => x !== d) }))}>
+                    ×
+                  </button>
+                </span>
+              ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="ce-actions">
+        <button type="button" className="button" disabled={busy} onClick={() => void save(hours)}>
+          {busy ? 'ინახება…' : 'საათების შენახვა'}
+        </button>
+        {!isDefault && (
+          <button type="button" className="button ghost" disabled={busy} onClick={() => void save(null)}>
+            სტანდარტულზე დაბრუნება
+          </button>
+        )}
       </div>
       <StatusLine status={status} />
     </section>

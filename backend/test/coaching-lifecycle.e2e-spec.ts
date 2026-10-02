@@ -1,6 +1,7 @@
 import { assertConserved, startSession } from './flows';
-import { balanceOf, createApp, credit, E2eApp, makeAdmin, registerUser, TestUser } from './helpers';
+import { balanceOf, createApp, credit, E2eApp, makeAdmin, registerUser, TestUser, openAllHours } from './helpers';
 import { CoachingSessionsService } from '../src/coaching/coaching-sessions.service';
+import { tbilisiInstant, tbilisiLocal } from '@wavehub/shared-types';
 
 // The 6-step booking flow + coaching lifecycle v2 (client feedback 2026-10-02): booking
 // notifications, start confirmation with 10-minute reminders and auto-cancel + refund, coach "done"
@@ -29,6 +30,7 @@ describe('coaching booking + lifecycle v2 (e2e)', () => {
       username: coachUser.username, specialty: 'Rank pushing', bio: 'Ten years of competitive experience across several titles.', hourlyRateWaveCoin: 40,
     });
     coachId = created.body.id;
+    await openAllHours(ctx, coachId);
     await ctx.dataSource.query(`UPDATE platform_settings SET "platformFeePercent" = 10`);
   });
   afterAll(async () => {
@@ -151,4 +153,49 @@ describe('coaching booking + lifecycle v2 (e2e)', () => {
     expect((await row(s.id)).status).toBe('completed');
     expect(await balanceOf(ctx, coachUser)).toBe(coachBefore + 36);
   });
+
+  it('working hours: the coach sets weekly hours, days off and notice; bookings outside them are refused', async () => {
+    const day = tbilisiLocal(Date.now() + 3 * 86400_000); // a Tbilisi date three days ahead
+    const offDay = tbilisiLocal(Date.now() + 4 * 86400_000);
+    const set = (availability: unknown) => coachUser.client.request('PATCH', '/coaches/mine/profile', { availability });
+    // Validation: overlap, a 15-minute step, a reversed range, a fake date, notice out of range.
+    expect((await set({ weekly: [{ day: 1, from: 600, to: 900 }, { day: 1, from: 840, to: 1000 }], daysOff: [], noticeHours: 1 })).status).toBe(400);
+    expect((await set({ weekly: [{ day: 1, from: 615, to: 900 }], daysOff: [], noticeHours: 1 })).status).toBe(400);
+    expect((await set({ weekly: [{ day: 1, from: 900, to: 600 }], daysOff: [], noticeHours: 1 })).status).toBe(400);
+    expect((await set({ weekly: [], daysOff: ['2026-02-30'], noticeHours: 1 })).status).toBe(400);
+    expect((await set({ weekly: [], daysOff: [], noticeHours: 100 })).status).toBe(400);
+    expect((await set({ weekly: [{ day: 7, from: 0, to: 60 }], daysOff: [], noticeHours: 1 })).status).toBe(400);
+
+    const hours = { weekly: [{ day: day.day, from: 18 * 60, to: 21 * 60 }, { day: offDay.day, from: 0, to: 1440 }], daysOff: [offDay.date], noticeHours: 2 };
+    const saved = await set(hours);
+    expect(saved.status).toBe(200);
+    expect(saved.body.availability).toEqual(hours);
+    expect((await buyer.client.get(`/coaches/${coachId}`)).body.availability).toEqual(hours);
+
+    const slot = (date: string, minutes: number) => new Date(tbilisiInstant(date, minutes)).toISOString();
+    const student = await registerUser(ctx, 'lchours'); // own throttle bucket
+    await credit(ctx, student, 500);
+    const book = (iso: string, durationMinutes = 60) => student.client.post(`/coaches/${coachId}/bookings`, { durationMinutes, slots: [iso], ...step3 });
+    expect((await book(slot(day.date, 17 * 60))).status).toBe(400); // before the range
+    expect((await book(slot(day.date, 20 * 60 + 30))).status).toBe(400); // runs past 21:00
+    expect((await book(slot(day.date, 20 * 60), 90)).status).toBe(400); // 90 min doesn't fit
+    expect((await book(slot(offDay.date, 12 * 60))).status).toBe(400); // day off
+    expect((await book(new Date(Date.now() + 3600_000).toISOString())).status).toBe(400); // under 2h notice
+    expect((await book(new Date(Date.now() + 61 * 86400_000).toISOString())).status).toBe(400); // past the horizon
+    const ok = await book(slot(day.date, 19 * 60));
+    expect(ok.status).toBe(201);
+    expect(ok.body[0].scheduledAt).toBe(slot(day.date, 19 * 60));
+
+    // A late range continued by the next day's 00:00 range lets a session run past midnight.
+    const late = tbilisiLocal(Date.now() + 5 * 86400_000);
+    const next = tbilisiLocal(Date.now() + 6 * 86400_000);
+    expect((await set({ weekly: [{ day: late.day, from: 22 * 60, to: 1440 }, { day: next.day, from: 0, to: 60 }], daysOff: [], noticeHours: 0 })).status).toBe(200);
+    expect((await book(slot(late.date, 23 * 60 + 30), 120)).status).toBe(400); // would end 01:30
+    expect((await book(slot(late.date, 23 * 60), 120)).status).toBe(201); // 23:00–01:00
+    // Staff edit the same hours; null resets to the default.
+    expect((await set(null)).body.availability).toBeNull();
+    expect((await buyer.client.get(`/coaches/${coachId}`)).body.availability.weekly).toHaveLength(7);
+    await openAllHours(ctx, coachId);
+  });
 });
+

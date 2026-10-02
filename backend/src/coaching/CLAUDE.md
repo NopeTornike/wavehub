@@ -294,3 +294,27 @@ for) a session that never happened** — client bug #7.
   the frontend read as "already reviewed" and hid the form (client bug #3).
 - e2e: `test/coaching-lifecycle.e2e-spec.ts`; `test/flows.ts#startSession/completeSession`.
   `coaching.e2e-spec.ts` books distinct slots (overlaps are refused now).
+
+## 2026-10-02 Working hours (`coaches.availability`)
+- **Shape** (`CoachAvailability` in `@wavehub/shared-types`): `weekly` ranges
+  (`{ day 0–6, from, to }` in minutes after **Tbilisi** midnight, 30-minute steps, never crossing
+  midnight), `daysOff` (`YYYY-MM-DD`, Tbilisi dates) and `noticeHours` (0–72). jsonb column, migration
+  `CoachAvailability1784363000000`. **`NULL` = not set** → `DEFAULT_COACH_AVAILABILITY` (every day
+  10:00–24:00, 1 hour's notice). `PublicCoachDetail.availability` always carries the effective hours;
+  `MyCoachProfile.availability` is `null` until set (so the editor can say "default schedule").
+- **One rule set, both sides**: the pure helpers live in shared-types — the booking calendar offers
+  `coachAvailabilityStarts(...)` and `CoachingSessionsService#book` rejects every slot for which
+  `coachAvailabilityProblem(...)` is non-null (400: notice / 60-day horizon
+  (`COACH_BOOKING_HORIZON_DAYS`) / outside hours or a day off). Change the rules there, never in one
+  side only. A session may run past midnight only if the next day's hours continue from 00:00.
+- **Editing**: `availability` on `UpdateCoachProfileDto` (`CoachAvailabilityDto`), so the coach's own
+  `PATCH coaches/mine/profile` and the staff edit route both accept it; `null` resets to the default.
+  `normalizeAvailability` (coaches.service.ts) sorts and rejects non-30-minute steps, `from >= to`,
+  same-day overlaps and invalid dates.
+- Timezone is fixed UTC+4 (no DST in Georgia) — `tbilisiLocal`/`tbilisiInstant`; nothing uses the
+  server's or the browser's zone.
+- **Notifications**: `coach_approved` (on verify and on staff-created/re-activated coaches) and
+  `coach_rejected` (with the reason) via `NotificationsService#tryEmit`.
+- e2e: `coaching-lifecycle.e2e-spec.ts` (validation, inside/outside hours, day off, notice, horizon,
+  past-midnight, reset to default); the other coaching specs call `helpers.ts#openAllHours` first so
+  their fixed slots stay bookable.

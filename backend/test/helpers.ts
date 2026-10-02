@@ -175,3 +175,10 @@ export async function publishItemListing(ctx: E2eApp, seller: TestUser, admin: T
   if (approved.status >= 300) throw new Error(`approve failed: ${JSON.stringify(approved.body)}`);
   return id;
 }
+
+// Specs book at arbitrary "now + N hours" instants: give the coach round-the-clock working hours
+// with no notice so those bookings aren't refused by the availability check.
+export async function openAllHours(ctx: E2eApp, coachId: string): Promise<void> {
+  const availability = { weekly: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, from: 0, to: 1440 })), daysOff: [], noticeHours: 0 };
+  await ctx.dataSource.query(`UPDATE coaches SET availability = $2 WHERE id = $1`, [coachId, JSON.stringify(availability)]);
+}

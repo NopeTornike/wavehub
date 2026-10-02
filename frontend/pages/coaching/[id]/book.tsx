@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { PublicCoachDetail, PublicCoachingSession } from '@wavehub/shared-types'
+import { DEFAULT_COACH_AVAILABILITY, coachAvailabilityProblem, coachAvailabilityStarts, type PublicCoachDetail, type PublicCoachingSession } from '@wavehub/shared-types'
 import PageHead from '../../../components/PageHead'
 import LanguageSwitcher from '../../../components/LanguageSwitcher'
 import { api, errorMessage } from '../../../lib/api'
@@ -222,10 +222,7 @@ const WEEKDAYS = ['კვირა', 'ორშაბათი', 'სამშ�
 const MONTHS = ['იან', 'თებ', 'მარ', 'აპრ', 'მაი', 'ივნ', 'ივლ', 'აგვ', 'სექ', 'ოქტ', 'ნოე', 'დეკ']
 // Coaches are in Georgia: slots are Tbilisi time (UTC+4, no DST).
 const TZ_OFFSET = '+04:00'
-const FIRST_HOUR = 10
-const LAST_HOUR = 23
 const DAYS = 14
-const MIN_LEAD_MS = 30 * 60_000
 const SINGLE = 'single'
 const SINGLE_MINUTES = 60
 
@@ -235,9 +232,6 @@ type Draft = { step: number; option: string; slots: string[]; goal: string; chal
 // The Tbilisi calendar date of `ms` as YYYY-MM-DD.
 function tbilisiDate(ms: number): string {
   return new Date(ms + 4 * 3600_000).toISOString().slice(0, 10)
-}
-function slotIso(date: string, hour: number): string {
-  return new Date(`${date}T${String(hour).padStart(2, '0')}:00:00${TZ_OFFSET}`).toISOString()
 }
 function dayParts(date: string) {
   const d = new Date(`${date}T12:00:00${TZ_OFFSET}`)
@@ -313,7 +307,19 @@ export default function CoachBooking() {
     if (!coachId) return
     api
       .getCoach(coachId)
-      .then(setCoach)
+      .then((c) => {
+        setCoach(c)
+        // Open the calendar on the first day the coach works (and still has bookable time).
+        const now = Date.now()
+        const hours = c.availability ?? DEFAULT_COACH_AVAILABILITY
+        for (let i = 0; i < DAYS; i++) {
+          const d = tbilisiDate(now + i * 86400_000)
+          if (coachAvailabilityStarts(hours, d, 30).some((ms) => !coachAvailabilityProblem(hours, ms, 30, now))) {
+            setDate((current) => (current === tbilisiDate(now) ? d : current))
+            break
+          }
+        }
+      })
       .catch((err) => setLoadError(errorMessage(err, 'ქოუჩი ვერ მოიძებნა.')))
   }, [coachId])
 
@@ -374,20 +380,22 @@ export default function CoachBooking() {
   const today = dates[0]
   const tomorrow = dates[1]
 
-  // A slot is free when it starts ≥30 min from now and overlaps neither the coach's bookings nor
-  // the student's other chosen slots.
+  // Starts come from the coach's working hours (coachAvailabilityStarts — the backend checks the
+  // same rules). A start is free when it respects the coach's notice/horizon and overlaps neither
+  // the coach's bookings nor the student's other chosen slots.
+  const availability = coach?.availability ?? DEFAULT_COACH_AVAILABILITY
   const slotState = useCallback(
     (iso: string): 'free' | 'busy' | 'past' => {
       if (!option) return 'busy'
       const start = new Date(iso).getTime()
       const end = start + option.minutes * 60_000
-      if (start < Date.now() + MIN_LEAD_MS) return 'past'
+      if (coachAvailabilityProblem(availability, start, option.minutes, Date.now())) return 'past'
       if (busy.some((b) => start < b.end && b.start < end)) return 'busy'
       return 'free'
     },
-    [busy, option],
+    [busy, option, availability],
   )
-  const daySlots = (d: string) => Array.from({ length: LAST_HOUR - FIRST_HOUR + 1 }, (_, i) => slotIso(d, FIRST_HOUR + i))
+  const daySlots = (d: string) => (option ? coachAvailabilityStarts(availability, d, option.minutes).map((ms) => new Date(ms).toISOString()) : [])
   const freeCount = (d: string) => daySlots(d).filter((s) => slotState(s) === 'free').length
   const overlapsChosen = (iso: string) => {
     if (!option) return false
@@ -688,7 +696,7 @@ export default function CoachBooking() {
                   <span>
                     {p.day} {p.month}
                   </span>
-                  <small className={count ? '' : 'full'}>{count ? `${count} დრო` : 'სავსეა'}</small>
+                  <small className={count ? '' : 'full'}>{count ? `${count} დრო` : daySlots(d).length ? 'სავსეა' : 'არ მუშაობს'}</small>
                 </button>
               )
             })}
@@ -711,6 +719,7 @@ export default function CoachBooking() {
             </div>
             <span>◎ &nbsp;GMT +4 (თბილისი)</span>
           </div>
+          {daySlots(date).length === 0 && <p className="booking-no-slots">ქოუჩი ამ დღეს არ მუშაობს — აირჩიე სხვა თარიღი.</p>}
           <div className="booking-slots">
             {daySlots(date).map((iso) => {
               const state = slotState(iso)

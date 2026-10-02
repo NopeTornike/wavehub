@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { CoachAvailabilityDto } from './coach-availability.dto';
 import { RequirementFieldDto } from '../../listings/dto/create-listing.dto';
 
 export const COACH_VIDEO_URL = /^https:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\/\S+$/;
@@ -70,4 +71,10 @@ export class UpdateCoachProfileDto {
   @ValidateNested({ each: true })
   @Type(() => RequirementFieldDto)
   bookingQuestions?: RequirementFieldDto[];
+
+  // Working hours (weekly ranges + days off + notice); null resets to the default hours.
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CoachAvailabilityDto)
+  availability?: CoachAvailabilityDto | null;
 }

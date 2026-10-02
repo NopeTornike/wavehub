@@ -1,5 +1,5 @@
 import { assertConserved } from './flows';
-import { balanceOf, createApp, credit, E2eApp, makeAdmin, registerUser, TestUser } from './helpers';
+import { balanceOf, createApp, credit, E2eApp, makeAdmin, registerUser, TestUser, openAllHours } from './helpers';
 
 // Staff add/edit coaches, coach packages + pre-booking questions, uploaded intro videos, and booking
 // a package with answers (coaching/CLAUDE.md, 2026-10-01).
@@ -38,6 +38,7 @@ describe('coach admin, packages, questions, video (e2e)', () => {
     expect(created.status).toBe(201);
     expect(created.body).toMatchObject({ username: coachUser.username, verificationStatus: 'verified', status: 'active' });
     coachId = created.body.id;
+    await openAllHours(ctx, coachId);
     expect((await ops.client.post('/admin/coaches', { username: coachUser.username, ...profile })).status).toBe(409);
     // Public right away.
     expect((await buyer.client.get(`/coaches/${coachId}`)).status).toBe(200);

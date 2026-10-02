@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type { AdminCoachSummary, MyCoachProfile, PublicGame } from '@wavehub/shared-types'
 import { VerificationStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { CoachPackagesEditor, CoachQuestionsEditor, CoachVideoEditor, LANGUAGE_OPTIONS } from '../../components/CoachExtras'
+import { CoachHoursEditor, CoachPackagesEditor, CoachQuestionsEditor, CoachVideoEditor, LANGUAGE_OPTIONS } from '../../components/CoachExtras'
 import { api, errorMessage } from '../../lib/api'
 
 // Staff side of coaching: the verification queue, the coach list (suspend/restore), "add coach"
@@ -146,6 +146,7 @@ function CoachEditPanel({ coachId, games, onSaved }: { coachId: string; games: P
       </form>
       <CoachVideoEditor videoFileUrl={profile.videoFileUrl} onUpload={(file) => api.adminUploadCoachVideo(coachId, file)} onClear={() => api.adminClearCoachVideo(coachId)} />
       <CoachPackagesEditor initial={profile.packages} onSave={(list) => api.adminSetCoachPackages(coachId, list)} />
+      <CoachHoursEditor initial={profile.availability} onSave={(availability) => api.adminUpdateCoachProfile(coachId, { availability })} />
       <CoachQuestionsEditor initial={profile.bookingQuestions} onSave={(bookingQuestions) => api.adminUpdateCoachProfile(coachId, { bookingQuestions })} />
     </div>
   )

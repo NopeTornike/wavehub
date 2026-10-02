@@ -1,4 +1,4 @@
-import type { RequirementField } from '@wavehub/shared-types';
+import type { CoachAvailability, RequirementField } from '@wavehub/shared-types';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
 import { CoachStatus, VerificationStatus } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
@@ -67,6 +67,10 @@ export class Coach {
   // requirements form).
   @Column({ type: 'jsonb', default: [] })
   bookingQuestions: RequirementField[];
+
+  // Working hours in Tbilisi time; null = not set (DEFAULT_COACH_AVAILABILITY applies).
+  @Column({ type: 'jsonb', nullable: true })
+  availability: CoachAvailability | null;
 
   @Column({ type: 'varchar', default: VerificationStatus.Pending })
   verificationStatus: VerificationStatus;

@@ -1,6 +1,6 @@
 import { assertConserved, clearHold, startSession } from './flows';
 import { CoachingSessionsService } from '../src/coaching/coaching-sessions.service';
-import { balanceOf, createApp, credit, E2eApp, makeAdmin, registerUser, TestUser } from './helpers';
+import { balanceOf, createApp, credit, E2eApp, makeAdmin, registerUser, TestUser, openAllHours } from './helpers';
 
 describe('coaching sessions (e2e)', () => {
   let ctx: E2eApp;
@@ -25,6 +25,7 @@ describe('coaching sessions (e2e)', () => {
     });
     expect(applied.status).toBeLessThan(300);
     coachId = applied.body.id;
+    await openAllHours(ctx, coachId);
   });
   afterAll(async () => {
     await assertConserved(ctx);

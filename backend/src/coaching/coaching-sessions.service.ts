@@ -4,7 +4,7 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
-import { CoachStatus, CoachingSessionStatus, NotificationType, VerificationStatus } from '@wavehub/shared-types';
+import { CoachStatus, CoachingSessionStatus, DEFAULT_COACH_AVAILABILITY, NotificationType, VerificationStatus, coachAvailabilityProblem } from '@wavehub/shared-types';
 import type { PublicCoachReview, PublicCoachingSession } from '@wavehub/shared-types';
 import { CoachingSession } from './coaching-session.entity';
 import { Coach } from './coach.entity';
@@ -170,8 +170,18 @@ export class CoachingSessionsService {
     }
     const starts = dto.slots.map((s) => new Date(s));
     if (starts.some((d) => Number.isNaN(d.getTime()))) throw new BadRequestException('Invalid date');
-    if (starts.some((d) => d.getTime() <= Date.now())) {
+    const now = Date.now();
+    if (starts.some((d) => d.getTime() <= now)) {
       throw new ForbiddenException('scheduledAt must be in the future');
+    }
+    // Every slot must fall inside the coach's working hours (coachAvailabilityProblem is the same
+    // check the booking calendar uses to offer slots).
+    const availability = coach.availability ?? DEFAULT_COACH_AVAILABILITY;
+    for (const start of starts) {
+      const problem = coachAvailabilityProblem(availability, start.getTime(), durationMinutes, now);
+      if (problem === 'notice') throw new BadRequestException(`This coach needs at least ${availability.noticeHours} hour(s) notice`);
+      if (problem === 'horizon') throw new BadRequestException('Sessions can be booked at most 60 days ahead');
+      if (problem) throw new BadRequestException("One of the chosen times is outside the coach's working hours");
     }
     starts.sort((a, b) => a.getTime() - b.getTime());
     for (let i = 1; i < starts.length; i++) {

@@ -1,5 +1,5 @@
 import { assertConserved, completeSession } from './flows';
-import { createApp, credit, E2eApp, makeAdmin, registerUser, TestUser } from './helpers';
+import { createApp, credit, E2eApp, makeAdmin, registerUser, TestUser, openAllHours } from './helpers';
 
 // Coach profile content, session reviews → rating aggregate, stats, favourites (docs/design-mockups 06/14).
 describe('coach profiles, reviews, favourites (e2e)', () => {
@@ -23,6 +23,7 @@ describe('coach profiles, reviews, favourites (e2e)', () => {
       specialty: 'PUBG Mobile Specialist', bio: 'Competitive player and coach with years of experience.', hourlyRateWaveCoin: 40, languages: ['en', 'ka'],
     });
     coachId = applied.body.id;
+    await openAllHours(ctx, coachId);
     expect((await admin.client.post(`/coaches/${coachId}/approve`)).status).toBe(200);
   });
   afterAll(async () => {

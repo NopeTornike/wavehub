@@ -1,8 +1,8 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
-import { CoachStatus, SubscriptionAudience, UserStatus, VerificationStatus } from '@wavehub/shared-types';
-import type { AdminCoachSummary, MyCoachProfile, PublicCoachDetail, PublicCoachPackage, PublicCoachReview, PublicCoachSummary } from '@wavehub/shared-types';
+import { CoachStatus, DEFAULT_COACH_AVAILABILITY, NotificationType, SubscriptionAudience, UserStatus, VerificationStatus } from '@wavehub/shared-types';
+import type { AdminCoachSummary, CoachAvailability, MyCoachProfile, PublicCoachDetail, PublicCoachPackage, PublicCoachReview, PublicCoachSummary } from '@wavehub/shared-types';
 import { Coach } from './coach.entity';
 import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { BrowseCoachesDto } from './dto/browse-coaches.dto';
@@ -18,6 +18,7 @@ import { CoachPackageDto } from './dto/coach-packages.dto';
 import { CoachPackage } from './coach-package.entity';
 import { assertBookingQuestions } from './booking-questions';
 import { User } from '../users/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
 
 export const MAX_COACH_VIDEO_BYTES = 50 * 1024 * 1024;
@@ -26,6 +27,25 @@ type UploadedFile = { buffer: Buffer; originalname: string; size: number };
 type CoachStats = { completed: number; cancelled: number; students: number };
 // A response time needs at least this many answered messages before it's shown.
 const MIN_RESPONSE_SAMPLES = 3;
+
+// Sorted, validated working hours: 30-minute steps, from < to, no overlapping ranges on a day, real
+// unique dates for days off.
+export function normalizeAvailability(input: CoachAvailability): CoachAvailability {
+  const weekly = input.weekly.map((r) => ({ day: r.day, from: r.from, to: r.to })).sort((a, b) => a.day - b.day || a.from - b.from);
+  for (const [i, r] of weekly.entries()) {
+    if (r.from % 30 || r.to % 30) throw new BadRequestException('Working hours must be in 30-minute steps');
+    if (r.from >= r.to) throw new BadRequestException('A working range must end after it starts');
+    const prev = weekly[i - 1];
+    if (prev && prev.day === r.day && r.from < prev.to) throw new BadRequestException('Working ranges on the same day overlap');
+  }
+  const daysOff = [...new Set(input.daysOff)].sort();
+  for (const d of daysOff) {
+    if (Number.isNaN(Date.parse(`${d}T00:00:00Z`)) || new Date(`${d}T00:00:00Z`).toISOString().slice(0, 10) !== d) {
+      throw new BadRequestException('Invalid day off');
+    }
+  }
+  return { weekly, daysOff, noticeHours: input.noticeHours };
+}
 
 @Injectable()
 export class CoachesService {
@@ -40,7 +60,18 @@ export class CoachesService {
     private readonly subscriptions: SubscriptionsService,
     private readonly community: CommunityService,
     private readonly dataSource: DataSource,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  private async notifyApproved(userId: string): Promise<void> {
+    await this.notifications.tryEmit(
+      userId,
+      NotificationType.CoachApproved,
+      'შენ ახლა WaveHub-ის ქოუჩი ხარ!',
+      'შენი ქოუჩის პროფილი დადასტურებულია და ჩანს ქოუჩების სიაში. დაამატე პაკეტები და სამუშაო საათები, რომ მოსწავლეებმა დაგიჯავშნონ.',
+      { link: '/coaching/profile' },
+    );
+  }
 
   // --- Computed profile facts (docs/design-mockups 06/14) ---
 
@@ -227,6 +258,7 @@ export class CoachesService {
       videoFileUrl: coach.videoFileUrl ?? null,
       packages,
       bookingQuestions: coach.bookingQuestions ?? [],
+      availability: coach.availability ?? DEFAULT_COACH_AVAILABILITY,
       quote: coach.quote,
       coachingStyle: coach.coachingStyle ?? [],
       games,
@@ -260,6 +292,7 @@ export class CoachesService {
       videoFileUrl: coach.videoFileUrl ?? null,
       packages: await this.listPackages(coach.id),
       bookingQuestions: coach.bookingQuestions ?? [],
+      availability: coach.availability ?? null,
     };
   }
 
@@ -288,6 +321,7 @@ export class CoachesService {
     }
     if (dto.bookingQuestions !== undefined) assertBookingQuestions(dto.bookingQuestions);
     const patch: Partial<Coach> = {};
+    if (dto.availability !== undefined) patch.availability = dto.availability === null ? null : normalizeAvailability(dto.availability);
     if (dto.gameId !== undefined) patch.gameId = dto.gameId;
     if (dto.specialty !== undefined) patch.specialty = dto.specialty.trim();
     if (dto.bio !== undefined) patch.bio = dto.bio.trim();
@@ -428,9 +462,11 @@ export class CoachesService {
         throw new ConflictException('This account is already a coach — edit the existing profile');
       }
       await this.coaches.update(existing.id, fields);
+      await this.notifyApproved(user.id);
       return this.toAdminSummary(await this.getOrThrow(existing.id));
     }
     const created = await this.coaches.save(this.coaches.create({ userId: user.id, ...fields, status: CoachStatus.Active }));
+    await this.notifyApproved(user.id);
     return this.toAdminSummary(await this.getOrThrow(created.id));
   }
 
@@ -452,6 +488,7 @@ export class CoachesService {
     const coach = await this.getOrThrow(id);
     assertValidVerificationTransition(coach.verificationStatus, VerificationStatus.Verified);
     await this.coaches.update(id, { verificationStatus: VerificationStatus.Verified, rejectionReason: null });
+    await this.notifyApproved(coach.userId);
     return this.toAdminSummary(await this.getOrThrow(id));
   }
 
@@ -459,6 +496,13 @@ export class CoachesService {
     const coach = await this.getOrThrow(id);
     assertValidVerificationTransition(coach.verificationStatus, VerificationStatus.Rejected);
     await this.coaches.update(id, { verificationStatus: VerificationStatus.Rejected, rejectionReason: reason });
+    await this.notifications.tryEmit(
+      coach.userId,
+      NotificationType.CoachRejected,
+      'ქოუჩის განაცხადი არ დამტკიცდა',
+      `მიზეზი: ${reason}. შეგიძლია შეასწორო და ხელახლა გააგზავნო.`,
+      { link: '/coaching/apply' },
+    );
     return this.toAdminSummary(await this.getOrThrow(id));
   }
 
