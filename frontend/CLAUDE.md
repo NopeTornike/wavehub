@@ -803,3 +803,20 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
     `components/RankIcon.tsx`;
   - shown in the profile menu, the mobile home profile, the dashboard, `/u/[username]` (rank card +
     tier badge), review authors and the coach Wave Score.
+
+## 2026-10-02 Admin panel redesign + profile polish
+- **`components/AdminLayout.tsx`** is the admin shell:
+  - grouped sidebar with icons (Overview / Marketplace / Finance / People / Content / System),
+    a role badge and breadcrumbs;
+  - on ≤980px it becomes a scrollable tab strip;
+  - Super-Admin-only links (Statistics, Settings) and Steam publishing are hidden from other roles;
+    everything else is still enforced server-side.
+  - The `adm-` CSS block at the end of `global.css` restyles the shared admin classes **inside
+    `.adm-main` only** (page titles, `.admin-row` → table-like rows, flat `.stack-form` panels,
+    neutral small `.button`s with the glow removed, inputs, empty states), so every admin page
+    changed without touching the public site.
+- **`/admin`** is a real dashboard: queue KPIs (listings, coaches, tickets, disputes, withdrawals,
+  reported reviews — "—" when the role can't see one), a to-do list and quick actions. The old
+  developer note citing SPECIFICATION.md is gone.
+- **`/u/[username]`**: calmer glows, thinner photo ring, rank icons, compact phone hero (end of
+  `global.css`).

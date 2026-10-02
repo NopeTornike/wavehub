@@ -1,68 +1,113 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import AdminLayout from '../../components/AdminLayout'
+import { AdminRole, TicketStatus } from '@wavehub/shared-types'
+import AdminLayout, { AdminIcon } from '../../components/AdminLayout'
 import { api } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
 
-type StatKey = 'listings' | 'reviews' | 'disputes' | 'withdrawals'
+type Key = 'listings' | 'coaches' | 'tickets' | 'disputes' | 'withdrawals' | 'reviews'
+type IconName = Parameters<typeof AdminIcon>[0]['name']
 
-const STATS: Array<{ key: StatKey; href: string; label: string }> = [
-  { key: 'listings', href: '/admin/listings', label: 'დასამტკიცებელი განცხადება' },
-  { key: 'reviews', href: '/admin/reviews', label: 'გასაზიარებელი შეფასება' },
-  { key: 'disputes', href: '/admin/disputes', label: 'ღია დავა' },
-  { key: 'withdrawals', href: '/admin/withdrawals', label: 'გატანის მოთხოვნა' },
+// What needs a staff member today. Each count is fetched on its own — a role without access to a
+// section (server-enforced) just shows "—" for that tile instead of breaking the page.
+const QUEUES: Array<{ key: Key; href: string; label: string; hint: string; icon: IconName }> = [
+  { key: 'listings', href: '/admin/listings', label: 'განცხადებები', hint: 'ელოდება დამტკიცებას', icon: 'listing' },
+  { key: 'coaches', href: '/admin/coaches', label: 'ქოუჩები', hint: 'ვერიფიკაციის მოთხოვნა', icon: 'coach' },
+  { key: 'tickets', href: '/admin/tickets', label: 'მხარდაჭერა', hint: 'ღია ბილეთი', icon: 'ticket' },
+  { key: 'disputes', href: '/admin/disputes', label: 'დავები', hint: 'ღია დავა', icon: 'scale' },
+  { key: 'withdrawals', href: '/admin/withdrawals', label: 'გატანები', hint: 'ელოდება დამუშავებას', icon: 'cash' },
+  { key: 'reviews', href: '/admin/reviews', label: 'შეფასებები', hint: 'დაჩივრებული', icon: 'star' },
 ]
 
-// Each count is fetched independently and defaults to "—" on failure — a role without access to
-// one section (e.g. Marketplace & Coaching Ops Manager has no withdrawals access) shouldn't blow
-// up the whole dashboard, it should just show that one tile as unavailable.
+const QUICK: Array<{ href: string; label: string; icon: IconName; superAdminOnly?: boolean }> = [
+  { href: '/admin/coaches', label: 'ქოუჩის დამატება', icon: 'coach' },
+  { href: '/admin/tournaments', label: 'ტურნირის შექმნა', icon: 'trophy' },
+  { href: '/admin/users', label: 'მომხმარებლის ძებნა', icon: 'users' },
+  { href: '/admin/listings', label: 'რჩეული პროდუქტები', icon: 'listing' },
+  { href: '/admin/analytics', label: 'სტატისტიკა', icon: 'chart', superAdminOnly: true },
+  { href: '/admin/settings', label: 'პარამეტრები', icon: 'gear', superAdminOnly: true },
+]
+
 export default function AdminDashboard() {
-  const [counts, setCounts] = useState<Record<StatKey, number | null>>({
-    listings: null,
-    reviews: null,
-    disputes: null,
-    withdrawals: null,
-  })
+  const { user } = useAuth()
+  const [counts, setCounts] = useState<Record<Key, number | null>>({ listings: null, coaches: null, tickets: null, disputes: null, withdrawals: null, reviews: null })
 
   useEffect(() => {
     let cancelled = false
-    Promise.allSettled([
-      api.adminListPendingListings(),
-      api.adminListReportedReviews(),
-      api.adminListOpenDisputes(),
-      api.adminListPendingWithdrawals(),
-    ]).then(([listings, reviews, disputes, withdrawals]) => {
-      if (cancelled) return
-      setCounts({
-        listings: listings.status === 'fulfilled' ? listings.value.length : null,
-        reviews: reviews.status === 'fulfilled' ? reviews.value.length : null,
-        disputes: disputes.status === 'fulfilled' ? disputes.value.length : null,
-        withdrawals: withdrawals.status === 'fulfilled' ? withdrawals.value.length : null,
-      })
+    const count = (p: Promise<unknown[]>) => p.then((rows) => rows.length).catch(() => null)
+    Promise.all([
+      count(api.adminListPendingListings()),
+      count(api.adminListPendingCoaches()),
+      Promise.all([api.adminListTickets({ status: TicketStatus.Open }), api.adminListTickets({ status: TicketStatus.Escalated })])
+        .then(([open, escalated]) => open.length + escalated.length)
+        .catch(() => null),
+      count(api.adminListOpenDisputes()),
+      count(api.adminListPendingWithdrawals()),
+      count(api.adminListReportedReviews()),
+    ]).then(([listings, coaches, tickets, disputes, withdrawals, reviews]) => {
+      if (!cancelled) setCounts({ listings, coaches, tickets, disputes, withdrawals, reviews })
     })
     return () => {
       cancelled = true
     }
   }, [])
 
+  const isSuperAdmin = user?.adminRole === AdminRole.SuperAdmin
+  const todo = QUEUES.filter((q) => counts[q.key] !== null)
+  const total = todo.reduce((sum, q) => sum + (counts[q.key] ?? 0), 0)
+
   return (
     <AdminLayout title="დაფა">
-      <h1 className="page-title">ადმინ პანელი</h1>
-      <p className="page-subtitle">დღეს ყურადღების საჭიროებელი ელემენტები</p>
+      <header className="adm-head">
+        <div>
+          <h1>გამარჯობა{user?.firstName ? `, ${user.firstName}` : ''}</h1>
+          <p>{total > 0 ? `დღეს ${total} საკითხი ელოდება შენს ყურადღებას.` : 'ყველა რიგი ცარიელია — ყველაფერი წესრიგშია.'}</p>
+        </div>
+      </header>
 
-      <div className="admin-stat-grid">
-        {STATS.map((stat) => (
-          <Link key={stat.key} href={stat.href} className="admin-stat">
-            <span className="admin-stat-value">{counts[stat.key] ?? '—'}</span>
-            <span className="admin-stat-label">{stat.label}</span>
-          </Link>
-        ))}
+      <div className="adm-kpis">
+        {QUEUES.map((q) => {
+          const value = counts[q.key]
+          return (
+            <Link key={q.key} href={q.href} className={`adm-kpi${value ? ' alert' : ''}`}>
+              <span className="adm-kpi-top">
+                {q.label}
+                <AdminIcon name={q.icon} />
+              </span>
+              <b>{value ?? '—'}</b>
+              <small>{value === null ? 'შენს როლს არ აქვს წვდომა' : q.hint}</small>
+            </Link>
+          )
+        })}
       </div>
 
-      <div className="card" style={{ padding: 20 }}>
-        <p className="note" style={{ marginTop: 0 }}>
-          თითოეულ სექციაზე წვდომა შემოწმებულია სერვერზე თქვენი ადმინისტრაციული როლის მიხედვით
-          (SPECIFICATION.md §5.13) — თუ სექცია თქვენთვის მიუწვდომელია, ის აჩვენებს შესაბამის შეცდომას.
-        </p>
+      <div className="adm-panels">
+        <section className="adm-panel">
+          <h2>გასაკეთებელი</h2>
+          {todo.length === 0 ? (
+            <p className="note">იტვირთება…</p>
+          ) : (
+            todo.map((q) => (
+              <Link key={q.key} href={q.href} className="adm-todo">
+                <span>
+                  {q.label} — {q.hint}
+                </span>
+                <b className={counts[q.key] ? undefined : 'zero'}>{counts[q.key]}</b>
+              </Link>
+            ))
+          )}
+        </section>
+        <section className="adm-panel">
+          <h2>სწრაფი მოქმედებები</h2>
+          <div className="adm-quick">
+            {QUICK.filter((q) => !q.superAdminOnly || isSuperAdmin).map((q) => (
+              <Link key={q.label} href={q.href}>
+                <AdminIcon name={q.icon} />
+                {q.label}
+              </Link>
+            ))}
+          </div>
+        </section>
       </div>
     </AdminLayout>
   )
