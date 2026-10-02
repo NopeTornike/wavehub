@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { NotificationType } from '@wavehub/shared-types';
@@ -8,6 +8,8 @@ import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     @InjectRepository(Notification) private readonly notifications: Repository<Notification>,
     private readonly email: EmailService,
@@ -37,6 +39,28 @@ export class NotificationsService {
     return notification;
   }
 
+  // Best-effort `emit` for hook sites that have no `notify` helper of their own: a failed
+  // notification is logged and never undoes the action that triggered it.
+  async tryEmit(userId: string, type: NotificationType, title: string, body: string, metadata?: Record<string, string>): Promise<void> {
+    try {
+      await this.emit(userId, type, title, body, metadata);
+    } catch (err) {
+      this.logger.error(`Failed to notify user ${userId} (${type})`, err as Error);
+    }
+  }
+
+  // Whether `userId` already got a `type` notification with metadata[key] = value in the last
+  // `hours` — lets a hook site avoid repeats (e.g. follow / unfollow / follow).
+  async sentRecently(userId: string, type: NotificationType, key: string, value: string, hours: number): Promise<boolean> {
+    const count = await this.notifications
+      .createQueryBuilder('n')
+      .where('n.userId = :userId AND n.type = :type', { userId, type })
+      .andWhere('n.metadata ->> :key = :value', { key, value })
+      .andWhere(`n.createdAt > now() - make_interval(hours => :hours)`, { hours })
+      .getCount();
+    return count > 0;
+  }
+
   async listMine(userId: string, limit: number, offset: number): Promise<PublicNotification[]> {
     const rows = await this.notifications.find({
       where: { userId },
@@ -45,6 +69,16 @@ export class NotificationsService {
       skip: offset,
     });
     return rows.map((row) => this.toPublic(row));
+  }
+
+  // The badge poll: the count plus when the newest unread one arrived — the frontend fetches the
+  // list for pop-up toasts only when `latestAt` changes.
+  async getUnreadSummary(userId: string): Promise<{ count: number; latestAt: string | null }> {
+    const [row] = await this.notifications.query(
+      `SELECT count(*)::int AS count, max("createdAt") AS "latestAt" FROM notifications WHERE "userId" = $1 AND "readAt" IS NULL`,
+      [userId],
+    );
+    return { count: row?.count ?? 0, latestAt: row?.latestAt ? new Date(row.latestAt).toISOString() : null };
   }
 
   async getUnreadCount(userId: string): Promise<number> {

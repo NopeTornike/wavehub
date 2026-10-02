@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { ListingFavorite } from './listing-favorite.entity';
-import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType } from '@wavehub/shared-types';
+import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType, NotificationType } from '@wavehub/shared-types';
 import type { AdminListingSummary, ListingForEdit, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { Listing } from './listing.entity';
@@ -20,6 +20,7 @@ import { CreatePackageDto } from './dto/create-package.dto';
 import { BrowseListingsDto } from './dto/browse-listings.dto';
 import { StorageService } from '../storage/storage.service';
 import { encryptKeyValue } from './key-encryption.util';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // The joined `seller` relation is a full User row (email, wallet balance, admin role, moderation
 // reason...). Anything public must go through this projection — the shared `PublicSeller` type
@@ -53,6 +54,7 @@ export class ListingsService {
     @InjectRepository(Game) private readonly games: Repository<Game>,
     @InjectRepository(ListingFavorite) private readonly favorites: Repository<ListingFavorite>,
     private readonly storage: StorageService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   listCategories() {
@@ -740,7 +742,15 @@ export class ListingsService {
     assertValidTransition(listing.status, ListingStatus.Active);
     listing.status = ListingStatus.Active;
     listing.rejectionReason = null;
-    return this.listings.save(listing);
+    const saved = await this.listings.save(listing);
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingApproved,
+      'განცხადება დამტკიცდა',
+      `„${listing.title}“ დამტკიცდა და უკვე ჩანს მარკეტზე.`,
+      { link: `/listings/${listing.id}` },
+    );
+    return saved;
   }
 
   async reject(listingId: string, reason: string): Promise<Listing> {
@@ -748,7 +758,15 @@ export class ListingsService {
     assertValidTransition(listing.status, ListingStatus.Rejected);
     listing.status = ListingStatus.Rejected;
     listing.rejectionReason = reason;
-    return this.listings.save(listing);
+    const saved = await this.listings.save(listing);
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingRejected,
+      'განცხადება უარყოფილია',
+      `„${listing.title}“ არ დამტკიცდა. მიზეზი: ${reason}. შეასწორე და ხელახლა გაგზავნე.`,
+      { link: '/sell' },
+    );
+    return saved;
   }
 
   // Bulk "paste a list of keys" upload — a seller realistically has dozens/hundreds per title (see

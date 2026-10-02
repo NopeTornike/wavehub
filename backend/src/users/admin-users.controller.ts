@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { AdminRole } from '@wavehub/shared-types';
+import { AdminRole, NotificationType } from '@wavehub/shared-types';
 import { UsersService } from './users.service';
 import { ListUsersDto } from './dto/list-users.dto';
 import { ModerateUserDto } from './dto/moderate-user.dto';
@@ -13,6 +13,7 @@ import { AdminAuditService } from '../admin/admin-audit.service';
 import { WalletService } from '../wallet/wallet.service';
 import { SetAdminRoleDto, WalletAdjustmentDto } from './dto/admin-user-powers.dto';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // View roles per SPECIFICATION.md §5.13: every role whose CAN list includes "view/search" a user
 // at all. Marketplace & Coaching Ops Manager is deliberately excluded — its own section only
@@ -44,6 +45,7 @@ export class AdminUsersController {
     private readonly audit: AdminAuditService,
     private readonly wallet: WalletService,
     private readonly settings: PlatformSettingsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Re-checked on every request (the UI hiding a control is not the gate).
@@ -81,6 +83,14 @@ export class AdminUsersController {
         entityId: id,
         metadata: { amountWaveCoin: dto.amountWaveCoin, balanceAfter: entry.balanceAfter, reason: dto.reason },
       });
+      const added = dto.amountWaveCoin > 0;
+      await this.notifications.tryEmit(
+        id,
+        NotificationType.WalletAdjusted,
+        added ? 'ბალანსს დაემატა თანხა' : 'ბალანსიდან ჩამოიჭრა თანხა',
+        `WaveHub-ის ადმინისტრაციამ ${added ? 'დაამატა' : 'ჩამოჭრა'} ${Math.abs(dto.amountWaveCoin)} WaveCoin. ახალი ბალანსი: ${entry.balanceAfter}.`,
+        { link: '/wallet' },
+      );
       return this.users.getAdminOne(id);
     } catch (err) {
       const code = (err as Error).message;

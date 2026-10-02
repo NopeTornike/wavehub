@@ -85,3 +85,34 @@ plus an email to the user). See `backend/src/subscriptions/CLAUDE.md` for exactl
   NotificationsModule imports AuthModule.
 - Coaching lifecycle v2 types: `session_starting`, `session_started`,
   `session_awaiting_confirmation`, `session_review_request` (see `backend/src/coaching/CLAUDE.md`).
+
+## 2026-10-02 Event notifications, pop-ups, `/notifications`
+Supersedes the older notes above that say marketplace events aren't wired and no `/notifications`
+page exists.
+- **New types** (all carry `metadata.link`, an internal path the notification opens):
+  | Type | To | Fired by |
+  |---|---|---|
+  | `order_placed` | buyer | `OrdersService#purchase` (key orders get "the key is already in your order" copy) |
+  | `wallet_topup` | payer | BOG top-up callback — **only the delivery that flips the intent to `completed`** (conditional `UPDATE … WHERE status <> 'completed'`), so duplicate callbacks notify once |
+  | `wallet_adjusted` | user | Super Admin balance adjustment (`admin-users.controller.ts`) |
+  | `listing_approved` / `listing_rejected` | seller | `ListingsService#approve` / `#reject` (reason included) |
+  | `coach_approved` / `coach_rejected` | applicant | `CoachesService` verify / reject / staff-created coach |
+  | `new_follower` | followee | `ProfilesService#follow` — only on a real new follow row and **at most once per follower per 24h** (`sentRecently`), so follow/unfollow/follow can't spam |
+  `order_completed` to the buyer now doubles as the review request (title/body ask for a review).
+- **`tryEmit`** is the best-effort wrapper (log + swallow) for hook sites without their own `notify`
+  helper — use it for new hooks. **`sentRecently(userId, type, key, value, hours)`** is the dedupe
+  check (matches on a `metadata` key).
+- **`GET notifications/unread-count` now returns `{ count, latestAt }`** (`getUnreadSummary`) —
+  `latestAt` is the newest unread row's `createdAt`. The frontend polls it every 15s and on every
+  route change; a changed `latestAt` is what triggers the pop-up fetch, so keep it cheap (one
+  aggregate over the partial unread index).
+- NotificationsModule is now imported by Listings, Payments, Profiles and Admin (for
+  `AdminUsersController`) as well. It still imports AuthModule, so **AuthModule must not import it**
+  (the `welcome` row is written directly for that reason).
+- Frontend: bell panel (`components/NotificationCenter.tsx`), pop-up toasts
+  (`components/NotificationToasts.tsx`), full paged list with an unread filter
+  (`pages/notifications.tsx`), shared target/kind helpers in `lib/notifications.ts` — see
+  `frontend/CLAUDE.md`. `metadata.link` is followed only if it is a same-site path.
+- Georgian title/body texts need matching `{0}` pattern entries in
+  `frontend/lib/i18n-ka-en.app.json`, or they stay Georgian in English mode.
+- e2e: `test/notification-events.e2e-spec.ts`; `bog-callbacks.e2e-spec.ts` covers top-up-once.

@@ -197,6 +197,16 @@ export enum NotificationType {
   SessionAwaitingConfirmation = 'session_awaiting_confirmation',
   SessionReviewRequest = 'session_review_request',
   Welcome = 'welcome',
+  // 2026-10-02 (client: "notifications on welcome, purchase, etc."): metadata.link is an internal
+  // path the notification opens.
+  OrderPlaced = 'order_placed',
+  WalletTopup = 'wallet_topup',
+  WalletAdjusted = 'wallet_adjusted',
+  ListingApproved = 'listing_approved',
+  ListingRejected = 'listing_rejected',
+  CoachApproved = 'coach_approved',
+  CoachRejected = 'coach_rejected',
+  NewFollower = 'new_follower',
 }
 
 // Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
@@ -675,6 +685,8 @@ export interface PublicCoachDetail extends PublicCoachSummary {
   packages: PublicCoachPackage[];
   // Questions the buyer answers when booking (same shape as a service listing's requirements).
   bookingQuestions: RequirementField[];
+  // Working hours (DEFAULT_COACH_AVAILABILITY until the coach sets their own).
+  availability: CoachAvailability;
   quote: string | null;
   coachingStyle: string[];
   games: PublicCoachGame[];
@@ -710,6 +722,87 @@ export interface MyCoachProfile {
   videoFileUrl: string | null;
   packages: PublicCoachPackage[];
   bookingQuestions: RequirementField[];
+  // null = not set yet (DEFAULT_COACH_AVAILABILITY applies).
+  availability: CoachAvailability | null;
+}
+
+// --- Coach working hours (coaches.availability, 2026-10-02) ---
+// Weekly ranges in Tbilisi local time (UTC+4, no DST) plus whole days off. The backend validates
+// every booked slot with `coachAvailabilityProblem` and the booking calendar offers the starts from
+// `coachAvailabilityStarts`, so both sides apply exactly the same rules.
+export interface CoachAvailabilityRange {
+  day: number; // 0 = Sunday … 6 = Saturday (Date#getUTCDay of the Tbilisi local date)
+  from: number; // minutes after local midnight, multiple of 30, 0–1410
+  to: number; // minutes after local midnight, multiple of 30, 30–1440 (ranges never cross midnight)
+}
+export interface CoachAvailability {
+  weekly: CoachAvailabilityRange[];
+  daysOff: string[]; // YYYY-MM-DD (Tbilisi dates)
+  noticeHours: number; // minimum hours between booking and the session start, 0–72
+}
+// Used while a coach hasn't set hours yet: every day 10:00–24:00, an hour's notice.
+export const DEFAULT_COACH_AVAILABILITY: CoachAvailability = {
+  weekly: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, from: 600, to: 1440 })),
+  daysOff: [],
+  noticeHours: 1,
+};
+// Sessions can be booked at most this far ahead.
+export const COACH_BOOKING_HORIZON_DAYS = 60;
+const COACH_TZ_OFFSET_MS = 4 * 3600_000;
+
+// Tbilisi local date (YYYY-MM-DD), weekday and minutes-after-midnight of an instant.
+export function tbilisiLocal(ms: number): { date: string; day: number; minutes: number } {
+  const local = new Date(ms + COACH_TZ_OFFSET_MS);
+  return { date: local.toISOString().slice(0, 10), day: local.getUTCDay(), minutes: local.getUTCHours() * 60 + local.getUTCMinutes() };
+}
+
+// The instant of a Tbilisi local date + minutes after midnight.
+export function tbilisiInstant(date: string, minutes: number): number {
+  return Date.parse(`${date}T00:00:00Z`) - COACH_TZ_OFFSET_MS + minutes * 60_000;
+}
+
+// Whether [startMs, startMs + durationMinutes) lies inside working hours. A session may run past
+// midnight when the next day's hours continue from 00:00 (e.g. Fri 22:00–24:00 + Sat 00:00–02:00).
+function coachHoursCover(availability: CoachAvailability, startMs: number, durationMinutes: number): boolean {
+  const endMs = startMs + durationMinutes * 60_000;
+  let cursor = startMs;
+  while (cursor < endMs) {
+    const local = tbilisiLocal(cursor);
+    if (availability.daysOff.includes(local.date)) return false;
+    const range = availability.weekly.find((r) => r.day === local.day && r.from <= local.minutes && local.minutes < r.to);
+    if (!range) return false;
+    cursor = tbilisiInstant(local.date, range.to);
+  }
+  return true;
+}
+
+// Why a session starting at `startMs` for `durationMinutes` can't be booked now, or null if it can.
+export function coachAvailabilityProblem(
+  availability: CoachAvailability,
+  startMs: number,
+  durationMinutes: number,
+  nowMs: number,
+): 'notice' | 'horizon' | 'day_off' | 'hours' | null {
+  if (startMs <= nowMs || startMs < nowMs + availability.noticeHours * 3600_000) return 'notice';
+  if (startMs > nowMs + COACH_BOOKING_HORIZON_DAYS * 86400_000) return 'horizon';
+  if (availability.daysOff.includes(tbilisiLocal(startMs).date)) return 'day_off';
+  return coachHoursCover(availability, startMs, durationMinutes) ? null : 'hours';
+}
+
+// Bookable start instants on a Tbilisi date for a session of `durationMinutes`: every hour from
+// each range's start while the whole session still fits (before notice/busy filtering).
+export function coachAvailabilityStarts(availability: CoachAvailability, date: string, durationMinutes: number): number[] {
+  if (availability.daysOff.includes(date)) return [];
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+  const starts = new Set<number>();
+  for (const r of availability.weekly) {
+    if (r.day !== day) continue;
+    for (let m = r.from; m < r.to; m += 60) {
+      const at = tbilisiInstant(date, m);
+      if (coachHoursCover(availability, at, durationMinutes)) starts.add(at);
+    }
+  }
+  return [...starts].sort((a, b) => a - b);
 }
 
 // What CoachesService.listPendingVerification() / listAll() return for the admin queue.
@@ -810,6 +903,38 @@ export interface AdminReviewSummary {
   rating: number;
   body: string | null;
   status: ReviewStatus;
+  createdAt: string;
+}
+
+// GET reviews/order/:orderId — the order's review for its buyer/seller (null before one exists).
+export interface OrderReviewState {
+  review: PublicReview | null;
+  status: ReviewStatus | null;
+}
+
+// GET reviews/pending — the caller's completed orders that still have no review.
+export interface PendingReview {
+  orderId: string;
+  orderNumber: string;
+  listingId: string;
+  listingTitle: string;
+  completedAt: string | null;
+}
+
+// GET admin/reviews — every product (order) and coach (session) review, for staff moderation and
+// Super Admin editing (backend/src/reviews/admin-reviews.controller.ts).
+export interface AdminReviewRow {
+  id: string;
+  kind: 'product' | 'coach';
+  rating: number;
+  body: string | null;
+  // Product reviews: published | hidden | reported | deleted. Coach reviews are always published.
+  status: ReviewStatus;
+  subjectTitle: string; // listing title, or "@coach" for a coach review
+  subjectHref: string;
+  buyerUsername: string;
+  sellerUsername: string; // the seller, or the coach's username
+  sellerReply: string | null;
   createdAt: string;
 }
 

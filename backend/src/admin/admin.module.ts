@@ -7,6 +7,7 @@ import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminUsersController } from '../users/admin-users.controller';
 import { WalletModule } from '../wallet/wallet.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PlatformSettings } from '../settings/platform-settings.entity';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
 
@@ -25,7 +26,7 @@ import { PlatformSettingsService } from '../settings/platform-settings.service';
 // importing SettingsModule back would be circular. This instance only reads; its in-memory
 // maintenance cache is never consulted.
 @Module({
-  imports: [TypeOrmModule.forFeature([AuditLog, PlatformSettings]), UsersModule, AuthModule, WalletModule],
+  imports: [TypeOrmModule.forFeature([AuditLog, PlatformSettings]), UsersModule, AuthModule, WalletModule, NotificationsModule],
   controllers: [AdminUsersController],
   providers: [AdminGuard, AdminAuditService, PlatformSettingsService],
   exports: [AdminGuard, AdminAuditService],

@@ -57,6 +57,7 @@ describe('ListingsService.createDraft', () => {
       games as any,
       createFakeRepo() as any,
       storage as any,
+      { tryEmit: jest.fn(async () => undefined) } as any,
     );
 
     return { service, listings, serviceDetails, itemDetails, keyInventory };
@@ -230,6 +231,7 @@ describe('ListingsService key inventory', () => {
       games as any,
       createFakeRepo() as any,
       storage as any,
+      { tryEmit: jest.fn(async () => undefined) } as any,
     );
 
     return { service, listings, keyInventory };

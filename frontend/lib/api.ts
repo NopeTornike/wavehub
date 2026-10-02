@@ -39,6 +39,9 @@ import type {
   AdminWithdrawRequestSummary,
   AdminListingSummary,
   AdminReviewSummary,
+  AdminReviewRow,
+  OrderReviewState,
+  PendingReview,
   PublicPlatformSettings,
   StaffPermissions,
   SupportPermissions,
@@ -540,6 +543,15 @@ export const api = {
   createReview: (payload: { orderId: string; rating: number; body?: string; tags?: string[] }) =>
     request<PublicReview>('/reviews', { method: 'POST', body: JSON.stringify(payload) }),
 
+  // { review, status } — never a bare null (an empty body would read as "already reviewed").
+  getOrderReview: (orderId: string) => request<OrderReviewState>(`/reviews/order/${orderId}`),
+
+  // The caller's completed orders still waiting for a review.
+  listPendingReviews: () => request<PendingReview[]>('/reviews/pending'),
+
+  replyToReview: (reviewId: string, body: string) =>
+    request<unknown>(`/reviews/${reviewId}/reply`, { method: 'POST', body: JSON.stringify({ body }) }),
+
   // --- Orders --- (also not wrapped in `{ ok: true, ... }`, same as the marketplace endpoints)
   purchase: (payload: { listingId: string; packageId?: string; requirementsAnswers?: Record<string, unknown> }) =>
     request<PublicOrderDetail>('/orders', { method: 'POST', body: JSON.stringify(payload) }),
@@ -656,7 +668,7 @@ export const api = {
   listNotifications: (limit = 20, offset = 0) =>
     request<PublicNotification[]>(`/notifications?limit=${limit}&offset=${offset}`),
 
-  getUnreadNotificationCount: () => request<{ count: number }>('/notifications/unread-count'),
+  getUnreadNotificationCount: () => request<{ count: number; latestAt: string | null }>('/notifications/unread-count'),
 
   markNotificationRead: (id: string) =>
     request<PublicNotification>(`/notifications/${id}/read`, { method: 'POST' }),
@@ -694,6 +706,22 @@ export const api = {
   adminRemoveReview: (id: string) => request<unknown>(`/reviews/${id}/remove`, { method: 'POST' }),
 
   adminRestoreReview: (id: string) => request<unknown>(`/reviews/${id}/restore`, { method: 'POST' }),
+
+  // Every product + coach review (backend/src/reviews/admin-reviews.controller.ts). Editing and
+  // deleting coach reviews are Super Admin only.
+  adminListReviews: (params: { kind?: 'product' | 'coach'; status?: string; q?: string; page?: number }) => {
+    const qs = new URLSearchParams()
+    if (params.kind) qs.set('kind', params.kind)
+    if (params.status) qs.set('status', params.status)
+    if (params.q) qs.set('q', params.q)
+    if (params.page) qs.set('page', String(params.page))
+    return request<{ items: AdminReviewRow[]; total: number }>(`/admin/reviews?${qs.toString()}`)
+  },
+
+  adminEditReview: (kind: 'product' | 'coach', id: string, payload: { rating?: number; body?: string | null; sellerReply?: string | null }) =>
+    request<{ ok: true }>(`/admin/reviews/${kind}/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  adminDeleteCoachReview: (id: string) => request<{ ok: true }>(`/admin/reviews/coach/${id}`, { method: 'DELETE' }),
 
   adminListOpenDisputes: () => request<AdminDisputeSummary[]>('/disputes'),
 

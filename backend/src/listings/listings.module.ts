@@ -1,3 +1,4 @@
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfilesModule } from '../profiles/profiles.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -43,6 +44,7 @@ import { GamesService } from './games.service';
     AdminModule,
     UsersModule,
     SubscriptionsModule,
+    NotificationsModule,
   ],
   // UsersController (public GET /users/:username) is declared here rather than in UsersModule
   // itself — it needs both UsersService and ListingsService, and UsersModule must stay a leaf

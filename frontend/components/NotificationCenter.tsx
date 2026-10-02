@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { NotificationType, type PublicNotification } from '@wavehub/shared-types'
+import type { PublicNotification } from '@wavehub/shared-types'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
+import { formatNotificationTime as formatTime, notificationKind as kindOf, notificationTarget as targetFor } from '../lib/notifications'
 
 // useLayoutEffect warns during server rendering; the panel only ever positions itself in the browser.
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
@@ -13,33 +14,6 @@ const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : us
 // setNotificationCenterOpen), fed by the real notifications API. Portaled to <body> like the
 // prototype's (a position:fixed panel inside the blurred topbar would be clipped to it), and placed
 // with the same anchor math under the bell.
-
-// Deep-links based on `notification.metadata` — what each backend hook attaches.
-function targetFor(notification: PublicNotification): string {
-  const metadata = notification.metadata ?? {}
-  if (metadata.conversationId) return `/messages?conversation=${metadata.conversationId}`
-  if (metadata.orderId) return `/orders/${metadata.orderId}`
-  if (metadata.sessionId) return `/coaching-sessions/${metadata.sessionId}`
-  if (metadata.ticketId) return `/support/${metadata.ticketId}`
-  if (metadata.withdrawRequestId) return '/wallet'
-  if (metadata.tournamentId) return `/tournaments/${metadata.tournamentId}`
-  if (notification.type.startsWith('subscription_')) return '/plans'
-  return '/orders'
-}
-
-// The prototype's four visual kinds (icon letter + accent colour).
-function kindOf(type: NotificationType): { kind: string; letter: string } {
-  if (type === NotificationType.NewMessage || type === NotificationType.TicketReplied) return { kind: 'message', letter: 'M' }
-  if (type === NotificationType.WithdrawalStatusChanged || type.startsWith('subscription_')) return { kind: 'offer', letter: '₾' }
-  if (type === NotificationType.OrderPaid || type === NotificationType.ReviewPosted) return { kind: 'sale', letter: 'S' }
-  return { kind: 'order', letter: 'O' }
-}
-
-function formatTime(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
 
 export default function NotificationCenter({
   open,
@@ -162,27 +136,28 @@ export default function NotificationCenter({
           })
         )}
       </div>
-      {user && items && items.some((item) => !item.readAt) ? (
-        <button
-          type="button"
-          className="notification-center-footer"
-          onClick={() =>
-            api
-              .markAllNotificationsRead()
-              .then(() => {
-                setItems((current) => current?.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })) ?? null)
-                refreshBadges()
-              })
-              .catch(() => undefined)
-          }
-        >
-          ყველას წაკითხულად მონიშვნა
-        </button>
-      ) : (
-        <Link className="notification-center-footer" href={user ? '/messages' : '/login'} onClick={onClose}>
-          შეტყობინებების გახსნა
+      <div className="notification-center-actions">
+        {user && items && items.some((item) => !item.readAt) && (
+          <button
+            type="button"
+            className="notification-center-footer"
+            onClick={() =>
+              api
+                .markAllNotificationsRead()
+                .then(() => {
+                  setItems((current) => current?.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })) ?? null)
+                  refreshBadges()
+                })
+                .catch(() => undefined)
+            }
+          >
+            ყველას წაკითხულად მონიშვნა
+          </button>
+        )}
+        <Link className="notification-center-footer" href={user ? '/notifications' : '/login'} onClick={onClose}>
+          ყველა შეტყობინება
         </Link>
-      )}
+      </div>
     </aside>,
     document.body,
   )

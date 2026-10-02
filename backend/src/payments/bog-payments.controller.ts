@@ -14,7 +14,7 @@ import {
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Transform } from 'class-transformer';
 import { IsInt, IsUrl, Min } from 'class-validator';
 import { randomUUID } from 'crypto';
@@ -27,6 +27,8 @@ import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
 import { UsersService } from '../users/users.service';
 import { WalletService } from '../wallet/wallet.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@wavehub/shared-types';
 
 const CREATE_ORDER_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
 
@@ -59,6 +61,7 @@ export class BogPaymentsController {
     private readonly usersService: UsersService,
     private readonly wallet: WalletService,
     @InjectRepository(BogTopupIntent) private readonly intents: Repository<BogTopupIntent>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Guarded, and the WaveCoin amount is derived server-side from amountGel at a fixed 1:1 rate —
@@ -164,7 +167,17 @@ export class BogPaymentsController {
     if (details.orderStatus === 'completed') {
       if (intent.status !== 'completed') {
         await this.wallet.recordTopup(intent.userId, intent.wavecoins, intent.id);
-        await this.intents.update(intent.id, { status: 'completed' });
+        // Only the callback that flips the intent notifies (duplicate deliveries race here).
+        const flipped = await this.intents.update({ id: intent.id, status: Not('completed') }, { status: 'completed' });
+        if (flipped.affected) {
+          await this.notifications.tryEmit(
+            intent.userId,
+            NotificationType.WalletTopup,
+            'ბალანსი შეივსო',
+            `შენს ბალანსს დაემატა ${intent.wavecoins} WaveCoin. შეგიძლია გამოიყენო შესყიდვებისთვის და ქოუჩინგისთვის.`,
+            { link: '/wallet' },
+          );
+        }
       }
     } else if (['rejected', 'refunded', 'refunded_partially'].includes(details.orderStatus)) {
       if (intent.status === 'pending') {

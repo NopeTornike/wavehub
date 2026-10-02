@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { NotificationType } from '@wavehub/shared-types';
 import type { PublicUserProfile } from '@wavehub/shared-types';
+import { NotificationsService } from '../notifications/notifications.service';
 import { UserFollow } from './user-follow.entity';
 import { UsersService } from '../users/users.service';
 import { CommunityService, ONLINE_WINDOW_MINUTES } from '../community/community.service';
@@ -17,6 +19,7 @@ export class ProfilesService {
     private readonly users: UsersService,
     private readonly community: CommunityService,
     private readonly db: DataSource,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private async targetId(username: string): Promise<string> {
@@ -28,7 +31,16 @@ export class ProfilesService {
   async follow(followerId: string, username: string): Promise<{ following: boolean; followers: number }> {
     const followeeId = await this.targetId(username);
     if (followeeId === followerId) throw new BadRequestException('You cannot follow yourself');
-    await this.follows.createQueryBuilder().insert().values({ followerId, followeeId }).orIgnore().execute();
+    const inserted = await this.follows.createQueryBuilder().insert().values({ followerId, followeeId }).orIgnore().execute();
+    if ((inserted.raw as unknown[]).length && !(await this.notifications.sentRecently(followeeId, NotificationType.NewFollower, 'followerId', followerId, 24))) {
+      const follower = await this.users.findById(followerId);
+      if (follower) {
+        await this.notifications.tryEmit(followeeId, NotificationType.NewFollower, 'ახალი გამომწერი', `@${follower.username} გამოგიწერა.`, {
+          followerId,
+          link: `/u/${follower.username}`,
+        });
+      }
+    }
     return { following: true, followers: await this.follows.count({ where: { followeeId } }) };
   }
 

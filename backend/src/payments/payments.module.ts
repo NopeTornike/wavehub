@@ -6,9 +6,10 @@ import { BogTopupIntent } from './bog-topup-intent.entity';
 import { UsersModule } from '../users/users.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([BogTopupIntent]), UsersModule, WalletModule, AuthModule],
+  imports: [TypeOrmModule.forFeature([BogTopupIntent]), UsersModule, WalletModule, AuthModule, NotificationsModule],
   controllers: [BogPaymentsController],
   providers: [BogPaymentsService],
   // BogPaymentsService is reused by backend/src/subscriptions/ for its own checkout/save-card/

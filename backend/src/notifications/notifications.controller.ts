@@ -32,7 +32,7 @@ export class NotificationsController {
 
   @Get('unread-count')
   getUnreadCount(@CurrentUserId() userId: string) {
-    return this.notifications.getUnreadCount(userId).then((count) => ({ count }));
+    return this.notifications.getUnreadSummary(userId);
   }
 
   @Post(':id/read')
