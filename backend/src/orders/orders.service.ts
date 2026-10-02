@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -207,6 +207,15 @@ export class OrdersService {
         if (!claimResult.affected) {
           throw new ForbiddenException('This key listing is out of stock');
         }
+        // The key is delivered the moment it's claimed (the buyer can reveal it right away), so the
+        // order starts at Delivered: the buyer confirms (→ Completed, review, seller payout) or it
+        // auto-completes after AUTO_COMPLETE_HOURS like any delivered order; a dispute stays open
+        // until then. Before 2026-10-02 key orders sat at Paid forever (nobody "starts" a key), so
+        // they could never be reviewed or paid out.
+        saved.status = OrderStatus.Delivered;
+        saved.deliveredAt = new Date();
+        saved.autoCompleteAt = new Date(Date.now() + AUTO_COMPLETE_HOURS * 60 * 60 * 1000);
+        await manager.update(Order, saved.id, { status: saved.status, deliveredAt: saved.deliveredAt, autoCompleteAt: saved.autoCompleteAt });
       }
 
       // WalletService throws a plain Error('INSUFFICIENT_BALANCE') — translate it to a clean 4xx
@@ -248,6 +257,7 @@ export class OrdersService {
     try {
       await this.chat.ensureConversation(saved.id, saved.buyerId, saved.sellerId);
       await this.chat.postSystemMessage(saved.id, 'შეკვეთა შექმნილია.');
+      if (listing.type === ListingType.DigitalKey) await this.chat.postSystemMessage(saved.id, 'გასაღები მიწოდებულია — მყიდველს შეუძლია მისი ნახვა შეკვეთის გვერდზე.');
     } catch (err) {
       this.logger.error(`Failed to create chat for order ${saved.orderNumber}`, err as Error);
     }
@@ -256,6 +266,15 @@ export class OrdersService {
       NotificationType.OrderPaid,
       'ახალი შეკვეთა',
       `თქვენ მიიღეთ ახალი შეკვეთა #${saved.orderNumber}.`,
+      saved.id,
+    );
+    await this.notify(
+      saved.buyerId,
+      NotificationType.OrderPlaced,
+      'შეკვეთა გაფორმდა',
+      listing.type === ListingType.DigitalKey
+        ? `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${saved.priceWaveCoin} GEL. გასაღები უკვე შენს შეკვეთაშია: გახსენი, გააქტიურე და დაადასტურე მიღება.`
+        : `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${saved.priceWaveCoin} GEL. თანხა დაცულია და გამყიდველს ჩაერიცხება მხოლოდ მას შემდეგ, რაც მიღებას დაადასტურებ.`,
       saved.id,
     );
 
@@ -326,6 +345,9 @@ export class OrdersService {
 
   async requestRevision(buyerId: string, orderId: string, reason: string): Promise<Order> {
     const order = await this.getOrderAsBuyer(buyerId, orderId);
+    if (order.listingType === ListingType.DigitalKey) {
+      throw new BadRequestException("A key can't be reworked — open a dispute if it doesn't work");
+    }
     assertValidTransition(order.status, OrderStatus.InProgress);
     order.status = OrderStatus.InProgress;
     order.revisionReason = reason;
@@ -520,8 +542,8 @@ export class OrdersService {
     await this.notify(
       saved.buyerId,
       NotificationType.OrderCompleted,
-      'შეკვეთა დასრულებულია',
-      `შეკვეთა #${saved.orderNumber} დასრულებულია.`,
+      'შეკვეთა დასრულებულია — შეაფასე',
+      `შეკვეთა #${saved.orderNumber} დასრულებულია. როგორ მოგეწონა? დატოვე შეფასება — ეს სხვა მყიდველებს ეხმარება.`,
       saved.id,
     );
     await this.notify(

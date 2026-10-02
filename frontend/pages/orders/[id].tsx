@@ -3,6 +3,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { PublicDispute, PublicMessage, PublicOrderDetail } from '@wavehub/shared-types'
 import { AdminRole, DisputeResolution, DisputeStatus, ListingType, MessageType, OrderStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
+import OrderReview from '../../components/OrderReview'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
@@ -55,10 +56,6 @@ export default function OrderDetail() {
 
   const [revisionReason, setRevisionReason] = useState('')
   const [cancelReason, setCancelReason] = useState('')
-  const [reviewRating, setReviewRating] = useState(5)
-  const [reviewBody, setReviewBody] = useState('')
-  const [reviewSubmitted, setReviewSubmitted] = useState(false)
-  const [reviewError, setReviewError] = useState('')
 
   const [messages, setMessages] = useState<PublicMessage[]>([])
   const [draftMessage, setDraftMessage] = useState('')
@@ -308,27 +305,6 @@ export default function OrderDetail() {
     }
   }
 
-  const submitReview = async (event: FormEvent) => {
-    event.preventDefault()
-    if (!id) return
-    setReviewError('')
-    const body = reviewBody.trim()
-    if (body && body.length < 10) {
-      setReviewError('კომენტარი უნდა იყოს მინიმუმ 10 სიმბოლო (ან დატოვეთ ცარიელი).')
-      return
-    }
-    setActionError('')
-    setBusy(true)
-    try {
-      await api.createReview({ orderId: id, rating: reviewRating, body: body || undefined })
-      setReviewSubmitted(true)
-    } catch (err) {
-      setActionError(errorMessage(err, 'შეფასების გაგზავნა ვერ მოხერხდა.'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   if (loading || (checked && !me)) {
     return (
       <Layout title="შეკვეთა" noIndex>
@@ -443,8 +419,9 @@ export default function OrderDetail() {
             </div>
           )}
 
-          <div className="order-section">
-            <h2>მიწოდებული ფაილები</h2>
+          {order.listing.type !== ListingType.DigitalKey && (
+            <div className="order-section">
+              <h2>მიწოდებული ფაილები</h2>
             {order.deliveryFiles.length === 0 ? (
               <p className="note">ფაილები ჯერ არ არის.</p>
             ) : (
@@ -466,7 +443,8 @@ export default function OrderDetail() {
                 <input type="file" aria-label="მიწოდების ფაილის ატვირთვა" onChange={uploadFile} disabled={busy} />
               </div>
             )}
-          </div>
+            </div>
+          )}
 
           <div className="order-section">
             <h2>დისკუსია</h2>
@@ -706,6 +684,8 @@ export default function OrderDetail() {
                 <button type="button" className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.acceptDelivery(order.id))}>
                   მიღების დადასტურება
                 </button>
+                {/* A key can't be "reworked" — a wrong/used key is a dispute. */}
+                {order.listing.type !== ListingType.DigitalKey && (
                 <form
                   className="chat-form-row"
                   onSubmit={(event) => {
@@ -725,51 +705,12 @@ export default function OrderDetail() {
                     გადამუშავება
                   </button>
                 </form>
+                )}
               </>
             )}
           </div>
 
-          {isBuyer && order.status === OrderStatus.Completed && !reviewSubmitted && (
-            <div className="order-section">
-              <h2>შეფასების დატოვება</h2>
-              <form onSubmit={submitReview}>
-                <div className="form-group">
-                  <label htmlFor="rating">შეფასება</label>
-                  <select
-                    id="rating"
-                    className="input"
-                    value={reviewRating}
-                    onChange={(event) => setReviewRating(Number(event.target.value))}
-                  >
-                    {[5, 4, 3, 2, 1].map((n) => (
-                      <option key={n} value={n}>
-                        {n} ★
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="body">კომენტარი</label>
-                  <textarea
-                    id="body"
-                    className="input"
-                    value={reviewBody}
-                    onChange={(event) => setReviewBody(event.target.value)}
-                    placeholder="მინიმუმ 10 სიმბოლო (არასავალდებულო)"
-                  />
-                </div>
-                {reviewError && (
-                  <div className="status-text status-error" role="alert">
-                    {reviewError}
-                  </div>
-                )}
-                <button className="button glow-on-hover" type="submit" disabled={busy}>
-                  გაგზავნა
-                </button>
-              </form>
-            </div>
-          )}
-          {reviewSubmitted && <p className="status-text status-success" role="status">მადლობა შეფასებისთვის!</p>}
+          {order.status === OrderStatus.Completed && (isBuyer || isSeller) && <OrderReview orderId={order.id} isBuyer={isBuyer} isSeller={isSeller} />}
         </div>
       </div>
     </Layout>

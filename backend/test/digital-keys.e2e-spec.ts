@@ -51,6 +51,16 @@ describe('digital keys (e2e)', () => {
     expect((await seller.client.get(`/orders/${order.body.id}/key`)).status).toBeGreaterThanOrEqual(400);
     // Digital-key orders can't be plain-cancelled (disputes are the venue).
     expect((await buyer.client.post(`/orders/${order.body.id}/cancel-as-buyer`)).status).toBeGreaterThanOrEqual(400);
+
+    // The key is delivered at purchase: the buyer confirms → completed → can review; the seller is paid.
+    expect(order.body.status).toBe('delivered');
+    expect(order.body.autoCompleteAt).toBeTruthy();
+    const accepted = await buyer.client.post(`/orders/${order.body.id}/accept`);
+    expect(accepted.status).toBe(200);
+    expect(accepted.body.status).toBe('completed');
+    expect((await buyer.client.get('/reviews/pending')).body.map((p: { orderId: string }) => p.orderId)).toContain(order.body.id);
+    expect((await buyer.client.post('/reviews', { orderId: order.body.id, rating: 5, body: 'Key worked instantly, thanks!' })).status).toBe(201);
+    expect((await buyer.client.get('/reviews/pending')).body.map((p: { orderId: string }) => p.orderId)).not.toContain(order.body.id);
   });
 
   it('never oversells: 5 concurrent buyers, 2 keys → exactly 2 succeed and every loser is refunded nothing-lost', async () => {

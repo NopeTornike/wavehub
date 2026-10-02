@@ -54,6 +54,7 @@ export default function SteamGameDetail({
   status,
   isOwnListing,
   editHref,
+  writeReviewHref,
   notEnoughBalance,
   onBuy,
   onFavorite,
@@ -67,6 +68,8 @@ export default function SteamGameDetail({
   isOwnListing: boolean
   // Where the viewer can edit this game (its publisher, or Super Admin), else null.
   editHref: string | null
+  // The viewer's completed, unreviewed order of this game → its review form; else null.
+  writeReviewHref: string | null
   notEnoughBalance: boolean
   onBuy: () => void
   onFavorite: () => void
@@ -359,6 +362,11 @@ export default function SteamGameDetail({
             {tab === 'reviews' && (
               <article>
                 <h2>შეფასებები</h2>
+                {writeReviewHref && (
+                  <Link className="detail-write-review" href={writeReviewHref}>
+                    ★ შენ იყიდე ეს თამაში — დაწერე შეფასება
+                  </Link>
+                )}
                 {reviews.length === 0 ? (
                   <p>შეფასებები ჯერ არ არის — შეფასებას მხოლოდ მყიდველები ტოვებენ დასრულებული შეკვეთის შემდეგ.</p>
                 ) : (

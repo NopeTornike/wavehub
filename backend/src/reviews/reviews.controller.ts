@@ -1,6 +1,6 @@
 import { CREATE_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { AdminRole } from '@wavehub/shared-types';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
@@ -42,6 +42,21 @@ export class ReviewsController {
   @RequireAdminRole(...REVIEW_MODERATION_ROLES)
   listReported() {
     return this.reviews.listReported();
+  }
+
+  // The caller's completed orders without a review yet. Registered before any `reviews/:id` route.
+  @Get('reviews/pending')
+  @UseGuards(AuthGuard)
+  pending(@CurrentUserId() userId: string) {
+    return this.reviews.pendingForBuyer(userId);
+  }
+
+  // `{ review, status }` for the order's buyer or seller — never a bare null (an empty body reads as
+  // "already reviewed" in the frontend; see the coaching bug of the same shape).
+  @Get('reviews/order/:orderId')
+  @UseGuards(AuthGuard)
+  forOrder(@CurrentUserId() userId: string, @Param('orderId', ParseUUIDPipe) orderId: string) {
+    return this.reviews.getForOrder(userId, orderId);
   }
 
   @Post('reviews')

@@ -1,8 +1,8 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { NotificationType, OrderStatus, ReviewStatus } from '@wavehub/shared-types';
-import type { PublicReview, AdminReviewSummary } from '@wavehub/shared-types';
+import type { AdminReviewRow, AdminReviewSummary, OrderReviewState, PendingReview, PublicReview } from '@wavehub/shared-types';
 import { Review } from './review.entity';
 import { ReviewReport } from './review-report.entity';
 import { Order } from '../orders/order.entity';
@@ -11,6 +11,9 @@ import { User } from '../users/user.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CommunityService } from '../community/community.service';
+import { CoachingSessionReview } from '../coaching/coaching-session-review.entity';
+import { Coach } from '../coaching/coach.entity';
+import { AdminEditReviewDto, ListAdminReviewsDto } from './dto/admin-reviews.dto';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
@@ -22,6 +25,7 @@ export class ReviewsService {
     @InjectRepository(Review) private readonly reviews: Repository<Review>,
     @InjectRepository(ReviewReport) private readonly reports: Repository<ReviewReport>,
     @InjectRepository(Order) private readonly orders: Repository<Order>,
+    @InjectRepository(CoachingSessionReview) private readonly coachReviews: Repository<CoachingSessionReview>,
     private readonly dataSource: DataSource,
     private readonly notifications: NotificationsService,
     private readonly community: CommunityService,
@@ -131,7 +135,11 @@ export class ReviewsService {
     await Promise.all(
       [...new Set(rows.map((r) => r.buyerId))].map(async (id) => ranks.set(id, (await this.community.waveRank(id)).name)),
     );
-    return rows.map((r) => ({
+    return rows.map((r) => this.toPublic(r, ranks.get(r.buyerId) ?? ''));
+  }
+
+  private toPublic(r: Review, rank = ''): PublicReview {
+    return {
       id: r.id,
       rating: r.rating,
       body: r.body,
@@ -140,8 +148,164 @@ export class ReviewsService {
       sellerRepliedAt: r.sellerRepliedAt ? r.sellerRepliedAt.toISOString() : null,
       createdAt: r.createdAt.toISOString(),
       buyer: { id: r.buyer.id, username: r.buyer.username },
-      buyerRank: ranks.get(r.buyerId) ?? '',
-    }));
+      buyerRank: rank,
+    };
+  }
+
+  // The order page: has this order been reviewed (and is the review still live)? Buyer or seller only.
+  async getForOrder(userId: string, orderId: string): Promise<OrderReviewState> {
+    const order = await this.orders.findOne({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.buyerId !== userId && order.sellerId !== userId) throw new ForbiddenException("This order doesn't belong to you");
+    const review = await this.reviews.findOne({ where: { orderId }, relations: { buyer: true } });
+    if (!review) return { review: null, status: null };
+    return { review: this.toPublic(review, (await this.community.waveRank(review.buyerId)).name), status: review.status };
+  }
+
+  // The caller's completed orders still waiting for a review (newest first) — the listing page's
+  // "write a review" button and the dashboard reminder.
+  async pendingForBuyer(buyerId: string): Promise<PendingReview[]> {
+    const rows: Array<{ orderId: string; orderNumber: string; listingId: string; listingTitle: string; completedAt: Date | null }> = await this.dataSource.query(
+      `SELECT o.id AS "orderId", o."orderNumber", o."listingId", l.title AS "listingTitle", o."completedAt"
+         FROM orders o JOIN listings l ON l.id = o."listingId"
+        WHERE o."buyerId" = $1 AND o.status = $2
+          AND NOT EXISTS (SELECT 1 FROM reviews r WHERE r."orderId" = o.id)
+        ORDER BY o."completedAt" DESC NULLS LAST
+        LIMIT 50`,
+      [buyerId, OrderStatus.Completed],
+    );
+    return rows.map((r) => ({ ...r, completedAt: r.completedAt ? new Date(r.completedAt).toISOString() : null }));
+  }
+
+  // --- Staff: every review, product and coach (admin-reviews.controller.ts) ---
+
+  async listAll(dto: ListAdminReviewsDto): Promise<{ items: AdminReviewRow[]; total: number }> {
+    const take = 25;
+    const skip = ((dto.page ?? 1) - 1) * take;
+    const q = dto.q?.trim().toLowerCase();
+    const like = q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
+    if (dto.kind === 'coach') {
+      const qb = this.coachReviews
+        .createQueryBuilder('r')
+        .leftJoin('r.buyer', 'buyer')
+        .leftJoin('r.coach', 'coach')
+        .leftJoin('coach.user', 'coachUser')
+        .select(['r.id', 'r.rating', 'r.body', 'r.createdAt', 'r.coachId', 'buyer.username', 'coach.id', 'coachUser.username'])
+        .orderBy('r.createdAt', 'DESC')
+        .skip(skip)
+        .take(take);
+      if (dto.status && dto.status !== ReviewStatus.Published) return { items: [], total: 0 };
+      if (like) qb.andWhere('(lower(buyer.username) LIKE :like OR lower(coachUser.username) LIKE :like OR lower(coalesce(r.body, \'\')) LIKE :like)', { like });
+      const [rows, total] = await qb.getManyAndCount();
+      return {
+        total,
+        items: rows.map((r) => ({
+          id: r.id,
+          kind: 'coach' as const,
+          rating: r.rating,
+          body: r.body,
+          status: ReviewStatus.Published,
+          subjectTitle: `@${r.coach.user.username}`,
+          subjectHref: `/coaching/${r.coachId}`,
+          buyerUsername: r.buyer.username,
+          sellerUsername: r.coach.user.username,
+          sellerReply: null,
+          createdAt: r.createdAt.toISOString(),
+        })),
+      };
+    }
+    const qb = this.reviews
+      .createQueryBuilder('r')
+      .leftJoin('r.buyer', 'buyer')
+      .leftJoin('r.seller', 'seller')
+      .leftJoin('r.listing', 'listing')
+      .select(['r.id', 'r.rating', 'r.body', 'r.status', 'r.sellerReply', 'r.createdAt', 'r.listingId', 'buyer.username', 'seller.username', 'listing.title'])
+      .orderBy('r.createdAt', 'DESC')
+      .skip(skip)
+      .take(take);
+    if (dto.status) qb.andWhere('r.status = :status', { status: dto.status });
+    if (like) {
+      qb.andWhere(
+        '(lower(buyer.username) LIKE :like OR lower(seller.username) LIKE :like OR lower(listing.title) LIKE :like OR lower(coalesce(r.body, \'\')) LIKE :like)',
+        { like },
+      );
+    }
+    const [rows, total] = await qb.getManyAndCount();
+    return {
+      total,
+      items: rows.map((r) => ({
+        id: r.id,
+        kind: 'product' as const,
+        rating: r.rating,
+        body: r.body,
+        status: r.status,
+        subjectTitle: r.listing.title,
+        subjectHref: `/listings/${r.listingId}`,
+        buyerUsername: r.buyer.username,
+        sellerUsername: r.seller.username,
+        sellerReply: r.sellerReply,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  // Super Admin edit of a product review's rating/text/seller reply; aggregates follow. Returns the
+  // before/after values for the audit log.
+  async adminEditProduct(id: string, dto: AdminEditReviewDto): Promise<{ before: Record<string, unknown>; after: Record<string, unknown> }> {
+    const review = await this.getReviewOrThrow(id);
+    const patch = this.editPatch(dto, true);
+    const before = Object.fromEntries(Object.keys(patch).map((k) => [k, (review as unknown as Record<string, unknown>)[k]]));
+    await this.dataSource.transaction(async (manager) => {
+      await manager.update(Review, id, patch);
+      await this.recomputeListingRating(manager, review.listingId);
+      await this.recomputeSellerRating(manager, review.sellerId);
+    });
+    return { before, after: patch };
+  }
+
+  async adminEditCoach(id: string, dto: AdminEditReviewDto): Promise<{ before: Record<string, unknown>; after: Record<string, unknown> }> {
+    const review = await this.coachReviews.findOne({ where: { id } });
+    if (!review) throw new NotFoundException('Review not found');
+    if (dto.sellerReply !== undefined) throw new BadRequestException('Coach reviews have no reply');
+    const patch = this.editPatch(dto, false);
+    const before = Object.fromEntries(Object.keys(patch).map((k) => [k, (review as unknown as Record<string, unknown>)[k]]));
+    await this.dataSource.transaction(async (manager) => {
+      await manager.update(CoachingSessionReview, id, patch);
+      await this.recomputeCoachRating(manager, review.coachId);
+    });
+    return { before, after: patch };
+  }
+
+  async adminDeleteCoach(id: string): Promise<{ coachId: string; rating: number; body: string | null }> {
+    const review = await this.coachReviews.findOne({ where: { id } });
+    if (!review) throw new NotFoundException('Review not found');
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(CoachingSessionReview, id);
+      await this.recomputeCoachRating(manager, review.coachId);
+    });
+    return { coachId: review.coachId, rating: review.rating, body: review.body };
+  }
+
+  private editPatch(dto: AdminEditReviewDto, withReply: boolean): Record<string, unknown> {
+    const patch: Record<string, unknown> = {};
+    if (dto.rating !== undefined) patch.rating = dto.rating;
+    if (dto.body !== undefined) patch.body = dto.body?.trim() || null;
+    if (withReply && dto.sellerReply !== undefined) {
+      patch.sellerReply = dto.sellerReply?.trim() || null;
+      patch.sellerRepliedAt = patch.sellerReply ? new Date() : null;
+    }
+    if (!Object.keys(patch).length) throw new BadRequestException('Nothing to change');
+    return patch;
+  }
+
+  private async recomputeCoachRating(manager: EntityManager, coachId: string): Promise<void> {
+    // Same lock as CoachingSessionsService#review, so concurrent writes can't race the aggregate.
+    await manager.findOne(Coach, { where: { id: coachId }, lock: { mode: 'pessimistic_write' } });
+    const [row] = await manager.query(
+      `SELECT AVG(rating)::numeric(3,2) AS avg, COUNT(*)::int AS count FROM coaching_session_reviews WHERE "coachId" = $1`,
+      [coachId],
+    );
+    await manager.update(Coach, coachId, { ratingAvg: row.avg, ratingCount: row.count });
   }
 
   // Backs the admin `GET reviews/reported` route — the moderation queue. hide/remove/restore

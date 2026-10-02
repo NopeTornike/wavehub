@@ -264,8 +264,16 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
     const result = await service.purchase(buyerId, { listingId: 'listing-1' } as any);
 
     expect(wallet.debitForOrder).toHaveBeenCalledWith(buyerId, 'order-1', 25, manager);
-    expect(manager.update).not.toHaveBeenCalled();
-    expect(result).toMatchObject({ id: 'order-1', priceWaveCoin: 25 });
+    // The only update is the order itself going straight to Delivered (a key is delivered the
+    // moment it's claimed) — the listing must not be paused while keys remain.
+    expect(manager.update).toHaveBeenCalledTimes(1);
+    expect(manager.update).toHaveBeenCalledWith(
+      expect.anything(),
+      'order-1',
+      expect.objectContaining({ status: OrderStatus.Delivered, deliveredAt: expect.any(Date), autoCompleteAt: expect.any(Date) }),
+    );
+    expect(manager.update).not.toHaveBeenCalledWith(expect.anything(), 'listing-1', expect.anything());
+    expect(result).toMatchObject({ id: 'order-1', priceWaveCoin: 25, status: OrderStatus.Delivered });
   });
 
   it('pauses the listing once the last available key is claimed', async () => {

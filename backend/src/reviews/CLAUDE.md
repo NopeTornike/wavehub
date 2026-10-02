@@ -94,3 +94,33 @@ this order," it just lets the backend's `orderId` unique constraint reject a sec
 clear error), and `frontend/pages/admin/reviews.tsx` gives moderators a real hide/remove/restore
 UI over the `listReported` queue. No seller-reply UI yet (reply is backend-only so far). Still no
 per-report browse view over `review_reports` itself.
+
+## 2026-10-02 Review flow fixes + Admin → Reviews
+Supersedes the Status notes above ("doesn't pre-check", "no seller-reply UI").
+- **`GET reviews/order/:orderId`** (buyer or seller of that order) → `OrderReviewState`
+  `{ review, status }` — never a bare `null` (an empty body used to read as "already reviewed").
+  The order page uses it to show the existing review, its moderation state, and the seller's reply
+  form.
+- **`GET reviews/pending`** → the caller's completed orders with no review yet (`PendingReview[]`,
+  max 50) — backs the "you bought this — write a review" button on listing / Steam game pages. Both
+  routes are declared before any `reviews/:id` route.
+- Steam-key orders can now actually be reviewed: they start at `Delivered` and complete on buyer
+  confirmation or after 72h (see `backend/src/orders/CLAUDE.md`); before, they sat at `Paid` forever.
+- **`admin-reviews.controller.ts` (`/admin/reviews`)** — every product (order) review and every coach
+  (session) review:
+  - `GET ?kind=product|coach&status=&q=&page=` → `{ items: AdminReviewRow[], total }`, 25 per page,
+    for Operation Lead / Marketplace & Coaching Ops / Trust & Safety (+ Super Admin). `q` matches
+    buyer, seller/coach username, listing title and review text (LIKE wildcards escaped). Coach
+    reviews have no status column — they're always `published`, so any other status filter is empty.
+  - `PATCH product/:id`, `PATCH coach/:id` (rating / body / seller reply — reply on product reviews
+    only; `null` clears) and `DELETE coach/:id` are **Super Admin only** and audit-logged with
+    before/after values (`review.edit`, `coach_review.edit`, `coach_review.delete`). Aggregates are
+    recomputed in the same transaction (`recomputeListingRating`/`recomputeSellerRating`, or
+    `recomputeCoachRating`, which takes the same coach row lock as `CoachingSessionsService#review`).
+  - Product reviews are still hidden/removed/restored through the existing moderation routes; only
+    coach reviews are hard-deleted (they have no soft status).
+- ReviewsModule now registers `CoachingSessionReview` + `Coach` repositories directly (no
+  CoachingModule import — avoids a cycle).
+- Frontend: `components/OrderReview.tsx` (order page), `pages/admin/reviews.tsx` (Reported /
+  Products / Coaches tabs, search, status filter, paging, Super Admin edit).
+- e2e: `test/review-admin.e2e-spec.ts`, `test/digital-keys.e2e-spec.ts`.

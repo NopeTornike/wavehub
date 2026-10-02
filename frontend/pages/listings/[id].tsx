@@ -67,6 +67,8 @@ export default function ListingDetail() {
   const [purchasing, setPurchasing] = useState(false)
   const [imageIndex, setImageIndex] = useState(0)
   const [favoriteCount, setFavoriteCount] = useState(0)
+  // A completed, not yet reviewed order of this listing by the viewer → "write a review".
+  const [reviewOrderId, setReviewOrderId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -94,6 +96,20 @@ export default function ListingDetail() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    if (!id || !me) return
+    let cancelled = false
+    api
+      .listPendingReviews()
+      .then((list) => {
+        if (!cancelled) setReviewOrderId(list.find((p) => p.listingId === id)?.orderId ?? null)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [id, me])
 
   useEffect(() => {
     if (!id) return
@@ -218,6 +234,7 @@ export default function ListingDetail() {
       <SteamGameDetail
         listing={listing}
         reviews={reviews}
+        writeReviewHref={reviewOrderId ? `/orders/${reviewOrderId}#review` : null}
         saved={saved}
         purchasing={purchasing}
         status={status}
@@ -444,10 +461,13 @@ export default function ListingDetail() {
               <section className="detail-tab-panel detail-section detail-reviews-card" id="detailReviews" aria-labelledby="detailReviewsTitle">
                 <h2 id="detailReviewsTitle">შეფასებები</h2>
                 <div className="detail-review-summary" id="detailReviewSummary">
-                  {rating !== null && listing.ratingCount > 0
-                    ? `${rating.toFixed(1)}/5 from ${listing.ratingCount} ${listing.ratingCount === 1 ? 'review' : 'reviews'}`
-                    : 'No reviews yet for this product.'}
+                  {rating !== null && listing.ratingCount > 0 ? `${rating.toFixed(1)}/5 · ${listing.ratingCount} შეფასება` : 'ამ პროდუქტს ჯერ შეფასება არ აქვს.'}
                 </div>
+                {reviewOrderId && (
+                  <Link className="detail-write-review" href={`/orders/${reviewOrderId}#review`}>
+                    ★ შენ იყიდე ეს პროდუქტი — დაწერე შეფასება
+                  </Link>
+                )}
                 {reviews.length > 1 && (
                   <label className="detail-review-sort">
                     <span className="sr-only">შეფასებების დალაგება</span>
@@ -482,8 +502,8 @@ export default function ListingDetail() {
                           </span>
                           <small>{new Date(review.createdAt).toLocaleDateString('ka-GE', { year: 'numeric', month: 'short', day: 'numeric' })}</small>
                         </div>
-                        <span className="public-review-item">About: {listing.title}</span>
-                        <p>{review.body || 'No written comment.'}</p>
+                        <span className="public-review-item">პროდუქტი: {listing.title}</span>
+                        <p>{review.body || 'კომენტარის გარეშე.'}</p>
                         {review.sellerReply && (
                           <p className="seller-reply">
                             <strong>გამყიდველის პასუხი:</strong> {review.sellerReply}
@@ -494,7 +514,7 @@ export default function ListingDetail() {
                   })}
                 </div>
                 <div className="marketplace-empty" id="detailReviewsEmpty" hidden={reviews.length > 0}>
-                  No reviews yet.
+                  შეფასებები ჯერ არ არის.
                 </div>
               </section>
             </div>
@@ -530,7 +550,7 @@ export default function ListingDetail() {
                 <img className="detail-score-icon" src="/assets/seller-rating-star-icon.png" alt="" aria-hidden="true" />
                 <span>Product Rating</span>
                 <strong id="detailSideSellerScore">{rating !== null && listing.ratingCount > 0 ? rating.toFixed(1) : '-'}</strong>
-                <small id="detailSideSellerScoreLabel">{listing.ratingCount > 0 ? `${listing.ratingCount} reviews` : 'No rating'}</small>
+                <small id="detailSideSellerScoreLabel">{listing.ratingCount > 0 ? `${listing.ratingCount} შეფასება` : 'შეფასება არ არის'}</small>
               </div>
               <div className="detail-icon-score detail-favorites-score">
                 <img className="detail-score-icon" src="/assets/favorites-score-icon.svg" alt="" aria-hidden="true" />
@@ -650,7 +670,7 @@ export default function ListingDetail() {
               <strong id="detailSellerStripName">{sellerName}</strong>
               <small id="detailSellerStripMeta">
                 {listing.sellerCompletedOrders} completed orders ·{' '}
-                {listing.seller.sellerRatingCount > 0 ? `★ ${Number(listing.seller.sellerRatingAvg).toFixed(1)} (${listing.seller.sellerRatingCount} reviews)` : 'No reviews yet'}
+                {listing.seller.sellerRatingCount > 0 ? `★ ${Number(listing.seller.sellerRatingAvg).toFixed(1)} (${listing.seller.sellerRatingCount} შეფასება)` : 'შეფასებები ჯერ არ არის'}
               </small>
             </div>
             <Link id="detailSellerProfileButton" href={`/u/${listing.seller.username}`}>

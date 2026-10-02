@@ -220,3 +220,21 @@ Verified live: base 10%, discount 3 → snapshot 7; in-flight orders keep their 
 `PublicOrderSummary.listing` now also has `gameName`, `gameSlug` and `imageUrl` (the listing's first
 approved image) so the orders page can render the prototype's `.order-thumb` without an N+1; the
 three list/detail queries join `listing.game` + `listing.images`.
+
+## 2026-10-02 Digital-key orders start at `Delivered`
+Supersedes the gotchas above that describe key orders sitting at `Paid` and the seller clicking
+through Start/Deliver.
+- In `purchase()`, right after the key claim, a DigitalKey order is set to `Delivered` with
+  `deliveredAt = now` and `autoCompleteAt = now + 72h` (same transaction). The buyer reveals the
+  key, then confirms (`acceptDelivery` → `Completed`, seller payout, review) — or the hourly
+  auto-complete cron does it after 72h. Before this, nobody ever "started" a key order, so it could
+  never complete, pay out or be reviewed.
+- Migration `DeliverKeyOrders1784364000000` moves existing key orders stuck at `paid`/`in_progress`
+  to `delivered` with a fresh 72h window — **except orders that have a dispute row**. Not reversible.
+- `requestRevision` on a key order → 400 (a key can't be reworked; a bad key goes to a dispute, which
+  is still openable from `Delivered`). Cancellation stays forbidden as before.
+- A second chat system message ("key delivered") is posted for key orders.
+- **New notification**: the buyer gets `order_placed` on every purchase; `order_completed` to the
+  buyer now asks for a review. See `backend/src/notifications/CLAUDE.md`.
+- Unit: `orders.service.spec.ts` asserts the key order's own `Delivered` update and that the listing
+  isn't paused while keys remain. e2e: `digital-keys.e2e-spec.ts`.
