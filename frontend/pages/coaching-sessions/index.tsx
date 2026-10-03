@@ -118,21 +118,27 @@ export default function CoachingSessions() {
         ) : (
           <div className="orders-list">
             {sessions.map((session) => {
-              const counterpart = tab === 'buyer' ? session.coachUsername : session.buyerUsername
+              // Who the session is with, spelled out (client screenshot #2): the coach for a
+              // student, the student for a coach — the title used to always name the coach.
+              const coachName = [session.coachFirstName, session.coachLastName].filter(Boolean).join(' ') || session.coachUsername
+              const withName = tab === 'buyer' ? coachName : `@${session.buyerUsername}`
+              const withHandle = tab === 'buyer' ? `@${session.coachUsername}` : null
               return (
-                <Link key={session.id} href={`/coaching-sessions/${session.id}`} className="order-card">
+                <Link key={session.id} href={`/coaching-sessions/${session.id}`} className="order-card session-card">
                   <span className="order-thumb" aria-hidden="true">
-                    {counterpart.slice(0, 2).toUpperCase()}
+                    {(tab === 'buyer' ? coachName : session.buyerUsername).slice(0, 2).toUpperCase()}
                   </span>
                   <div className="order-copy">
                     <div>
                       <span className="order-status">{SESSION_STATUS_LABELS[session.status]}</span>
                     </div>
-                    <h2>
-                      {session.durationMinutes} წუთიანი სესია — {session.coachFirstName} {session.coachLastName}
-                    </h2>
-                    <p>{new Date(session.scheduledAt).toLocaleString('ka-GE')}</p>
-                    <span>{tab === 'buyer' ? 'მწვრთნელი' : 'მყიდველი'}: @{counterpart}</span>
+                    <p className="session-card-with">
+                      <small>{tab === 'buyer' ? 'მწვრთნელი' : 'მოსწავლე'}</small>
+                      <strong>{withName}</strong>
+                      {withHandle && <span>{withHandle}</span>}
+                    </p>
+                    <h2>{session.packageName ?? `${session.durationMinutes} წუთიანი სესია`}</h2>
+                    <p>{`${new Date(session.scheduledAt).toLocaleString('ka-GE')} · ${session.durationMinutes} წთ`}</p>
                   </div>
                   <div className="order-side">
                     <strong>{session.priceWaveCoin} GEL</strong>

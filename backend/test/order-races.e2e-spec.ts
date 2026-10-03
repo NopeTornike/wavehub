@@ -26,7 +26,7 @@ describe('order lifecycle races (e2e)', () => {
     const id = await buyItem(ctx, seller, buyer, admin, 100, 'delivered');
     const results = await Promise.all(Array.from({ length: 5 }, () => buyer.client.post(`/orders/${id}/accept`)));
     expect(results.filter((r) => r.status === 200)).toHaveLength(1);
-    expect(await balanceOf(ctx, seller)).toBe(before + 90);
+    expect(await balanceOf(ctx, seller)).toBe(before + 100); // full price — the buyer carried the fee
   });
 
   it('concurrent buyer cancels refund exactly once', async () => {
@@ -55,7 +55,7 @@ describe('order lifecycle races (e2e)', () => {
     const status = (await buyer.client.get(`/orders/${id}`)).body.status;
     if (acc.status === 200) {
       expect(status).toBe('completed');
-      expect(await balanceOf(ctx, seller)).toBe(sellerBefore + 90);
+      expect(await balanceOf(ctx, seller)).toBe(sellerBefore + 100);
     } else {
       expect(status).toBe('disputed');
       expect(await balanceOf(ctx, seller)).toBe(sellerBefore);

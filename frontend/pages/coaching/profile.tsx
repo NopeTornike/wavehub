@@ -7,6 +7,7 @@ import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { CoachHoursEditor, CoachQuestionsEditor, CoachVideoEditor, LANGUAGE_OPTIONS } from '../../components/CoachExtras'
+import { PHOTO_SOURCE_MAX_BYTES } from '../../lib/image-resize'
 
 // A coach editing the content of their public profile (docs/design-mockups/14): specialty, bio,
 // rate, rank, languages, main + extra games, intro video, quote and coaching-style points. Mirrors
@@ -101,8 +102,8 @@ export default function CoachProfileEditor() {
 
   const uploadPhoto = async (file: File | undefined) => {
     if (!file) return
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-      return setPhotoStatus('ფოტო: PNG, JPG ან WEBP, მაქსიმუმ 5MB.')
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > PHOTO_SOURCE_MAX_BYTES) {
+      return setPhotoStatus('ფოტო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.')
     }
     setPhotoStatus('იტვირთება…')
     try {

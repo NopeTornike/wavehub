@@ -14,7 +14,8 @@ import { User } from './user.entity';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
-const MAX_AVATAR_BYTES = 3 * 1024 * 1024;
+// Avatars (also a coach's portrait): 2MB, same as listing photos (owner decision 2026-10-03).
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 // The signed-in user's own profile (the prototype's Settings page). Declared in ListingsModule next
 // to UsersController for the same reason: it needs the games table and StorageService, and

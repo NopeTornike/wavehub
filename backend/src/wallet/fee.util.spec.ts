@@ -1,4 +1,4 @@
-import { calculatePlatformFee } from './fee.util';
+import { calculateBuyerFee, calculatePlatformFee } from './fee.util';
 
 describe('calculatePlatformFee', () => {
   it('matches the spec example: $100 order, 10% fee -> seller gets $90', () => {
@@ -33,5 +33,21 @@ describe('calculatePlatformFee', () => {
   it('rejects an out-of-range fee percent', () => {
     expect(() => calculatePlatformFee(10, 101)).toThrow();
     expect(() => calculatePlatformFee(10, -1)).toThrow();
+  });
+});
+
+describe('calculateBuyerFee', () => {
+  it("matches the owner's example: 80 GEL at 6% -> 4.8 rounds to a 5-coin fee, buyer pays 85", () => {
+    expect(calculateBuyerFee(80, 6)).toEqual({ feeWaveCoin: 5, buyerTotalWaveCoin: 85 });
+  });
+
+  it('rounds half up and handles 0%', () => {
+    expect(calculateBuyerFee(25, 10)).toEqual({ feeWaveCoin: 3, buyerTotalWaveCoin: 28 });
+    expect(calculateBuyerFee(50, 0)).toEqual({ feeWaveCoin: 0, buyerTotalWaveCoin: 50 });
+  });
+
+  it('rejects fractional prices and out-of-range percentages', () => {
+    expect(() => calculateBuyerFee(10.5, 10)).toThrow();
+    expect(() => calculateBuyerFee(10, 101)).toThrow();
   });
 });

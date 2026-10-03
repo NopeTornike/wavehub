@@ -23,7 +23,7 @@ import { AdminAuditService } from '../admin/admin-audit.service';
 // verification badge, ... temp suspend, restore coaching"). Super Admin passes any admin-guarded
 // route implicitly (see backend/src/admin/CLAUDE.md), not listed here.
 export const COACH_MANAGEMENT_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];
-// Intro videos: byte-sniffed MP4/WebM, 50MB (multer limit + the service check).
+// Intro videos: byte-sniffed MP4/WebM, 5MB (multer limit + the service check).
 const VIDEO_UPLOAD = FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_COACH_VIDEO_BYTES } });
 
 @Controller()

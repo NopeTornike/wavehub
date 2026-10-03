@@ -112,6 +112,23 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   than a hardcoded constant, but still snapshots the rate it read onto each order
   (`platformFeePercentSnapshot`) so a later admin rate change never retroactively changes an
   existing order's math. Read `backend/src/settings/CLAUDE.md` before touching fee calculation.
+- **The buyer pays the marketplace fee on top (owner decision 2026-10-03).** `purchase()` computes
+  `calculateBuyerFee(price, feePercent)` (`wallet/fee.util.ts`, rounded to the nearest whole coin —
+  80 at 6% → 5, since WaveCoin is an integer) and stores `buyerTotalWaveCoin = price + fee`,
+  `sellerPayoutWaveCoin = price`, `feePaidBy = 'buyer'`. The escrow debit, every refund (buyer cancel,
+  seller cancel, dispute refund/cancel) and analytics `inEscrow` use `buyerTotalWaveCoin`; a release
+  pays `sellerPayoutWaveCoin`. Orders before migration `1784377000000-BuyerPaidFee` were backfilled
+  `feePaidBy = 'seller'`, `buyerTotalWaveCoin = priceWaveCoin` (fee came out of the payout) — both
+  shapes stay correct because every money path reads these two columns, never re-derives them.
+  `PublicOrderDetail` exposes `platformFeePercent`, `buyerTotalWaveCoin`, `feePaidBy`; the order page
+  shows price / fee / total paid (buyer) or you receive (seller). The `order_placed` notification
+  states the total with the breakdown. Coaching sessions are unchanged (fixed package price, fee
+  taken from the coach).
+- **`GET /order-quote?listingId&packageId`** (public, `OrderQuoteController` — separate from the
+  AuthGuard'd `OrdersController`) returns `OrderQuote {priceWaveCoin, feePercent, feeWaveCoin,
+  totalWaveCoin}` for an *active* listing (service: the package is required) using the same
+  `effectiveFeePercent` as `purchase()`. The listing page, Steam key page and cart show it
+  (`frontend/components/FeeBreakdown.tsx`) and check the balance against the total.
 - **`listing.ordersCount` increments on order *completion*, not on purchase** — it's meant to reflect
   "orders completed" (what marketplace cards show per the spec), not "orders placed." Don't move this
   increment earlier.
@@ -134,7 +151,7 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   add a new lifecycle mutation, decide whether it needs one too — don't assume it's automatic.
 - **Delivery files accept a broader format set than listing images** (JPG/PNG/WEBP/PDF/ZIP, 20MB —
   matching the source spec's file-upload spec for order/chat context) vs listings' JPG/PNG/WEBP-only,
-  5MB. Don't unify these two limits without checking both specs again.
+  2MB. Don't unify these two limits without checking both specs again.
 - **Buyer cancellation is only allowed from `Paid`** (before the seller starts work) — enforced with
   an explicit status check in `cancelByBuyer` *in addition to* `assertValidTransition`, since the
   state machine alone would also structurally allow other buyer-initiated-shaped cancellations if
@@ -214,7 +231,9 @@ means every listing type's purchase flow (not just DigitalKey) now updates the h
 ## Subscription perk: fee discount
 `purchase()` snapshots `SubscriptionsService.effectiveFeePercent(listing.sellerId, baseFee)` — the
 seller's plan `platformFeeDiscountPercent` (percentage points, floored at 0) off the global fee.
-Verified live: base 10%, discount 3 → snapshot 7; in-flight orders keep their snapshot.
+Verified live: base 10%, discount 3 → snapshot 7; in-flight orders keep their snapshot. Since the
+buyer pays the fee (2026-10-03), the discount lowers the *buyer's* fee on that seller's listings —
+the member's listings are cheaper to buy, the perk still benefits the seller.
 
 ## 2026-09 order card fields
 `PublicOrderSummary.listing` now also has `gameName`, `gameSlug` and `imageUrl` (the listing's first

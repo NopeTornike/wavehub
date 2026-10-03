@@ -62,10 +62,10 @@ describe('admin analytics (e2e)', () => {
     expect(d((x) => x.sales.gmv)).toBe(8000); // the cancelled 2000 is excluded
     expect(d((x) => x.sales.completedOrders)).toBe(1);
     expect(d((x) => x.sales.completedValue)).toBe(5000);
-    expect(d((x) => x.sales.platformFees)).toBe(500); // 10% of the completed 5000
+    expect(d((x) => x.sales.platformFees)).toBe(500); // 10% of the completed 5000 (paid by the buyer)
     expect(d((x) => x.sales.refundedOrders)).toBe(1);
-    expect(d((x) => x.sales.refundedValue)).toBe(2000);
-    expect(d((x) => x.sales.inEscrow)).toBe(3000);
+    expect(d((x) => x.sales.refundedValue)).toBe(2200); // what the buyer got back: price + their fee
+    expect(d((x) => x.sales.inEscrow)).toBe(3300); // the buyer's total held: 3000 + 10% fee
     expect(d((x) => x.series[0].gmv)).toBe(8000);
     expect(d((x) => x.series[0].orders)).toBe(3);
 

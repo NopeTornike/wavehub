@@ -209,7 +209,7 @@ export class DisputesService {
         // which terminal order status they land on (Refunded vs Cancelled), not in the money
         // movement itself. See RESOLUTION_TARGET_STATUS's comment for why these are distinct
         // resolutions despite the shared wallet call.
-        await this.wallet.refundBuyer(order.buyerId, order.id, order.priceWaveCoin, manager);
+        await this.wallet.refundBuyer(order.buyerId, order.id, order.buyerTotalWaveCoin, manager);
         await manager.update(Order, order.id, {
           status: targetStatus,
           cancelledAt: now,

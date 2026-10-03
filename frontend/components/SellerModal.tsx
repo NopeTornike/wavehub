@@ -7,6 +7,8 @@ import { useAuth } from '../lib/auth'
 import { canPublishSteam } from '../lib/roles'
 import { useShell } from '../lib/shell'
 import GAME_DETAILS from '../lib/game-details.json'
+import ImageLightbox from './ImageLightbox'
+import { PHOTO_SOURCE_MAX_BYTES } from '../lib/image-resize'
 
 // The prototype's "Become a seller" listing builder (marketplace.html #sellerModal +
 // marketplace.js), markup-for-markup — including the per-game "Add … Details" sub-forms, whose
@@ -49,7 +51,7 @@ const HINTS: Record<string, string> = {
 }
 
 const MAX_IMAGES = 6
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const MAX_IMAGE_BYTES = PHOTO_SOURCE_MAX_BYTES
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 type Status = { kind: '' | 'error' | 'success' | 'pending'; text: string }
@@ -59,7 +61,7 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
   const { user } = useAuth()
   const { games } = useShell()
   const [categories, setCategories] = useState<PublicCategory[]>([])
-  const [kind, setKind] = useState<'account' | 'skin'>('account')
+  const [kind, setKind] = useState<'account' | 'skin' | 'item'>('account')
   const [gameSlug, setGameSlug] = useState('')
   const [title, setTitle] = useState('')
   const [platform, setPlatform] = useState('')
@@ -76,7 +78,12 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [status, setStatus] = useState<Status>({ kind: '', text: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [zoom, setZoom] = useState<number | null>(null)
+  const [draftRestored, setDraftRestored] = useState(false)
   const firstField = useRef<HTMLSelectElement>(null)
+  // A restored draft sets the game too — don't let the "game changed" effect wipe its details.
+  const keepDetailsRef = useRef(false)
+  const draftKey = user ? `wavehub.sellDraft.${user.id}` : null
 
   const isAccount = kind === 'account'
   const game = games.find((g) => g.slug === gameSlug)
@@ -116,9 +123,66 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
 
   // A game change drops the previous game's detail answers (they'd be meaningless keys).
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (keepDetailsRef.current) {
+      keepDetailsRef.current = false
+      return
+    }
     setGameDetails({})
   }, [gameSlug])
+
+  // Mobile (owner bug list BUG 04/05): while the builder is open the phone bottom bar is hidden, so
+  // a stray tap can't navigate away and it can't cover the Publish button.
+  useEffect(() => {
+    document.body.classList.toggle('modal-open', open)
+    return () => document.body.classList.remove('modal-open')
+  }, [open])
+
+  // Draft: everything typed is kept in this browser until the listing is published, so leaving the
+  // page or reloading never loses it. Photos can't be stored and need to be added again.
+  useEffect(() => {
+    if (!draftKey) return
+    let saved: Record<string, unknown> | null = null
+    try {
+      saved = JSON.parse(localStorage.getItem(draftKey) || 'null')
+    } catch {
+      saved = null
+    }
+    if (!saved) return
+    const str = (k: string) => (typeof saved![k] === 'string' ? (saved![k] as string) : '')
+    // Restoring a saved draft from browser storage once the account is known.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (saved.kind === 'account' || saved.kind === 'skin' || saved.kind === 'item') setKind(saved.kind)
+    if (str('gameSlug')) {
+      keepDetailsRef.current = true
+      setGameSlug(str('gameSlug'))
+    }
+    setTitle(str('title'))
+    setPlatform(str('platform'))
+    setRegion(str('region'))
+    setPrice(str('price'))
+    if (str('accountStatus')) setAccountStatus(str('accountStatus'))
+    setAccountLevel(str('accountLevel'))
+    setDescription(str('description'))
+    if (saved.access && typeof saved.access === 'object') setAccess((a) => ({ ...a, ...(saved!.access as Record<string, string>) }))
+    if (saved.gameDetails && typeof saved.gameDetails === 'object') setGameDetails(saved.gameDetails as Record<string, string>)
+    setDraftRestored(Boolean(str('title') || str('description') || str('gameSlug')))
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [draftKey])
+
+  useEffect(() => {
+    if (!draftKey) return
+    const draft = { kind, gameSlug, title, platform, region, price, accountStatus, accountLevel, description, access, gameDetails }
+    const empty = !gameSlug && !title && !price && !description && !accountLevel
+    const timer = window.setTimeout(() => {
+      try {
+        if (empty) localStorage.removeItem(draftKey)
+        else localStorage.setItem(draftKey, JSON.stringify(draft))
+      } catch {
+        // storage unavailable — the form still works, it just won't survive a reload
+      }
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [draftKey, kind, gameSlug, title, platform, region, price, accountStatus, accountLevel, description, access, gameDetails])
 
   const hint = useMemo(() => {
     if (!gameSlug) return 'Game-specific details will appear after selecting a game.'
@@ -130,7 +194,7 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
     const incoming = Array.from(list)
     const bad = incoming.find((file) => !IMAGE_TYPES.includes(file.type) || file.size > MAX_IMAGE_BYTES)
     if (bad) {
-      setStatus({ kind: 'error', text: 'მხოლოდ JPG, PNG ან WEBP სურათი, მაქსიმუმ 5MB.' })
+      setStatus({ kind: 'error', text: 'ფოტო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.' })
       return
     }
     setFiles((current) => [...current, ...incoming].slice(0, MAX_IMAGES))
@@ -149,6 +213,12 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
     setDescription('')
     setAccess({ loginMethod: '', emailChangeable: '', linkedAccounts: '', fullAccess: '', originalEmail: '', twoFactor: '', deliveryMethod: '', deliveryTime: '' })
     setGameDetails({})
+    setDraftRestored(false)
+    try {
+      if (draftKey) localStorage.removeItem(draftKey)
+    } catch {
+      // ignore
+    }
   }
 
   const submit = async (event: FormEvent) => {
@@ -165,7 +235,7 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
     if (isAccount && (!Number.isFinite(levelValue) || levelValue < 1)) return setStatus({ kind: 'error', text: 'მიუთითეთ ანგარიშის დონე.' })
     if (description.trim().length < 50) return setStatus({ kind: 'error', text: 'აღწერა მინიმუმ 50 სიმბოლო უნდა იყოს.' })
     if (files.length === 0) return setStatus({ kind: 'error', text: 'ატვირთეთ მინიმუმ ერთი სურათი.' })
-    const category = categories.find((c) => c.slug === (isAccount ? 'accounts' : 'skins'))
+    const category = categories.find((c) => c.slug === (kind === 'account' ? 'accounts' : kind === 'skin' ? 'skins' : 'items'))
     if (!category) return setStatus({ kind: 'error', text: 'კატეგორია ვერ მოიძებნა. სცადეთ თავიდან.' })
 
     const attributes: ItemAttributes = { kind, platform, region }
@@ -227,9 +297,9 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
         <div className="seller-modal-head">
           <div>
             <p className="section-kicker">განცხადების შექმნა</p>
-            <h2 id="sellerModalTitle">Sell Your Game Account or Skin</h2>
+            <h2 id="sellerModalTitle">Sell Your Game Account, Skin or Item</h2>
             <p className="seller-modal-alt">
-              <span>სერვისს ყიდით (რანკის აწევა, დუო თამაში…)?</span> <Link href="/sell/services">სერვისის გაყიდვა →</Link>
+              <span>სერვისს ყიდით?</span> <Link href="/sell/services">სერვისის გაყიდვა →</Link>
             </p>
             {canPublishSteam(user) && (
               <p className="seller-modal-alt">
@@ -253,9 +323,10 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
             <div className="listing-builder-grid">
               <label>
                 <span>Listing type *</span>
-                <select id="sellerProductType" ref={firstField} value={kind} onChange={(e) => setKind(e.target.value as 'account' | 'skin')} required>
+                <select id="sellerProductType" ref={firstField} value={kind} onChange={(e) => setKind(e.target.value as 'account' | 'skin' | 'item')} required>
                   <option value="account">ანგარიში</option>
                   <option value="skin">სკინი</option>
+                  <option value="item">ნივთი</option>
                 </select>
               </label>
               <label>
@@ -285,12 +356,12 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
                 )}
               </label>
               <label>
-                <span id="sellerTitleLabel">{isAccount ? 'Account title' : 'Skin name'}</span>
+                <span id="sellerTitleLabel">{isAccount ? 'Account title' : kind === 'skin' ? 'Skin name' : 'Item name'}</span>
                 <input
                   id="sellerTitle"
                   type="text"
                   maxLength={70}
-                  placeholder={isAccount ? 'PUBG Mobile Ace account' : 'AK-47 Neon Rider skin'}
+                  placeholder={isAccount ? 'PUBG Mobile Ace account' : kind === 'skin' ? 'AK-47 Neon Rider skin' : '1000 Gems pack'}
                   autoComplete="off"
                   required
                   value={title}
@@ -310,7 +381,7 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
                 <span>Region / Server *</span>
                 <select id="sellerRegion" required value={region} onChange={(e) => setRegion(e.target.value)}>
                   <option value="">Select region / server</option>
-                  {['Europe', 'North America', 'South America', 'Asia', 'Middle East', 'Oceania', 'გლობალური'].map((r) => (
+                  {['Local', 'Europe', 'North America', 'South America', 'Asia', 'Middle East', 'Oceania', 'გლობალური'].map((r) => (
                     <option key={r}>{r}</option>
                   ))}
                 </select>
@@ -345,9 +416,9 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
                   onChange={(e) => setAccountLevel(e.target.value)}
                 />
               </label>
-              <label className="seller-image-field">
+              <div className="seller-image-field">
                 <span>Product images *</span>
-                <span className="upload-control listing-image-dropzone">
+                <label className="upload-control listing-image-dropzone">
                   <span className="upload-icon" aria-hidden="true"></span>
                   <span className="upload-copy">
                     <strong>Drag &amp; drop images here or click to upload</strong>
@@ -363,7 +434,7 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
                       e.target.value = ''
                     }}
                   />
-                </span>
+                </label>
                 <span className="seller-image-selection">
                   <strong id="sellerImageCount">
                     {files.length} / {MAX_IMAGES} photos
@@ -373,14 +444,14 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
                 <span className="seller-image-previews" id="sellerImagePreviews" aria-live="polite">
                   {previews.map((url, index) => (
                     <span key={url} className="seller-image-preview">
-                      <img src={url} alt={`Photo ${index + 1}`} />
+                      <img src={url} alt={`Photo ${index + 1}`} className="is-zoomable" onClick={() => setZoom(index)} />
                       <button type="button" aria-label="Remove photo" onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}>
                         ×
                       </button>
                     </span>
                   ))}
                 </span>
-              </label>
+              </div>
               <label className="seller-description-field">
                 <span>Description *</span>
                 <textarea
@@ -474,6 +545,14 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
             </div>
           </section>
 
+          {draftRestored && (
+            <p className="seller-draft-note">
+              {files.length === 0 ? 'შენახული მონახაზი აღდგა. ფოტოები თავიდან უნდა დაამატო.' : 'შენახული მონახაზი აღდგა.'}{' '}
+              <button type="button" onClick={reset}>
+                გასუფთავება
+              </button>
+            </p>
+          )}
           <p className={`seller-status${status.kind ? ` ${status.kind}` : ''}`} id="sellerStatus" aria-live="polite" role={status.kind === 'error' ? 'alert' : undefined}>
             {status.text}
           </p>
@@ -487,6 +566,8 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
           </div>
         </form>
       </div>
+
+      <ImageLightbox images={previews.map((url, i) => ({ url, alt: `Photo ${i + 1}` }))} index={zoom} onIndex={setZoom} onClose={() => setZoom(null)} />
 
       {detailForm && (
         <div className="game-details-modal" role="dialog" aria-modal="true" aria-labelledby="gameDetailsTitle" hidden={!detailsOpen}>

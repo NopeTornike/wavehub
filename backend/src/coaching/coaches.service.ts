@@ -20,7 +20,8 @@ import { User } from '../users/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
 
-export const MAX_COACH_VIDEO_BYTES = 50 * 1024 * 1024;
+// Coach intro video: 5MB (owner decision 2026-10-03 — was 50MB).
+export const MAX_COACH_VIDEO_BYTES = 5 * 1024 * 1024;
 type UploadedFile = { buffer: Buffer; originalname: string; size: number };
 
 type CoachStats = { completed: number; cancelled: number; students: number };
@@ -346,7 +347,7 @@ export class CoachesService {
 
   async setVideo(coachId: string, file: UploadedFile | undefined): Promise<{ videoFileUrl: string }> {
     if (!file) throw new BadRequestException('No file uploaded');
-    if (file.size > MAX_COACH_VIDEO_BYTES) throw new BadRequestException('The video must be 50MB or smaller');
+    if (file.size > MAX_COACH_VIDEO_BYTES) throw new BadRequestException('The video must be 5MB or smaller');
     const stored = await this.storage.save(file.buffer, file.originalname, 'video');
     await this.coaches.update(coachId, { videoFileUrl: stored.url });
     return { videoFileUrl: stored.url };

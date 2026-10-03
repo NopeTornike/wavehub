@@ -8,6 +8,7 @@ import { api, errorMessage, type MyListing } from '../../../lib/api'
 import { KEY_STATUS_LABELS, LISTING_STATUS_LABELS } from '../../../lib/labels'
 import { useAuth } from '../../../lib/auth'
 import SteamFactsFields, { EMPTY_STEAM_FACTS, steamFactsFrom, steamFactsToAttributes } from '../../../components/SteamFactsFields'
+import { PHOTO_SOURCE_MAX_BYTES } from '../../../lib/image-resize'
 
 // Mirrors AddListingKeysDto: 1–500 keys per request, each 4–200 characters.
 const MAX_KEYS_PER_UPLOAD = 500
@@ -151,8 +152,8 @@ export default function ManageDigitalKeyListing() {
     setFactsStatus({ kind: '', text: '' })
     try {
       for (const file of Array.from(files)) {
-        if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-          throw new Error('ფოტო უნდა იყოს PNG, JPG ან WEBP, მაქსიმუმ 5MB.')
+        if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > PHOTO_SOURCE_MAX_BYTES) {
+          throw new Error('ფოტო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.')
         }
         await api.uploadListingImage(id, file)
       }

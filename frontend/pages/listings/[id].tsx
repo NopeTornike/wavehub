@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import type { PublicListingDetail, PublicReview } from '@wavehub/shared-types'
+import type { OrderQuote, PublicListingDetail, PublicReview } from '@wavehub/shared-types'
 import { AdminRole, ListingType } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import SteamGameDetail from '../../components/SteamGameDetail'
@@ -13,6 +13,8 @@ import { gameCover, gameIcon } from '../../lib/games'
 import GAME_DETAILS from '../../lib/game-details.json'
 import RankIcon from '../../components/RankIcon'
 import ReportButton from '../../components/ReportButton'
+import ImageLightbox from '../../components/ImageLightbox'
+import FeeBreakdown from '../../components/FeeBreakdown'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
 // the game's title icon, About card, the game-specific details grid, Access & Delivery, Linked
@@ -67,9 +69,30 @@ export default function ListingDetail() {
   const [status, setStatus] = useState<{ kind: '' | 'error' | 'success'; text: string }>({ kind: '', text: '' })
   const [purchasing, setPurchasing] = useState(false)
   const [imageIndex, setImageIndex] = useState(0)
+  const [lightbox, setLightbox] = useState<number | null>(null)
   const [favoriteCount, setFavoriteCount] = useState(0)
   // A completed, not yet reviewed order of this listing by the viewer → "write a review".
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null)
+  // Price + buyer fee + total for the current selection (GET /order-quote).
+  const [quote, setQuote] = useState<OrderQuote | null>(null)
+  const quoteListingId = listing?.id
+  const quoteNeedsPackage = listing?.type === ListingType.Service
+
+  useEffect(() => {
+    if (!quoteListingId || (quoteNeedsPackage && !selectedPackageId)) return
+    let cancelled = false
+    api
+      .quoteOrder(quoteListingId, quoteNeedsPackage ? selectedPackageId ?? undefined : undefined)
+      .then((q) => {
+        if (!cancelled) setQuote(q)
+      })
+      .catch(() => {
+        if (!cancelled) setQuote(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [quoteListingId, quoteNeedsPackage, selectedPackageId])
 
   useEffect(() => {
     if (!id) return
@@ -142,14 +165,19 @@ export default function ListingDetail() {
   const attrs = listing.itemAttributes ?? {}
   const slug = listing.game?.slug ?? ''
   const cover = gameCover(slug)
-  const gallery = [...(cover ? [{ key: 'cover', url: cover, label: listing.game?.name ?? '' }] : []), ...listing.images.map((img, i) => ({ key: img.id, url: img.url, label: `${i + 1}` }))]
+  // The seller's photos (first = cover); the game art only when the listing has none (BUG 01).
+  const gallery = listing.images.length
+    ? listing.images.map((img, i) => ({ key: img.id, url: img.url, label: `${i + 1}` }))
+    : cover
+      ? [{ key: 'cover', url: cover, label: listing.game?.name ?? '' }]
+      : []
   const hero = gallery[imageIndex] ?? gallery[0]
   const selectedPackage = listing.packages.find((pkg) => pkg.id === selectedPackageId) ?? null
   const price = listing.type === ListingType.Service ? selectedPackage?.priceWaveCoin ?? null : listing.priceWaveCoin
   const sellerName = [listing.seller.firstName, listing.seller.lastName].filter(Boolean).join(' ') || listing.seller.username
-  const kindLabel = kind === 'account' ? 'Account' : kind === 'skin' ? 'Skin' : kind === 'service' ? 'Service' : 'Steam Key'
+  const kindLabel = kind === 'account' ? 'Account' : kind === 'skin' ? 'Skin' : kind === 'item' ? 'Item' : kind === 'service' ? 'Service' : 'Steam Key'
   const tag =
-    kind === 'account' ? accountStatusLabel(attrs.accountStatus) : kind === 'skin' ? 'სკინი' : kind === 'service' ? listing.category.name : 'Steam გასაღები'
+    kind === 'account' ? accountStatusLabel(attrs.accountStatus) : kind === 'skin' ? 'სკინი' : kind === 'item' ? 'ნივთი' : kind === 'service' ? listing.category.name : 'Steam გასაღები'
   const delivery =
     kind === 'service'
       ? selectedPackage
@@ -168,7 +196,8 @@ export default function ListingDetail() {
     listing.type === ListingType.Service
       ? (listing.requirementsSchema ?? []).find((field) => field.required && !(requirementAnswers[field.key] ?? '').trim())
       : undefined
-  const notEnoughBalance = !!me && price !== null && me.wavecoinBalance < price
+  const payTotal = quote?.totalWaveCoin ?? price
+  const notEnoughBalance = !!me && payTotal !== null && me.wavecoinBalance < payTotal
   const detailForm = DETAIL_FIELDS[slug]
   const gameSpecific = detailForm ? detailForm.fields.filter((f) => attrs[f.id] !== undefined && attrs[f.id] !== '').map((f) => [f.label, attrs[f.id]] as const) : []
   const platformRegion = [attrs.platform, attrs.region].filter(Boolean).join(' / ')
@@ -242,6 +271,7 @@ export default function ListingDetail() {
         isOwnListing={isOwnListing}
         editHref={isOwnListing ? `/sell/digital-keys/${listing.id}` : me?.adminRole === AdminRole.SuperAdmin ? `/admin/listings/${listing.id}` : null}
         notEnoughBalance={notEnoughBalance}
+        quote={quote}
         onBuy={() => void buy()}
         onFavorite={() => void toggleFavorite()}
         onShare={() => void share()}
@@ -403,13 +433,17 @@ export default function ListingDetail() {
                 <h2 className="detail-combined-title">Gallery</h2>
                 <section className="detail-gallery-card" aria-label="Product gallery">
                   <div
-                    className={`detail-hero-image${hero?.key === 'cover' ? ' game-cover-contain' : ''}`}
+                    className={`detail-hero-image${hero?.key === 'cover' ? ' game-cover-contain' : ''}${hero && hero.key !== 'cover' ? ' is-zoomable' : ''}`}
+                    onClick={(e) => {
+                      if (!hero || hero.key === 'cover' || (e.target as HTMLElement).closest('button, a')) return
+                      setLightbox(imageIndex)
+                    }}
                     id="detailHeroImage"
                     data-label={listing.game?.name ?? ''}
                     style={hero ? { backgroundImage: `linear-gradient(rgba(5, 8, 19, 0.03), rgba(5, 8, 19, 0.22)), url("${hero.url}")` } : undefined}
                   >
                     <div className="detail-hero-badges">
-                      <span className={`service-tag ${kind === 'account' ? 'account' : kind === 'skin' ? 'skin' : 'hot'}`} id="detailHeroTag">
+                      <span className={`service-tag ${kind === 'account' ? 'account' : kind === 'skin' || kind === 'item' ? 'skin' : 'hot'}`} id="detailHeroTag">
                         {kind === 'account' && (
                           <svg className="service-tag-account-icon" viewBox="0 0 16 16" aria-hidden="true">
                             <circle cx="8" cy="5" r="3" fill="currentColor" />
@@ -457,6 +491,15 @@ export default function ListingDetail() {
                     </div>
                   )}
                 </section>
+                <ImageLightbox
+                  images={listing.images.map((img, i) => ({ url: img.url, alt: `${listing.title} — ${i + 1}` }))}
+                  index={lightbox}
+                  onIndex={(i) => {
+                    setLightbox(i)
+                    setImageIndex(i)
+                  }}
+                  onClose={() => setLightbox(null)}
+                />
               </section>
 
               <section className="detail-tab-panel detail-section detail-reviews-card" id="detailReviews" aria-labelledby="detailReviewsTitle">
@@ -537,7 +580,7 @@ export default function ListingDetail() {
               </span>
             </div>
             <div className="detail-buy-tags">
-              <span className={`service-tag ${kind === 'account' ? 'account' : kind === 'skin' ? 'skin' : 'hot'}`} id="detailTag">
+              <span className={`service-tag ${kind === 'account' ? 'account' : kind === 'skin' || kind === 'item' ? 'skin' : 'hot'}`} id="detailTag">
                 {tag}
               </span>
               {delivery && (
@@ -611,6 +654,7 @@ export default function ListingDetail() {
               </div>
             )}
 
+            {!isOwnListing && <FeeBreakdown quote={quote} />}
             {isOwnListing ? (
               <>
                 <p className="note">ეს თქვენი განცხადებაა — საკუთარი განცხადების ყიდვა შეუძლებელია.</p>

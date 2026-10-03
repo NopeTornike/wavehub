@@ -74,7 +74,7 @@ describe('digital keys (e2e)', () => {
 
     let totalBalance = 0;
     for (const b of buyers) totalBalance += await balanceOf(ctx, b);
-    expect(totalBalance).toBe(5 * 100 - 2 * 10); // only the two winners paid
+    expect(totalBalance).toBe(5 * 100 - 2 * 11); // only the two winners paid (10 + 1 buyer fee each)
 
     const rows = await ctx.dataSource.query(
       `SELECT status, "orderId" FROM listing_key_inventory WHERE "listingId" = $1`, [id],

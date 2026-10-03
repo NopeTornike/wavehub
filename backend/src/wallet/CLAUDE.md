@@ -24,7 +24,9 @@ that records every change to it. Nothing outside this module should ever write t
 - `transaction-retry.util.ts` — `withTransactionRetry`/`isRetryableTransactionError`: bounded retry of a
   whole transaction on Postgres `40P01`/`40001` (see the deadlock note under Conventions)
 - `fee.util.ts` — `calculatePlatformFee(amountWaveCoin, feePercent)`, a pure function (floors the
-  fee rather than losing a fractional coin) — reused wherever a seller payout needs a fee split
+  fee rather than losing a fractional coin) — the coach-pays split for coaching sessions; and
+  `calculateBuyerFee(price, feePercent)` — the marketplace fee the *buyer* pays on top (rounded to
+  the nearest coin; `buyerTotalWaveCoin = price + fee`), see `backend/src/orders/CLAUDE.md`
 - `wallet.module.ts` — exports `WalletService`
 
 ## Data model
@@ -70,8 +72,8 @@ both.
   and held even once Orders landed (Phase 4) and became a real caller — `OrdersService.acceptDelivery`
   /`autoCompleteDueOrders` both call `releaseSellerEarnings` directly, no separate hold step needed.
 - **No platform-fee ledger row is written.** WaveHub's cut is just the gap between what a buyer was
-  debited (`debitForOrder`) and what a seller receives (`releaseSellerEarnings`'s
-  `sellerReceivesWaveCoin` argument, computed via `fee.util.ts`) — there's no "house" user account
+  debited (`debitForOrder` — an order's `buyerTotalWaveCoin`) and what a seller receives
+  (`releaseSellerEarnings`'s `sellerReceivesWaveCoin` argument — the order's `sellerPayoutWaveCoin`) — there's no "house" user account
   in this schema to attribute a fee entry to. A revenue report can derive platform revenue from
   Order data once Orders exist (build-plan Phase 11, Revenue Dashboard). Don't invent a fake user
   row just to hang a ledger entry off of.

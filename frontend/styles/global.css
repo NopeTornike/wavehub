@@ -15510,7 +15510,7 @@ body.public-profile-view .main-panel {
 .steam-store { max-width: 1540px; }.steam-store-heading { margin-bottom:18px; }.steam-store-heading h1 { font-size:42px; text-transform:none; }.steam-catalog-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:15px 28px; margin-bottom:16px; }.steam-catalog-toolbar input,.steam-catalog-toolbar select { height:42px; border:1px solid rgba(148,164,191,.18); border-radius:7px; color:#dce1ea; background:#08111c; padding:0 14px; }.steam-catalog-toolbar input { width:100%; }.steam-sort-label { display:flex; align-items:center; gap:10px; color:#c4c9d5; font-size:13px; white-space:nowrap; }.steam-sort-label select { min-width:150px; }.steam-genres { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:10px; }.steam-genres button,.steam-pagination button { min-height:32px; border:1px solid rgba(148,164,191,.14); border-radius:18px; color:#bfc6d1; background:#07101a; padding:0 18px; font-size:12px; }.steam-genres button.active,.steam-pagination button.active { border-color:#f1429b; color:white; background:#eb368e; }.steam-games-grid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; }.steam-game-card { border-color:rgba(143,157,184,.2); border-radius:7px; box-shadow:none; }.steam-game-cover { aspect-ratio:1.15/1; }.steam-game-cover>span { display:flex; align-items:center; gap:5px; top:10px; left:10px; border:0; color:#f5f6fa; background:rgba(4,9,17,.76); padding:5px 7px; font-size:9px; }.steam-game-cover>span img { width:16px; height:16px; filter:invert(1); }.steam-game-cover>button { top:9px; right:9px; font-size:26px; }.steam-stock { position:absolute; z-index:2; top:12px; right:42px; display:flex; align-items:center; gap:5px; color:#62e7a2; font-size:10px; }.steam-stock::before { width:7px; height:7px; border-radius:50%; background:currentColor; content:''; }.steam-stock.out { color:#ff5573; }.steam-game-info { padding:10px 12px 12px; }.steam-game-info h2 { min-height:auto; font-size:15px; text-transform:none; }.steam-game-info>p { min-height:20px; margin:5px 0 8px; text-transform:none; font-size:11px; }.steam-game-price { border:0; padding:0; }.steam-game-price>strong { color:#f04a9a; font-size:17px; }.steam-game-price a { min-height:30px; display:inline-flex; align-items:center; border:1px solid #c6347c; border-radius:5px; color:#f161ae; padding:0 11px; font-size:10px; font-weight:800; text-decoration:none; }.steam-pagination { display:flex; justify-content:center; gap:8px; margin-top:28px; }.steam-pagination button { width:33px; padding:0; border-radius:7px; }.steam-empty { grid-column:1/-1; padding:60px; color:#bfc6d1; text-align:center; }@media(max-width:1200px){.steam-games-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:720px){.steam-catalog-toolbar{grid-template-columns:1fr}.steam-sort-label{justify-content:space-between}.steam-genres{flex-wrap:nowrap;overflow:auto}.steam-genres button{flex:0 0 auto}.steam-games-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.steam-game-info{padding:9px}.steam-game-info h2{font-size:13px}.steam-stock{display:none}.steam-store-heading h1{font-size:34px}}
 .steam-store-footer > a { display: flex; align-items: center; gap: 12px; color: white; text-decoration: none; }.steam-store-footer img { width: 52px; height: 40px; object-fit: contain; }.steam-store-footer a span { display: grid; }.steam-store-footer small { color: #8e8996; }.steam-store-footer > p { text-transform: uppercase; letter-spacing: .65em; }.steam-store-footer > div { display: flex; gap: 20px; font-size: 11px; }
 @media (max-width: 1200px) { .steam-games-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.steam-game-cover { aspect-ratio: 1.25/1; }.steam-page-nav > nav { gap: 20px; }.steam-page-nav > nav a:nth-last-child(-n+2) { display: none; } }
-@media (max-width: 720px) { .steam-page-nav { min-height: 62px; padding-inline: 14px; }.steam-page-nav > nav { overflow-x: auto; gap: 22px; }.steam-page-nav > nav a { white-space: nowrap; font-size: 12px; }.steam-nav-actions { display: none; }.steam-store { padding: 26px 14px 34px; }.steam-store-heading { align-items: flex-start; flex-direction: column; }.steam-store-heading h1 { font-size: 42px; }.steam-store-heading > a { min-height: 44px; padding-inline: 18px; }.steam-games-grid { grid-template-columns: 1fr; }.steam-game-cover { aspect-ratio: 1.2/1; }.featured-items { display: block; padding: 0 14px 90px; }.featured-items-heading { margin-bottom: 16px; }.featured-items-spark { width: 28px; height: 28px; }.featured-items-title { gap: 9px; }.featured-items-title h2 { font-size: 22px; }.featured-items-heading > a { font-size: 13px; white-space: nowrap; }.featured-items-grid { display: flex; gap: 12px; overflow-x: auto; margin: 0 -14px; padding: 2px 14px 12px; scroll-snap-type: x mandatory; scrollbar-width: none; }.featured-items-grid::-webkit-scrollbar { display: none; }.featured-item-card { min-width: min(82%,252px); flex: 0 0 min(82%,252px); min-height: 292px; scroll-snap-align: start; }.featured-item-art,.mobile-featured-product-image { height: 165px; }.steam-store-footer { display: none; } }
+@media (max-width: 720px) { .steam-page-nav { min-height: 62px; padding-inline: 14px; }.steam-page-nav > nav { overflow-x: auto; gap: 22px; }.steam-page-nav > nav a { white-space: nowrap; font-size: 12px; }.steam-nav-actions { display: none; }.steam-store { padding: 26px 14px 34px; }.steam-store-heading { align-items: flex-start; flex-direction: column; }.steam-store-heading h1 { font-size: 42px; }.steam-store-heading > a { min-height: 44px; padding-inline: 18px; }.steam-games-grid { grid-template-columns: 1fr; }.steam-game-cover { aspect-ratio: 1.2/1; }.featured-items { display: block; padding: 0 14px 24px; }.featured-items-heading { margin-bottom: 16px; }.featured-items-spark { width: 28px; height: 28px; }.featured-items-title { gap: 9px; }.featured-items-title h2 { font-size: 22px; }.featured-items-heading > a { font-size: 13px; white-space: nowrap; }.featured-items-grid { display: flex; gap: 12px; overflow-x: auto; margin: 0 -14px; padding: 2px 14px 12px; scroll-snap-type: x mandatory; scrollbar-width: none; }.featured-items-grid::-webkit-scrollbar { display: none; }.featured-item-card { min-width: min(82%,252px); flex: 0 0 min(82%,252px); min-height: 292px; scroll-snap-align: start; }.featured-item-art,.mobile-featured-product-image { height: 165px; }.steam-store-footer { display: none; } }
 
 /* Home dashboard layout based on the compact three-column reference. */
 .home-page .hero-panel { display: none; }
@@ -20536,3 +20536,149 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
   .home-banner { min-height: 150px; padding: 18px 16px; border-radius: 14px; }
   .home-banner-copy p { font-size: 13px; }
 }
+
+/* Full-size photo viewer (components/ImageLightbox.tsx) */
+.lightbox { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); background: rgba(2, 3, 10, .93); }
+.lightbox-img { max-width: min(100%, 1400px); max-height: calc(100dvh - 96px); width: auto; height: auto; object-fit: contain; border-radius: 10px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); user-select: none; }
+.lightbox-close { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; width: 44px; height: 44px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 12px; background: rgba(15, 17, 30, .85); color: #fff; font-size: 26px; line-height: 1; cursor: pointer; }
+.lightbox-nav { position: absolute; top: 50%; width: 46px; height: 46px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 50%; background: rgba(15, 17, 30, .8); color: #fff; font-size: 30px; line-height: 1; cursor: pointer; transform: translateY(-50%); }
+.lightbox-nav.prev { left: 12px; }
+.lightbox-nav.next { right: 12px; }
+.lightbox-count { position: absolute; bottom: max(14px, env(safe-area-inset-bottom)); left: 50%; padding: 4px 12px; border-radius: 999px; background: rgba(15, 17, 30, .85); color: #e8eaf2; font-size: 13px; transform: translateX(-50%); }
+.is-zoomable { cursor: zoom-in; }
+
+/* Product photos are never cropped or zoomed (BUG 02): the whole image on a dark backdrop. */
+.detail-hero-image { background-color: #050914; background-repeat: no-repeat, no-repeat; background-position: center, center; background-size: 100% 100%, contain; }
+
+/* Marketplace category chips */
+.marketplace-kinds { display: flex; gap: 8px; margin: 0 0 14px; overflow-x: auto; scrollbar-width: none; }
+.marketplace-kinds::-webkit-scrollbar { display: none; }
+.marketplace-kinds button { flex: 0 0 auto; min-height: 38px; padding: 0 16px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 999px; background: rgba(255, 255, 255, .03); color: #d6d9e3; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.marketplace-kinds button.active { border-color: #ff2f9a; background: rgba(255, 47, 154, .14); color: #fff; }
+
+/* Mobile forms (owner bug list BUG 04/05, 2026-10-03):
+   - 100vh on phone browsers includes the hidden browser bars, so the builder's bottom (Publish)
+     sat below the visible screen once 3+ photos made the form long — use the dynamic viewport;
+   - the bottom navigation is hidden while a modal form is open or while typing in any field, so it
+     can't cover fields, ride up with the keyboard, or swallow a stray tap that navigated away. */
+.seller-modal-panel.listing-builder-panel { max-height: calc(100dvh - 28px); }
+.listing-builder-actions { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+body.modal-open { overflow: hidden; }
+@media (max-width: 760px) {
+  .seller-modal-panel.listing-builder-panel { max-height: 100dvh; height: 100dvh; }
+  .seller-modal { align-items: stretch; }
+}
+@media (max-width: 620px) {
+  body.modal-open .mobile-bottom-nav,
+  body:has(:is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select):focus) .mobile-bottom-nav { display: none; }
+}
+.seller-draft-note { margin: 0 0 8px; padding: 10px 12px; border: 1px solid rgba(255, 194, 51, .35); border-radius: 10px; background: rgba(255, 194, 51, .08); color: #ffe2a0; font-size: 13.5px; }
+.seller-draft-note button { margin-left: 6px; padding: 0; border: 0; background: none; color: #ff8fc6; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.seller-image-preview img.is-zoomable { cursor: zoom-in; }
+/* The photo field is a <div> now (only the drop zone opens the picker), styled like its label siblings. */
+.seller-form .seller-image-field { display: grid; gap: 7px; align-content: start; color: var(--muted); font-size: 12px; font-weight: 900; }
+
+/* Tornike's 2026-10-03 prototype fixes, ported: real ♡ buttons on featured cards, a "View details"
+   action on the mobile featured cards, a fitting competition button, and the mobile DM composer. */
+.home-featured-card { position: relative; }
+.home-featured-heart { z-index: 2; border: 0; padding: 0; background: transparent; cursor: pointer; font: inherit; font-size: 24px; line-height: 1; }
+.home-featured-heart:hover, .home-featured-heart:focus-visible, .home-featured-heart.saved, .featured-item-save.saved { color: #ff5eb8; }
+.home-featured-heart:focus-visible, .featured-item-save:focus-visible { outline: 2px solid #ff8ac8; outline-offset: 3px; }
+.featured-item-save { z-index: 2; border: 0; padding: 0; background: transparent; cursor: pointer; font-family: inherit; }
+.featured-item-card > a { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: flex-start; color: inherit; text-decoration: none; }
+.featured-item-action { position: relative; z-index: 1; width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; margin-top: auto; border: 1px solid rgba(255, 79, 171, .52); border-radius: 7px; color: #fff1f8; background: linear-gradient(100deg, rgba(176, 24, 111, .72), rgba(100, 35, 178, .7)); padding: 0 12px; font-size: 12px; font-weight: 800; }
+.featured-item-action i { font-size: 19px; font-style: normal; line-height: 1; }
+.featured-item-card::after { bottom: 116px; }
+.competition-button { box-sizing: border-box; padding: 8px 14px; line-height: 1.25; overflow-wrap: anywhere; text-align: center; }
+.competition-button > span, .competition-button > b { flex: 0 0 auto; }
+.home-competition-section .tournament-copy .competition-button { width: max-content; min-width: 220px; max-width: calc(100% - 54px); white-space: nowrap; }
+@media (max-width: 720px) {
+  .competition-button { gap: 10px; padding-inline: 10px; }
+  .direct-message-thread { grid-template-rows: auto minmax(240px, 1fr) auto auto; }
+  .direct-message-history { justify-content: flex-end; }
+  .direct-message-form { grid-template-columns: minmax(0, 1fr) minmax(76px, auto); gap: 8px; padding: 12px; }
+  .direct-message-form button { min-width: 76px; min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 12px; white-space: nowrap; }
+}
+
+/* Price / fee / total (FeeBreakdown) — listing buy panel, Steam key page, cart, order page. */
+.fee-breakdown { display: grid; gap: 6px; margin: 12px 0; border: 1px solid rgba(139, 155, 190, .18); border-radius: 10px; background: rgba(12, 10, 22, .6); padding: 10px 12px; font-size: 13px; }
+.fee-breakdown > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.fee-breakdown dt { margin: 0; color: #a9a4b8; }
+.fee-breakdown dd { margin: 0; color: #f3eff8; font-weight: 700; white-space: nowrap; }
+.fee-breakdown .fee-breakdown-total { margin-top: 2px; border-top: 1px solid rgba(139, 155, 190, .16); padding-top: 8px; }
+.fee-breakdown .fee-breakdown-total dt { color: #f3eff8; font-weight: 700; }
+.fee-breakdown .fee-breakdown-total dd { color: #ff5eb8; font-size: 16px; }
+
+/* Order page: the parties, the money breakdown and the dates as cards (client screenshot #3), and
+   a real composer + upload button in the dispute section instead of a bare input (screenshot #6). */
+.order-parties { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 6px 0 12px; }
+.order-party { display: flex; align-items: center; gap: 10px; min-width: 0; border: 1px solid rgba(139, 155, 190, .18); border-radius: 10px; background: rgba(12, 10, 22, .6); padding: 10px 12px; color: inherit; text-decoration: none; }
+.order-party:hover { border-color: rgba(255, 79, 171, .45); }
+.order-party-avatar { flex: 0 0 36px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #e5157f, #6c2bd9); font-weight: 800; }
+.order-party > span:last-child { display: grid; min-width: 0; }
+.order-party small { color: #a9a4b8; font-size: 12px; }
+.order-party strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-money { margin-top: 0; }
+.order-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin: 0 0 12px; }
+.order-dates > div { border: 1px solid rgba(139, 155, 190, .14); border-radius: 10px; padding: 8px 12px; }
+.order-dates dt { color: #a9a4b8; font-size: 12px; }
+.order-dates dd { margin: 2px 0 0; font-weight: 700; font-size: 13px; }
+.dispute-composer { display: flex; align-items: flex-end; gap: 8px; border-top: 1px solid rgba(139, 155, 190, .14); padding: 10px; }
+.dispute-composer textarea { flex: 1 1 auto; min-width: 0; min-height: 46px; max-height: 160px; box-sizing: border-box; resize: vertical; border: 1px solid rgba(139, 155, 190, .24); border-radius: 10px; color: #f3eff8; background: rgba(8, 7, 16, .8); padding: 10px 12px; font: inherit; font-size: 14px; }
+.dispute-composer textarea:focus { outline: none; border-color: #ff5eb8; box-shadow: 0 0 0 3px rgba(255, 94, 184, .16); }
+.dispute-composer button { flex: 0 0 auto; min-height: 46px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 10px; color: #fff; background: linear-gradient(90deg, #fa278d, #b52ad4); padding: 0 16px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.dispute-composer button:disabled { opacity: .45; cursor: not-allowed; }
+.dispute-upload { position: relative; display: flex; align-items: center; gap: 12px; margin-top: 10px; border: 1px dashed rgba(255, 94, 184, .45); border-radius: 10px; background: rgba(229, 21, 127, .06); padding: 12px 14px; cursor: pointer; }
+.dispute-upload:hover { background: rgba(229, 21, 127, .12); }
+.dispute-upload.is-busy { opacity: .55; cursor: progress; }
+.dispute-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.dispute-upload:focus-within { outline: 2px solid #ff8ac8; outline-offset: 2px; }
+.dispute-upload > span:first-of-type { font-size: 22px; color: #ff5eb8; }
+.dispute-upload > span:last-child { display: grid; }
+.dispute-upload small { color: #a9a4b8; font-size: 12px; }
+@media (max-width: 520px) {
+  .order-parties { grid-template-columns: 1fr; }
+  .dispute-composer { flex-direction: column; align-items: stretch; }
+  .dispute-composer button { justify-content: center; }
+}
+
+/* /u profile: a long single-word name breaks inside the word instead of pushing the verified badge
+   off-screen on phones (client screenshot #1). */
+.up-identity h1 { max-width: 100%; min-width: 0; }
+.up-identity h1 .up-name { min-width: 0; overflow-wrap: anywhere; }
+
+/* Session list: the other party as the card's lead line (client screenshot #2). */
+.session-card-with { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 6px 0 2px; }
+.session-card-with small { border-radius: 999px; color: #ff8ac8; background: rgba(229, 21, 127, .14); padding: 2px 8px; font-size: 11px; font-weight: 800; letter-spacing: .02em; }
+.session-card-with strong { min-width: 0; overflow-wrap: anywhere; color: #f3eff8; font-size: 15px; }
+.session-card-with span { color: #a9a4b8; font-size: 12px; }
+
+/* Session page: the student's goal / challenges / message as labelled cards (screenshot #7). */
+.cs-brief { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.cs-brief:empty { display: none; }
+.cs-brief-item { display: grid; gap: 6px; align-content: start; border: 1px solid rgba(139, 155, 190, .18); border-radius: 10px; background: rgba(12, 10, 22, .55); padding: 12px 14px; }
+.cs-brief-item.is-goal { grid-column: 1 / -1; border-color: rgba(255, 79, 163, .4); background: linear-gradient(120deg, rgba(229, 21, 127, .1), rgba(108, 43, 217, .08)); }
+.cs-brief-item > span { color: #ff8ac8; font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+.cs-brief-item p { margin: 0; color: #ece8f3; font-size: 15px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Tournament "ready / you're participating" bar on phones (client screenshot #5): the icon column
+   swallowed the stats and the "registered ✓" link (both landed in the 48px icon track). Icon is
+   pinned beside the heading; the two stats sit side by side; the action spans the full width. */
+@media (max-width: 800px) {
+  .prejoin-page .prejoin-register { position: relative; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; padding: 14px !important; }
+  .prejoin-page .prejoin-register::before { position: absolute; top: 14px; left: 14px; width: 34px; height: 34px; }
+  .prejoin-page .prejoin-register > div:first-child { grid-column: 1 / -1; grid-row: 1; min-height: 34px; padding: 0 0 0 52px; display: grid; align-content: center; gap: 2px; }
+  .prejoin-page .prejoin-register > div:first-child span { font-size: 12px; overflow-wrap: anywhere; }
+  .prejoin-page .prejoin-register > div:nth-of-type(2) { grid-column: 1; grid-row: 2; }
+  .prejoin-page .prejoin-register > div:nth-of-type(3) { grid-column: 2; grid-row: 2; border-left: 1px solid rgba(216, 71, 168, .24); padding-left: 12px; }
+  .prejoin-page .prejoin-register > div:nth-of-type(2) small, .prejoin-page .prejoin-register > div:nth-of-type(3) small { font-size: 11px !important; }
+  .prejoin-page .prejoin-register > button, .prejoin-page .prejoin-register > .wt-register-link { grid-column: 1 / -1; grid-row: 3; width: 100%; box-sizing: border-box; }
+}
+
+/* Other-tournament cards: game covers carry their logo at the top centre, which the status badge
+   covered on narrow cards — the badge sits on the bottom edge of the cover instead. */
+.wt-other-cover .wt-badge { top: auto; bottom: 10px; left: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, .45); }
+
+/* The footer sat at z-index 2 above .app-shell (z-index 1), so fixed bars inside the shell — the
+   marketplace cart bar — slid under the footer at the bottom of the page. */
+.site-footer { z-index: 0; }

@@ -231,10 +231,10 @@ Migration `1784360000000-CoachPackagesVideo` (runs on boot).
   `PATCH coaches/mine/profile { bookingQuestions }`. Answers are validated on booking and stored on
   `coaching_sessions.answers`; only the session's participants see them (`/coaching-sessions/[id]`).
 - **Uploaded intro video**: `POST coaches/mine/video` (multipart `file`, `StorageService` kind
-  `'video'` — byte-sniffed MP4/WebM, `MAX_COACH_VIDEO_BYTES` 50MB, `UPLOAD_THROTTLE`) →
+  `'video'` — byte-sniffed MP4/WebM, `MAX_COACH_VIDEO_BYTES` 5MB (50MB before 2026-10-03), `UPLOAD_THROTTLE`) →
   `coaches.videoFileUrl`; `DELETE coaches/mine/video` clears it. When set it replaces the
-  YouTube/Vimeo `videoUrl` on the public profile. Caddy's `request_body` cap was raised to 55MB for
-  this (`deploy/Caddyfile` — reload Caddy after deploying).
+  YouTube/Vimeo `videoUrl` on the public profile. Caddy's `request_body` cap (22MB, `deploy/Caddyfile`)
+  is sized for the 20MB attachments now, not videos — restart Caddy after changing it.
 - **Staff add / edit coaches** (`COACH_MANAGEMENT_ROLES` = Operation Lead, Main Administrator,
   Marketplace & Coaching Ops Manager, plus Super Admin; every mutation audit-logged as
   `coach.create|update|set_packages|set_video|clear_video`): `POST admin/coaches`

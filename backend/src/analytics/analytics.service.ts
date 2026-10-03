@@ -62,11 +62,11 @@ export class AnalyticsService {
                 count(*) FILTER (WHERE o."status" = 'completed')::int AS "completedOrders",
                 COALESCE(sum(o."priceWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::int AS "completedValue",
                 count(*) FILTER (WHERE o."status" IN ('cancelled', 'refunded'))::int AS "refundedOrders",
-                COALESCE(sum(o."priceWaveCoin") FILTER (WHERE o."status" IN ('cancelled', 'refunded')), 0)::int AS "refundedValue"
+                COALESCE(sum(o."buyerTotalWaveCoin") FILTER (WHERE o."status" IN ('cancelled', 'refunded')), 0)::int AS "refundedValue"
          FROM "orders" o WHERE o."createdAt" >= $1 AND o."createdAt" < $2`),
       // Fees are earned when an order completes, so they follow completedAt; escrow is "right now".
       q(`SELECT COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed' AND o."completedAt" >= $1 AND o."completedAt" < $2), 0)::int AS fees,
-                COALESCE(sum(o."priceWaveCoin") FILTER (WHERE ${HELD}), 0)::int AS "inEscrow"
+                COALESCE(sum(o."buyerTotalWaveCoin") FILTER (WHERE ${HELD}), 0)::int AS "inEscrow"
          FROM "orders" o`),
       q(`SELECT COALESCE(g."slug", 'none') AS key, COALESCE(g."name", '') AS label,
                 count(*)::int AS orders, COALESCE(sum(o."priceWaveCoin") FILTER (WHERE ${KEPT}), 0)::int AS gmv,

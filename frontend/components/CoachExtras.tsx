@@ -6,7 +6,7 @@ import { cleanRequirements, RequirementsEditor, validateServiceExtras } from './
 // The parts of a coach profile that have their own endpoints: the uploaded intro video, working
 // hours and the pre-booking questions. Used by the coach's own editor (pages/coaching/profile.tsx)
 // and by Admin → Coaches (pages/admin/coaches.tsx), which pass the matching api calls. Bounds mirror
-// the backend: video MP4/WebM ≤50MB; ≤10 questions. Packages are the platform's, edited only on
+// the backend: video MP4/WebM ≤5MB; ≤10 questions. Packages are the platform's, edited only on
 // Admin → Coaching packages (pages/admin/coaching-packages.tsx).
 
 export const LANGUAGE_OPTIONS: Array<[string, string]> = [
@@ -18,7 +18,7 @@ export const LANGUAGE_OPTIONS: Array<[string, string]> = [
   ['uk', 'Українська'],
 ]
 
-export const MAX_VIDEO_BYTES = 50 * 1024 * 1024
+export const MAX_VIDEO_BYTES = 5 * 1024 * 1024
 
 type Status = { kind: '' | 'error' | 'success'; text: string }
 
@@ -47,7 +47,7 @@ export function CoachVideoEditor({
   const upload = async (file: File | undefined) => {
     if (!file) return
     if (!['video/mp4', 'video/webm'].includes(file.type) || file.size > MAX_VIDEO_BYTES) {
-      return setStatus({ kind: 'error', text: 'ვიდეო: MP4 ან WebM, მაქსიმუმ 50MB.' })
+      return setStatus({ kind: 'error', text: 'ვიდეო: MP4 ან WebM, მაქსიმუმ 5MB.' })
     }
     setBusy(true)
     setStatus({ kind: '', text: 'იტვირთება…' })
@@ -79,7 +79,7 @@ export function CoachVideoEditor({
   return (
     <section className="ce-section">
       <h3>გაცნობითი ვიდეო</h3>
-      <p className="ce-hint">ატვირთე MP4 ან WebM ფაილი (მაქს. 50MB). ატვირთული ვიდეო ჩანს პროფილზე YouTube/Vimeo ბმულის ნაცვლად.</p>
+      <p className="ce-hint">ატვირთე MP4 ან WebM ფაილი (მაქს. 5MB — დაახლოებით 30–60 წამი). ატვირთული ვიდეო ჩანს პროფილზე YouTube/Vimeo ბმულის ნაცვლად.</p>
       {url && <video className="ce-video" src={url} controls preload="metadata" />}
       <div className="ce-actions">
         <label className={`button ce-file${busy ? ' disabled' : ''}`}>

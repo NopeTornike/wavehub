@@ -73,6 +73,14 @@ export class Order {
   @Column({ type: 'integer' })
   sellerPayoutWaveCoin: number;
 
+  // What the buyer paid into escrow (price + buyer fee for feePaidBy 'buyer'); refunds return this.
+  @Column({ type: 'integer' })
+  buyerTotalWaveCoin: number;
+
+  // Who carried the platform fee: 'buyer' (on top, since 2026-10-03) or 'seller' (older orders).
+  @Column({ type: 'varchar', length: 10, default: 'buyer' })
+  feePaidBy: 'buyer' | 'seller';
+
   // --- Lifecycle timestamps ---
   // Null for item orders (no delivery SLA — see listings/CLAUDE.md on service vs item listings).
   @Column({ type: 'timestamptz', nullable: true })

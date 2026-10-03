@@ -42,7 +42,7 @@ describe('notification events (e2e)', () => {
     expect(order.status).toBe(201);
     const placed = await ofType(buyer, 'order_placed');
     expect(placed).toHaveLength(1);
-    expect(placed[0].body).toContain('40 GEL');
+    expect(placed[0].body).toContain('44 GEL (ფასი 40 + საკომისიო 4)'); // total paid, with the breakdown
     expect(placed[0].metadata).toEqual({ orderId: order.body.id });
     expect((await ofType(seller, 'order_paid')).map((n) => n.metadata?.orderId)).toContain(order.body.id);
   });
@@ -67,7 +67,7 @@ describe('notification events (e2e)', () => {
     const placed = mailsTo(buyer).slice(before.buyer).find((m) => m.subject.startsWith('შეკვეთა გაფორმდა'));
     expect(placed).toBeTruthy();
     expect(placed!.html).toContain(`/orders/${order.id}`);
-    expect(placed!.body).toContain('7 GEL');
+    expect(placed!.body).toContain('8 GEL (ფასი 7 + საკომისიო 1)');
     expect(mailsTo(seller).slice(before.seller).some((m) => m.subject.startsWith('ახალი შეკვეთა'))).toBe(true);
     expect(mailsTo(seller).slice(before.seller).some((m) => m.subject.startsWith('განცხადება დამტკიცდა'))).toBe(true);
     await new Promise((r) => setTimeout(r, 300));

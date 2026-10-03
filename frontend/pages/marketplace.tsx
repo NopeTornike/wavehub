@@ -24,7 +24,7 @@ import { useShell } from '../lib/shell'
 /* eslint-disable @next/next/no-img-element */
 
 const PAGE_SIZE = 24
-type Product = 'all' | 'account' | 'skin' | 'service'
+type Product = 'all' | 'account' | 'skin' | 'item' | 'service'
 type Sort = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 
 function queryString(value: string | string[] | undefined): string {
@@ -80,13 +80,13 @@ export default function Marketplace() {
     const byType =
       product === 'service' ? { type: ListingType.Service } : {}
     const categoryId =
-      product === 'account' || product === 'skin'
-        ? categories.find((c) => c.slug === (product === 'account' ? 'accounts' : 'skins'))?.id
+      product === 'account' || product === 'skin' || product === 'item'
+        ? categories.find((c) => c.slug === (product === 'account' ? 'accounts' : product === 'skin' ? 'skins' : 'items'))?.id
         : undefined
     return { ...byType, categoryId, game: game || undefined, sort, q: q || undefined }
   }, [product, categories, game, sort, q])
 
-  const waitingForCategory = (product === 'account' || product === 'skin') && !filters.categoryId
+  const waitingForCategory = (product === 'account' || product === 'skin' || product === 'item') && !filters.categoryId
 
   useEffect(() => {
     if (!router.isReady || waitingForCategory) return
@@ -140,7 +140,7 @@ export default function Marketplace() {
   )
 
   const listTitle =
-    product === 'account' ? 'ანგარიშები' : product === 'skin' ? 'სკინები' : product === 'service' ? 'სერვისები' : 'ანგარიშები და სკინები'
+    product === 'account' ? 'ანგარიშები' : product === 'skin' ? 'სკინები' : product === 'item' ? 'ნივთები' : product === 'service' ? 'სერვისები' : 'ყველა პროდუქტი'
 
   return (
     <Layout
@@ -154,7 +154,7 @@ export default function Marketplace() {
     >
       <section className="marketplace-head" aria-labelledby="marketplaceTitle">
         <div>
-          <p className="section-kicker">ანგარიშებისა და სკინების მარკეტფლეისი</p>
+          <p className="section-kicker">ანგარიშები, სკინები, ნივთები და სერვისები</p>
           <h1 id="marketplaceTitle">მარკეტი</h1>
         </div>
         <div className="marketplace-total" aria-label="ხილული განცხადებები">
@@ -163,6 +163,23 @@ export default function Marketplace() {
         </div>
       </section>
 
+      {/* The product categories as one-tap chips (owner: "Accounts / Skins / Items" must be visible). */}
+      <nav className="marketplace-kinds" aria-label="კატეგორიები">
+        {(
+          [
+            ['all', 'ყველა'],
+            ['account', 'ანგარიშები'],
+            ['skin', 'სკინები'],
+            ['item', 'ნივთები'],
+            ['service', 'სერვისები'],
+          ] as const
+        ).map(([value, label]) => (
+          <button key={value} type="button" aria-pressed={product === value} className={product === value ? 'active' : undefined} onClick={() => setFilter('type', value, 'all')}>
+            {label}
+          </button>
+        ))}
+      </nav>
+
       <section className="marketplace-toolbar" aria-label="მარკეტფლეისის ფილტრები">
         <label>
           <span>პროდუქტი</span>
@@ -170,6 +187,7 @@ export default function Marketplace() {
             <option value="all">ყველა პროდუქტი</option>
             <option value="account">ანგარიშები</option>
             <option value="skin">სკინები</option>
+            <option value="item">ნივთები</option>
             <option value="service">სერვისები</option>
           </select>
         </label>

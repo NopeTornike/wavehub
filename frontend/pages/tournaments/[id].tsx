@@ -8,6 +8,7 @@ import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { useShell } from '../../lib/shell'
 import { formatDay, TIcon, TOURNAMENT_BADGE, tournamentCover, tournamentFormat } from '../../lib/tournaments'
+import { PHOTO_SOURCE_MAX_BYTES } from '../../lib/image-resize'
 
 // docs/design-mockups 01 (Prize Pool), 03 (General), 11 (Teams), 13 (Rules): hero with the WAVEHUBX
 // mark and slogan, the five-fact summary, the four tabs, the Ready-to-Compete bar and the
@@ -134,8 +135,8 @@ function RegistrationModal({
     if (squad) {
       if (players.some((p) => !p.account)) return setError('დაამატეთ და შეამოწმეთ ყველა თანაგუნდელის WaveHub ანგარიში.')
       if (tag && !/^[A-Za-z0-9]{1,6}$/.test(tag)) return setError('ტეგი: 1–6 ლათინური ასო ან ციფრი.')
-      if (logo && (!['image/png', 'image/jpeg', 'image/webp'].includes(logo.type) || logo.size > 2 * 1024 * 1024)) {
-        return setError('ლოგო უნდა იყოს PNG, JPG ან WEBP, მაქსიმუმ 2MB.')
+      if (logo && (!['image/png', 'image/jpeg', 'image/webp'].includes(logo.type) || logo.size > PHOTO_SOURCE_MAX_BYTES)) {
+        return setError('ლოგო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — ავტომატურად მცირდება 2MB-მდე.')
       }
     }
     if (!agreed) return setError('დაეთანხმეთ ტურნირის წესებს.')

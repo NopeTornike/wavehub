@@ -46,8 +46,11 @@ None — files only. Callers persist the returned `url` (and `contentType`) in t
 - **Local disk is single-server only**: it survives restarts (named volume, included in
   `scripts/backup.sh`) but not a server loss, and won't work with more than one backend instance.
   Use `s3` for anything else.
-- **Body size limits**: multer per-route limits (5 MB images, 20 MB attachments, 50 MB coach
-  videos) + Caddy's 55 MB `request_body` cap (raised from 25 MB for videos). Upload routes are also rate-limited (`common/throttle.ts` `UPLOAD_THROTTLE`).
+- **Body size limits** (owner decision 2026-10-03): multer per-route limits — 2 MB user photos
+  (listing images, avatars/coach portraits, team logos), 5 MB coach intro videos and staff game
+  art/tournament covers, 8 MB banners, 20 MB order/dispute attachments — + Caddy's 22 MB
+  `request_body` cap (lowered from 55 MB once videos dropped to 5 MB). The frontend downscales
+  photos over 2 MB in the browser before uploading (`frontend/lib/image-resize.ts`). Upload routes are also rate-limited (`common/throttle.ts` `UPLOAD_THROTTLE`).
 - Uploading to S3 fails closed: a provider error is logged (status only) and the client gets a
   generic 503; nothing is recorded in the database.
 - No malware/virus scanning (the source spec asks for it on chat/dispute uploads). Type is validated

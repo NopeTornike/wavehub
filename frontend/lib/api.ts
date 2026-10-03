@@ -1,4 +1,6 @@
+import { shrinkPhoto } from './image-resize'
 import type {
+  OrderQuote,
   AdminAnalytics,
   AdminRole,
   AdminGame,
@@ -512,9 +514,9 @@ export const api = {
   }) =>
     request<MyProfile>('/me/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
 
-  uploadAvatar: (file: File) => upload<MyProfile>('/me/avatar', file),
+  uploadAvatar: async (file: File) => upload<MyProfile>('/me/avatar', await shrinkPhoto(file)),
 
-  uploadListingImage: (listingId: string, file: File) => upload<{ id: string; url: string }>(`/listings/${listingId}/images`, file),
+  uploadListingImage: async (listingId: string, file: File) => upload<{ id: string; url: string }>(`/listings/${listingId}/images`, await shrinkPhoto(file)),
 
   // Makes this photo the listing's main (cover) photo everywhere it's shown.
   setListingCoverImage: (listingId: string, imageId: string) =>
@@ -526,7 +528,7 @@ export const api = {
   adminUpdateListing: (id: string, payload: ListingEditPayload) =>
     request<MyListing>(`/admin/listings/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
-  adminUploadListingImage: (listingId: string, file: File) => upload<{ id: string; url: string }>(`/admin/listings/${listingId}/images`, file),
+  adminUploadListingImage: async (listingId: string, file: File) => upload<{ id: string; url: string }>(`/admin/listings/${listingId}/images`, await shrinkPhoto(file)),
 
   adminSetListingCoverImage: (listingId: string, imageId: string) =>
     request<{ ok: true }>(`/admin/listings/${listingId}/images/${imageId}/cover`, { method: 'POST' }),
@@ -573,6 +575,9 @@ export const api = {
   // --- Orders --- (also not wrapped in `{ ok: true, ... }`, same as the marketplace endpoints)
   purchase: (payload: { listingId: string; packageId?: string; requirementsAnswers?: Record<string, unknown> }) =>
     request<PublicOrderDetail>('/orders', { method: 'POST', body: JSON.stringify(payload) }),
+
+  quoteOrder: (listingId: string, packageId?: string) =>
+    request<OrderQuote>(`/order-quote?${new URLSearchParams(packageId ? { listingId, packageId } : { listingId })}`),
 
   listOrdersAsBuyer: () => request<PublicOrderSummary[]>('/orders/as-buyer'),
 
@@ -1062,7 +1067,7 @@ export const api = {
   ) =>
     request<PublicTournamentTeam>(`/tournaments/${id}/teams`, { method: 'POST', body: JSON.stringify(payload) }),
 
-  uploadMyTeamLogo: (id: string, file: File) => upload<PublicTournamentTeam>(`/tournaments/${id}/teams/mine/logo`, file),
+  uploadMyTeamLogo: async (id: string, file: File) => upload<PublicTournamentTeam>(`/tournaments/${id}/teams/mine/logo`, await shrinkPhoto(file)),
 
   withdrawFromTournament: (id: string) => request<{ ok: boolean }>(`/tournaments/${id}/withdraw`, { method: 'POST' }),
 

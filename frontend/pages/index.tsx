@@ -11,6 +11,7 @@ import { listingKind, normalizeAccountStatus } from '../components/ProductCard'
 import RankIcon from '../components/RankIcon'
 import { useCoachingFromPrice } from '../lib/coaching-price'
 import HomeBanners from '../components/HomeBanners'
+import { useFavorites } from '../lib/favorites'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
 // the prototype's final DOM order (its script moves competition/steam/featured/how-it-works in
@@ -115,7 +116,7 @@ function listingImage(listing: PublicListingSummary, gameSlug: string | undefine
 
 function typeLabel(listing: PublicListingSummary) {
   const kind = listingKind(listing)
-  return kind === 'account' ? 'ანგარიში' : kind === 'skin' ? 'სკინი' : kind === 'key' ? 'გასაღები' : 'სერვისი'
+  return kind === 'account' ? 'ანგარიში' : kind === 'skin' ? 'სკინი' : kind === 'item' ? 'ნივთი' : kind === 'key' ? 'გასაღები' : 'სერვისი'
 }
 
 // Earned labels only (docs/design-mockups/15): the most-booked coach among those shown, a plan
@@ -137,12 +138,28 @@ function specialtyTags(specialty: string) {
     .slice(0, 3)
 }
 
-const TOURNAMENT_STATUS: Record<TournamentStatus, string> = {
-  [TournamentStatus.Draft]: 'დრაფტი',
-  [TournamentStatus.Open]: 'რეგისტრაცია ღიაა',
-  [TournamentStatus.Upcoming]: 'რეგისტრაცია მალე',
-  [TournamentStatus.InProgress]: 'მიმდინარე',
-  [TournamentStatus.Completed]: 'დასრულებულია',
+// The ♡ on a featured card: a real favourite toggle (Tornike's 2026-10-03 fix — it used to be a
+// decorative glyph inside the card link). Signed-out clicks go to login via the favourites context.
+function FeaturedHeart({ listingId, className }: { listingId: string; className: string }) {
+  const { isFavorite, toggle } = useFavorites()
+  const saved = isFavorite(listingId)
+  const label = saved ? 'რჩეულებიდან წაშლა' : 'რჩეულებში შენახვა'
+  return (
+    <button
+      type="button"
+      className={`${className}${saved ? ' saved' : ''}`}
+      aria-pressed={saved}
+      aria-label={label}
+      title={label}
+      onClick={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        void toggle(listingId)
+      }}
+    >
+      {saved ? '♥' : '♡'}
+    </button>
+  )
 }
 
 export default function Home() {
@@ -257,10 +274,8 @@ export default function Home() {
           style={image ? { backgroundImage: `linear-gradient(180deg, rgba(8, 5, 14, .02), rgba(8, 5, 14, .18)), url("${image}")` } : undefined}
         >
           {image ? '' : (listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
-          <span className="home-featured-heart" aria-hidden="true">
-            ♡
-          </span>
         </Link>
+        <FeaturedHeart listingId={listing.id} className="home-featured-heart" />
         <div className="home-featured-copy">
           <h3>
             <Link href={href}>{listing.title}</Link>
@@ -608,10 +623,7 @@ export default function Home() {
                   style={{
                     backgroundImage: `linear-gradient(0deg, rgba(9, 1, 18, .62), rgba(9, 4, 25, .08)), url("${tournament.coverImageUrl ?? gameCover(slugById.get(tournament.gameId)) ?? '/assets/cs2-marketplace-cover.png'}")`,
                   }}
-                >
-                  <span>რჩეული ტურნირი</span>
-                  <b>{TOURNAMENT_STATUS[tournament.status]}</b>
-                </div>
+                ></div>
                 <div className="tournament-copy">
                   <h4>{tournament.name}</h4>
                   <p>
@@ -764,17 +776,20 @@ export default function Home() {
           {(featured ?? []).slice(0, 3).map((listing) => {
             const image = listingImage(listing, listing.game?.slug)
             return (
-              <Link key={listing.id} className="featured-item-card" href={`/listings/${listing.id}`}>
-                <span className="featured-item-save" aria-hidden="true">
-                  ♡
-                </span>
+              <article key={listing.id} className="featured-item-card">
+                <FeaturedHeart listingId={listing.id} className="featured-item-save" />
+                <Link href={`/listings/${listing.id}`}>
                 <span className="mobile-featured-product-image" style={image ? { backgroundImage: `url("${image}")` } : undefined}>
                   {image ? '' : (listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
                 </span>
                 <strong>{listing.title}</strong>
                 <small>{typeLabel(listing)}</small>
                 <b>{listingPrice(listing)} GEL</b>
-              </Link>
+                <span className="featured-item-action">
+                  დეტალების ნახვა <i aria-hidden="true">→</i>
+                </span>
+                </Link>
+              </article>
             )
           })}
         </div>

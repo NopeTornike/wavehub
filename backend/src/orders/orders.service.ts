@@ -4,7 +4,7 @@ import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, LessThanOrEqual, Repository } from 'typeorm';
 import { KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus } from '@wavehub/shared-types';
-import type { PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
+import type { OrderQuote, PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
 import { Order } from './order.entity';
 import { OrderDeliveryFile } from './order-delivery-file.entity';
 import { Listing } from '../listings/listing.entity';
@@ -19,7 +19,7 @@ import { assertValidTransition as assertValidListingTransition } from '../listin
 import { validateRequirementsAnswers } from './requirements-validator';
 import { PurchaseOrderDto } from './dto/purchase-order.dto';
 import { WalletService } from '../wallet/wallet.service';
-import { calculatePlatformFee } from '../wallet/fee.util';
+import { calculateBuyerFee } from '../wallet/fee.util';
 import { StorageService } from '../storage/storage.service';
 import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -88,6 +88,23 @@ export class OrdersService {
   // then atomically create the Order row and debit the buyer's WaveCoin balance in ONE transaction
   // — if the debit fails (insufficient balance), the whole transaction rolls back and no Order ever
   // persists. See wallet/CLAUDE.md for why WalletService accepts a manager param for this.
+  // What a purchase would cost right now — price, the buyer's fee (rate snapshot rules as in
+  // purchase) and the total. Public: the listing page and the cart show it before paying.
+  async quote(listingId: string, packageId?: string): Promise<OrderQuote> {
+    const listing = await this.listings.findOne({ where: { id: listingId, status: ListingStatus.Active } });
+    if (!listing) throw new NotFoundException('Listing not found');
+    let price: number | null = listing.priceWaveCoin;
+    if (listing.type === ListingType.Service) {
+      const pkg = packageId ? await this.packages.findOne({ where: { id: packageId, listingId: listing.id } }) : null;
+      if (!pkg) throw new NotFoundException('Package not found');
+      price = pkg.priceWaveCoin;
+    }
+    if (price == null) throw new ForbiddenException('This listing has no price set');
+    const feePercent = await this.subscriptions.effectiveFeePercent(listing.sellerId, await this.platformSettings.getPlatformFeePercent());
+    const { feeWaveCoin, buyerTotalWaveCoin } = calculateBuyerFee(price, feePercent);
+    return { priceWaveCoin: price, feePercent, feeWaveCoin, totalWaveCoin: buyerTotalWaveCoin };
+  }
+
   async purchase(buyerId: string, dto: PurchaseOrderDto): Promise<Order> {
     const listing = await this.listings.findOne({
       where: { id: dto.listingId, status: ListingStatus.Active },
@@ -142,7 +159,8 @@ export class OrdersService {
       listing.sellerId,
       await this.platformSettings.getPlatformFeePercent(),
     );
-    const { feeWaveCoin, sellerReceivesWaveCoin } = calculatePlatformFee(priceWaveCoin, platformFeePercent);
+    // The buyer pays the fee on top; the seller receives the full price (owner decision 2026-10-03).
+    const { feeWaveCoin, buyerTotalWaveCoin } = calculateBuyerFee(priceWaveCoin, platformFeePercent);
 
     // Retried on Postgres deadlock/serialization aborts (see wallet/transaction-retry.util.ts) —
     // safe because everything in here is DB-only; chat/notifications run after it commits.
@@ -166,7 +184,9 @@ export class OrdersService {
         priceWaveCoin,
         platformFeePercentSnapshot: platformFeePercent,
         platformFeeWaveCoin: feeWaveCoin,
-        sellerPayoutWaveCoin: sellerReceivesWaveCoin,
+        sellerPayoutWaveCoin: priceWaveCoin,
+        buyerTotalWaveCoin,
+        feePaidBy: 'buyer',
         deliveryDueAt: deliveryTimeDays ? new Date(now.getTime() + deliveryTimeDays * 86_400_000) : null,
       });
       const saved = await manager.save(order);
@@ -222,7 +242,7 @@ export class OrdersService {
       // here rather than letting it fall through as an unhandled 500 (rolls back the Order insert
       // either way; this only changes what the caller sees).
       try {
-        await this.wallet.debitForOrder(buyerId, saved.id, priceWaveCoin, manager);
+        await this.wallet.debitForOrder(buyerId, saved.id, buyerTotalWaveCoin, manager);
       } catch (err) {
         if (err instanceof Error && err.message === 'INSUFFICIENT_BALANCE') {
           throw new ForbiddenException('Insufficient WaveCoin balance for this purchase');
@@ -273,8 +293,8 @@ export class OrdersService {
       NotificationType.OrderPlaced,
       'შეკვეთა გაფორმდა',
       listing.type === ListingType.DigitalKey
-        ? `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${saved.priceWaveCoin} GEL. გასაღები უკვე შენს შეკვეთაშია: გახსენი, გააქტიურე და დაადასტურე მიღება.`
-        : `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${saved.priceWaveCoin} GEL. თანხა დაცულია და გამყიდველს ჩაერიცხება მხოლოდ მას შემდეგ, რაც მიღებას დაადასტურებ.`,
+        ? `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${saved.buyerTotalWaveCoin} GEL (ფასი ${saved.priceWaveCoin} + საკომისიო ${saved.platformFeeWaveCoin}). გასაღები უკვე შენს შეკვეთაშია: გახსენი, გააქტიურე და დაადასტურე მიღება.`
+        : `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${saved.buyerTotalWaveCoin} GEL (ფასი ${saved.priceWaveCoin} + საკომისიო ${saved.platformFeeWaveCoin}). თანხა დაცულია და გამყიდველს ჩაერიცხება მხოლოდ მას შემდეგ, რაც მიღებას დაადასტურებ.`,
       saved.id,
     );
 
@@ -443,7 +463,10 @@ export class OrdersService {
       ...this.toSummary(order),
       requirementsAnswers: order.requirementsAnswers,
       platformFeeWaveCoin: order.platformFeeWaveCoin,
+      platformFeePercent: order.platformFeePercentSnapshot,
       sellerPayoutWaveCoin: order.sellerPayoutWaveCoin,
+      buyerTotalWaveCoin: order.buyerTotalWaveCoin,
+      feePaidBy: order.feePaidBy,
       cancelledAt: order.cancelledAt?.toISOString() ?? null,
       cancellationReason: order.cancellationReason,
       revisionReason: order.revisionReason,
@@ -559,7 +582,7 @@ export class OrdersService {
   private async cancelOrder(order: Order, reason: string): Promise<Order> {
     const saved = await this.dataSource.transaction(async (manager) => {
       await this.lockOrderExpecting(manager, order);
-      await this.wallet.refundBuyer(order.buyerId, order.id, order.priceWaveCoin, manager);
+      await this.wallet.refundBuyer(order.buyerId, order.id, order.buyerTotalWaveCoin, manager);
       order.status = OrderStatus.Cancelled;
       order.cancelledAt = new Date();
       order.cancellationReason = reason;

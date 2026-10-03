@@ -10,6 +10,7 @@ import { useAuth } from '../../lib/auth'
 import { gameIcon } from '../../lib/games'
 import RankIcon from '../../components/RankIcon'
 import ReportButton from '../../components/ReportButton'
+import ImageLightbox from '../../components/ImageLightbox'
 
 // docs/design-mockups/14-coach-profile.jpg on the prototype's coach-profile classes: portrait with
 // the real online pill, verified mark, badges (rank, plan badge, Fast Responder / Top Rated when
@@ -56,6 +57,7 @@ export default function CoachProfile() {
   const [reviews, setReviews] = useState<PublicCoachReview[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [zoom, setZoom] = useState<number | null>(null)
   const [tab, setTab] = useState<'overview' | 'reviews'>('overview')
   const [saved, setSaved] = useState(false)
   const [status, setStatus] = useState('')
@@ -153,11 +155,13 @@ export default function CoachProfile() {
             <span aria-hidden="true">&lt;</span> ქოუჩებზე დაბრუნება
           </Link>
 
+          <ImageLightbox images={coach.avatarUrl ? [{ url: coach.avatarUrl, alt: coach.firstName }] : []} index={zoom} onClose={() => setZoom(null)} />
           <section className="coach-profile-hero" aria-labelledby="coachProfileTitle">
             <div className="coach-profile-portrait-wrap">
               <div
-                className={`coach-profile-portrait${coach.avatarUrl ? ' has-image' : ''}`}
+                className={`coach-profile-portrait${coach.avatarUrl ? ' has-image is-zoomable' : ''}`}
                 style={coach.avatarUrl ? { ['--coach-image' as string]: `url("${coach.avatarUrl}")` } : undefined}
+                onClick={() => coach.avatarUrl && setZoom(0)}
               >
                 {coach.avatarUrl ? null : <span>{initials}</span>}
               </div>

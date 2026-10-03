@@ -102,7 +102,7 @@ CASCADE` from `disputes`.
   guessed at here, same "don't invent rules for a phase that doesn't exist yet" discipline as
   everywhere else in this repo.
 - **Evidence upload accepts the same format/size limits as order delivery files**
-  (JPG/PNG/WEBP/PDF/ZIP, 20MB) — not listing images' narrower JPG/PNG/WEBP-only, 5MB.
+  (JPG/PNG/WEBP/PDF/ZIP, 20MB) — not listing images' narrower JPG/PNG/WEBP-only, 2MB.
 
 ## Related modules
 - `backend/src/orders/` — every dispute reads and writes `Order.status`; `order-lifecycle.ts` lives

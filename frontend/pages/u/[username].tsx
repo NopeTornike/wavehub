@@ -8,6 +8,7 @@ import { useAuth } from '../../lib/auth'
 import { gameCover } from '../../lib/games'
 import RankIcon from '../../components/RankIcon'
 import ReportButton from '../../components/ReportButton'
+import ImageLightbox from '../../components/ImageLightbox'
 
 // docs/design-mockups/12-public-profile.jpg: hero (photo with real online dot, name, @handle,
 // WaveHubX ID with copy, role, location, join date, tagline, Message / Follow), the Wave Rank panel,
@@ -36,6 +37,7 @@ export default function PublicProfile() {
   const meId = me?.id
   const [profile, setProfile] = useState<PublicUserProfile | null>(null)
   const [error, setError] = useState('')
+  const [zoom, setZoom] = useState<number | null>(null)
   const [following, setFollowing] = useState(false)
   const [status, setStatus] = useState('')
   const [copied, setCopied] = useState(false)
@@ -134,15 +136,20 @@ export default function PublicProfile() {
     <Layout title={`${name} (@${p.username})`} description={(p.tagline || p.bio || `${name} — WaveHubX`).slice(0, 160)}>
       <section className="up-page">
         <header className="up-hero">
+          <ImageLightbox images={p.avatarUrl ? [{ url: p.avatarUrl, alt: p.username }] : []} index={zoom} onClose={() => setZoom(null)} />
           <div className="up-avatar-wrap">
-            <div className="up-avatar" style={p.avatarUrl ? { backgroundImage: `url("${p.avatarUrl}")` } : undefined}>
+            <div
+              className={`up-avatar${p.avatarUrl ? ' is-zoomable' : ''}`}
+              style={p.avatarUrl ? { backgroundImage: `url("${p.avatarUrl}")` } : undefined}
+              onClick={() => p.avatarUrl && setZoom(0)}
+            >
               {p.avatarUrl ? '' : initials}
             </div>
             {p.online && <i className="up-online-dot" title="ონლაინ" aria-label="ონლაინ"></i>}
           </div>
           <div className="up-identity">
             <h1>
-              {name}
+              <span className="up-name">{name}</span>
               {(p.coachId || p.badges.some((b) => b.key === 'trusted-seller')) && <span className="up-verified" aria-label="ვერიფიცირებული" role="img"></span>}
             </h1>
             <p className="up-handle">@{p.username}</p>

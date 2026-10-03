@@ -18,7 +18,10 @@ and out, users — for a date range, plus a zero-filled time series for the tren
 - **Sales value (GMV)** = price of those orders excluding `cancelled`/`refunded`.
 - **Platform fees** = `platformFeeWaveCoin` of orders **completed** in the range (by `completedAt`) —
   fees are earned at completion. Coaching fees are reported separately.
-- **In escrow** = right now (not range-bound): orders `paid`/`in_progress`/`delivered`/`disputed`.
+- **In escrow** = right now (not range-bound): orders `paid`/`in_progress`/`delivered`/`disputed`, summed as
+  `buyerTotalWaveCoin` (what the buyer actually paid — price + fee since the buyer carries the fee,
+  2026-10-03). **Refunded value** = `buyerTotalWaveCoin` of cancelled/refunded orders (what went back).
+  GMV stays the listing price; platform fees are paid by the buyer on new orders.
 - **Subscriptions**: revenue = completed `subscription_charge_attempts.amountGel` in range; active = status
   `active`/`past_due`; MRR = active **paid** (not admin-granted) plans normalised to 30 days.
 - **Top-ups** = completed `bog_topup_intents.amountGel`; **withdrawals paid** = `completed` by `processedAt`.

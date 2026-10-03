@@ -114,6 +114,10 @@
      },
      {
       "value": null,
+      "label": "TH18"
+     },
+     {
+      "value": null,
       "label": "TH17"
      },
      {
@@ -218,15 +222,6 @@
       "label": "Rushed"
      }
     ]
-   },
-   {
-    "label": "Laboratory Level",
-    "optional": true,
-    "tag": "input",
-    "id": "clashLaboratoryLevel",
-    "type": "text",
-    "placeholder": "e.g. Level 14",
-    "maxlength": "60"
    },
    {
     "label": "Hero Equipment",

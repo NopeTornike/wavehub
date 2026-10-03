@@ -39,7 +39,9 @@ function toPublicSeller(seller: User): PublicSeller {
 
 const MAX_IMAGES_PER_LISTING = 6;
 const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// Listing photos: 2MB (owner decision 2026-10-03). The frontend downscales larger phone photos
+// before uploading (frontend/lib/image-resize.ts), so this only rejects what a browser didn't shrink.
+export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 @Injectable()
 export class ListingsService {
@@ -628,7 +630,7 @@ export class ListingsService {
       throw new ForbiddenException('Only JPG, PNG, or WEBP images are allowed');
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      throw new ForbiddenException('Image exceeds the 5MB size limit');
+      throw new ForbiddenException('Image exceeds the 2MB size limit');
     }
 
     const existingCount = await this.images.count({ where: { listingId } });

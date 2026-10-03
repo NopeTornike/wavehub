@@ -28,17 +28,17 @@ describe('same-buyer concurrent purchases (e2e)', () => {
     );
     expect(results.filter((r) => r.status >= 500)).toEqual([]);
     expect(results.filter((r) => r.status < 300)).toHaveLength(12);
-    expect(await balanceOf(ctx, buyer)).toBe(1000 - 12 * 10);
+    expect(await balanceOf(ctx, buyer)).toBe(1000 - 12 * 11); // 10 + 1 buyer fee each
 
     const ledger = await ctx.dataSource.query(
       `SELECT COUNT(*)::int AS n, COALESCE(SUM("amountWaveCoin"),0)::int AS total FROM wallet_ledger_entries WHERE "userId" = $1 AND type = 'order_escrow_hold'`,
       [buyer.id],
     );
     expect(ledger[0].n).toBe(12);
-    expect(ledger[0].total).toBe(-120);
+    expect(ledger[0].total).toBe(-132);
   });
 
-  it('never overdraws: 10 simultaneous 10-coin purchases on a 35-coin balance -> exactly 3 succeed, rest 403', async () => {
+  it('never overdraws: 10 simultaneous 10-coin (11 with fee) purchases on a 35-coin balance -> exactly 3 succeed, rest 403', async () => {
     const listings: string[] = [];
     for (let i = 0; i < 2; i++) listings.push(await publishItemListing(ctx, seller, admin, 10));
     const buyer = await registerUser(ctx, 'wcpoor');
@@ -50,7 +50,7 @@ describe('same-buyer concurrent purchases (e2e)', () => {
     expect(results.filter((r) => r.status >= 500)).toEqual([]);
     expect(results.filter((r) => r.status < 300)).toHaveLength(3);
     for (const r of results.filter((r) => r.status >= 300)) expect(r.status).toBe(403);
-    expect(await balanceOf(ctx, buyer)).toBe(5);
+    expect(await balanceOf(ctx, buyer)).toBe(2); // 35 - 3 × (10 + 1 fee)
     const orders = await ctx.dataSource.query(`SELECT COUNT(*)::int AS n FROM orders WHERE "buyerId" = $1`, [buyer.id]);
     expect(orders[0].n).toBe(3);
   });

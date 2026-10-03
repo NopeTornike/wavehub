@@ -5,6 +5,7 @@ import { ListingStatus, ListingType } from '@wavehub/shared-types'
 import { api, errorMessage, type ListingEditPayload, type PackageInput } from '../lib/api'
 import { LISTING_STATUS_LABELS, LISTING_TYPE_LABELS } from '../lib/labels'
 import GAME_DETAILS from '../lib/game-details.json'
+import { PHOTO_SOURCE_MAX_BYTES } from '../lib/image-resize'
 
 // The full listing editor (bug 9, 2026-10-01). Two callers:
 // - the seller, `/sell/items/[id]` (mode 'owner'): their own item listing. Editing a live listing
@@ -171,8 +172,8 @@ export default function ListingEditor({ listingId, mode }: { listingId: string; 
     const picked = Array.from(files ?? [])
     if (picked.length === 0) return
     if (listing.images.length + picked.length > MAX_IMAGES) return setStatus({ kind: 'error', text: `მაქსიმუმ ${MAX_IMAGES} ფოტო.` })
-    if (picked.some((f) => !['image/png', 'image/jpeg', 'image/webp'].includes(f.type) || f.size > 5 * 1024 * 1024)) {
-      return setStatus({ kind: 'error', text: 'ფოტო: PNG, JPG ან WEBP, მაქსიმუმ 5MB.' })
+    if (picked.some((f) => !['image/png', 'image/jpeg', 'image/webp'].includes(f.type) || f.size > PHOTO_SOURCE_MAX_BYTES)) {
+      return setStatus({ kind: 'error', text: 'ფოტო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.' })
     }
     void run(async () => {
       for (const file of picked) await (admin ? api.adminUploadListingImage(listing.id, file) : api.uploadListingImage(listing.id, file))

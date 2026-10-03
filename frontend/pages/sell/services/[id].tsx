@@ -8,6 +8,7 @@ import { FaqEditor, RequirementsEditor, cleanFaq, cleanRequirements, validateSer
 import { api, errorMessage } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
 import { LISTING_STATUS_LABELS } from '../../../lib/labels'
+import { PHOTO_SOURCE_MAX_BYTES } from '../../../lib/image-resize'
 
 // Manage one service listing: packages (1–5; what the buyer pays for), photos, details, buyer
 // questions, FAQ, and the review lifecycle. Any change to a live (active/paused) service sends it
@@ -114,8 +115,8 @@ export default function ManageService() {
     if (!id || !listing || !files?.length) return
     const room = MAX_PHOTOS - listing.images.length
     const picked = Array.from(files).slice(0, Math.max(0, room))
-    if (picked.some((f) => !['image/png', 'image/jpeg', 'image/webp'].includes(f.type) || f.size > 5 * 1024 * 1024)) {
-      return setStatus({ kind: 'error', text: 'მხოლოდ JPG, PNG ან WEBP სურათი, მაქსიმუმ 5MB.' })
+    if (picked.some((f) => !['image/png', 'image/jpeg', 'image/webp'].includes(f.type) || f.size > PHOTO_SOURCE_MAX_BYTES)) {
+      return setStatus({ kind: 'error', text: 'ფოტო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.' })
     }
     void run(
       'photos',

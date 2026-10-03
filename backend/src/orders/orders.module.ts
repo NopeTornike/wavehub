@@ -1,3 +1,4 @@
+import { OrderQuoteController } from './order-quote.controller';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from './order.entity';
@@ -28,7 +29,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     SettingsModule,
     SubscriptionsModule,
   ],
-  controllers: [OrdersController],
+  controllers: [OrdersController, OrderQuoteController],
   providers: [OrdersService],
   exports: [OrdersService],
 })

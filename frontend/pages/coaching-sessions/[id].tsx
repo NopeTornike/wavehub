@@ -380,17 +380,27 @@ export default function CoachingSessionDetail() {
           {(session.goal || session.challenges || session.buyerMessage || hasAnswers) && (
             <section className="detail-section cs-card cs-wide">
               <h2>სტუდენტის მიზანი</h2>
-              {session.goal && <p className="cs-goal">{session.goal}</p>}
-              {session.challenges && (
-                <p>
-                  <strong>სირთულეები:</strong> {session.challenges}
-                </p>
-              )}
-              {session.buyerMessage && (
-                <p>
-                  <strong>შეტყობინება:</strong> {session.buyerMessage}
-                </p>
-              )}
+              {/* Each of the student's answers as its own labelled block (client screenshot #7). */}
+              <div className="cs-brief">
+                {session.goal && (
+                  <div className="cs-brief-item is-goal">
+                    <span>🎯 მიზანი</span>
+                    <p>{session.goal}</p>
+                  </div>
+                )}
+                {session.challenges && (
+                  <div className="cs-brief-item">
+                    <span>⚠ სირთულეები</span>
+                    <p>{session.challenges}</p>
+                  </div>
+                )}
+                {session.buyerMessage && (
+                  <div className="cs-brief-item">
+                    <span>✉ შეტყობინება</span>
+                    <p>{session.buyerMessage}</p>
+                  </div>
+                )}
+              </div>
               {hasAnswers && (
                 <dl className="cs-answers">
                   {Object.entries(session.answers ?? {}).map(([key, value]) => (

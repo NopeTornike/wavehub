@@ -734,7 +734,7 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   drafts); prize / format-info-rules sections are expanded by default.
 
 ## 2026-10-01 Coaches: packages, questions, video, staff-managed
-- `components/CoachExtras.tsx` — `CoachVideoEditor` (MP4/WebM ≤50MB upload/clear),
+- `components/CoachExtras.tsx` — `CoachVideoEditor` (MP4/WebM ≤5MB upload/clear),
   `CoachPackagesEditor` (≤6 fixed-price packages), `CoachQuestionsEditor` (pre-booking questions,
   reuses `ServiceEditors`' `RequirementsEditor`), `LANGUAGE_OPTIONS`. Each takes its api calls as
   props, so the coach's `/coaching/profile` and Admin → Coaches share them. CSS: `ce-` block at the
@@ -901,3 +901,37 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   cards (photo with the name over it) in a centred carousel with the active card outlined, compact
   tournament card. The cover no longer shows a hard-coded "WAVE CUP" / "CS2" — real data only.
 - The coach profile no longer lists packages; they appear only in the booking flow.
+
+## 2026-10-03 Marketplace priority batch (client docx BUG 01–07, Mariam, Gio, screenshots)
+- **Own photos first**: `ProductCard`, `MyListings`, the listing gallery use `listing.images[0]` and
+  only fall back to the game cover when a listing has no photos. Gallery hero is `contain` (no forced
+  crop). `components/ImageLightbox.tsx` — portal lightbox (Esc/arrows/swipe/outside click, body
+  scroll lock) on listing, profile avatar, coach portrait and Steam game heroes.
+- **Mobile sell form (Gio)**: the listing builder uses `100dvh` so Publish stays reachable with 3+
+  photos; `body.modal-open` (set by `SellerModal`) and any focused field hide `.mobile-bottom-nav`
+  at ≤620px so a stray tap can't navigate away; the image field is a `<div>` (only the dropzone is a
+  `<label>`), previews open the lightbox; a localStorage draft (`wavehub.sellDraft.<userId>`, text
+  fields only — files can't be stored) restores after an accidental close, cleared on publish/reset.
+- **Items** kind (`itemAttributes.kind = 'item'`, category slug `items`, migration
+  `1784376000000-ItemsCategory`) alongside accounts/skins; marketplace type chips + select; region
+  list has "Local"; Clash of Clans gained TH18 and lost Laboratory Level (`lib/game-details.json`).
+- **Sell Service** (`/sell/services`) is its own flow: own title/description/photos (≥1, uploaded
+  after create), category optional (defaults to custom gaming services).
+- **Buyer-paid fee**: `components/FeeBreakdown.tsx` renders `GET /order-quote` (price / fee % /
+  total) on the listing buy panel and Steam key page; the cart sums each line's quoted fee; the
+  balance check uses the total. Order page details are cards: parties, money breakdown (buyer: total
+  paid; seller: you receive; legacy `feePaidBy: 'seller'` orders show the fee as deducted), dates.
+- **Photo limits**: user photos are 2MB server-side; `lib/image-resize.ts#shrinkPhoto` re-encodes
+  bigger JPG/PNG/WEBP (≤2048px JPEG, stepping quality down) inside `api.uploadAvatar`,
+  `uploadListingImage`, `adminUploadListingImage`, `uploadMyTeamLogo`; pickers accept originals up to
+  `PHOTO_SOURCE_MAX_BYTES` (20MB). Coach intro video: 5MB (`CoachExtras.MAX_VIDEO_BYTES`).
+- Screenshot fixes: `/u` name breaks inside long words so the verified badge stays on screen;
+  session cards lead with the counterpart (coach for a student, student for a coach); session page
+  goal/challenges/message as labelled cards; tournament "you're participating" bar re-laid out at
+  ≤800px; dispute section has a textarea composer + styled evidence upload; other-tournament status
+  badge moved off the cover's logo; `.site-footer` z-index 0 so the fixed marketplace cart bar no
+  longer slides under it.
+- Tornike's 2026-10-03 prototype commits ported: real ♡ favourite buttons on home featured cards
+  (`FeaturedHeart`), a "View details" action on mobile featured cards, featured-items bottom padding
+  90→24px (the gap before the CTA), tournament cover without overlaid status labels, competition
+  button fit, mobile DM composer layout. His rank renames were already in shared-types.

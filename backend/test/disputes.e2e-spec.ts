@@ -86,7 +86,7 @@ describe('disputes (e2e)', () => {
     const buyerBefore = await balanceOf(ctx, buyer);
     const sellerBefore = await balanceOf(ctx, seller);
     const orderId = await buyItem(ctx, seller, buyer, admin, 200, 'delivered');
-    expect(await balanceOf(ctx, buyer)).toBe(buyerBefore - 200);
+    expect(await balanceOf(ctx, buyer)).toBe(buyerBefore - 220); // 200 + the buyer's 10% fee
     const stockOf = async () =>
       Number((await ctx.dataSource.query(`SELECT l."stockQuantity" s FROM listings l JOIN orders o ON o."listingId" = l.id WHERE o.id = $1`, [orderId]))[0].s);
     const stockBefore = await stockOf();
@@ -112,7 +112,7 @@ describe('disputes (e2e)', () => {
     expect(audit.length).toBeGreaterThan(0);
   });
 
-  it('release_to_seller pays price minus fee, completes the order, and a dispute blocks withdrawals until resolved', async () => {
+  it('release_to_seller pays the full price (buyer carried the fee), completes the order, and a dispute blocks withdrawals until resolved', async () => {
     const sellerBefore = await balanceOf(ctx, seller);
     const orderId = await buyItem(ctx, seller, buyer, admin, 100, 'delivered');
     await seller.client.post(`/orders/${orderId}/dispute`, { reason });
@@ -123,7 +123,7 @@ describe('disputes (e2e)', () => {
 
     const res = await admin.client.post(`/orders/${orderId}/dispute/resolve`, { resolution: 'release_to_seller', note: 'Delivered fine.' });
     expect(res.status).toBe(200);
-    expect(await balanceOf(ctx, seller)).toBe(sellerBefore + 90);
+    expect(await balanceOf(ctx, seller)).toBe(sellerBefore + 100);
     expect((await buyer.client.get(`/orders/${orderId}`)).body.status).toBe('completed');
     // Payout is subject to the same 7-day hold as a normal completion.
     const wallet = (await seller.client.get('/wallet/balance')).body;

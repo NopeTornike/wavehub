@@ -20,7 +20,7 @@ import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
-import { ListingsService, STAFF_EDITOR } from './listings.service';
+import { ListingsService, MAX_IMAGE_BYTES, STAFF_EDITOR } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
@@ -125,7 +125,7 @@ export class ListingsController {
   @Throttle(UPLOAD_THROTTLE)
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole()
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_IMAGE_BYTES } }))
   async adminAddImage(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
@@ -329,7 +329,7 @@ export class ListingsController {
   @Post('listings/:id/images')
   @Throttle(UPLOAD_THROTTLE)
   @UseGuards(AuthGuard)
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_IMAGE_BYTES } }))
   addImage(
     @CurrentUserId() sellerId: string,
     @Param('id') listingId: string,

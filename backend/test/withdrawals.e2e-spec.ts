@@ -16,7 +16,8 @@ describe('withdrawals + wallet balance (e2e)', () => {
     seller = await registerUser(ctx, 'wseller');
     buyer = await registerUser(ctx, 'wbuyer');
     await credit(ctx, buyer, 10000);
-    // Two completed 100-coin orders → 180 earned (90 each), still inside the 7-day hold.
+    // Two completed 100-coin orders → 200 earned (the full price each — buyers pay the fee on top),
+    // still inside the 7-day hold.
     await buyItem(ctx, seller, buyer, admin, 100, 'completed');
     await buyItem(ctx, seller, buyer, admin, 100, 'completed');
   });
@@ -27,16 +28,16 @@ describe('withdrawals + wallet balance (e2e)', () => {
 
   it('shows earnings as pending clearance and blocks withdrawal during the 7-day hold', async () => {
     const w = (await seller.client.get('/wallet/balance')).body;
-    expect(w).toMatchObject({ walletBalance: 180, totalEarned: 180, pendingClearance: 180, availableToWithdraw: 0, pendingWithdrawal: 0, totalWithdrawn: 0 });
+    expect(w).toMatchObject({ walletBalance: 200, totalEarned: 200, pendingClearance: 200, availableToWithdraw: 0, pendingWithdrawal: 0, totalWithdrawn: 0 });
     expect((await withdraw(seller, 50)).status).toBe(403);
-    expect(await balanceOf(ctx, seller)).toBe(180);
+    expect(await balanceOf(ctx, seller)).toBe(200);
   });
 
   it('enforces the minimum (default 20, admin-configurable) and the available ceiling', async () => {
     await clearHold(ctx, seller);
-    expect((await seller.client.get('/wallet/balance')).body.availableToWithdraw).toBe(180);
+    expect((await seller.client.get('/wallet/balance')).body.availableToWithdraw).toBe(200);
     expect((await withdraw(seller, 19)).status).toBe(403);
-    expect((await withdraw(seller, 181)).status).toBe(403);
+    expect((await withdraw(seller, 201)).status).toBe(403);
     expect((await withdraw(seller, 0)).status).toBe(400);
     expect((await withdraw(seller, -5)).status).toBe(400);
 
@@ -45,7 +46,7 @@ describe('withdrawals + wallet balance (e2e)', () => {
     expect((await admin.client.post('/admin/platform-settings', { minWithdrawalWaveCoin: 100 })).status).toBe(200);
     expect((await withdraw(seller, 50)).status).toBe(403);
     await admin.client.post('/admin/platform-settings', { minWithdrawalWaveCoin: 20 });
-    expect(await balanceOf(ctx, seller)).toBe(180);
+    expect(await balanceOf(ctx, seller)).toBe(200);
   });
 
   it('a request holds funds immediately, updates every balance figure, and cannot be re-spent', async () => {
@@ -53,11 +54,11 @@ describe('withdrawals + wallet balance (e2e)', () => {
     expect(res.status).toBeLessThan(300);
     expect(res.body.status).toBe('pending');
     const w = (await seller.client.get('/wallet/balance')).body;
-    expect(w.walletBalance).toBe(120);
+    expect(w.walletBalance).toBe(140);
     expect(w.pendingWithdrawal).toBe(60);
     expect(w.totalWithdrawn).toBe(0);
-    // The 60 already left; only 120 of the 180 cleared earnings remain withdrawable.
-    expect(w.availableToWithdraw).toBe(120);
+    // The 60 already left; only 140 of the 200 cleared earnings remain withdrawable.
+    expect(w.availableToWithdraw).toBe(140);
     const tx = (await seller.client.get('/wallet/transactions')).body;
     expect(tx.find((t: any) => t.type === 'withdrawal' && t.amountWaveCoin === -60)).toBeDefined();
     await assertConserved(ctx);
@@ -66,15 +67,15 @@ describe('withdrawals + wallet balance (e2e)', () => {
   it('cannot withdraw the same cleared earnings twice using unrelated balance (topped-up coins)', async () => {
     const rich = await registerUser(ctx, 'wrich');
     await credit(ctx, rich, 1000); // spendable top-up money, not earnings
-    // Sell to `buyer` so `rich` has exactly 90 cleared earnings on top of 1000 top-up.
+    // Sell to `buyer` so `rich` has exactly 100 cleared earnings on top of 1000 top-up.
     await buyItem(ctx, rich, buyer, admin, 100, 'completed');
     await clearHold(ctx, rich);
-    expect((await rich.client.get('/wallet/balance')).body.availableToWithdraw).toBe(90);
+    expect((await rich.client.get('/wallet/balance')).body.availableToWithdraw).toBe(100);
 
-    expect((await withdraw(rich, 90)).status).toBeLessThan(300);
+    expect((await withdraw(rich, 100)).status).toBeLessThan(300);
     // Earnings are exhausted: nothing more may be withdrawn even though balance is still 1000.
     expect((await rich.client.get('/wallet/balance')).body.availableToWithdraw).toBe(0);
-    expect((await withdraw(rich, 90)).status).toBe(403);
+    expect((await withdraw(rich, 100)).status).toBe(403);
     expect(await balanceOf(ctx, rich)).toBe(1000);
   });
 
@@ -95,7 +96,7 @@ describe('withdrawals + wallet balance (e2e)', () => {
     expect(await balanceOf(ctx, seller)).toBe(before + 60);
     const w = (await seller.client.get('/wallet/balance')).body;
     expect(w.pendingWithdrawal).toBe(0);
-    expect(w.availableToWithdraw).toBe(180);
+    expect(w.availableToWithdraw).toBe(200);
     // Terminal: cannot be processed or re-rejected (which would credit twice).
     expect((await admin.client.post(`/withdrawals/${mine.id}/process`, { status: 'rejected', note: 'again' })).status).toBe(409);
     expect(await balanceOf(ctx, seller)).toBe(before + 60);

@@ -359,7 +359,7 @@ export interface PublicListingSummary {
 // IsItemAttributes). Public information by design — never put secrets (logins, emails) here.
 export type ItemAttributeValue = string | number | boolean;
 export interface ItemAttributes {
-  kind?: 'account' | 'skin';
+  kind?: 'account' | 'skin' | 'item';
   accountStatus?: 'basic' | 'premium' | 'rare' | 'og' | 'ranked' | 'full-collection';
   accountLevel?: number;
   platform?: string;
@@ -480,11 +480,25 @@ export interface PublicOrderSummary {
 export interface PublicOrderDetail extends PublicOrderSummary {
   requirementsAnswers: Record<string, unknown> | null;
   platformFeeWaveCoin: number;
+  platformFeePercent: number;
   sellerPayoutWaveCoin: number;
+  // What the buyer paid (price + fee when the buyer carried the fee — orders since 2026-10-03).
+  buyerTotalWaveCoin: number;
+  feePaidBy: 'buyer' | 'seller';
   cancelledAt: string | null;
   cancellationReason: string | null;
   revisionReason: string | null;
   deliveryFiles: PublicOrderDeliveryFile[];
+}
+
+// GET /order-quote — what buying a listing (or one service package) costs right now: the price,
+// the marketplace fee the buyer pays on top, and the total debited. The fee % is the platform fee
+// after the seller's membership discount.
+export interface OrderQuote {
+  priceWaveCoin: number;
+  feePercent: number;
+  feeWaveCoin: number;
+  totalWaveCoin: number;
 }
 
 // What ChatService#listMessages/#postMessage return (backend/src/chat/) — `senderId: null` (with

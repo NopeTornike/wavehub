@@ -102,7 +102,7 @@ export default function MyListings({
                     ? `/sell/digital-keys/${listing.id}`
                     : editHref(listing)
               }
-              image={gameCover(listing.game?.slug, listing.images?.[0]?.url ?? null)}
+              image={listing.images?.[0]?.url ?? gameCover(listing.game?.slug)}
               fallback={(listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
               title={listing.title}
               meta={`${listing.game?.name ?? 'WaveHub'} / ${LISTING_STATUS_LABELS[listing.status]}`}

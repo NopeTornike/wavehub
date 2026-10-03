@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { PublicDispute, PublicMessage, PublicOrderDetail } from '@wavehub/shared-types'
@@ -347,23 +348,69 @@ export default function OrderDetail() {
 
           <div className="order-section">
             <h2>დეტალები</h2>
-            <p>
-              მყიდველი: @{order.buyer.username} · გამყიდველი: @{order.seller.username}
-            </p>
-            <p>ფასი: {order.priceWaveCoin} GEL</p>
-            {isSeller && (
-              <p className="note">
-                პლატფორმის საკომისიო: {order.platformFeeWaveCoin} GEL · თქვენი შემოსავალი:{' '}
-                {order.sellerPayoutWaveCoin} GEL
-              </p>
-            )}
-            {order.deliveryDueAt && (
-              <p className="note">მიწოდების ვადა: {new Date(order.deliveryDueAt).toLocaleString('ka-GE')}</p>
-            )}
-            {order.autoCompleteAt && order.status === OrderStatus.Delivered && (
-              <p className="note">
-                ავტომატურად დასრულდება: {new Date(order.autoCompleteAt).toLocaleString('ka-GE')}
-              </p>
+            <div className="order-parties">
+              {[
+                { role: 'მყიდველი', user: order.buyer, you: isBuyer },
+                { role: 'გამყიდველი', user: order.seller, you: isSeller },
+              ].map(({ role, user, you }) => (
+                <Link key={role} className="order-party" href={`/u/${user.username}`}>
+                  <span className="order-party-avatar" aria-hidden="true">
+                    {user.username.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span>
+                    <small>{you ? `${role} · თქვენ` : role}</small>
+                    <strong>@{user.username}</strong>
+                  </span>
+                </Link>
+              ))}
+            </div>
+            {/* Orders since 2026-10-03: the buyer pays the fee on top and the seller gets the full
+                price; older orders (feePaidBy 'seller') took the fee out of the seller's payout. */}
+            <dl className="fee-breakdown order-money">
+              <div>
+                <dt>ფასი</dt>
+                <dd>{order.priceWaveCoin} GEL</dd>
+              </div>
+              {(isSeller || isSuperAdmin || (isBuyer && order.feePaidBy === 'buyer')) && (
+                <div>
+                  <dt>
+                    {`მარკეტფლეისის საკომისიო (${order.platformFeePercent}%) — ${order.feePaidBy === 'buyer' ? 'იხდის მყიდველი' : 'იხდის გამყიდველი'}`}
+                  </dt>
+                  <dd>{`${order.feePaidBy === 'buyer' ? '+' : '−'}${order.platformFeeWaveCoin} GEL`}</dd>
+                </div>
+              )}
+              {(isBuyer || isSuperAdmin) && (
+                <div className="fee-breakdown-total">
+                  <dt>{isBuyer ? 'თქვენ გადაიხადეთ' : 'მყიდველმა გადაიხადა'}</dt>
+                  <dd>{order.buyerTotalWaveCoin} GEL</dd>
+                </div>
+              )}
+              {(isSeller || isSuperAdmin) && (
+                <div className={isSeller ? 'fee-breakdown-total' : undefined}>
+                  <dt>{isSeller ? 'თქვენ მიიღებთ' : 'გამყიდველი მიიღებს'}</dt>
+                  <dd>{order.sellerPayoutWaveCoin} GEL</dd>
+                </div>
+              )}
+            </dl>
+            {(order.deliveryDueAt || (order.autoCompleteAt && order.status === OrderStatus.Delivered)) && (
+              <dl className="order-dates">
+                <div>
+                  <dt>შეკვეთის თარიღი</dt>
+                  <dd>{new Date(order.createdAt).toLocaleString('ka-GE')}</dd>
+                </div>
+                {order.deliveryDueAt && (
+                  <div>
+                    <dt>მიწოდების ვადა</dt>
+                    <dd>{new Date(order.deliveryDueAt).toLocaleString('ka-GE')}</dd>
+                  </div>
+                )}
+                {order.autoCompleteAt && order.status === OrderStatus.Delivered && (
+                  <div>
+                    <dt>ავტომატურად დასრულდება</dt>
+                    <dd>{new Date(order.autoCompleteAt).toLocaleString('ka-GE')}</dd>
+                  </div>
+                )}
+              </dl>
             )}
             {order.cancellationReason && <p className="note">გაუქმების მიზეზი: {order.cancellationReason}</p>}
             {isBuyer && (
@@ -537,21 +584,17 @@ export default function OrderDetail() {
                     {(isBuyer || isSeller) &&
                       dispute.status !== DisputeStatus.Resolved &&
                       dispute.status !== DisputeStatus.Closed && (
-                        <form className="chat-form" onSubmit={sendDisputeMessage}>
-                          <input
-                            className="input"
-                            placeholder="დაწერეთ შეტყობინება…"
+                        <form className="dispute-composer" onSubmit={sendDisputeMessage}>
+                          <textarea
+                            rows={2}
+                            placeholder="დაწერეთ შეტყობინება დავაზე…"
                             aria-label="შეტყობინება დავაზე"
                             value={disputeDraftMessage}
                             onChange={(event) => setDisputeDraftMessage(event.target.value)}
                             disabled={disputeBusy}
                           />
-                          <button
-                            className="button glow-on-hover"
-                            type="submit"
-                            disabled={disputeBusy || !disputeDraftMessage.trim()}
-                          >
-                            გაგზავნა
+                          <button type="submit" disabled={disputeBusy || !disputeDraftMessage.trim()}>
+                            გაგზავნა <span aria-hidden="true">➤</span>
                           </button>
                         </form>
                       )}
@@ -575,9 +618,14 @@ export default function OrderDetail() {
                     {(isBuyer || isSeller) &&
                       dispute.status !== DisputeStatus.Resolved &&
                       dispute.status !== DisputeStatus.Closed && (
-                        <div style={{ marginTop: 8 }}>
-                          <input type="file" aria-label="მტკიცებულების ატვირთვა" onChange={uploadDisputeEvidence} disabled={disputeBusy} />
-                        </div>
+                        <label className={`dispute-upload${disputeBusy ? ' is-busy' : ''}`}>
+                          <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf,application/zip,.zip" aria-label="მტკიცებულების ატვირთვა" onChange={uploadDisputeEvidence} disabled={disputeBusy} />
+                          <span aria-hidden="true">⇪</span>
+                          <span>
+                            <strong>მტკიცებულების ატვირთვა</strong>
+                            <small>JPG, PNG, WEBP, PDF ან ZIP · 20 MB-მდე</small>
+                          </span>
+                        </label>
                       )}
                   </div>
 

@@ -69,7 +69,8 @@ describe('production hardening (e2e)', () => {
 
     it('oversized uploads are refused', async () => {
       const id = await draftListing();
-      const big = Buffer.concat([PNG, Buffer.alloc(6 * 1024 * 1024)]);
+      // Listing photos are capped at 2MB (owner decision 2026-10-03).
+      const big = Buffer.concat([PNG, Buffer.alloc(3 * 1024 * 1024)]);
       const res = await seller.client.upload(`/listings/${id}/images`, big, 'big.png', 'image/png');
       expect(res.status).toBe(413);
     });

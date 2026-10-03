@@ -200,7 +200,7 @@ describe('DisputesService', () => {
     });
 
     it('re-checks the dispute status under the row lock so a racing resolve moves no money', async () => {
-      const order = { id: orderId, buyerId, sellerId, status: OrderStatus.Disputed, priceWaveCoin: 100, listingId: 'l', listingType: ListingType.Service };
+      const order = { id: orderId, buyerId, sellerId, status: OrderStatus.Disputed, priceWaveCoin: 100, buyerTotalWaveCoin: 100, listingId: 'l', listingType: ListingType.Service };
       const open = { id: disputeId, orderId, status: DisputeStatus.Open, createdAt: new Date() };
       const { service, manager, wallet } = buildForResolve(order, open);
       // Pre-check sees Open, but by the time the lock is acquired another resolve already won.
@@ -236,6 +236,7 @@ describe('DisputesService', () => {
         sellerId,
         status: OrderStatus.Disputed,
         priceWaveCoin: 100,
+        buyerTotalWaveCoin: 100,
         listingId: 'listing-1',
         listingType: ListingType.Service,
       };
@@ -255,6 +256,7 @@ describe('DisputesService', () => {
         sellerId,
         status: OrderStatus.Disputed,
         priceWaveCoin: 50,
+        buyerTotalWaveCoin: 50,
         listingId: 'listing-1',
         listingType: ListingType.Item,
       };

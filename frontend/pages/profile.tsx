@@ -8,6 +8,7 @@ import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { ORDER_STATUS_LABELS, SESSION_STATUS_LABELS } from '../lib/labels'
 import { useShell } from '../lib/shell'
+import { PHOTO_SOURCE_MAX_BYTES } from '../lib/image-resize'
 
 // The prototype's profile.html in its signed-in "control" layout (Settings) and its signed-out
 // login panel, on real data:
@@ -120,8 +121,8 @@ export default function Profile() {
 
   const uploadPhoto = async (file: File | undefined) => {
     if (!file) return
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024) {
-      setStatus({ kind: 'error', text: 'ფოტო უნდა იყოს PNG, JPG ან WEBP, მაქსიმუმ 3MB.' })
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > PHOTO_SOURCE_MAX_BYTES) {
+      setStatus({ kind: 'error', text: 'ფოტო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.' })
       return
     }
     setStatus({ kind: 'pending', text: 'ფოტო იტვირთება…' })

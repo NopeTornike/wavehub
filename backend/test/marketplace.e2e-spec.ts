@@ -36,15 +36,20 @@ describe('marketplace spine (e2e)', () => {
     expect((await buyer.client.post(`/listings/${id}/approve`)).status).toBe(403);
   });
 
-  it('runs purchase → start → deliver → accept with exact escrow + 10% fee math and a withdrawal hold', async () => {
+  it('runs purchase → start → deliver → accept with exact escrow + buyer-paid 10% fee math and a withdrawal hold', async () => {
     const listingId = await publishItemListing(ctx, seller, admin, 100);
     const buyerBefore = await balanceOf(ctx, buyer);
 
     const purchase = await buyer.client.post('/orders', { listingId });
     expect(purchase.status).toBeLessThan(300);
     const orderId = purchase.body.id;
+    // The buyer pays the fee on top (owner decision 2026-10-03): 100 + 10 = 110 into escrow, and the
+    // public quote shown before buying matches what was charged.
     expect(purchase.body.platformFeeWaveCoin).toBe(10);
-    expect(await balanceOf(ctx, buyer)).toBe(buyerBefore - 100); // escrow debit
+    expect(purchase.body.buyerTotalWaveCoin).toBe(110);
+    expect(purchase.body.sellerPayoutWaveCoin).toBe(100);
+    expect(purchase.body.feePaidBy).toBe('buyer');
+    expect(await balanceOf(ctx, buyer)).toBe(buyerBefore - 110); // escrow debit
 
     // Only the seller may start/deliver; only the buyer may accept.
     expect((await buyer.client.post(`/orders/${orderId}/start`)).status).toBe(403);
@@ -57,8 +62,8 @@ describe('marketplace spine (e2e)', () => {
     expect(accept.status).toBe(200);
 
     const wallet = (await seller.client.get('/wallet/balance')).body;
-    // 90 earned, but inside the 7-day hold so none is withdrawable yet.
-    expect(wallet.totalEarned - sellerBalBefore.totalEarned).toBe(90);
+    // The full price (100) earned, but inside the 7-day hold so none is withdrawable yet.
+    expect(wallet.totalEarned - sellerBalBefore.totalEarned).toBe(100);
     expect(wallet.availableToWithdraw).toBe(sellerBalBefore.availableToWithdraw);
     const w = await seller.client.post('/withdrawals', {
       amountWaveCoin: 50, method: 'bank_transfer', payoutDetails: { iban: 'GE00XX0000000000000000' },
@@ -67,6 +72,22 @@ describe('marketplace spine (e2e)', () => {
 
     // Accepting twice must not double-release.
     expect((await buyer.client.post(`/orders/${orderId}/accept`)).status).toBeGreaterThanOrEqual(400);
+  });
+
+  it('quotes price + buyer fee publicly before purchase, as whole coins', async () => {
+    const listingId = await publishItemListing(ctx, seller, admin, 100);
+    const quote = await fetch(`${ctx.baseUrl}/order-quote?listingId=${listingId}`).then((r) => r.json());
+    expect(quote).toEqual({ priceWaveCoin: 100, feePercent: 10, feeWaveCoin: 10, totalWaveCoin: 110 });
+    expect((await fetch(`${ctx.baseUrl}/order-quote?listingId=not-a-uuid`)).status).toBe(400);
+    expect((await fetch(`${ctx.baseUrl}/order-quote?listingId=00000000-0000-4000-8000-000000000000`)).status).toBe(404);
+  });
+
+  it('refuses a purchase the buyer can afford only without the fee', async () => {
+    const tight = await registerUser(ctx, 'tight');
+    await credit(ctx, tight, 50);
+    const listingId = await publishItemListing(ctx, seller, admin, 50);
+    expect((await tight.client.post('/orders', { listingId })).status).toBeGreaterThanOrEqual(400);
+    expect(await balanceOf(ctx, tight)).toBe(50);
   });
 
   it('refuses a purchase the buyer cannot afford and leaves balances untouched', async () => {
@@ -87,7 +108,7 @@ describe('marketplace spine (e2e)', () => {
     const listingId = await publishItemListing(ctx, seller, admin, 40);
     const before = await balanceOf(ctx, buyer);
     const purchase = await buyer.client.post('/orders', { listingId });
-    expect(await balanceOf(ctx, buyer)).toBe(before - 40);
+    expect(await balanceOf(ctx, buyer)).toBe(before - 44); // 40 + 4 buyer fee
     const cancel = await buyer.client.post(`/orders/${purchase.body.id}/cancel-as-buyer`);
     expect(cancel.status).toBe(200);
     expect(await balanceOf(ctx, buyer)).toBe(before);

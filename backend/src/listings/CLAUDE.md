@@ -96,7 +96,7 @@ Steam Keys.
 - **Image storage goes through `StorageService`** (`backend/src/storage/`), not directly to disk —
   it validates the file's real type by magic bytes (an HTML file labelled `image/png` is rejected
   with 415) and supports local disk or S3-compatible storage; see that module's doc.
-- Max 5 images/listing, JPG/PNG/WEBP only, 5MB/file — enforced in `ListingsService.addImage`, not
+- Max 5 images/listing, JPG/PNG/WEBP only, 2MB/file (`MAX_IMAGE_BYTES`, also the multer limit; 5MB before 2026-10-03 — the frontend downscales bigger phone photos first) — enforced in `ListingsService.addImage`, not
   just at the multer/interceptor level (interceptor-level limits alone wouldn't produce a clean API
   error, just a raw multipart failure).
 - **`listKeys` never returns the key value, encrypted or plaintext, even to the listing's own
@@ -319,3 +319,9 @@ Added while porting the prototype's marketplace/seller flow 1:1 (commits `fee10d
     on any listing page.
 - e2e: `test/listing-edit.e2e-spec.ts` — draft/pending/active/rejected item edits, photo moderation,
   and Super Admin edits (other staff 403, no re-review, audit).
+
+## 2026-10-03 Items category
+Item listings now come in three kinds: accounts, skins and **items** — `itemAttributes.kind`
+(`'account' | 'skin' | 'item'` in shared-types) plus the `items` category (migration
+`1784376000000-ItemsCategory`, type `item`, idempotent `ON CONFLICT (slug) DO NOTHING`). No schema
+change otherwise; the marketplace filters by category id. Listing photos are capped at 2MB.

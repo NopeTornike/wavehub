@@ -18,7 +18,7 @@ import { gameCover } from '../lib/games'
 //     failure stays with the reason, so a partial checkout is never ambiguous.
 /* eslint-disable @next/next/no-img-element */
 
-type LiveState = { price: number; available: boolean; gameSlug: string | null; reason?: string }
+type LiveState = { price: number; fee: number; feePercent: number | null; available: boolean; gameSlug: string | null; reason?: string }
 type Result = { listingId: string; title: string; orderIds: string[]; error?: string }
 
 export default function CartPage() {
@@ -42,9 +42,11 @@ export default function CartPage() {
           const price = listing.priceWaveCoin ?? listing.startingPriceWaveCoin ?? 0
           const stock = listing.stockQuantity ?? 0
           const available = listing.type !== ListingType.Service && stock > 0
-          return [id, { price, available, gameSlug: listing.game?.slug ?? null, reason: available ? undefined : 'მარაგი ამოიწურა' }]
+          // The buyer's marketplace fee per unit (each unit is its own order) — from the server.
+          const quote = available ? await api.quoteOrder(id).catch(() => null) : null
+          return [id, { price: quote?.priceWaveCoin ?? price, fee: quote?.feeWaveCoin ?? 0, feePercent: quote?.feePercent ?? null, available, gameSlug: listing.game?.slug ?? null, reason: available ? undefined : 'მარაგი ამოიწურა' }]
         } catch {
-          return [id, { price: 0, available: false, gameSlug: null, reason: 'განცხადება აღარ არის ხელმისაწვდომი' }]
+          return [id, { price: 0, fee: 0, feePercent: null, available: false, gameSlug: null, reason: 'განცხადება აღარ არის ხელმისაწვდომი' }]
         }
       }),
     ).then((entries) => {
@@ -57,7 +59,10 @@ export default function CartPage() {
 
   const priceOf = (line: CartLine) => live[line.listingId]?.price ?? line.priceWaveCoin
   const buyable = cart.lines.filter((line) => live[line.listingId]?.available !== false)
-  const total = buyable.reduce((sum, line) => sum + priceOf(line) * line.quantity, 0)
+  const subtotal = buyable.reduce((sum, line) => sum + priceOf(line) * line.quantity, 0)
+  const fees = buyable.reduce((sum, line) => sum + (live[line.listingId]?.fee ?? 0) * line.quantity, 0)
+  const feePercents = [...new Set(buyable.map((line) => live[line.listingId]?.feePercent).filter((p): p is number => p != null))]
+  const total = subtotal + fees
   const itemCount = buyable.reduce((sum, line) => sum + line.quantity, 0)
   const balance = user?.wavecoinBalance ?? 0
 
@@ -203,15 +208,15 @@ export default function CartPage() {
           </header>
           <div className="cart-summary-row">
             <span>შუალედური ჯამი</span>
-            <strong id="cartSubtotal">{total} GEL</strong>
+            <strong id="cartSubtotal">{subtotal} GEL</strong>
           </div>
           <div className="cart-summary-row">
             <span>ნივთები</span>
             <strong id="cartSummaryCount">{itemCount}</strong>
           </div>
           <div className="cart-summary-row cart-fee-row">
-            <span>მომსახურების საკომისიო</span>
-            <strong>უფასო</strong>
+            <span>{feePercents.length === 1 ? `მარკეტფლეისის საკომისიო (${feePercents[0]}%)` : 'მარკეტფლეისის საკომისიო'}</span>
+            <strong>{fees > 0 ? `+${fees} GEL` : '0 GEL'}</strong>
           </div>
           {user && (
             <div className="cart-summary-row">

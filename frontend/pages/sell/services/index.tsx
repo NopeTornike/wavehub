@@ -9,10 +9,12 @@ import { api, errorMessage, type MyListing } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
 import { gameCover } from '../../../lib/games'
 import { LISTING_STATUS_LABELS } from '../../../lib/labels'
+import { PHOTO_SOURCE_MAX_BYTES } from '../../../lib/image-resize'
 
-// Sell a service (rank push, duo play, coaching-style help, account setup…). Step 1 here: category,
-// game, title, description, the questions the buyer answers and an FAQ. Step 2 on
-// /sell/services/[id]: packages (what the buyer actually pays for), photos, submit for review.
+// Sell any service the seller defines (owner bug list BUG 07, 2026-10-03): own title, description,
+// photos; the category is optional (no fixed "Rank Push / Account Setup" choice — without one it is
+// filed under Custom Gaming Services). Step 1 here also takes the photos (the first is the card
+// image — never the game cover). Step 2 on /sell/services/[id]: packages (prices), submit.
 // Bounds mirror CreateListingDto (title 5–100, description 50–5000).
 
 const STARTER_QUESTIONS: RequirementField[] = [{ key: 'q_ingame', label: 'თამაშის სახელი / ID', type: 'text', required: true }]
@@ -29,6 +31,14 @@ export default function SellServices() {
   const [faq, setFaq] = useState<FaqEntry[]>([])
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
+  const [photos, setPhotos] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+  useEffect(() => {
+    const urls = photos.map((f) => URL.createObjectURL(f))
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPreviews(urls)
+    return () => urls.forEach((u) => URL.revokeObjectURL(u))
+  }, [photos])
 
   useEffect(() => {
     if (checked && !user) router.replace('/login?next=/sell/services')
@@ -52,7 +62,9 @@ export default function SellServices() {
     setError('')
     const title = form.title.trim()
     const description = form.description.trim()
-    if (!form.categoryId) return setError('აირჩიეთ სერვისის კატეგორია.')
+    const categoryId = form.categoryId || categories.find((c) => c.slug === 'custom-gaming-services')?.id || categories[0]?.id
+    if (!categoryId) return setError('კატეგორიები ვერ ჩაიტვირთა — სცადეთ თავიდან.')
+    if (photos.length === 0) return setError('დაამატეთ მინიმუმ ერთი ფოტო — ის გამოჩნდება სერვისის ბარათზე.')
     if (title.length < 5 || title.length > 100) return setError('სათაური უნდა იყოს 5–100 სიმბოლო.')
     if (description.length < 50 || description.length > 5000) return setError('აღწერა უნდა იყოს 50–5000 სიმბოლო.')
     const invalid = validateServiceExtras(questions, faq)
@@ -60,13 +72,14 @@ export default function SellServices() {
     setCreating(true)
     try {
       const listing = await api.createServiceListing({
-        categoryId: form.categoryId,
+        categoryId,
         gameId: form.gameId || undefined,
         title,
         description,
         requirementsSchema: cleanRequirements(questions),
         faq: cleanFaq(faq),
       })
+      for (const file of photos) await api.uploadListingImage(listing.id, file)
       router.push(`/sell/services/${listing.id}?created=1`)
     } catch (err) {
       setError(errorMessage(err, 'სერვისის შექმნა ვერ მოხერხდა.'))
@@ -81,23 +94,25 @@ export default function SellServices() {
           <div>
             <p className="sp-kicker">გამყიდველის პანელი</p>
             <h1>სერვისის გაყიდვა</h1>
-            <p>რანკის აწევა, დუო თამაში, ანგარიშის მოწყობა და სხვა — შექმენით სერვისი, დაამატეთ პაკეტები და გაგზავნეთ შესამოწმებლად.</p>
+            <p>შექმენით თქვენი სერვისი — საკუთარი სათაურით, აღწერით და ფოტოებით — დაამატეთ პაკეტები და გაგზავნეთ შესამოწმებლად.</p>
           </div>
         </header>
 
         <ol className="sv-steps" aria-label="ნაბიჯები">
-          <li className="active">1. აღწერა და კითხვები</li>
-          <li>2. პაკეტები და ფოტოები</li>
+          <li className="active">1. აღწერა და ფოტოები</li>
+          <li>2. პაკეტები და ფასები</li>
           <li>3. შემოწმება და გამოქვეყნება</li>
         </ol>
 
         <form className="sp-card sp-form" onSubmit={create}>
           <h2>ახალი სერვისი</h2>
           <fieldset className="sp-field">
-            <legend>კატეგორია</legend>
+            <legend>
+              კატეგორია <small className="sv-muted">(არასავალდებულო)</small>
+            </legend>
             <div className="sv-chips" role="radiogroup">
               {categories.map((c) => (
-                <button key={c.id} type="button" role="radio" aria-checked={form.categoryId === c.id} className={form.categoryId === c.id ? 'active' : undefined} onClick={() => setForm((f) => ({ ...f, categoryId: c.id }))}>
+                <button key={c.id} type="button" role="radio" aria-checked={form.categoryId === c.id} className={form.categoryId === c.id ? 'active' : undefined} onClick={() => setForm((f) => ({ ...f, categoryId: f.categoryId === c.id ? '' : c.id }))}>
                   {c.name}
                 </button>
               ))}
@@ -117,7 +132,7 @@ export default function SellServices() {
             </label>
             <label className="sp-field">
               <span>სათაური</span>
-              <input maxLength={100} value={form.title} placeholder="მაგ. რანკის აწევა Ace-მდე 3 დღეში" onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+              <input maxLength={100} value={form.title} placeholder="მაგ. ბაზის აწყობა Clash of Clans-ში" onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
             </label>
           </div>
           <label className="sp-field">
@@ -126,6 +141,39 @@ export default function SellServices() {
             </span>
             <textarea rows={6} maxLength={5000} value={form.description} placeholder="რას აკეთებთ, როგორ, რა გარანტიებით…" onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
           </label>
+          <fieldset className="sp-field">
+            <legend>ფოტოები</legend>
+            <p className="sv-muted">პირველი ფოტო გამოჩნდება სერვისის ბარათზე (არა თამაშის სურათი). მაქს. 6, JPG/PNG/WEBP — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.</p>
+            <div className="sv-photos">
+              {previews.map((url, i) => (
+                <figure key={url} className="sv-photo" style={{ backgroundImage: `url("${url}")` }}>
+                  {i === 0 && <figcaption>ქავერი</figcaption>}
+                  <button type="button" aria-label="ფოტოს წაშლა" onClick={() => setPhotos((list) => list.filter((_, j) => j !== i))}>
+                    ×
+                  </button>
+                </figure>
+              ))}
+              {photos.length < 6 && (
+                <label className="sv-photo sv-photo-add">
+                  + ფოტო
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    className="sr-only"
+                    onChange={(e) => {
+                      const picked = Array.from(e.target.files ?? [])
+                      e.target.value = ''
+                      if (picked.some((f) => !['image/png', 'image/jpeg', 'image/webp'].includes(f.type) || f.size > PHOTO_SOURCE_MAX_BYTES)) {
+                        return setError('ფოტო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.')
+                      }
+                      setPhotos((list) => [...list, ...picked].slice(0, 6))
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          </fieldset>
           <fieldset className="sp-field">
             <legend>კითხვები მყიდველისთვის</legend>
             <p className="sv-muted">მყიდველი ამ კითხვებს შეკვეთისას პასუხობს (მაგ. რანგი, სერვერი, თამაშის ID).</p>

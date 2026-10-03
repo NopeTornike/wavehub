@@ -37,10 +37,11 @@ export function accountStatusLabel(value: unknown): string {
   return ACCOUNT_STATUS_LABEL[normalizeAccountStatus(value)]
 }
 
-export function listingKind(listing: PublicListingSummary): 'account' | 'skin' | 'service' | 'key' {
+export function listingKind(listing: PublicListingSummary): 'account' | 'skin' | 'item' | 'service' | 'key' {
   if (listing.type === ListingType.Service) return 'service'
   if (listing.type === ListingType.DigitalKey) return 'key'
   if (listing.itemAttributes?.kind === 'skin' || listing.category?.slug === 'skins') return 'skin'
+  if (listing.itemAttributes?.kind === 'item' || listing.category?.slug === 'items') return 'item'
   return 'account'
 }
 
@@ -90,7 +91,8 @@ export default function ProductCard({ listing, sellerRank }: { listing: PublicLi
   const attrs = listing.itemAttributes ?? {}
   const href = `/listings/${listing.id}`
   const gameName = listing.game?.name ?? 'Marketplace'
-  const image = gameCover(listing.game?.slug, listing.images[0]?.url ?? null)
+  // The seller's own photo first (the first one is the cover); the game art only when there is none.
+  const image = listing.images[0]?.url ?? gameCover(listing.game?.slug)
   const sellerName = [listing.seller.firstName, listing.seller.lastName].filter(Boolean).join(' ') || listing.seller.username
   const price = listingPrice(listing)
   const canCart = listing.type !== ListingType.Service
@@ -119,8 +121,8 @@ export default function ProductCard({ listing, sellerRank }: { listing: PublicLi
   const level = Number(attrs.accountLevel) || 0
   const rating = listing.ratingAvg ? Number(listing.ratingAvg) : null
   const kindBadge =
-    kind === 'account' ? accountStatusLabel(status) : kind === 'skin' ? 'სკინი' : kind === 'key' ? 'Steam გასაღები' : listing.category?.name ?? 'სერვისი'
-  const kindLine = level ? `✪ Level ${count(level)}` : kind === 'account' ? 'ანგარიში' : kind === 'skin' ? 'სკინი' : kind === 'key' ? 'ციფრული გასაღები' : 'სერვისი'
+    kind === 'account' ? accountStatusLabel(status) : kind === 'skin' ? 'სკინი' : kind === 'item' ? 'ნივთი' : kind === 'key' ? 'Steam გასაღები' : listing.category?.name ?? 'სერვისი'
+  const kindLine = level ? `✪ Level ${count(level)}` : kind === 'account' ? 'ანგარიში' : kind === 'skin' ? 'სკინი' : kind === 'item' ? 'ნივთი' : kind === 'key' ? 'ციფრული გასაღები' : 'სერვისი'
   // Keys are delivered on purchase; a service's delivery time depends on the package chosen.
   const delivery = kind === 'service' ? 'პაკეტის მიხედვით' : kind === 'key' ? 'მყისიერი' : String(attrs.deliveryTime || 'მყისიერი')
   const openDetail = (event: MouseEvent) => {
@@ -128,7 +130,7 @@ export default function ProductCard({ listing, sellerRank }: { listing: PublicLi
     router.push(href)
   }
   return (
-    <article className={`marketplace-card product-showcase-card ${kind}-showcase-card${kind === 'account' ? ` account-status-${status}` : ''}`} data-listing-id={listing.id}>
+    <article className={`marketplace-card product-showcase-card ${kind === 'item' ? 'skin' : kind}-showcase-card${kind === 'account' ? ` account-status-${status}` : ''}`} data-listing-id={listing.id}>
       <div className={`product-showcase-cover${image ? ' has-image' : ''}`} data-game={initials(gameName)} style={image ? { backgroundImage: `url("${image}")` } : undefined} onClick={openDetail}>
         <div className="product-showcase-badges">
           <span className="showcase-badge showcase-game-badge">{gameName}</span>

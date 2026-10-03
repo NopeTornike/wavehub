@@ -1,13 +1,15 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useEffect, useState, type ReactNode } from 'react'
-import type { PublicListingDetail, PublicListingSummary, PublicReview } from '@wavehub/shared-types'
+import type { OrderQuote, PublicListingDetail, PublicListingSummary, PublicReview } from '@wavehub/shared-types'
 import { ListingType, STEAM_GENRES } from '@wavehub/shared-types'
 import Layout from './Layout'
 import { TRAILER_URL } from './SteamFactsFields'
 import { api } from '../lib/api'
 import { useCart } from '../lib/cart'
 import { gameCover } from '../lib/games'
+import ImageLightbox from './ImageLightbox'
+import FeeBreakdown from './FeeBreakdown'
 
 // docs/design-mockups/05-steam-game-detail.jpg for a digital-key listing: breadcrumb, gallery
 // (arrows, counter, thumbnails, trailer link), buy box (badges, title, tagline, rating + sold, price
@@ -56,6 +58,7 @@ export default function SteamGameDetail({
   editHref,
   writeReviewHref,
   notEnoughBalance,
+  quote,
   onBuy,
   onFavorite,
   onShare,
@@ -71,6 +74,8 @@ export default function SteamGameDetail({
   // The viewer's completed, unreviewed order of this game → its review form; else null.
   writeReviewHref: string | null
   notEnoughBalance: boolean
+  // Price + buyer fee + total (GET /order-quote), null while loading.
+  quote: OrderQuote | null
   onBuy: () => void
   onFavorite: () => void
   onShare: () => void
@@ -98,6 +103,7 @@ export default function SteamGameDetail({
     }
   }, [listing.id, genre])
 
+  const [lightbox, setLightbox] = useState<number | null>(null)
   const fallbackCover = gameCover(listing.game?.slug)
   const gallery = listing.images.length ? listing.images.map((img) => img.url) : fallbackCover ? [fallbackCover] : []
   const hero = gallery[index] ?? null
@@ -146,9 +152,17 @@ export default function SteamGameDetail({
           <span>{listing.title}</span>
         </nav>
 
+        <ImageLightbox images={listing.images.map((img) => ({ url: img.url, alt: listing.title }))} index={lightbox} onIndex={(i) => { setLightbox(i); setIndex(i) }} onClose={() => setLightbox(null)} />
         <section className="sd-top">
           <div className="sd-gallery">
-            <div className="sd-hero" style={hero ? { backgroundImage: `url('${hero}')` } : undefined}>
+            <div
+              className={`sd-hero${listing.images.length ? ' is-zoomable' : ''}`}
+              style={hero ? { backgroundImage: `url('${hero}')` } : undefined}
+              onClick={(e) => {
+                if (!listing.images.length || (e.target as HTMLElement).closest('button, a')) return
+                setLightbox(index)
+              }}
+            >
               {!hero && <img className="sd-hero-logo" src="/assets/steam-logo.png" alt="" />}
               {gallery.length > 1 && (
                 <>
@@ -228,6 +242,7 @@ export default function SteamGameDetail({
                 </div>
               ))}
             </dl>
+            {!isOwnListing && <FeeBreakdown quote={quote} />}
             <div className="sd-actions">
               <button type="button" className="primary" disabled={purchasing || !inStock || isOwnListing} onClick={onBuy}>
                 <Icon name="cart" />
