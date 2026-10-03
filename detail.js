@@ -416,7 +416,7 @@ function formatReviewDate(value) {
 
 function getReviewerWaveRank(user) {
   const username = String(user?.username || '');
-  if (!username) return 'Wave Spark';
+  if (!username) return 'Starter';
 
   const listings = getSellerListings().filter((item) => item?.sellerUsername === username);
   const purchases = getPurchases();
@@ -427,8 +427,8 @@ function getReviewerWaveRank(user) {
   const bought = purchaseItems.filter((item) => item?.buyerUsername === username || item?.username === username);
   const reviews = readJson(sellerReviewsKey, []).filter((item) => item?.sellerUsername === username);
   const score = Math.min(1000, listings.length * 15 + sold.length * 60 + bought.length * 20 + reviews.length * 25 + Math.min(100, Number(user?.xp) || 0));
-  const tiers = [['Wave Spark', 0], ['Wave Scout', 70], ['Wave Rider', 140], ['Wave Surfer', 220], ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580], ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000]];
-  return tiers.reduce((rank, [name, threshold]) => score >= threshold ? name : rank, 'Wave Spark');
+  const tiers = [['Starter', 0], ['Bronze Core', 70], ['Silver Vanguard', 140], ['Gold Sovereign', 220], ['Platinum Sentinel', 320], ['Diamond Ascendant', 440], ['Obsidian Warlord', 580], ['Crimson Monarch', 720], ['Mythic Prime', 860], ['WaveHub Apex', 1000]];
+  return tiers.reduce((rank, [name, threshold]) => score >= threshold ? name : rank, 'Starter');
 }
 
 function getReviewablePurchase(offer, buyerUsername) {

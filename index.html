@@ -136,8 +136,8 @@
                     <strong id="profileFullName">Guest account</strong>
                     <span class="profile-verified-mark" aria-label="Verified">&#10003;</span>
                   </div>
-                  <small><img class="profile-rank-icon" id="profileDropdownRankIcon" src="assets/rank-icons/rank%20icons/Wave%20Spark.png" alt="" aria-hidden="true"><span id="profileDropdownRank">Wave Spark</span></small>
-                  <span class="profile-tier"><img class="profile-rank-icon" id="profileTierIcon" src="assets/rank-icons/rank%20icons/Wave%20Spark.png" alt="" aria-hidden="true"><b id="profileTierName">Wave Spark</b><i aria-hidden="true">→</i><strong id="profileNextTier">Wave Scout</strong></span>
+                  <small><img class="profile-rank-icon" id="profileDropdownRankIcon" src="assets/rank-icons/rank%20icons/Starter.png" alt="" aria-hidden="true"><span id="profileDropdownRank">Starter</span></small>
+                  <span class="profile-tier"><img class="profile-rank-icon" id="profileTierIcon" src="assets/rank-icons/rank%20icons/Starter.png" alt="" aria-hidden="true"><b id="profileTierName">Starter</b><i aria-hidden="true">→</i><strong id="profileNextTier">Bronze Core</strong></span>
                 </div>
               </div>
 
@@ -188,7 +188,7 @@
           </div>
           <div class="mobile-account-copy">
             <h2><span id="mobileProfileUsername">Guest</span><i aria-label="Verified">&#10003;</i></h2>
-            <p><span class="mobile-rank-icon" aria-hidden="true">&#9670;</span><strong id="mobileProfileRank">Wave Rookie</strong></p>
+            <p><span class="mobile-rank-icon" aria-hidden="true">&#9670;</span><strong id="mobileProfileRank">Starter</strong></p>
             <a href="profile.html">View profile <span aria-hidden="true">&rsaquo;</span></a>
           </div>
         </article>
@@ -700,9 +700,9 @@
         </div>
 
         <div class="seller-rank-card">
-          <span class="seller-rank-emblem" data-rank="Wave Captain"></span>
-          <div><small>RANK</small><strong id="sellerProfileRank">WAVE MASTER</strong><span>WaveHubX Rank</span></div>
-          <p><span></span><small>Next: <b>PRIME</b></small></p>
+          <span class="seller-rank-emblem" data-rank="Obsidian Warlord"></span>
+          <div><small>RANK</small><strong id="sellerProfileRank">OBSIDIAN WARLORD</strong><span>WaveHubX Rank</span></div>
+          <p><span></span><small>Next: <b>CRIMSON MONARCH</b></small></p>
         </div>
       </header>
 
@@ -735,9 +735,9 @@
       const modal = document.getElementById('sellerProfileModal');
       if (!modal) return;
       const profiles = {
-        'top-player': { initials: 'AK', name: 'Top 100 Player', handle: '@top100player', bio: 'Professional rank booster and competitive player', location: 'Tbilisi, Georgia', member: 'Jan 2023', rank: 'WAVE MASTER', rating: '4.9', sales: '237+', score: '96' },
-        mythx: { initials: 'MX', name: 'MythX', handle: '@mythx', bio: 'Mobile Legends coach and Mythic rank specialist', location: 'Batumi, Georgia', member: 'Mar 2024', rank: 'WAVE ELITE', rating: '4.8', sales: '184+', score: '92' },
-        'wavehub-events': { initials: 'WH', name: 'WaveHub Events', handle: '@wavehubevents', bio: 'Official tournaments, cups and community events', location: 'Tbilisi, Georgia', member: 'Jan 2023', rank: 'WAVE PRIME', rating: '5.0', sales: '320+', score: '99' }
+        'top-player': { initials: 'AK', name: 'Top 100 Player', handle: '@top100player', bio: 'Professional rank booster and competitive player', location: 'Tbilisi, Georgia', member: 'Jan 2023', rank: 'OBSIDIAN WARLORD', rating: '4.9', sales: '237+', score: '96' },
+        mythx: { initials: 'MX', name: 'MythX', handle: '@mythx', bio: 'Mobile Legends coach and Mythic rank specialist', location: 'Batumi, Georgia', member: 'Mar 2024', rank: 'CRIMSON MONARCH', rating: '4.8', sales: '184+', score: '92' },
+        'wavehub-events': { initials: 'WH', name: 'WaveHub Events', handle: '@wavehubevents', bio: 'Official tournaments, cups and community events', location: 'Tbilisi, Georgia', member: 'Jan 2023', rank: 'MYTHIC PRIME', rating: '5.0', sales: '320+', score: '99' }
       };
       const fields = { name: 'sellerProfileName', handle: 'sellerProfileHandle', bio: 'sellerProfileBio', location: 'sellerProfileLocation', member: 'sellerProfileMember', rank: 'sellerProfileRank', rating: 'sellerProfileRating', sales: 'sellerProfileSales', score: 'sellerProfileScore' };
       let lastTrigger = null;

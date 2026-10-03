@@ -898,7 +898,7 @@ function createPublicReviewCard(review) {
   reviewerIdentity.className = 'public-review-reviewer-identity';
   const reviewerRank = document.createElement('small');
   reviewerRank.className = 'public-review-reviewer-rank';
-  const reviewerTier = reviewerUser ? getWaveRankMetrics(reviewerUser).tier : 'Wave Spark';
+  const reviewerTier = reviewerUser ? getWaveRankMetrics(reviewerUser).tier : 'Starter';
   reviewerRank.innerHTML = `<img class="wave-rank-inline-icon" src="${getWaveRankIconPath(reviewerTier)}" alt="" />${escapeHtml(reviewerTier)}`;
   reviewerIdentity.append(reviewer, reviewerRank);
   reviewerWrap.append(reviewerAvatar, reviewerIdentity);
@@ -925,9 +925,9 @@ function createPublicReviewCard(review) {
 }
 
 const waveRankTiers = [
-  ['Wave Spark', 0], ['Wave Scout', 70], ['Wave Rider', 140], ['Wave Surfer', 220],
-  ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580],
-  ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000],
+  ['Starter', 0], ['Bronze Core', 70], ['Silver Vanguard', 140], ['Gold Sovereign', 220],
+  ['Platinum Sentinel', 320], ['Diamond Ascendant', 440], ['Obsidian Warlord', 580],
+  ['Crimson Monarch', 720], ['Mythic Prime', 860], ['WaveHub Apex', 1000],
 ];
 
 function getWaveRankIconPath(tier) {
@@ -1231,7 +1231,7 @@ function renderPublicProfile(user) {
       ? `${formatCount(listings.length)} listed · ${formatCount(soldItems.length)} orders`
       : 'WaveHub community member';
   }
-  const profileTier = rank ? rank.tier : 'Wave Spark';
+  const profileTier = rank ? rank.tier : 'Starter';
   if (publicProfileRank) publicProfileRank.textContent = profileTier;
   if (publicProfileRankIcon) {
     publicProfileRankIcon.hidden = false;

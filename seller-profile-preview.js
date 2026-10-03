@@ -17,9 +17,9 @@
           </div>
         </div>
         <div class="seller-rank-card">
-          <span class="seller-rank-emblem" data-rank="Wave Spark"></span>
+          <span class="seller-rank-emblem" data-rank="Starter"></span>
           <div><small>RANK</small><strong data-preview-rank></strong><span>WaveHubX Rank</span></div>
-          <p><span></span><small>Next: <b>PRIME</b></small></p>
+          <p><span></span><small>Next: <b>BRONZE CORE</b></small></p>
         </div>
       </header>
       <div class="seller-profile-stats">

@@ -15,16 +15,16 @@
   // A rank is earned from both long-term contribution and recent participation.
   // Recent activity supplies half of the score, so active members can outrank inactive ones.
   const waveRanks = [
-    ['Wave Spark', 0], ['Wave Scout', 70], ['Wave Rider', 140], ['Wave Surfer', 220],
-    ['Wave Breaker', 320], ['Wave Current', 440], ['Wave Captain', 580],
-    ['Wave Vanguard', 720], ['Wave Legend', 860], ['Wave Apex', 1000],
+    ['Starter', 0], ['Bronze Core', 70], ['Silver Vanguard', 140], ['Gold Sovereign', 220],
+    ['Platinum Sentinel', 320], ['Diamond Ascendant', 440], ['Obsidian Warlord', 580],
+    ['Crimson Monarch', 720], ['Mythic Prime', 860], ['WaveHub Apex', 1000],
   ];
 
-  const rankIconAliases = { 'WAVE MASTER': 'Wave Captain', 'WAVE ELITE': 'Wave Vanguard', 'WAVE PRIME': 'Wave Apex' };
+  const rankIconAliases = { 'OBSIDIAN WARLORD': 'Obsidian Warlord', 'CRIMSON MONARCH': 'Crimson Monarch', 'MYTHIC PRIME': 'Mythic Prime' };
 
   function getRankIconName(value) {
     const name = String(value || '').trim();
-    return waveRanks.some(([rank]) => rank === name) ? name : rankIconAliases[name.toUpperCase()] || 'Wave Spark';
+    return waveRanks.some(([rank]) => rank === name) ? name : rankIconAliases[name.toUpperCase()] || 'Starter';
   }
 
   function getRankIconPath(rankName) {
@@ -216,8 +216,8 @@
               <strong id="profileFullName">Guest account</strong>
               <span class="profile-verified-mark" aria-label="Verified">&#10003;</span>
             </div>
-            <small><img class="profile-rank-icon" id="profileDropdownRankIcon" src="assets/rank-icons/rank%20icons/Wave%20Spark.png" alt="" aria-hidden="true"><span id="profileDropdownRank">Wave Spark</span></small>
-            <span class="profile-tier"><img class="profile-rank-icon" id="profileTierIcon" src="assets/rank-icons/rank%20icons/Wave%20Spark.png" alt="" aria-hidden="true"><b id="profileTierName">Wave Spark</b><i aria-hidden="true">&#8594;</i><strong id="profileNextTier">Wave Scout</strong></span>
+            <small><img class="profile-rank-icon" id="profileDropdownRankIcon" src="assets/rank-icons/rank%20icons/Starter.png" alt="" aria-hidden="true"><span id="profileDropdownRank">Starter</span></small>
+            <span class="profile-tier"><img class="profile-rank-icon" id="profileTierIcon" src="assets/rank-icons/rank%20icons/Starter.png" alt="" aria-hidden="true"><b id="profileTierName">Starter</b><i aria-hidden="true">&#8594;</i><strong id="profileNextTier">Bronze Core</strong></span>
           </div>
         </div>
         <div class="profile-level-row" aria-label="Account level">
@@ -472,7 +472,7 @@
     if (profileDropdownRankIcon) profileDropdownRankIcon.src = `assets/rank-icons/rank%20icons/${encodeURIComponent(profileRank)}.png`;
     if (profileTierName) profileTierName.textContent = profileRank;
     if (profileTierIcon) profileTierIcon.src = `assets/rank-icons/rank%20icons/${encodeURIComponent(profileRank)}.png`;
-    if (profileNextTier) profileNextTier.textContent = waveRanks[rankMetrics.tierIndex + 1]?.[0] || 'Wave Apex';
+    if (profileNextTier) profileNextTier.textContent = waveRanks[rankMetrics.tierIndex + 1]?.[0] || 'WaveHub Apex';
     if (profileDropdownLevel) profileDropdownLevel.textContent = String(profileLevel);
     if (profileDropdownXp) profileDropdownXp.textContent = String(profileXp);
     if (profileDropdownXpGoal) profileDropdownXpGoal.textContent = String(profileXpGoal);
