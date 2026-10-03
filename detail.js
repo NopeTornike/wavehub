@@ -1134,7 +1134,6 @@ function renderGameSpecificDetails(offer) {
         ['Town Hall Level', details.townHall],
         ['Hero Levels', details.heroLevels],
         ['Base Upgrade Status', details.baseStatus],
-        ['Laboratory Level', details.laboratoryLevel],
         ['Hero Equipment', details.heroEquipment],
         ['Rare / Valuable Items', details.rareItems],
       ]

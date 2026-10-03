@@ -41,7 +41,6 @@ const clashDetailInputs = {
   townHall: document.getElementById('clashTownHall'),
   heroLevels: document.getElementById('clashHeroLevels'),
   baseStatus: document.getElementById('clashBaseStatus'),
-  laboratoryLevel: document.getElementById('clashLaboratoryLevel'),
   heroEquipment: document.getElementById('clashHeroEquipment'),
   rareItems: document.getElementById('clashRareItems'),
 };
@@ -255,6 +254,19 @@ const listingTypeConfig = {
     descriptionPlaceholder: 'Rarity, condition, platform and delivery details...',
     sellerNoun: 'skin seller',
     searchTerms: 'skin cosmetic item marketplace buy sell',
+    actionLabel: 'Buy',
+  },
+  item: {
+    type: 'item',
+    label: 'Item',
+    pluralLabel: 'Items',
+    tagClass: 'item',
+    tagLabel: 'Item',
+    titleLabel: 'Item title',
+    titlePlaceholder: 'Rare in-game item',
+    descriptionPlaceholder: 'Item name, rarity, condition and delivery details...',
+    sellerNoun: 'item seller',
+    searchTerms: 'item product listing marketplace buy sell',
     actionLabel: 'Buy',
   },
 };
@@ -570,7 +582,7 @@ function applyInitialFilters() {
   const type = params.get('type');
   const game = params.get('game');
 
-  if (productTypeFilter && (type === 'account' || type === 'skin')) {
+  if (productTypeFilter && (type === 'account' || type === 'skin' || type === 'item')) {
     productTypeFilter.value = type;
   }
 
@@ -629,7 +641,7 @@ function getGameInitials(game) {
 }
 
 function getListingType(listing) {
-  return listing?.listingType === 'skin' ? 'skin' : 'account';
+  return ['account', 'skin', 'item'].includes(listing?.listingType) ? listing.listingType : 'account';
 }
 
 function getListingConfig(listingOrType) {
@@ -1819,7 +1831,7 @@ function renderMarketplace() {
   if (pageTitle) pageTitle.textContent = isFavoritesView ? 'Favorites' : 'Marketplace';
   if (totalLabel) totalLabel.textContent = isFavoritesView ? 'saved items' : 'products';
   if (listKicker) listKicker.textContent = isFavoritesView ? 'Saved for later' : 'Live listings';
-  if (listTitle) listTitle.textContent = isFavoritesView ? 'Your Collection' : 'Accounts & Skins';
+  if (listTitle) listTitle.textContent = isFavoritesView ? 'Your Collection' : 'Accounts, Skins & Items';
   marketplaceGrid.innerHTML = '';
 
   listings.forEach((listing) => {
@@ -2183,7 +2195,7 @@ sellerForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const game = sellerGame?.value.trim() || '';
-  const listingType = sellerProductType?.value === 'skin' ? 'skin' : 'account';
+  const listingType = ['account', 'skin', 'item'].includes(sellerProductType?.value) ? sellerProductType.value : 'account';
   const config = getListingConfig(listingType);
   const titleValue = sellerTitle?.value.trim() || '';
   const title = titleValue || `${game} ${config.label}`;

@@ -80,11 +80,11 @@
           <section class="listing-builder-section">
             <header><b>1</b><div><h3>Basic Information</h3><p>Provide the core details about your game product.</p></div></header>
             <div class="listing-builder-grid">
-              <label><span>Listing type *</span><select id="sellerProductType" name="productType" required><option value="account">Account</option><option value="skin">Skin</option></select></label>
+              <label><span>Listing type *</span><select id="sellerProductType" name="productType" required><option value="account">Account</option><option value="skin">Skin</option><option value="item">Item</option></select></label>
               <label><span>Game *</span><select id="sellerGame" name="game" required><option value="">Select game</option></select><small class="game-specific-hint" id="sellerGameHint">Game-specific details will appear after selecting a game.</small><button class="game-details-open" id="sellerGameDetailsButton" type="button" hidden>Add Call of Duty Details</button><button class="game-details-open" id="sellerClashDetailsButton" type="button" hidden>Add Clash of Clans Details</button><button class="game-details-open" id="sellerDotaDetailsButton" type="button" hidden>Add Dota 2 Details</button><button class="game-details-open" id="sellerFortniteDetailsButton" type="button" hidden>Add Fortnite Details</button><button class="game-details-open" id="sellerGtaDetailsButton" type="button" hidden>Add GTA 5 Details</button><button class="game-details-open" id="sellerLolDetailsButton" type="button" hidden>Add League of Legends Details</button><button class="game-details-open" id="sellerMlDetailsButton" type="button" hidden>Add Mobile Legends Details</button><button class="game-details-open" id="sellerPubgDetailsButton" type="button" hidden>Add PUBG Mobile Details</button><button class="game-details-open" id="sellerRobloxDetailsButton" type="button" hidden>Add Roblox Details</button></label>
               <label><span id="sellerTitleLabel">Account title *</span><input id="sellerTitle" name="title" type="text" maxlength="70" placeholder="Enter a catchy, descriptive title" autocomplete="off" required /></label>
               <label><span>Platform *</span><select id="sellerPlatform" required><option value="">Select platform</option><option>PC</option><option>PlayStation</option><option>Xbox</option><option>Mobile</option><option>Nintendo Switch</option><option>Other</option></select></label>
-              <label><span>Region / Server *</span><select id="sellerRegion" required><option value="">Select region / server</option><option>Europe</option><option>North America</option><option>South America</option><option>Asia</option><option>Middle East</option><option>Oceania</option><option>Global</option></select></label>
+              <label><span>Region / Server *</span><select id="sellerRegion" required><option value="">Select region / server</option><option>Europe</option><option>North America</option><option>South America</option><option>Asia</option><option>Middle East</option><option>Oceania</option><option>Global</option><option>Local</option></select></label>
               <label><span>Price (GEL) *</span><input id="sellerPrice" name="price" type="number" min="1" step="1" placeholder="Enter price" required /></label>
               <label class="seller-account-field"><span>Account type *</span><select id="sellerAccountStatus" name="accountStatus"><option value="basic">Basic Account</option><option value="full-collection">Full Collection Account</option><option value="og">OG Account</option><option value="premium">Premium Account</option><option value="ranked">Ranked Account</option><option value="rare">Rare Account</option></select></label>
               <label class="seller-account-field"><span>Account level *</span><input id="sellerAccountLevel" name="accountLevel" type="number" min="1" max="9999" step="1" placeholder="Enter real account level" required /></label>
@@ -146,10 +146,9 @@
             <button id="clashDetailsClose" type="button" aria-label="Close Clash of Clans details">×</button>
           </header>
           <div class="game-details-grid clash-details-grid">
-            <label><span>Town Hall Level <small>(Optional)</small></span><select id="clashTownHall"><option value="">Select Town Hall</option><option>TH17</option><option>TH16</option><option>TH15</option><option>TH14</option><option>TH13</option><option>TH12</option><option>TH11</option><option>TH10</option><option>TH9</option><option>TH8</option><option>TH7</option><option>TH6</option><option>TH5</option><option>TH4</option><option>TH3</option><option>TH2</option><option>TH1</option></select></label>
+            <label><span>Town Hall Level <small>(Optional)</small></span><select id="clashTownHall"><option value="">Select Town Hall</option><option>TH18</option><option>TH17</option><option>TH16</option><option>TH15</option><option>TH14</option><option>TH13</option><option>TH12</option><option>TH11</option><option>TH10</option><option>TH9</option><option>TH8</option><option>TH7</option><option>TH6</option><option>TH5</option><option>TH4</option><option>TH3</option><option>TH2</option><option>TH1</option></select></label>
             <label><span>Hero Levels <small>(Optional)</small></span><input id="clashHeroLevels" type="text" maxlength="160" placeholder="e.g. BK 95 / AQ 95 / GW 65 / RC 40" /></label>
             <label><span>Base Upgrade Status <small>(Optional)</small></span><select id="clashBaseStatus"><option value="">Select status</option><option>Maxed</option><option>Near Max</option><option>Balanced</option><option>Rushed</option></select></label>
-            <label><span>Laboratory Level <small>(Optional)</small></span><input id="clashLaboratoryLevel" type="text" maxlength="60" placeholder="e.g. Level 14" /></label>
             <label><span>Hero Equipment <small>(Optional)</small></span><input id="clashHeroEquipment" type="text" maxlength="220" placeholder="e.g. Epic Equipment, Max-Level Equipment" /></label>
             <label><span>Rare / Valuable Items <small>(Optional)</small></span><input id="clashRareItems" type="text" maxlength="260" placeholder="e.g. Hero Skins, Sceneries, Decorations, Exclusive Items" /></label>
           </div>
@@ -396,6 +395,7 @@
             <option value="all">All products</option>
             <option value="account">Accounts</option>
             <option value="skin">Skins</option>
+            <option value="item">Items</option>
           </select>
         </label>
 
@@ -421,7 +421,7 @@
         <div class="section-heading">
           <div>
             <p class="section-kicker">Live listings</p>
-            <h2 id="marketplaceListTitle">Accounts & Skins</h2>
+            <h2 id="marketplaceListTitle">Accounts, Skins &amp; Items</h2>
           </div>
         </div>
 

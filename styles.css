@@ -8650,6 +8650,10 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
   background: linear-gradient(135deg, var(--pink), #f59e0b);
 }
 
+.service-tag.item {
+  background: linear-gradient(135deg, #22c55e, #14b8a6);
+}
+
 .save-button {
   position: relative;
   width: 30px;
