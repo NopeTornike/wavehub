@@ -7402,6 +7402,32 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
   }
 
   .direct-message-history { padding: 16px 12px; }
+
+  /* Keep a short conversation anchored above the composer on phones. */
+  .direct-message-thread {
+    grid-template-rows: auto minmax(240px, 1fr) auto auto;
+  }
+
+  .direct-message-history {
+    justify-content: flex-end;
+  }
+
+  .direct-message-form {
+    grid-template-columns: minmax(0, 1fr) minmax(76px, auto);
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .direct-message-form button {
+    min-width: 76px;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
 }
 
 .section-heading {
@@ -15115,9 +15141,9 @@ body.public-profile-view .main-panel {
 .featured-coach-copy footer strong small { color: #a5a0aa; font-size: 10px; font-weight: 500; }
 .featured-coach-copy footer > span { color: #27b9eb; font-size: 11px; white-space: nowrap; }
 
-.competition-button { min-height: 60px; display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 17px; border: 1px solid rgba(231, 44, 157, .46); border-radius: 9px; color: #f5f1f6; background: linear-gradient(110deg, rgba(49, 7, 53, .78), rgba(15, 6, 35, .88)); font-size: 16px; font-weight: 750; }
-.competition-button > span { font-size: 27px; }
-.competition-button > b { margin-left: 8px; color: #ff43a9; font-size: 26px; }
+.competition-button { box-sizing: border-box; min-height: 60px; display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 17px; border: 1px solid rgba(231, 44, 157, .46); border-radius: 9px; color: #f5f1f6; background: linear-gradient(110deg, rgba(49, 7, 53, .78), rgba(15, 6, 35, .88)); padding: 8px 14px; font-size: 16px; font-weight: 750; line-height: 1.25; overflow-wrap: anywhere; text-align: center; }
+.competition-button > span { flex: 0 0 auto; font-size: 27px; }
+.competition-button > b { flex: 0 0 auto; margin-left: 8px; color: #ff43a9; font-size: 26px; }
 .competition-button:hover, .competition-button:focus-visible { border-color: #f342a4; color: #fff; box-shadow: 0 0 24px rgba(229, 42, 151, .15); transform: translateY(-2px); }
 
 .competition-bridge { --bridge-trophy-size: 136px; position: relative; isolation: isolate; display: grid; grid-template-rows: 1fr var(--bridge-trophy-size) 1fr auto; justify-items: center; min-height: 100%; padding: 12px 0 54px; color: #bc4cff; }
@@ -15200,7 +15226,7 @@ body.public-profile-view .main-panel {
 .home-competition-section .tournament-copy > p::before { color: #fff; content: '⚔  CS2'; font-size: 17px; font-weight: 800; }
 .home-competition-section .tournament-copy > p { font-size: 0; }
 .home-competition-section .tournament-copy > p i { width: 0; height: 0; }
-.home-competition-section .tournament-copy .competition-button { position: absolute; z-index: 3; top: 216px; left: 27px; width: 184px; min-height: 45px; margin: 0; }
+.home-competition-section .tournament-copy .competition-button { position: absolute; z-index: 3; top: 216px; left: 27px; width: max-content; min-width: 220px; max-width: calc(100% - 54px); min-height: 45px; margin: 0; white-space: nowrap; }
 .home-competition-section .competition-button { position: relative; isolation: isolate; overflow: hidden; border: 1px solid rgba(255,126,199,.62); color: #fff; background: linear-gradient(110deg,#ff1687 0%,#f329a1 48%,#c72fe4 100%); box-shadow: 0 9px 24px rgba(239,32,145,.28),inset 0 1px 0 rgba(255,255,255,.3); text-shadow: 0 1px 4px rgba(74,0,48,.36); transition: transform 170ms ease,box-shadow 170ms ease,filter 170ms ease; }
 .home-competition-section .competition-button::before { position: absolute; z-index: -1; top: -80%; left: -35%; width: 28%; height: 260%; background: linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent); content: ''; transform: rotate(20deg); transition: left 420ms ease; }
 .home-competition-section .competition-button b { margin-left: 2px; color: inherit; font-size: 20px; font-weight: 500; transition: transform 170ms ease; }
@@ -15258,7 +15284,7 @@ body.public-profile-view .main-panel {
   .featured-coach-copy li { padding: 4px; font-size: 8px; }
   .featured-coach-copy footer { padding-top: 7px; }
   .featured-coach-copy footer strong { font-size: 17px; }
-  .competition-button { min-height: 54px; font-size: 14px; }
+  .competition-button { min-height: 54px; gap: 10px; padding-inline: 10px; font-size: 14px; }
   .competition-bridge { min-height: 82px; grid-template-columns: 1fr 72px 1fr; padding-right: 58px; }
   .competition-bridge { --bridge-trophy-size: 72px; }
   .bridge-trophy svg { width: 45px; height: 45px; }
@@ -15910,11 +15936,15 @@ body.public-profile-view .main-panel {
 .home-featured-spark svg { width: 100%; height: 100%; display: block; }
 .home-featured-heading h2 { margin: 0; color: #f2edf5; font-size: 13px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .home-featured-list { display: grid; gap: 10px; padding: 0 10px; }
-.home-featured-card { overflow: hidden; border: 1px solid rgba(111, 88, 128, .24); border-radius: 8px; background: #0a0810; transition: border-color 160ms ease, transform 160ms ease; }
+.home-featured-card { position: relative; overflow: hidden; border: 1px solid rgba(111, 88, 128, .24); border-radius: 8px; background: #0a0810; transition: border-color 160ms ease, transform 160ms ease; }
 .home-featured-card:hover { border-color: rgba(255, 45, 143, .45); transform: translateY(-2px); }
 .home-featured-image { position: relative; min-height: 150px; display: grid; place-items: center; overflow: hidden; color: rgba(255, 255, 255, .28); background-color: #0e0a15; background-position: center; background-size: cover; font-size: 33px; font-weight: 900; letter-spacing: .08em; }
 .home-featured-image::after { position: absolute; inset: auto 0 0; height: 45%; background: linear-gradient(transparent, rgba(8, 6, 12, .8)); content: ''; }
-.home-featured-heart { position: absolute; z-index: 1; top: 10px; right: 11px; color: #f7f3f8; font-size: 24px; font-weight: 400; line-height: 1; text-shadow: 0 2px 9px #000; }
+.home-featured-heart { position: absolute; z-index: 2; top: 10px; right: 11px; border: 0; padding: 0; color: #f7f3f8; background: transparent; cursor: pointer; font: inherit; font-size: 24px; font-weight: 400; line-height: 1; text-shadow: 0 2px 9px #000; }
+.home-featured-heart:hover,.home-featured-heart:focus-visible,.home-featured-heart.saved,.featured-item-save.saved { color: #ff5eb8; }
+.home-featured-heart:focus-visible,.featured-item-save:focus-visible { outline: 2px solid #ff8ac8; outline-offset: 3px; }
+.featured-item-card > a { height: 100%; display: flex; flex-direction: column; align-items: flex-start; color: inherit; text-decoration: none; }
+.featured-item-save { border: 0; padding: 0; background: transparent; cursor: pointer; font-family: inherit; }
 .home-featured-copy { padding: 11px 12px 12px; }
 .home-featured-copy h3 { overflow: hidden; margin: 0; color: #f2eff4; font-size: 13px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .home-featured-copy h3 a { color: inherit; }

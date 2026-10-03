@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260919-frontend-audit-fixes-26" />
+  <link rel="stylesheet" href="styles.css?v=20261003-competition-button-desktop-fit-2" />
 </head>
 <body class="home-page">
   <div class="app-shell">
@@ -913,6 +913,50 @@
         const price = Number(value);
         return `${Number.isFinite(price) ? (Number.isInteger(price) ? price : price.toFixed(2)) : 0} GEL`;
       };
+      const featuredFavoritesKey = 'wavehub.favorites';
+      const featuredSessionKey = 'wavehub.session';
+      const getFeaturedUser = async () => (
+        window.wavehubAuthReady ? await window.wavehubAuthReady : readHomeData(featuredSessionKey, null)?.user || null
+      );
+      const getFeaturedFavoriteId = listing => listing?.id ? `listing:${listing.id}` : '';
+      const getFeaturedFavorites = username => {
+        const favorites = readHomeData(featuredFavoritesKey, {})?.[username];
+        return Array.isArray(favorites) ? favorites : [];
+      };
+      const setFeaturedHeartState = (heart, saved) => {
+        heart.classList.toggle('saved', saved);
+        heart.setAttribute('aria-pressed', String(saved));
+        heart.setAttribute('aria-label', saved ? 'Remove from favorites' : 'Save product');
+        heart.title = saved ? 'Remove from favorites' : 'Save product';
+        heart.textContent = saved ? '♥' : '♡';
+      };
+      const getFeaturedFavorite = listing => ({
+        id: getFeaturedFavoriteId(listing), type: 'product', listingId: listing.id || '',
+        search: [listing.game, listing.title, listing.description, listing.listingType].join(' ').toLowerCase(),
+        title: listing.title || `${listing.game || 'Marketplace'} item`, description: listing.description || '',
+        seller: listing.sellerName || listing.sellerUsername || 'WaveHub seller', price: formatFeaturedPrice(listing.price),
+        tag: `${listing.game || 'Marketplace'} ${listing.listingType === 'skin' ? 'Skin' : 'Account'}`, savedAt: new Date().toISOString(),
+      });
+      const bindFeaturedFavoriteButton = (heart, listing) => heart.addEventListener('click', async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const user = await getFeaturedUser();
+        if (!user?.username) {
+          document.getElementById('profileButton')?.click();
+          return;
+        }
+        const favorite = getFeaturedFavorite(listing);
+        const favoritesByUser = readHomeData(featuredFavoritesKey, {});
+        const favorites = getFeaturedFavorites(user.username);
+        const wasSaved = favorites.some(item => item.id === favorite.id);
+        const nextFavorites = wasSaved ? favorites.filter(item => item.id !== favorite.id) : [...favorites.filter(item => item.id !== favorite.id), favorite];
+        localStorage.setItem(featuredFavoritesKey, JSON.stringify({ ...favoritesByUser, [user.username]: nextFavorites }));
+        document.querySelectorAll(`[data-featured-favorite-id="${CSS.escape(favorite.id)}"]`).forEach(button => setFeaturedHeartState(button, !wasSaved));
+      });
+      const configureFeaturedHeart = async (heart, listing) => {
+        const user = await getFeaturedUser();
+        setFeaturedHeartState(heart, Boolean(user?.username && getFeaturedFavorites(user.username).some(item => item.id === getFeaturedFavoriteId(listing))));
+      };
       const renderHomeFeaturedItems = () => {
         const list = document.getElementById('homeFeaturedItems');
         const empty = document.getElementById('homeFeaturedEmpty');
@@ -930,7 +974,7 @@
         featured.slice(0, 2).forEach(listing => {
           const card = document.createElement('article');
           const imageLink = document.createElement('a');
-          const heart = document.createElement('span');
+          const heart = document.createElement('button');
           const copy = document.createElement('div');
           const title = document.createElement('h3');
           const titleLink = document.createElement('a');
@@ -948,9 +992,11 @@
           imageLink.textContent = image ? '' : getFeaturedInitials(listing.game);
           if (image) imageLink.style.backgroundImage = `linear-gradient(180deg, rgba(8, 5, 14, .02), rgba(8, 5, 14, .18)), url("${String(image).replace(/"/g, '%22')}")`;
           heart.className = 'home-featured-heart';
-          heart.setAttribute('aria-hidden', 'true');
+          heart.type = 'button';
+          heart.dataset.featuredFavoriteId = getFeaturedFavoriteId(listing);
+          bindFeaturedFavoriteButton(heart, listing);
+          configureFeaturedHeart(heart, listing);
           heart.textContent = '♡';
-          imageLink.appendChild(heart);
 
           copy.className = 'home-featured-copy';
           titleLink.href = detailUrl;
@@ -962,7 +1008,7 @@
           details.textContent = 'View details';
           footer.append(price, details);
           copy.append(title, meta, footer);
-          card.append(imageLink, copy);
+          card.append(imageLink, heart, copy);
           list.appendChild(card);
         });
 
@@ -972,8 +1018,9 @@
         mobileList.replaceChildren();
         mobileEmpty.hidden = hasFeaturedItems;
         featured.slice(0, 3).forEach(listing => {
-          const card = document.createElement('a');
-          const heart = document.createElement('span');
+          const card = document.createElement('article');
+          const link = document.createElement('a');
+          const heart = document.createElement('button');
           const image = document.createElement('span');
           const title = document.createElement('strong');
           const condition = document.createElement('small');
@@ -983,9 +1030,12 @@
           const productImage = getFeaturedImage(listing);
 
           card.className = 'featured-item-card';
-          card.href = detailUrl;
+          link.href = detailUrl;
           heart.className = 'featured-item-save';
-          heart.setAttribute('aria-hidden', 'true');
+          heart.type = 'button';
+          heart.dataset.featuredFavoriteId = getFeaturedFavoriteId(listing);
+          bindFeaturedFavoriteButton(heart, listing);
+          configureFeaturedHeart(heart, listing);
           heart.textContent = '♡';
           image.className = 'mobile-featured-product-image';
           image.textContent = productImage ? '' : getFeaturedInitials(listing.game);
@@ -995,7 +1045,8 @@
           price.textContent = formatFeaturedPrice(listing.price);
           action.className = 'featured-item-action';
           action.innerHTML = 'View details <i aria-hidden="true">→</i>';
-          card.append(heart, image, title, condition, price, action);
+          link.append(image, title, condition, price, action);
+          card.append(heart, link);
           mobileList.appendChild(card);
         });
       };
