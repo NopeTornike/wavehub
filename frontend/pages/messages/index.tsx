@@ -6,6 +6,7 @@ import type { PublicConversationSummary, PublicMessage } from '@wavehub/shared-t
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import ReportButton from '../../components/ReportButton'
 
 const POLL_MS = 5000
 
@@ -252,6 +253,7 @@ export default function Messages() {
                           <small>{new Date(m.createdAt).toLocaleString('ka-GE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>
                         </div>
                         <p>{m.body}</p>
+                        {!mine && m.senderId && <ReportButton targetType="message" targetId={m.id} label="დაჩივრება" className="report-link report-inline" />}
                       </article>
                     </div>
                   )

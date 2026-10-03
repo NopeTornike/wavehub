@@ -10,6 +10,7 @@ import { gameCover, gameDisplayName, gameTile } from '../lib/games'
 import { listingKind, normalizeAccountStatus } from '../components/ProductCard'
 import RankIcon from '../components/RankIcon'
 import { useCoachingFromPrice } from '../lib/coaching-price'
+import HomeBanners from '../components/HomeBanners'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
 // the prototype's final DOM order (its script moves competition/steam/featured/how-it-works in
@@ -450,6 +451,8 @@ export default function Home() {
         </aside>
       </div>
 
+      <HomeBanners />
+
       <section className="content-section home-competition-section" id="competition" aria-labelledby="competitionTitle">
         <header className="competition-heading">
           <h2 id="competitionTitle" data-i18n-keep="">
@@ -477,13 +480,13 @@ export default function Home() {
               {coaches.length === 0 ? (
                 <p className="home-featured-empty">ჯერ ქოუჩები არ არის.</p>
               ) : (
-                coaches.map((coach) => {
+                coaches.map((coach, index) => {
                   const slug = coach.gameSlug ?? (coach.gameName ? slugByName.get(coach.gameName) : undefined)
                   const cover = coach.avatarUrl ?? gameCover(slug)
                   const mostBookedId = coaches.reduce<PublicCoachSummary | null>((best, c) => (c.completedSessions > (best?.completedSessions ?? 0) ? c : best), null)?.id ?? null
                   const rating = coach.ratingAvg ? Number(coach.ratingAvg).toFixed(1) : null
                   return (
-                    <Link key={coach.id} className="featured-coach" href={`/coaching/${coach.id}`} aria-label={`${coach.firstName} ${coach.lastName}`}>
+                    <Link key={coach.id} className={`featured-coach${index === coachDot ? ' is-active' : ''}`} href={`/coaching/${coach.id}`} aria-label={`${coach.firstName} ${coach.lastName}`}>
                       <div
                         className="featured-coach-photo"
                         style={cover ? { backgroundImage: `linear-gradient(rgba(76, 13, 119, .2), rgba(10, 1, 20, .36)), url("${cover}")`, backgroundPosition: '15% center' } : undefined}
@@ -612,7 +615,7 @@ export default function Home() {
                 <div className="tournament-copy">
                   <h4>{tournament.name}</h4>
                   <p>
-                    {tournament.gameName}
+                    <span className="featured-tournament-game">{tournament.gameName}</span>
                     {[tournament.details?.format || (tournament.teamSize > 1 ? `${tournament.teamSize}v${tournament.teamSize}` : 'Solo'), tournament.details?.bracketType, tournament.details?.platform]
                       .filter(Boolean)
                       .map((fact) => (

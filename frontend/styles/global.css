@@ -20330,3 +20330,209 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
   .acp-row { grid-template-columns: 1fr; }
   .acp-preview { position: static; }
 }
+
+/* Profile settings: email copies of notifications */
+.profile-email-pref { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; margin: 4px 0 12px; padding: 12px 14px; border: 1px solid rgba(255, 255, 255, .08); border-radius: 12px; background: rgba(255, 255, 255, .02); cursor: pointer; }
+.profile-email-pref input { width: 18px; height: 18px; margin-top: 2px; accent-color: #ff2f8f; }
+.profile-email-pref strong { display: block; color: #fff; font-size: 14px; }
+.profile-email-pref small { color: #9aa1b3; font-size: 12.5px; line-height: 1.45; }
+
+/* Promo code (components/PromoCodeForm.tsx, wallet) */
+.promo-form { display: grid; gap: 10px; margin: 0 0 20px; padding: 16px 18px; border: 1px dashed rgba(255, 47, 143, .4); border-radius: 14px; background: rgba(255, 47, 143, .04); }
+.promo-form label { display: grid; gap: 3px; }
+.promo-form label strong { color: #fff; font-size: 15px; }
+.promo-form label small { color: #9aa1b3; font-size: 12.5px; }
+.promo-form > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.promo-form input { flex: 1 1 180px; min-width: 0; padding: 11px 14px; border: 1px solid rgba(255, 255, 255, .16); border-radius: 10px; background: rgba(5, 6, 16, .7); color: #fff; font: 700 15px/1 inherit; letter-spacing: .08em; text-transform: uppercase; }
+.promo-form button { min-height: 44px; padding: 0 20px; border: 0; border-radius: 10px; background: linear-gradient(90deg, #ff2f8f, #d335e7); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.promo-form button:disabled { opacity: .55; cursor: not-allowed; }
+.promo-ok { margin: 0; color: #4ade80; font-size: 13.5px; }
+.promo-error { margin: 0; color: #ff8da0; font-size: 13.5px; }
+
+/* Report (components/ReportButton.tsx) */
+.report-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 9px; background: transparent; color: #9aa1b3; font: inherit; font-size: 13px; cursor: pointer; }
+.report-link:hover { border-color: rgba(255, 90, 120, .5); color: #ff9db0; }
+.report-link svg { width: 15px; height: 15px; }
+.report-overlay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; background: rgba(2, 4, 12, .72); backdrop-filter: blur(4px); }
+.report-modal { display: grid; gap: 14px; width: min(440px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 20px; border: 1px solid rgba(255, 47, 143, .3); border-radius: 16px; background: #0a0e1d; color: #e8eaf2; }
+.report-modal header { display: flex; align-items: center; justify-content: space-between; }
+.report-modal h2 { margin: 0; font-size: 18px; color: #fff; }
+.report-modal header button { width: 32px; height: 32px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 9px; background: transparent; color: #9aa1b3; font-size: 18px; cursor: pointer; }
+.report-modal fieldset { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; }
+.report-modal legend { margin-bottom: 6px; color: #c3c9d6; font-size: 13px; font-weight: 700; }
+.report-modal fieldset label { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid rgba(255, 255, 255, .07); border-radius: 10px; font-size: 14px; cursor: pointer; }
+.report-modal fieldset input { accent-color: #ff2f8f; }
+.report-details { display: grid; gap: 6px; color: #c3c9d6; font-size: 13px; }
+.report-details textarea { padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 10px; background: rgba(5, 6, 16, .7); color: #fff; font: inherit; resize: vertical; }
+.report-submit { min-height: 44px; border: 0; border-radius: 10px; background: linear-gradient(90deg, #ff2f8f, #d335e7); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.report-ok { margin: 0; color: #4ade80; }
+.report-error { margin: 0; color: #ff8da0; font-size: 13.5px; }
+.report-link.report-inline { margin-top: 6px; padding: 2px 6px; border: 0; font-size: 11.5px; opacity: .6; }
+.report-link.report-inline:hover { opacity: 1; }
+
+/* Session disputes (components/SessionDisputePanel.tsx) */
+.sd-panel { display: grid; gap: 12px; margin-top: 16px; }
+.sd-open-link { justify-self: start; padding: 0; border: 0; background: none; color: #ff8da0; font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+.sd-form, .sd-thread { padding: 18px; border: 1px solid rgba(255, 90, 120, .35); border-radius: 14px; background: rgba(255, 90, 120, .05); }
+.sd-thread.resolved { border-color: rgba(148, 163, 184, .25); background: rgba(255, 255, 255, .02); }
+.sd-form h2, .sd-thread h2 { margin: 0; color: #fff; font-size: 17px; }
+.sd-thread header { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
+.sd-thread header span { color: #9aa1b3; font-size: 12.5px; }
+.sd-reason { margin: 0; padding: 10px 12px; border-left: 3px solid #ff5a78; color: #e1e3ea; white-space: pre-wrap; }
+.sd-outcome { margin: 0; color: #4ade80; font-weight: 600; }
+.sd-messages { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.sd-messages li { display: grid; gap: 3px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, .04); }
+.sd-messages li.staff { border: 1px solid rgba(255, 47, 143, .35); background: rgba(255, 47, 143, .07); }
+.sd-messages strong { color: #fff; font-size: 13px; }
+.sd-messages time { color: #7d8496; font-size: 11.5px; }
+.sd-messages p { margin: 0; color: #d6dae4; font-size: 14px; white-space: pre-wrap; }
+.sd-messages a { color: #ff6fb1; font-size: 13.5px; }
+.sd-empty { color: #9aa1b3; font-size: 13.5px; }
+.sd-reply { display: grid; gap: 8px; }
+.sd-reply textarea, .sd-form textarea { width: 100%; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 10px; background: rgba(5, 6, 16, .7); color: #fff; font: inherit; resize: vertical; }
+.sd-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sd-actions button, .sd-danger { min-height: 40px; padding: 0 16px; border: 0; border-radius: 10px; background: linear-gradient(90deg, #ff2f8f, #d335e7); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.sd-danger { background: #e11d48; }
+.sd-ghost { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid rgba(255, 255, 255, .18) !important; border-radius: 10px; background: transparent !important; color: #e1e3ea; font-size: 14px; font-weight: 600; cursor: pointer; }
+.sd-ghost.disabled { opacity: .5; pointer-events: none; }
+.cs-status.s-disputed { border-color: rgba(255, 90, 120, .5); color: #ff8da0; }
+
+/* Admin → session dispute */
+.asd-facts dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 8px 0 0; }
+.asd-facts dt { color: var(--adm-muted, #9aa1b3); font-size: 13px; }
+.asd-facts dd { margin: 0; color: #e1e3ea; font-size: 14px; }
+.asd-reply { margin-top: 12px !important; padding: 0 !important; border: 0 !important; background: transparent !important; }
+.asd-choice { display: flex; gap: 10px; align-items: center; color: #e1e3ea; font-size: 14px; }
+@media (max-width: 600px) { .asd-facts dl { grid-template-columns: 1fr; } }
+
+/* Admin → promo codes / banners */
+.apc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ab-row { display: grid; grid-template-columns: minmax(220px, 320px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.ab-preview { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 7; border: 1px dashed var(--adm-line-2, rgba(255,255,255,.2)); border-radius: 12px; background: #0b0f1c center / cover no-repeat; color: var(--adm-muted, #9aa1b3); font-size: 13px; }
+.ab-upload { position: absolute; right: 8px; bottom: 8px; width: auto !important; cursor: pointer; }
+.ab-upload.disabled { opacity: .5; pointer-events: none; }
+.ab-fields { display: grid; gap: 10px; min-width: 0; }
+.ab-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ab-order { max-width: 140px; }
+@media (max-width: 900px) {
+  .apc-grid, .ab-two { grid-template-columns: 1fr; }
+  .ab-row { grid-template-columns: 1fr; }
+}
+
+/* Admin → Trust & Safety */
+.ts-risk { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; background: rgba(74, 222, 128, .12); color: #4ade80; }
+.ts-risk.medium { background: rgba(255, 194, 51, .14); color: #ffd36b; }
+.ts-risk.high { background: rgba(255, 90, 120, .16); color: #ff8da0; }
+.ts-row { width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
+.ts-user { display: grid; gap: 12px; }
+.ts-user h3 { display: flex; gap: 10px; align-items: center; margin: 12px 0 6px; color: #fff; font-size: 14px; }
+.ts-user-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.ts-user-head h2 { margin: 0; }
+.ts-user-head .button { width: auto; }
+.ts-user-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.ts-factors, .ts-list, .ts-notes { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13.5px; color: #d3d8e3; }
+.ts-factors b { color: #ff8da0; }
+.ts-logins li.fail { color: #ff8da0; }
+.ts-notes li { padding: 8px 10px; border-radius: 8px; background: rgba(255, 255, 255, .03); }
+.ts-notes li.warning { border-left: 3px solid #ffc233; }
+.ts-notes li.flag { border-left: 3px solid #ff5a78; }
+.ts-notes p { margin: 4px 0 0; white-space: pre-wrap; }
+.ts-forms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .ts-user-grid, .ts-forms { grid-template-columns: 1fr; } }
+
+/* Home "Coaching & Tournaments" on phones — the owner's mobile mockup (2026-10-02): compact coach
+   cards (photo with the name over it, rating on the right, tags, price) in a centred carousel with
+   the active card outlined, dots + arrows below; the featured tournament as one compact card
+   (cover with real title/status and the real game + format tags, 4 stats, full-width register). */
+.tournament-cover.has-photo::before { content: none; }
+.home-competition-section .tournament-copy > p::before { content: none; }
+.home-competition-section .tournament-copy > p { font-size: 13px; }
+.featured-tournament-game { color: #fff; font-weight: 800; }
+
+@media (max-width: 560px) {
+  .home-page .home-competition-section { grid-template-columns: minmax(0, 1fr); padding: 26px 0 16px; }
+  .home-page .competition-showcase, .home-page .featured-coaches { min-width: 0; max-width: 100%; }
+  .home-page .competition-heading { margin: 0 12px 16px; }
+  .home-page .competition-heading::before { margin-bottom: 8px; font-size: 10px; letter-spacing: .38em; }
+  .home-page .competition-heading h2 { gap: 6px; font-size: min(6.1vw, 28px); white-space: nowrap; letter-spacing: -.01em; }
+  .home-page .competition-heading > span { margin-top: 6px; font-size: 14px; }
+
+  .home-page .competition-panel { box-sizing: border-box; width: auto; max-width: calc(100% - 16px); margin-inline: 8px; padding: 14px 0 12px; border-radius: 16px; }
+  .home-page .competition-panel-title { padding: 0 12px; margin-bottom: 12px; min-height: 0; }
+  .home-page .competition-title-icon { width: 44px; height: 44px; flex: 0 0 44px; }
+  .home-page .competition-panel-title { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+  .home-page .competition-panel-title > div { min-width: 0; }
+  .home-page .competition-panel-title h3 { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+  .home-page .competition-panel-title p { overflow: hidden; margin-top: 2px; font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+  .home-page .competition-panel-all { gap: 4px; font-size: 11px; white-space: nowrap; }
+
+  /* Coach carousel */
+  .home-page .featured-coaches { padding: 2px calc((100% - min(54vw, 206px)) / 2) 4px; gap: 10px; scroll-padding-inline: calc((100% - min(54vw, 206px)) / 2); }
+  .home-page .featured-coach {
+    position: relative; flex: 0 0 min(54vw, 206px); min-width: min(54vw, 206px); min-height: 0; height: auto;
+    display: block; overflow: hidden; border: 1px solid rgba(121, 84, 158, .35); border-radius: 12px; background: #090b17;
+    opacity: .78; transform: scale(.96); transition: transform .2s, opacity .2s, border-color .2s, box-shadow .2s;
+  }
+  .home-page .featured-coach.is-active { opacity: 1; transform: none; border-color: #ff2f9a; box-shadow: 0 0 0 1px rgba(255, 47, 154, .35), 0 0 22px rgba(255, 47, 154, .18); }
+  .home-page .featured-coach-photo { position: absolute; inset: 0 0 auto 0; height: 116px; min-height: 0; background-size: cover; }
+  .home-page .featured-coach-photo::after { background: linear-gradient(180deg, rgba(9, 11, 23, 0) 30%, #090b17 100%); }
+  .home-page .featured-coach-photo > span { top: 8px; left: 8px; padding: 4px 7px; border-radius: 6px; font-size: 8px; }
+  .home-page .featured-coach-online { top: 8px; right: 8px; padding: 2px 7px; font-size: 9px; }
+  .home-page .featured-coach-copy { position: relative; z-index: 1; display: flex; flex-direction: column; padding: 74px 10px 10px; margin: 0; }
+  .home-page .featured-coach-name { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 5px; }
+  .home-page .featured-coach-name h4 { min-width: 0; overflow: hidden; color: #fff; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
+  .home-page .featured-coach-name > b { width: 15px; height: 15px; font-size: 8px; }
+  .home-page .featured-coach-name > span { grid-column: 3; display: grid; justify-items: end; gap: 0; margin-left: auto; font-size: 13px; font-weight: 700; }
+  .home-page .featured-coach-name > span small { display: block; color: #9a95a3; font-size: 9px; font-weight: 500; }
+  .home-page .featured-coach-copy > p { margin: -2px 0 8px; color: #a9a4af; font-size: 12px; }
+  .home-page .featured-coach-copy ul { display: flex; flex-wrap: nowrap; gap: 5px; overflow: hidden; }
+  .home-page .featured-coach-copy li { flex: 0 0 auto; padding: 4px 7px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 6px; color: #e6e3ea; font-size: 9.5px; white-space: nowrap; }
+  .home-page .featured-coach-copy footer { display: block; margin-top: 8px; padding: 0; border: 0; }
+  .home-page .featured-coach-copy footer strong { display: inline; color: #ff2f9a; font-size: 19px; }
+  .home-page .featured-coach-copy footer strong small { color: #a5a0aa; font-size: 11px; }
+  .home-page .featured-coach-copy footer > span { display: none; }
+
+  .home-page .featured-coach-carousel { position: relative; justify-content: center; min-height: 44px; margin: 10px 12px 0; }
+  .home-page .featured-coach-arrows { position: absolute; right: 0; gap: 8px; }
+  .home-page .featured-coach-arrows button { width: 36px; height: 36px; font-size: 26px; }
+  .home-page .featured-coach-dots i { width: 8px; height: 8px; }
+
+  /* Featured tournament */
+  .home-page .tournament-preview { margin-top: 14px; padding-bottom: 12px; }
+  .home-page .featured-tournament { margin: 0 10px; border-radius: 12px; }
+  .home-page .tournament-cover { min-height: 158px; border-radius: 12px 12px 0 0; }
+  .home-page .tournament-cover[data-title]::before { top: 40px; left: 14px; font-size: 32px; }
+  .home-page .tournament-cover > span { display: inline-block; top: 10px; left: 10px; padding: 5px 8px; font-size: 9px; }
+  .home-page .tournament-cover > b { top: 10px; right: 10px; padding: 5px 8px; font-size: 9px; }
+  .home-page .tournament-cover > svg { width: 100px; height: 100px; margin-left: 40%; }
+  .home-page .home-competition-section .tournament-copy { padding: 10px 10px 12px; }
+  .home-page .home-competition-section .tournament-copy > p {
+    position: absolute; z-index: 3; top: 118px; left: 10px; right: 10px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px;
+    margin: 0; overflow: hidden; color: #fff; font-size: 12px;
+  }
+  .home-page .featured-tournament-game { flex: 0 0 auto; padding-right: 2px; font-size: 13px; text-shadow: 0 1px 6px rgba(0, 0, 0, .6); }
+  .home-page .featured-tournament-tag { flex: 0 0 auto; padding: 4px 8px; border: 1px solid rgba(255, 255, 255, .25); border-radius: 6px; background: rgba(8, 9, 20, .72); color: #f1eef4; font-size: 10.5px; white-space: nowrap; }
+  .home-page .home-competition-section .tournament-copy dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 0; padding: 4px 0 0; border: 0; }
+  .home-page .tournament-copy dl > div { gap: 3px; padding: 0 4px; }
+  .home-page .tournament-copy dt { display: grid; justify-items: center; gap: 3px; }
+  .home-page .tournament-copy dt svg { width: 24px; height: 24px; }
+  .home-page .tournament-copy dt span { font-size: 8px; letter-spacing: .04em; text-transform: uppercase; }
+  .home-page .tournament-copy dd { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .home-page .home-competition-section .tournament-copy .competition-button { position: static; width: 100%; min-height: 46px; margin-top: 12px; border-radius: 8px; font-size: 16px; }
+}
+
+/* Home banners (components/HomeBanners.tsx) */
+.home-banners { position: relative; margin: 22px 0 6px; }
+.home-banner { display: flex; align-items: center; min-height: 190px; padding: 26px 32px; border: 1px solid rgba(255, 47, 143, .28); border-radius: 16px; background: #0b0a18 center / cover no-repeat; }
+.home-banner-copy { display: grid; gap: 8px; max-width: 560px; }
+.home-banner-copy h2 { margin: 0; color: #fff; font-size: clamp(22px, 2.6vw, 34px); line-height: 1.15; text-shadow: 0 2px 12px rgba(0, 0, 0, .5); }
+.home-banner-copy p { margin: 0; color: #e3e0ea; font-size: 15px; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); }
+.home-banner-cta { justify-self: start; display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; padding: 10px 18px; border-radius: 10px; background: linear-gradient(90deg, #ff2f8f, #d335e7); color: #fff; font-weight: 800; font-size: 14px; }
+.home-banner-dots { position: absolute; right: 18px; bottom: 14px; display: flex; gap: 6px; }
+.home-banner-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .35); cursor: pointer; }
+.home-banner-dots button.active { background: #ff2f9a; }
+@media (max-width: 560px) {
+  .home-page .home-banners { margin: 16px 8px 4px; }
+  .home-banner { min-height: 150px; padding: 18px 16px; border-radius: 14px; }
+  .home-banner-copy p { font-size: 13px; }
+}

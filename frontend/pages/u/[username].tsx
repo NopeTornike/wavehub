@@ -7,6 +7,7 @@ import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gameCover } from '../../lib/games'
 import RankIcon from '../../components/RankIcon'
+import ReportButton from '../../components/ReportButton'
 
 // docs/design-mockups/12-public-profile.jpg: hero (photo with real online dot, name, @handle,
 // WaveHubX ID with copy, role, location, join date, tagline, Message / Follow), the Wave Rank panel,
@@ -189,6 +190,7 @@ export default function PublicProfile() {
                   <button type="button" className={`up-btn${following ? ' on' : ''}`} aria-pressed={following} onClick={() => void toggleFollow()}>
                     {following ? 'გამოწერილია ✓' : '+ გამოწერა'}
                   </button>
+                  <ReportButton targetType="user" targetId={p.userId} className="up-btn" />
                 </>
               )}
               {p.coachId && (

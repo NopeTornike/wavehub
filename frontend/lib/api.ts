@@ -41,6 +41,20 @@ import type {
   AdminReviewSummary,
   AdminReviewRow,
   AdminCoachingPackage,
+  AdminPromoCode,
+  PromoRedemptionResult,
+  PublicBanner,
+  AdminBanner,
+  PublicSessionDispute,
+  AdminSessionDisputeSummary,
+  SessionDisputeResolution,
+  ReportTargetType,
+  ReportReason,
+  ReportStatus,
+  AdminUserReport,
+  TrustOverview,
+  TrustUserSummary,
+  TrustUserDetail,
   OrderReviewState,
   PendingReview,
   PublicPlatformSettings,
@@ -494,6 +508,7 @@ export const api = {
     platform?: string
     preferredRole?: string
     achievement?: string
+    emailNotifications?: boolean
   }) =>
     request<MyProfile>('/me/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
 
@@ -922,6 +937,74 @@ export const api = {
 
   adminUpdateCoachProfile: (id: string, payload: CoachProfilePatch) =>
     request<MyCoachProfile>(`/admin/coaches/${id}/profile`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  // --- Session disputes (backend/src/coaching/coaching-session-disputes.*) ---
+  getSessionDispute: (sessionId: string) => request<{ dispute: PublicSessionDispute | null }>(`/coaching-sessions/${sessionId}/dispute`),
+
+  openSessionDispute: (sessionId: string, reason: string) =>
+    request<PublicSessionDispute>(`/coaching-sessions/${sessionId}/dispute`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  sendSessionDisputeMessage: (sessionId: string, body: string) =>
+    request<PublicSessionDispute>(`/coaching-sessions/${sessionId}/dispute/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
+
+  uploadSessionDisputeEvidence: (sessionId: string, file: File) => upload<PublicSessionDispute>(`/coaching-sessions/${sessionId}/dispute/evidence`, file),
+
+  adminListSessionDisputes: (status: 'open' | 'resolved' | 'all' = 'open') => request<AdminSessionDisputeSummary[]>(`/admin/session-disputes?status=${status}`),
+
+  adminGetSessionDispute: (id: string) => request<PublicSessionDispute & { session: PublicCoachingSession }>(`/admin/session-disputes/${id}`),
+
+  adminSessionDisputeMessage: (id: string, body: string) =>
+    request<PublicSessionDispute>(`/admin/session-disputes/${id}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
+
+  adminResolveSessionDispute: (id: string, resolution: SessionDisputeResolution, note: string) =>
+    request<PublicSessionDispute>(`/admin/session-disputes/${id}/resolve`, { method: 'POST', body: JSON.stringify({ resolution, note }) }),
+
+  // --- Marketing: promo codes + banners (backend/src/marketing/) ---
+  redeemPromoCode: (code: string) => request<PromoRedemptionResult>('/promo-codes/redeem', { method: 'POST', body: JSON.stringify({ code }) }),
+
+  adminListPromoCodes: () => request<AdminPromoCode[]>('/admin/promo-codes'),
+
+  adminCreatePromoCode: (payload: { code: string; amountWaveCoin: number; maxRedemptions: number; startsAt?: string | null; expiresAt?: string | null; note?: string | null }) =>
+    request<AdminPromoCode>('/admin/promo-codes', { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminUpdatePromoCode: (id: string, payload: Partial<{ amountWaveCoin: number; maxRedemptions: number; startsAt: string | null; expiresAt: string | null; active: boolean; note: string | null }>) =>
+    request<AdminPromoCode>(`/admin/promo-codes/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  listBanners: () => request<PublicBanner[]>('/banners'),
+
+  adminListBanners: () => request<AdminBanner[]>('/admin/banners'),
+
+  adminCreateBanner: (payload: { title: string; subtitle?: string | null; linkUrl?: string | null; buttonLabel?: string | null; sortOrder?: number }) =>
+    request<AdminBanner>('/admin/banners', { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminUpdateBanner: (id: string, payload: Partial<{ title: string; subtitle: string | null; linkUrl: string | null; buttonLabel: string | null; active: boolean; startsAt: string | null; endsAt: string | null; sortOrder: number }>) =>
+    request<AdminBanner>(`/admin/banners/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  adminUploadBannerImage: (id: string, file: File) => upload<AdminBanner>(`/admin/banners/${id}/image`, file),
+
+  adminDeleteBanner: (id: string) => request<{ ok: true }>(`/admin/banners/${id}`, { method: 'DELETE' }),
+
+  // --- Trust & Safety (backend/src/trust/) ---
+  createReport: (payload: { targetType: ReportTargetType; targetId: string; reason: ReportReason; details?: string }) =>
+    request<{ id: string; status: ReportStatus }>('/reports', { method: 'POST', body: JSON.stringify(payload) }),
+
+  adminTrustOverview: () => request<TrustOverview>('/admin/trust/overview'),
+
+  adminTrustReports: (status: ReportStatus | 'all' = 'open') => request<AdminUserReport[]>(`/admin/trust/reports?status=${status}`),
+
+  adminHandleReport: (id: string, status: ReportStatus, staffNote?: string) =>
+    request<AdminUserReport>(`/admin/trust/reports/${id}`, { method: 'PATCH', body: JSON.stringify({ status, staffNote }) }),
+
+  adminTrustSearch: (q: string) => request<TrustUserSummary[]>(`/admin/trust/users?q=${encodeURIComponent(q)}`),
+
+  adminTrustUser: (id: string) => request<TrustUserDetail>(`/admin/trust/users/${id}`),
+
+  adminTrustNote: (id: string, body: string) => request<TrustUserDetail>(`/admin/trust/users/${id}/notes`, { method: 'POST', body: JSON.stringify({ body }) }),
+
+  adminTrustWarn: (id: string, message: string) => request<TrustUserDetail>(`/admin/trust/users/${id}/warn`, { method: 'POST', body: JSON.stringify({ message }) }),
+
+  adminTrustFlag: (id: string, flagged: boolean, reason: string) =>
+    request<TrustUserDetail>(`/admin/trust/users/${id}/flag`, { method: 'POST', body: JSON.stringify({ flagged, reason }) }),
 
   // Platform coaching packages (Starter / Growth / Elite): public list; staff list; Super Admin edits.
   listCoachingPackages: () => request<PublicCoachPackage[]>('/coaching-packages'),

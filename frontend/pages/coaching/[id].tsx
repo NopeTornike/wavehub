@@ -4,11 +4,12 @@ import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicCoachDetail, PublicCoachReview } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
-import PackageCard, { lari } from '../../components/PackageCard'
+import { lari } from '../../components/PackageCard'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gameIcon } from '../../lib/games'
 import RankIcon from '../../components/RankIcon'
+import ReportButton from '../../components/ReportButton'
 
 // docs/design-mockups/14-coach-profile.jpg on the prototype's coach-profile classes: portrait with
 // the real online pill, verified mark, badges (rank, plan badge, Fast Responder / Top Rated when
@@ -295,16 +296,7 @@ export default function CoachProfile() {
                   )}
                 </div>
               )}
-              {coach.packages.length > 0 && (
-                <article className="coach-info-card coach-packages-card">
-                  <h2>პაკეტები</h2>
-                  <div className="pkg-grid">
-                    {coach.packages.map((p, i) => (
-                      <PackageCard key={p.id} pkg={p} index={i} href={isOwnProfile ? undefined : `/coaching/${coach.id}/book?package=${p.id}`} />
-                    ))}
-                  </div>
-                </article>
-              )}
+              {/* Packages are shown only in the booking flow (owner, 2026-10-02) — "სესიის დაჯავშნა" opens them. */}
               <div className="coach-info-grid coach-info-grid-auto">
                 {coach.coachingStyle.length > 0 && (
                   <article className="coach-info-card coach-style-card">
@@ -403,6 +395,7 @@ export default function CoachProfile() {
               <button className={`coach-book-secondary${saved ? ' is-saved' : ''}`} type="button" aria-pressed={saved} onClick={() => void toggleSaved()}>
                 {saved ? 'სურვილებშია' : 'სურვილებში დამატება'}
               </button>
+              {!isOwnProfile && <ReportButton targetType="coach" targetId={coach.id} label="ქოუჩის დაჩივრება" />}
             </div>
 
 

@@ -116,3 +116,11 @@ page exists.
 - Georgian title/body texts need matching `{0}` pattern entries in
   `frontend/lib/i18n-ka-en.app.json`, or they stay Georgian in English mode.
 - e2e: `test/notification-events.e2e-spec.ts`; `bog-callbacks.e2e-spec.ts` covers top-up-once.
+
+## 2026-10-03 Email copies
+`emit` emails a copy of the types in `EMAIL_NOTIFICATION_TYPES` (orders, disputes, withdrawals,
+sessions, listing/coach decisions, top-ups, balance changes, ticket replies, account warnings) using
+`templates.ts#notificationEmail` (title, body, "View on WaveHub" button to `notificationPath`, link to
+switch emails off). Fire-and-forget: never delays or fails the action; only active accounts with
+`users.emailNotifications` on (migration `1784372000000`, toggle on `/profile`). Messages, followers,
+reminders and review prompts stay in-app only. Test: `test/notification-events.e2e-spec.ts`.

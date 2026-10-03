@@ -1,3 +1,4 @@
+import { LoginEvent } from '../trust/trust.entities';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -26,7 +27,7 @@ if (!jwtSecret) {
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, EmailVerificationToken, PasswordResetToken, Notification]),
+    TypeOrmModule.forFeature([User, EmailVerificationToken, PasswordResetToken, Notification, LoginEvent]),
     JwtModule.register({ secret: jwtSecret || 'dev-only-insecure-secret-do-not-use-in-production' }),
     EmailModule,
     UsersModule,

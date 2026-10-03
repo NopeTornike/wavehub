@@ -7,13 +7,14 @@ import {
   HttpStatus,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { SessionService } from './session.service';
@@ -107,10 +108,11 @@ export class AuthController {
 
   @Post('register')
   @Throttle(AUTH_THROTTLE)
-  async register(@Body() body: RegisterDto, @Res({ passthrough: true }) res: Response) {
+  async register(@Body() body: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
       const user = await this.auth.register(body);
       this.sessions.attach(res, user.id);
+      await this.auth.recordLogin({ userId: user.id }, req.ip, req.headers['user-agent'], true);
       return { ok: true, user: this.usersService.toPublicUser(user) };
     } catch (err: any) {
       if (err.message === 'USERNAME_TAKEN') {
@@ -126,13 +128,15 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle(AUTH_THROTTLE)
-  async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() body: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
       const user = await this.auth.login(body);
       this.sessions.attach(res, user.id);
+      await this.auth.recordLogin({ userId: user.id }, req.ip, req.headers['user-agent'], true);
       return { ok: true, user: this.usersService.toPublicUser(user) };
     } catch (err: any) {
       if (err.message === 'INVALID_CREDENTIALS') {
+        await this.auth.recordLogin({ username: body.username }, req.ip, req.headers['user-agent'], false);
         throw new HttpException({ ok: false, error: 'Invalid username or password' }, HttpStatus.UNAUTHORIZED);
       }
       if (err.message === 'ACCOUNT_SUSPENDED') {

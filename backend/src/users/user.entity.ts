@@ -95,6 +95,14 @@ export class User {
   @Column({ type: 'varchar', length: 80, nullable: true })
   achievement: string | null;
 
+  // Email copies of important notifications (NotificationsService#emit); the user can switch them off.
+  @Column({ type: 'boolean', default: true })
+  emailNotifications: boolean;
+
+  // Trust & Safety watchlist (trust/) — adds to the risk score; staff-only.
+  @Column({ type: 'boolean', default: false })
+  flagged: boolean;
+
   // Up to two ids into `games` — the profile's "main games".
   @Column({ type: 'uuid', array: true, default: () => "'{}'" })
   mainGameIds: string[];

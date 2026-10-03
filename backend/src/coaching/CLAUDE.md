@@ -349,3 +349,17 @@ Migration `1784371000000-CoachingPackages`.
   `markDone()`.
 - Tests: `coach-admin.e2e-spec.ts` (spec values, staff-only edit, deactivation, snapshot on rename),
   `coaching-lifecycle.e2e-spec.ts` (Growth booking split 13/13/13, auto-end, `serverNow`).
+
+## 2026-10-03 Session disputes
+Migration `1784373000000-CoachingSessionDisputes`. A participant opens a dispute while the session is
+`in_progress` or `awaiting_confirmation` → status `disputed` (frozen: no cancel, no auto-end, no
+auto-confirm). Thread with messages and evidence files (JPG/PNG/WEBP/PDF/ZIP ≤20MB, byte-sniffed);
+staff replies show as "WaveHub". Super Admin decides `refund_student` (→ cancelled) or `pay_coach`
+(→ completed, 7-day hold) — the money step runs inside the decision's transaction via
+`CoachingSessionsService.refundStudentIn/payCoachIn(manager, id, from)`, which re-check the starting
+status under the row lock (a participant's cancel can never consume a disputed session). Routes:
+`GET/POST coaching-sessions/:id/dispute`, `…/dispute/messages`, `…/dispute/evidence`,
+`GET admin/session-disputes[/:id]`, `POST admin/session-disputes/:id/messages|resolve` (audit-logged).
+Frontend: `components/SessionDisputePanel.tsx`, Admin → Disputes "ქოუჩინგის სესიები" tab,
+`pages/admin/session-disputes/[id].tsx`. Tests: `test/session-disputes.e2e-spec.ts`.
+Packages are no longer shown on the coach profile — only in the booking flow (owner, 2026-10-02).

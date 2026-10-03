@@ -12,6 +12,7 @@ import { useFavorites } from '../../lib/favorites'
 import { gameCover, gameIcon } from '../../lib/games'
 import GAME_DETAILS from '../../lib/game-details.json'
 import RankIcon from '../../components/RankIcon'
+import ReportButton from '../../components/ReportButton'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
 // the game's title icon, About card, the game-specific details grid, Access & Delivery, Linked
@@ -652,6 +653,7 @@ export default function ListingDetail() {
                   Message Seller
                 </button>
               )}
+              {!isOwnListing && <ReportButton targetType="listing" targetId={listing.id} label="განცხადების დაჩივრება" />}
             </div>
             <p className={`seller-status${status.kind ? ` ${status.kind}` : ''}`} id="buyStatus" aria-live="polite">
               {status.text}

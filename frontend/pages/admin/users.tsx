@@ -1,3 +1,4 @@
+import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { AdminUserSummary, StaffPermissions } from '@wavehub/shared-types'
 import { AdminRole, UserStatus } from '@wavehub/shared-types'
@@ -156,12 +157,17 @@ export default function AdminUsers() {
       .finally(() => setLoading(false))
   }
 
+  // `?q=` (e.g. from Trust & Safety's "manage account") pre-fills and runs the search.
+  const router = useRouter()
+  const initialQ = typeof router.query.q === 'string' ? router.query.q : ''
   useEffect(() => {
+    if (!router.isReady) return
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
+    if (initialQ) setQuery(initialQ)
     api
-      .adminListUsers({})
+      .adminListUsers(initialQ ? { query: initialQ } : {})
       .then((res) => {
         if (!cancelled) setItems(res.items)
       })
@@ -174,9 +180,9 @@ export default function AdminUsers() {
     return () => {
       cancelled = true
     }
-    // Mount-only initial load (empty filters) — the search form's submit handler below calls
+    // Initial load (empty filters or ?q=) — the search form's submit handler below calls
     // `search()` directly for subsequent, filter-aware fetches.
-  }, [])
+  }, [router.isReady, initialQ])
 
   const suspend = async (id: string) => {
     const reason = window.prompt('შეჩერების მიზეზი:')

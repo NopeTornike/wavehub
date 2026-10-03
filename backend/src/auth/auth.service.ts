@@ -10,6 +10,8 @@ import { PasswordResetToken } from './password-reset-token.entity';
 import { EmailService } from '../email/email.service';
 import { passwordResetEmail, verificationEmail } from '../email/templates';
 import { Notification } from '../notifications/notification.entity';
+import { LoginEvent } from '../trust/trust.entities';
+import { loginHash } from '../trust/login-hash';
 
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
@@ -32,7 +34,21 @@ export class AuthService {
     @InjectRepository(Notification)
     private readonly notifications: Repository<Notification>,
     private readonly email: EmailService,
+    @InjectRepository(LoginEvent)
+    private readonly loginEvents: Repository<LoginEvent>,
   ) {}
+
+  // Login history for Trust & Safety (trust/CLAUDE.md): keyed hashes only, never the raw IP/UA.
+  // A failed attempt is recorded only when the username exists. Best-effort — never blocks auth.
+  async recordLogin(who: { userId?: string; username?: string }, ip: string | undefined, userAgent: string | undefined, success: boolean): Promise<void> {
+    try {
+      const userId = who.userId ?? (await this.users.findOne({ where: { username: (who.username ?? '').trim().toLowerCase() }, select: { id: true } }))?.id;
+      if (!userId) return;
+      await this.loginEvents.insert({ userId, ipHash: loginHash(ip), uaHash: loginHash(userAgent), success });
+    } catch (err) {
+      this.logger.warn(`login event not recorded: ${(err as Error).message}`);
+    }
+  }
 
   // The in-app welcome (client request, 2026-10-02). Written directly to the notifications table:
   // NotificationsModule imports AuthModule, so injecting NotificationsService here would be circular.

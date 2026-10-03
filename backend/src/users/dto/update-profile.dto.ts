@@ -1,4 +1,4 @@
-import { ArrayMaxSize, IsArray, IsOptional, IsString, IsUUID, Length, MaxLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, IsUUID, Length, MaxLength } from 'class-validator';
 
 // PATCH /me/profile — the prototype's Settings form. Username is not editable (it's the public
 // handle and the login name).
@@ -49,4 +49,9 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(80)
   achievement?: string;
+
+  // Email copies of important notifications (orders, sessions, withdrawals, disputes…).
+  @IsOptional()
+  @IsBoolean()
+  emailNotifications?: boolean;
 }

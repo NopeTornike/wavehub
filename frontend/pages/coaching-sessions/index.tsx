@@ -12,7 +12,7 @@ import { SESSION_STATUS_LABELS } from '../../lib/labels'
 // Mirrors orders/index.tsx's structure exactly — same .orders-page-head/.orders-tabs/.order-card
 // design, since coaching sessions are conceptually a sibling of orders (a paid, escrowed
 // transaction) with no static-prototype page of its own to port from.
-const LIVE = [CoachingSessionStatus.Scheduled, CoachingSessionStatus.InProgress, CoachingSessionStatus.AwaitingConfirmation]
+const LIVE = [CoachingSessionStatus.Scheduled, CoachingSessionStatus.InProgress, CoachingSessionStatus.AwaitingConfirmation, CoachingSessionStatus.Disputed]
 
 export default function CoachingSessions() {
   const router = useRouter()

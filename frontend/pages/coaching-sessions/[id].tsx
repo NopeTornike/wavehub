@@ -8,6 +8,7 @@ import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { SESSION_STATUS_LABELS } from '../../lib/labels'
 import SessionReview from '../../components/SessionReview'
+import SessionDisputePanel from '../../components/SessionDisputePanel'
 
 // One coaching session, lifecycle v2 (backend/src/coaching/CLAUDE.md "Lifecycle v2"):
 //   booked → both confirm the start (from 15 min before until 60 min after; reminders every 10 min,
@@ -112,7 +113,7 @@ export default function CoachingSessionDetail() {
   }, [load])
 
   // Live: the other side's confirmation, the reminder sweep and the clock all move this page.
-  const active = session && (session.status === S.Scheduled || session.status === S.InProgress || session.status === S.AwaitingConfirmation)
+  const active = session && (session.status === S.Scheduled || session.status === S.InProgress || session.status === S.AwaitingConfirmation || session.status === S.Disputed)
   useEffect(() => {
     if (!active) return
     const poll = window.setInterval(() => load(true), 20_000)
@@ -151,7 +152,7 @@ export default function CoachingSessionDetail() {
   const myStartConfirmed = isCoach ? Boolean(session.coachStartConfirmedAt) : Boolean(session.buyerStartConfirmedAt)
   const otherStartConfirmed = isCoach ? Boolean(session.buyerStartConfirmedAt) : Boolean(session.coachStartConfirmedAt)
   const stepIndex =
-    session.status === S.Scheduled ? (session.coachStartConfirmedAt || session.buyerStartConfirmedAt ? 1 : 0) : session.status === S.InProgress ? 2 : session.status === S.AwaitingConfirmation ? 3 : 4
+    session.status === S.Scheduled ? (session.coachStartConfirmedAt || session.buyerStartConfirmedAt ? 1 : 0) : session.status === S.InProgress ? 2 : session.status === S.AwaitingConfirmation || session.status === S.Disputed ? 3 : 4
 
   const act = async (fn: () => Promise<PublicCoachingSession>, question?: string) => {
     if (question && !window.confirm(question)) return
@@ -220,13 +221,18 @@ export default function CoachingSessionDetail() {
       action = isBuyer
         ? {
             title: 'დაადასტურე სესიის დასრულება',
-            text: `ქოუჩმა სესია დასრულებულად მონიშნა. თუ სესია შედგა, დაადასტურე — ${session.autoConfirmAt ? `${when(session.autoConfirmAt)}-ზე ` : ''}ავტომატურად დადასტურდება. პრობლემის შემთხვევაში მიმართე მხარდაჭერას.`,
+            text: `ქოუჩმა სესია დასრულებულად მონიშნა. თუ სესია შედგა, დაადასტურე — ${session.autoConfirmAt ? `${when(session.autoConfirmAt)}-ზე ` : ''}ავტომატურად დადასტურდება. თუ სესია არ შედგა, გახსენი დავა ქვემოთ.`,
             button: { label: 'დიახ, სესია შედგა', primary: true, run: () => void act(() => api.confirmCoachingSessionComplete(session.id)) },
           }
         : {
             title: 'ველოდებით სტუდენტის დადასტურებას',
             text: `${session.coachPayoutWaveCoin} GEL ჩაგერიცხება დადასტურებისთანავე${session.autoConfirmAt ? ` (არაუგვიანეს ${when(session.autoConfirmAt)})` : ''}.`,
           }
+    } else if (session.status === S.Disputed) {
+      action = {
+        title: 'დავა განიხილება',
+        text: 'თანხა გაყინულია. WaveHub-ის გუნდი გადახედავს ორივე მხარის ახსნას და მტკიცებულებებს და მიიღებს გადაწყვეტილებას — შედეგს შეტყობინებით მიიღებ.',
+      }
     }
   }
 
@@ -301,6 +307,7 @@ export default function CoachingSessionDetail() {
 
         {session.status === S.Cancelled && <p className="le-note warn">სესია გაუქმდა — {session.priceWaveCoin} GEL დაუბრუნდა სტუდენტის ბალანსს.</p>}
 
+        {(isBuyer || isCoach) && <SessionDisputePanel session={session} onChanged={() => load(true)} />}
         {session.status === S.Completed && (isBuyer || isCoach) && <SessionReview sessionId={session.id} canReview={isBuyer} />}
 
         <div className="cs-grid">

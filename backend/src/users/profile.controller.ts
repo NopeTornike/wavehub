@@ -42,6 +42,7 @@ export class ProfileController {
       platform: user.platform ?? null,
       preferredRole: user.preferredRole ?? null,
       achievement: user.achievement ?? null,
+      emailNotifications: user.emailNotifications ?? true,
     };
   }
 
@@ -66,6 +67,7 @@ export class ProfileController {
     for (const key of ['location', 'tagline', 'platform', 'preferredRole', 'achievement'] as const) {
       if (dto[key] !== undefined) patch[key] = dto[key]!.trim() || null;
     }
+    if (dto.emailNotifications !== undefined) patch.emailNotifications = dto.emailNotifications;
     if (dto.mainGameIds !== undefined) {
       const ids = [...new Set(dto.mainGameIds)];
       const found = ids.length ? await this.games.count({ where: { id: In(ids), isActive: true } }) : 0;

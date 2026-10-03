@@ -5,6 +5,51 @@ import { NotificationType } from '@wavehub/shared-types';
 import type { PublicNotification } from '@wavehub/shared-types';
 import { Notification } from './notification.entity';
 import { EmailService } from '../email/email.service';
+import { notificationEmail } from '../email/templates';
+import { User } from '../users/user.entity';
+import { UserStatus } from '@wavehub/shared-types';
+
+// Events that also go out by email (client, 2026-10-02: "no email for a new order, delivery,
+// completed order, approved withdrawal or dispute"). Chatty or low-stakes ones (messages,
+// followers, session reminders every 10 minutes, review prompts) stay in-app only; subscription
+// events pass their own `alsoEmail`.
+export const EMAIL_NOTIFICATION_TYPES: ReadonlySet<NotificationType> = new Set([
+  NotificationType.OrderPlaced,
+  NotificationType.OrderPaid,
+  NotificationType.OrderDelivered,
+  NotificationType.OrderRevisionRequested,
+  NotificationType.OrderCompleted,
+  NotificationType.OrderCancelled,
+  NotificationType.DisputeOpened,
+  NotificationType.DisputeResolved,
+  NotificationType.WithdrawalStatusChanged,
+  NotificationType.SessionBooked,
+  NotificationType.SessionCancelled,
+  NotificationType.SessionAwaitingConfirmation,
+  NotificationType.SessionCompleted,
+  NotificationType.ListingApproved,
+  NotificationType.ListingRejected,
+  NotificationType.CoachApproved,
+  NotificationType.CoachRejected,
+  NotificationType.WalletTopup,
+  NotificationType.WalletAdjusted,
+  NotificationType.TicketReplied,
+  NotificationType.AccountWarning,
+]);
+
+// The site page a notification is about — the same mapping as frontend/lib/notifications.ts.
+export function notificationPath(type: NotificationType, metadata: Record<string, string> | null | undefined): string {
+  const m = metadata ?? {};
+  if (m.link && /^\/(?!\/)/.test(m.link)) return m.link;
+  if (m.sessionDisputeId || (m.disputeId && m.sessionId)) return `/coaching-sessions/${m.sessionId}`;
+  if (m.orderId) return `/orders/${m.orderId}`;
+  if (m.sessionId) return `/coaching-sessions/${m.sessionId}`;
+  if (m.ticketId) return `/support/${m.ticketId}`;
+  if (m.withdrawRequestId) return '/wallet';
+  if (m.tournamentId) return `/tournaments/${m.tournamentId}`;
+  if (String(type).startsWith('subscription_')) return '/plans';
+  return '/notifications';
+}
 
 @Injectable()
 export class NotificationsService {
@@ -13,7 +58,22 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification) private readonly notifications: Repository<Notification>,
     private readonly email: EmailService,
+    @InjectRepository(User) private readonly users: Repository<User>,
   ) {}
+
+  // Email copy of a key notification: only to active accounts that kept emails on. Fire-and-forget
+  // from emit (a slow mail server must never slow down or fail the action), errors only logged —
+  // never with the address (PII-free logs, root CLAUDE.md "Security").
+  private async emailCopy(userId: string, type: NotificationType, title: string, body: string, metadata?: Record<string, string>): Promise<void> {
+    try {
+      const user = await this.users.findOne({ where: { id: userId }, select: { id: true, email: true, status: true, emailNotifications: true } });
+      if (!user || user.status !== UserStatus.Active || user.emailNotifications === false) return;
+      const base = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+      await this.email.send(user.email, `${title} · WaveHub`, notificationEmail(title, body, `${base}${notificationPath(type, metadata)}`));
+    } catch (err) {
+      this.logger.warn(`notification email (${type}) failed: ${(err as Error).message}`);
+    }
+  }
 
   // The one place a notification row is created. `alsoEmail` is for the "key" events
   // SPECIFICATION.md §5.12 calls out for a matching transactional email (new order, delivery
@@ -35,6 +95,8 @@ export class NotificationsService {
     );
     if (alsoEmail) {
       await this.email.send(alsoEmail.to, alsoEmail.subject, body);
+    } else if (EMAIL_NOTIFICATION_TYPES.has(type)) {
+      void this.emailCopy(userId, type, title, body, metadata);
     }
     return notification;
   }

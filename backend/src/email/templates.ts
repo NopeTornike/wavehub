@@ -135,6 +135,35 @@ export function passwordResetEmail(name: string, url: string): RenderedEmail {
   });
 }
 
+// An in-app notification's email copy (NotificationsService#emit): title, body, a button to the
+// page it's about, and how to switch these emails off.
+export function notificationEmail(title: string, body: string, url: string): RenderedEmail {
+  const safeUrl = escapeHtml(url);
+  const settingsUrl = escapeHtml(`${(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '')}/profile`);
+  const text = [title, '', body, '', `ნახვა / View: ${url}`, '', 'ამ წერილების გამორთვა / Turn these emails off: ' + settingsUrl.replace(/&amp;/g, '&'), '', 'WaveHub — wavehubx.com'].join('\n');
+  const html = `<!DOCTYPE html>
+<html lang="ka"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title></head>
+<body style="margin:0;padding:0;background:#f4f3f7;font-family:Arial,Helvetica,sans-serif">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f3f7;padding:24px 12px"><tr><td align="center">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden">
+      <tr><td style="padding:24px 32px;background:#0b0a18;font-size:20px;font-weight:800;letter-spacing:2px;color:#ffffff">WAVE<span style="color:${BRAND}">HUB</span>X</td></tr>
+      <tr><td style="padding:28px 32px 8px">
+        <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:#15131f">${escapeHtml(title)}</h1>
+        <p style="margin:0 0 22px;font-size:15px;line-height:1.6;color:#3b3748">${escapeHtml(body).replace(/\n/g, '<br>')}</p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td style="border-radius:8px;background:${BRAND}">
+          <a href="${safeUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">WaveHub-ზე ნახვა · View on WaveHub</a>
+        </td></tr></table>
+      </td></tr>
+      <tr><td style="padding:24px 32px;font-size:12px;line-height:1.5;color:#8a8696">
+        ეს წერილი მიიღე, რადგან WaveHub-ზე ანგარიში გაქვს. <a href="${settingsUrl}" style="color:#8a8696">გამორთე ეს წერილები პროფილის პარამეტრებში</a>.<br>
+        You got this because you have a WaveHub account. <a href="${settingsUrl}" style="color:#8a8696">Turn these emails off in your profile settings</a>.
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>`;
+  return { text, html };
+}
+
 // Plain notification bodies (NotificationsService) get the same shell so every mail is multipart.
 export function plainEmail(body: string): RenderedEmail {
   const paragraphs = body

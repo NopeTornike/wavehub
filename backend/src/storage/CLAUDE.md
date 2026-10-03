@@ -64,3 +64,9 @@ Local driver verified end to end in the e2e suite (real upload, disguised-html r
 headers). The S3 driver's signer is unit-tested against the SigV4 spec (signing-key vector from
 AWS's docs + a cross-check with an independent implementation) but **has never been run against a
 real S3/R2/B2 endpoint** — do a real upload during launch verification.
+
+## Moving to object storage (prepared, not switched on)
+`move-uploads-to-s3.ts` (compiled to `dist/storage/move-uploads-to-s3.js`) copies `UPLOADS_DIR` to the
+bucket under the s3 driver's keys and rewrites stored URLs in every text/varchar/jsonb/array column
+from `BACKEND_PUBLIC_URL/uploads/` to `S3_PUBLIC_BASE_URL/uploads/`. Dry run by default; `--apply`
+does it. Then set `STORAGE_DRIVER=s3` and restart. Needs the owner's bucket credentials.

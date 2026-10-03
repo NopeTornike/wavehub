@@ -93,6 +93,7 @@ export default function Dashboard() {
       (s) =>
         s.status === CoachingSessionStatus.InProgress ||
         s.status === CoachingSessionStatus.AwaitingConfirmation ||
+        s.status === CoachingSessionStatus.Disputed ||
         (s.status === CoachingSessionStatus.Scheduled && new Date(s.scheduledAt).getTime() > now - 3_600_000),
     )
     .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))

@@ -74,6 +74,11 @@ export class CoachingSessionsService {
     }
   }
 
+  // For the staff dispute view.
+  toPublicSession(session: CoachingSession): PublicCoachingSession {
+    return this.toPublic(session);
+  }
+
   private toPublic(session: CoachingSession): PublicCoachingSession {
     const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
     return {
@@ -111,7 +116,7 @@ export class CoachingSessionsService {
     };
   }
 
-  private async getJoinedOrThrow(id: string): Promise<CoachingSession> {
+  async getJoinedOrThrow(id: string): Promise<CoachingSession> {
     const session = await this.sessions.findOne({
       where: { id },
       relations: { coach: { user: true }, buyer: true },
@@ -358,10 +363,15 @@ export class CoachingSessionsService {
 
   // Re-checks the transition under a row lock — the status read before the transaction may already
   // be stale (two actions racing, or the sweep), which used to double-pay/refund.
-  private async lockAndRevalidate(manager: EntityManager, sessionId: string, target: CoachingSessionStatus): Promise<CoachingSession> {
+  // `from` narrows the allowed starting statuses beyond the transition graph (e.g. a participant's
+  // cancel must never consume a session that became Disputed a moment ago).
+  private async lockAndRevalidate(manager: EntityManager, sessionId: string, target: CoachingSessionStatus, from?: CoachingSessionStatus[]): Promise<CoachingSession> {
     const locked = await manager.findOne(CoachingSession, { where: { id: sessionId }, lock: { mode: 'pessimistic_write' } });
     if (!locked) {
       throw new NotFoundException('Session not found');
+    }
+    if (from && !from.includes(locked.status)) {
+      throw new ConflictException('This session was just updated — reload and try again');
     }
     assertValidSessionTransition(locked.status, target);
     return locked;
@@ -463,18 +473,34 @@ export class CoachingSessionsService {
 
   // Completed: release the coach's payout (same 7-day withdrawal hold as an order) and tell both.
   private async finish(sessionId: string, automatic: boolean): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
-      const locked = await this.lockAndRevalidate(manager, sessionId, CoachingSessionStatus.Completed);
-      const coach = await manager.findOneOrFail(Coach, { where: { id: locked.coachId } });
-      await manager.update(CoachingSession, sessionId, { status: CoachingSessionStatus.Completed, completedAt: new Date() });
-      await this.wallet.releaseCoachEarnings(coach.userId, sessionId, locked.coachPayoutWaveCoin, DEFAULT_HOLD_DAYS, manager);
-    });
+    await this.dataSource.transaction((manager) => this.payCoachIn(manager, sessionId));
+    await this.notifyFinished(sessionId, automatic ? 'სესია ავტომატურად დადასტურდა. ' : null);
+  }
+
+  // Escrow → coach (7-day hold), inside the caller's transaction. Re-validates the status under
+  // the row lock, so a concurrent confirm / dispute decision can't pay twice.
+  async payCoachIn(manager: EntityManager, sessionId: string, from: CoachingSessionStatus[] = [CoachingSessionStatus.AwaitingConfirmation]): Promise<void> {
+    const locked = await this.lockAndRevalidate(manager, sessionId, CoachingSessionStatus.Completed, from);
+    const coach = await manager.findOneOrFail(Coach, { where: { id: locked.coachId } });
+    await manager.update(CoachingSession, sessionId, { status: CoachingSessionStatus.Completed, completedAt: new Date() });
+    await this.wallet.releaseCoachEarnings(coach.userId, sessionId, locked.coachPayoutWaveCoin, DEFAULT_HOLD_DAYS, manager);
+  }
+
+  // Escrow → student, inside the caller's transaction (same lock re-validation).
+  async refundStudentIn(manager: EntityManager, sessionId: string, from: CoachingSessionStatus[] = [CoachingSessionStatus.Scheduled, CoachingSessionStatus.InProgress]): Promise<void> {
+    const locked = await this.lockAndRevalidate(manager, sessionId, CoachingSessionStatus.Cancelled, from);
+    await manager.update(CoachingSession, sessionId, { status: CoachingSessionStatus.Cancelled });
+    await this.wallet.refundBuyerForSession(locked.buyerId, sessionId, locked.priceWaveCoin, manager);
+  }
+
+  // `lead` replaces the default "@student confirmed the session." opening (auto-confirm, dispute).
+  async notifyFinished(sessionId: string, lead: string | null): Promise<void> {
     const full = await this.getJoinedOrThrow(sessionId);
     await this.notify(
       full.coach.userId,
       NotificationType.SessionCompleted,
       'სესია წარმატებით დასრულდა',
-      `${automatic ? 'სესია ავტომატურად დადასტურდა. ' : `@${full.buyer.username}-მა დაადასტურა სესია. `}დაგერიცხა ${full.coachPayoutWaveCoin} GEL (ფასი ${full.priceWaveCoin} GEL, პლატფორმის საკომისიო ${full.platformFeePercentSnapshot}% — ${full.platformFeeWaveCoin} GEL). თანხა გასატანად ხელმისაწვდომი იქნება ${DEFAULT_HOLD_DAYS} დღეში.`,
+      `${lead ?? `@${full.buyer.username}-მა დაადასტურა სესია. `}დაგერიცხა ${full.coachPayoutWaveCoin} GEL (ფასი ${full.priceWaveCoin} GEL, პლატფორმის საკომისიო ${full.platformFeePercentSnapshot}% — ${full.platformFeeWaveCoin} GEL). თანხა გასატანად ხელმისაწვდომი იქნება ${DEFAULT_HOLD_DAYS} დღეში.`,
       full.id,
     );
     await this.notify(
@@ -498,6 +524,9 @@ export class CoachingSessionsService {
     if (isBuyer && session.status !== CoachingSessionStatus.Scheduled) {
       throw new ConflictException('The session has started — contact support if something went wrong');
     }
+    if (session.status === CoachingSessionStatus.Disputed) {
+      throw new ConflictException('This session is under dispute — WaveHub staff will decide');
+    }
     assertValidSessionTransition(session.status, CoachingSessionStatus.Cancelled);
     await this.refund(session.id);
     const full = await this.getJoinedOrThrow(session.id);
@@ -514,11 +543,7 @@ export class CoachingSessionsService {
   }
 
   private async refund(sessionId: string): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
-      const locked = await this.lockAndRevalidate(manager, sessionId, CoachingSessionStatus.Cancelled);
-      await manager.update(CoachingSession, sessionId, { status: CoachingSessionStatus.Cancelled });
-      await this.wallet.refundBuyerForSession(locked.buyerId, sessionId, locked.priceWaveCoin, manager);
-    });
+    await this.dataSource.transaction((manager) => this.refundStudentIn(manager, sessionId));
   }
 
   // --- The reminder / timeout sweep (every 2 minutes) ---

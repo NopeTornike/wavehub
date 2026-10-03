@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import type { PublicWalletBalance, PublicWalletTransaction, PublicWithdrawRequest } from '@wavehub/shared-types'
 import { CoachingSessionStatus, OrderStatus, WalletLedgerStatus, WalletLedgerType, WithdrawMethod, WithdrawStatus } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
+import PromoCodeForm from '../components/PromoCodeForm'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 
@@ -43,6 +44,7 @@ const TX_LABELS: Record<WalletLedgerType, string> = {
   [WalletLedgerType.SessionRefund]: 'სესიის თანხის დაბრუნება',
   [WalletLedgerType.Withdrawal]: 'თანხის გატანა',
   [WalletLedgerType.AdminAdjustment]: 'ადმინისტრაციული კორექტირება',
+  [WalletLedgerType.PromoCredit]: 'პრომო კოდი',
   [WalletLedgerType.PlatformFee]: 'პლატფორმის საკომისიო',
 }
 
@@ -125,7 +127,7 @@ export default function Wallet() {
     Promise.all([api.listOrdersAsBuyer().catch(() => []), api.listMySessionsAsBuyer().catch(() => [])]).then(([orders, sessions]) => {
       const held =
         orders.filter((order) => OPEN_ORDER_STATUSES.includes(order.status)).reduce((sum, order) => sum + order.priceWaveCoin, 0) +
-        sessions.filter((session) => [CoachingSessionStatus.Scheduled, CoachingSessionStatus.InProgress, CoachingSessionStatus.AwaitingConfirmation].includes(session.status)).reduce((sum, session) => sum + session.priceWaveCoin, 0)
+        sessions.filter((session) => [CoachingSessionStatus.Scheduled, CoachingSessionStatus.InProgress, CoachingSessionStatus.AwaitingConfirmation, CoachingSessionStatus.Disputed].includes(session.status)).reduce((sum, session) => sum + session.priceWaveCoin, 0)
       setEscrow(held)
     })
   }, [])
@@ -290,6 +292,8 @@ export default function Wallet() {
           </article>
         ))}
       </section>
+
+      <PromoCodeForm onRedeemed={loadWalletData} />
 
       <section className="wallet-layout" aria-label="საფულის მართვა">
         <form className="wallet-buy-panel" id="walletBuyForm" onSubmit={topUp}>

@@ -47,6 +47,34 @@ describe('notification events (e2e)', () => {
     expect((await ofType(seller, 'order_paid')).map((n) => n.metadata?.orderId)).toContain(order.body.id);
   });
 
+  it('key events are also emailed (with a link to the page), unless the user switched emails off', async () => {
+    const mailsTo = (u: TestUser) => ctx.sentEmails.filter((e) => e.to === `${u.username}@example.com`);
+    const waitFor = async (check: () => boolean) => {
+      for (let i = 0; i < 40 && !check(); i++) await new Promise((r) => setTimeout(r, 50));
+    };
+    const quiet = await registerUser(ctx, 'nequiet');
+    expect((await quiet.client.get('/me/profile')).body.emailNotifications).toBe(true);
+    expect((await quiet.client.request('PATCH', '/me/profile', { emailNotifications: false })).body.emailNotifications).toBe(false);
+    const before = { buyer: mailsTo(buyer).length, seller: mailsTo(seller).length, quiet: mailsTo(quiet).length };
+
+    const listingId = await publishItemListing(ctx, seller, admin, 7);
+    await credit(ctx, buyer, 20);
+    await credit(ctx, quiet, 20);
+    const order = (await buyer.client.post('/orders', { listingId })).body;
+    expect((await quiet.client.post('/orders', { listingId: await publishItemListing(ctx, seller, admin, 7) })).status).toBe(201);
+    await waitFor(() => mailsTo(buyer).length > before.buyer && mailsTo(seller).length >= before.seller + 2);
+
+    const placed = mailsTo(buyer).slice(before.buyer).find((m) => m.subject.startsWith('შეკვეთა გაფორმდა'));
+    expect(placed).toBeTruthy();
+    expect(placed!.html).toContain(`/orders/${order.id}`);
+    expect(placed!.body).toContain('7 GEL');
+    expect(mailsTo(seller).slice(before.seller).some((m) => m.subject.startsWith('ახალი შეკვეთა'))).toBe(true);
+    expect(mailsTo(seller).slice(before.seller).some((m) => m.subject.startsWith('განცხადება დამტკიცდა'))).toBe(true);
+    await new Promise((r) => setTimeout(r, 300));
+    expect(mailsTo(quiet).length).toBe(before.quiet); // switched off: in-app only
+    expect((await quiet.client.get('/notifications')).body.some((n: { type: string }) => n.type === 'order_placed')).toBe(true);
+  });
+
   it('listing rejected → the seller, with the reason', async () => {
     const cats = await seller.client.get('/categories');
     const games = await seller.client.get('/games');

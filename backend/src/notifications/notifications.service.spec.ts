@@ -25,7 +25,7 @@ describe('NotificationsService', () => {
     } as any;
     const email = { send: jest.fn() } as any;
 
-    const service = new NotificationsService(notifications, email);
+    const service = new NotificationsService(notifications, email, { findOne: jest.fn(async () => null) } as any);
     return { service, notifications, email, updates };
   }
 

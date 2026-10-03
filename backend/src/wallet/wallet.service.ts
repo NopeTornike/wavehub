@@ -104,6 +104,27 @@ export class WalletService {
     });
   }
 
+  // A redeemed promo code: spendable credit inside the caller's transaction (marketing/). Like an
+  // admin adjustment it is not an earning, so it never becomes withdrawable cash.
+  async creditPromo(userId: string, amountWaveCoin: number, reference: string, manager: EntityManager): Promise<WalletLedgerEntry> {
+    if (!Number.isInteger(amountWaveCoin) || amountWaveCoin <= 0) throw new Error('amountWaveCoin must be a positive integer');
+    const user = await manager.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
+    if (!user) throw new Error('USER_NOT_FOUND');
+    const balanceAfter = user.wavecoinBalance + amountWaveCoin;
+    await manager.update(User, userId, { wavecoinBalance: balanceAfter });
+    return manager.save(
+      manager.create(WalletLedgerEntry, {
+        userId,
+        orderId: null,
+        type: WalletLedgerType.PromoCredit,
+        amountWaveCoin,
+        balanceAfter,
+        status: WalletLedgerStatus.Available,
+        reference,
+      }),
+    );
+  }
+
   // Moves funds out of a buyer's spendable balance at checkout. Throws INSUFFICIENT_BALANCE
   // rather than allowing a negative balance — callers must not create an order if this throws (or,
   // when composed into the caller's own transaction via `manager`, the whole transaction rolls

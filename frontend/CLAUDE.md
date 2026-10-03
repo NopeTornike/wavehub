@@ -888,3 +888,16 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   in Gmail's spam folder): in `VerifyEmailBanner`, after registering, and on `/verify-email`.
 - `/coaching-sessions/[id]` times the start window on the server clock (`session.serverNow`).
 - The phone bottom nav highlights "Profile" only on the viewer's own `/u/[username]`.
+
+## 2026-10-03 Disputes, reports, promo codes, banners, Trust & Safety, mobile home
+- Session disputes: `components/SessionDisputePanel.tsx` on `/coaching-sessions/[id]`; Admin → Disputes
+  has an orders / coaching-sessions tab; `pages/admin/session-disputes/[id].tsx` decides.
+- `components/ReportButton.tsx` on `/u/[username]`, listing pages, coach pages and received direct
+  messages → Admin → უსაფრთხოება (`pages/admin/trust.tsx`: overview, reports queue, user detail).
+- `components/PromoCodeForm.tsx` on `/wallet`; `pages/admin/promo-codes.tsx` (Super Admin);
+  `pages/admin/banners.tsx` + `components/HomeBanners.tsx` on the homepage.
+- `/profile` has the "notifications by email too" switch.
+- Home "Coaching & Tournaments" on phones (≤560px) follows the owner's mobile mockup: compact coach
+  cards (photo with the name over it) in a centred carousel with the active card outlined, compact
+  tournament card. The cover no longer shows a hard-coded "WAVE CUP" / "CS2" — real data only.
+- The coach profile no longer lists packages; they appear only in the booking flow.

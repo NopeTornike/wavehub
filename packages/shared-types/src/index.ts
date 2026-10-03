@@ -105,6 +105,8 @@ export enum WalletLedgerType {
   Withdrawal = 'withdrawal',
   AdminAdjustment = 'admin_adjustment',
   PlatformFee = 'platform_fee',
+  // A redeemed promo code (marketing/): spendable credit, never withdrawable earnings.
+  PromoCredit = 'promo_credit',
 }
 
 export enum WalletLedgerStatus {
@@ -207,6 +209,8 @@ export enum NotificationType {
   CoachApproved = 'coach_approved',
   CoachRejected = 'coach_rejected',
   NewFollower = 'new_follower',
+  // An official warning from Trust & Safety (trust/).
+  AccountWarning = 'account_warning',
 }
 
 // Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
@@ -1113,6 +1117,8 @@ export interface MyProfile {
   platform: string | null;
   preferredRole: string | null;
   achievement: string | null;
+  // Email copies of important notifications (default on).
+  emailNotifications: boolean;
 }
 
 // Coaching session booking + escrow payment (build-plan Phase 11b follow-up — see
@@ -1131,6 +1137,48 @@ export enum CoachingSessionStatus {
   AwaitingConfirmation = 'awaiting_confirmation',
   Completed = 'completed',
   Cancelled = 'cancelled',
+  // A participant opened a dispute (in progress / awaiting confirmation): frozen until a Super Admin
+  // refunds the student (→ cancelled) or pays the coach (→ completed).
+  Disputed = 'disputed',
+}
+
+export type SessionDisputeResolution = 'refund_student' | 'pay_coach';
+
+export interface PublicSessionDisputeMessage {
+  id: string;
+  senderUsername: string;
+  isStaff: boolean;
+  body: string | null;
+  fileUrl: string | null;
+  fileType: string | null;
+  createdAt: string;
+}
+
+// GET coaching-sessions/:id/dispute → { dispute } (participants); admin views add the session facts.
+export interface PublicSessionDispute {
+  id: string;
+  sessionId: string;
+  openedByUsername: string;
+  reason: string;
+  status: 'open' | 'resolved';
+  resolution: SessionDisputeResolution | null;
+  resolutionNote: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  messages: PublicSessionDisputeMessage[];
+}
+
+export interface AdminSessionDisputeSummary {
+  id: string;
+  sessionId: string;
+  coachUsername: string;
+  buyerUsername: string;
+  openedByUsername: string;
+  priceWaveCoin: number;
+  scheduledAt: string;
+  reason: string;
+  status: 'open' | 'resolved';
+  createdAt: string;
 }
 
 export interface PublicCoachingSession {
@@ -1587,3 +1635,128 @@ export interface AdminAnalytics {
   series: AnalyticsSeriesPoint[];
 }
 
+
+// --- Marketing (backend/src/marketing/): promo codes + homepage banners ---
+
+// A promo code adds `amountWaveCoin` of spendable (never withdrawable) credit, once per account.
+export interface AdminPromoCode {
+  id: string;
+  code: string;
+  amountWaveCoin: number;
+  maxRedemptions: number;
+  redeemedCount: number;
+  startsAt: string | null;
+  expiresAt: string | null;
+  active: boolean;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface PromoRedemptionResult {
+  code: string;
+  amountWaveCoin: number;
+  balanceAfter: number;
+}
+
+// GET banners — what the homepage shows (active, inside their date window, in order).
+export interface PublicBanner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  imageUrl: string | null;
+  linkUrl: string | null;
+  buttonLabel: string | null;
+}
+
+export interface AdminBanner extends PublicBanner {
+  active: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+  sortOrder: number;
+  updatedAt: string;
+}
+
+// --- Trust & Safety (backend/src/trust/) ---
+
+export type ReportTargetType = 'user' | 'listing' | 'coach' | 'review' | 'message';
+export type ReportReason = 'spam' | 'harassment' | 'fraud' | 'scam_listing' | 'fake_account' | 'offensive' | 'other';
+export type ReportStatus = 'open' | 'reviewing' | 'actioned' | 'dismissed';
+
+export interface AdminUserReport {
+  id: string;
+  targetType: ReportTargetType;
+  targetId: string;
+  targetUserId: string | null;
+  targetUsername: string | null;
+  targetLabel: string; // listing title, "@coach", review/message excerpt…
+  targetHref: string | null;
+  reporterUsername: string;
+  reason: ReportReason;
+  details: string | null;
+  // A copy of the reported message / review text at report time (evidence).
+  evidence: string | null;
+  status: ReportStatus;
+  staffNote: string | null;
+  createdAt: string;
+  handledAt: string | null;
+}
+
+export interface RiskFactor {
+  key: string;
+  label: string; // Georgian, shown to staff
+  points: number;
+}
+
+export interface RiskAssessment {
+  score: number; // 0–100
+  level: 'low' | 'medium' | 'high';
+  factors: RiskFactor[];
+}
+
+export interface TrustUserSummary {
+  userId: string;
+  username: string;
+  status: UserStatus;
+  flagged: boolean;
+  risk: RiskAssessment;
+}
+
+export interface TrustOverview {
+  openReports: number;
+  reportsByReason: Array<{ reason: ReportReason; count: number }>;
+  flaggedUsers: number;
+  warnings30d: number;
+  suspended: number;
+  banned: number;
+  newAccounts7d: number;
+  sharedNetworkGroups: number; // networks used by 3+ accounts in 30 days
+  topRisk: TrustUserSummary[];
+}
+
+export interface TrustStaffNote {
+  id: string;
+  kind: 'note' | 'warning' | 'flag' | 'unflag';
+  body: string;
+  authorUsername: string;
+  createdAt: string;
+}
+
+export interface TrustUserDetail {
+  userId: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  status: UserStatus;
+  emailVerified: boolean;
+  flagged: boolean;
+  createdAt: string;
+  lastSeenAt: string | null;
+  risk: RiskAssessment;
+  notes: TrustStaffNote[];
+  // Network / device are opaque hash prefixes — raw IPs are never stored.
+  logins: Array<{ at: string; success: boolean; network: string; device: string }>;
+  linkedAccounts: Array<{ userId: string; username: string; status: UserStatus; sharedLogins: number }>;
+  reportsAgainst: AdminUserReport[];
+  reportsFiled: number;
+  stats: { ordersAsBuyer: number; ordersAsSeller: number; cancelledAsSeller: number; disputesAgainst: number; promoRedemptions: number; warnings: number };
+}

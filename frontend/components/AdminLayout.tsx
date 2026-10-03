@@ -12,9 +12,12 @@ import { canPublishSteam } from '../lib/roles'
 // Access is enforced server-side per route (@RequireAdminRole). Links a role can never open
 // (Super-Admin-only sections, Steam publishing) are hidden; others show the API's 403 in-page.
 
-type IconName = 'dashboard' | 'chart' | 'listing' | 'game' | 'steam' | 'star' | 'scale' | 'cash' | 'users' | 'ticket' | 'coach' | 'trophy' | 'crown' | 'doc' | 'gear'
+type IconName = 'shield' | 'tag' | 'image' | 'dashboard' | 'chart' | 'listing' | 'game' | 'steam' | 'star' | 'scale' | 'cash' | 'users' | 'ticket' | 'coach' | 'trophy' | 'crown' | 'doc' | 'gear'
 
 const ICONS: Record<IconName, ReactNode> = {
+  shield: <path d="M12 3 4 6v6c0 4.4 3.4 8.4 8 9 4.6-.6 8-4.6 8-9V6l-8-3Zm-3 9 2 2 4-4" />,
+  tag: <path d="M3 12V4h8l10 10-8 8L3 12Zm5-4h.01" />,
+  image: <path d="M4 5h16v14H4V5Zm0 11 5-5 4 4 2-2 5 5M15 9h.01" />,
   dashboard: <path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z" />,
   chart: <path d="M4 20V10m6 10V4m6 16v-7m4 7H3" />,
   listing: <path d="M4 6h16M4 12h16M4 18h10" />,
@@ -56,6 +59,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { href: '/admin/withdrawals', label: 'გატანები', icon: 'cash' },
       { href: '/admin/subscription-plans', label: 'გამოწერები', icon: 'crown' },
+      { href: '/admin/promo-codes', label: 'პრომო კოდები', icon: 'tag', superAdminOnly: true },
     ],
   },
   {
@@ -65,6 +69,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
       { href: '/admin/coaches', label: 'ქოუჩები', icon: 'coach' },
       { href: '/admin/coaching-packages', label: 'ქოუჩინგის პაკეტები', icon: 'crown' },
       { href: '/admin/tickets', label: 'მხარდაჭერა', icon: 'ticket' },
+      { href: '/admin/trust', label: 'უსაფრთხოება', icon: 'shield' },
     ],
   },
   {
@@ -72,6 +77,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { href: '/admin/tournaments', label: 'ტურნირები', icon: 'trophy' },
       { href: '/admin/content', label: 'გვერდები', icon: 'doc' },
+      { href: '/admin/banners', label: 'ბანერები', icon: 'image' },
     ],
   },
   {

@@ -37,7 +37,7 @@ export default function Profile() {
   const { games } = useShell()
   const userId = user?.id
   const [profile, setProfile] = useState<MyProfile | null>(null)
-  const [form, setForm] = useState({ firstName: '', lastName: '', bio: '', mainGameIds: [] as string[], location: '', tagline: '', platform: '', preferredRole: '', achievement: '' })
+  const [form, setForm] = useState({ firstName: '', lastName: '', bio: '', mainGameIds: [] as string[], location: '', tagline: '', platform: '', preferredRole: '', achievement: '', emailNotifications: true })
   const [status, setStatus] = useState<Status>({ kind: '', text: '' })
   const [saving, setSaving] = useState(false)
   const [listingCount, setListingCount] = useState(0)
@@ -61,6 +61,7 @@ export default function Profile() {
           platform: p.platform ?? '',
           preferredRole: p.preferredRole ?? '',
           achievement: p.achievement ?? '',
+          emailNotifications: p.emailNotifications ?? true,
         })
       })
       .catch(() => undefined)
@@ -105,6 +106,7 @@ export default function Profile() {
         platform: form.platform,
         preferredRole: form.preferredRole,
         achievement: form.achievement,
+        emailNotifications: form.emailNotifications,
       })
       setProfile(next)
       await refresh()
@@ -291,6 +293,13 @@ export default function Profile() {
                 {form.mainGameIds.length} of 2 selected
               </small>
             </fieldset>
+            <label className="profile-email-pref">
+              <input type="checkbox" checked={form.emailNotifications} onChange={(e) => setForm({ ...form, emailNotifications: e.target.checked })} />
+              <span>
+                <strong>შეტყობინებები ელფოსტაზეც</strong>
+                <small>შეკვეთები, სესიები, ბალანსი, გატანები და დავები — ასლი ელფოსტაზე. საიტზე შეტყობინებები ყოველთვის მოდის.</small>
+              </span>
+            </label>
             <p className="profile-verification" id="verification">
               {user.status === 'active' ? (
                 <>✓ ელფოსტა დადასტურებულია</>

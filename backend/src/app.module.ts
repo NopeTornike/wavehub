@@ -53,6 +53,12 @@ import { CoachingSession } from './coaching/coaching-session.entity';
 import { CoachingSessionReview } from './coaching/coaching-session-review.entity';
 import { CoachFavorite } from './coaching/coach-favorite.entity';
 import { CoachingPackage } from './coaching/coaching-package.entity';
+import { PromoCode, PromoRedemption } from './marketing/promo-code.entity';
+import { Banner } from './marketing/banner.entity';
+import { MarketingModule } from './marketing/marketing.module';
+import { TrustModule } from './trust/trust.module';
+import { LoginEvent, UserReport, UserStaffNote } from './trust/trust.entities';
+import { CoachingSessionDispute, CoachingSessionDisputeMessage } from './coaching/coaching-session-dispute.entity';
 import { ContentModule } from './content/content.module';
 import { ContentPage } from './content/content-page.entity';
 import { TournamentsModule } from './tournaments/tournaments.module';
@@ -128,6 +134,14 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
         CoachingSessionReview,
         CoachFavorite,
         CoachingPackage,
+        PromoCode,
+        PromoRedemption,
+        Banner,
+        UserReport,
+        UserStaffNote,
+        LoginEvent,
+        CoachingSessionDispute,
+        CoachingSessionDisputeMessage,
         ContentPage,
         Tournament,
         TournamentRegistration,
@@ -157,6 +171,8 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
     SupportModule,
     CoachingModule,
     ContentModule,
+    MarketingModule,
+    TrustModule,
     TournamentsModule,
     ProfilesModule,
     SubscriptionsModule,

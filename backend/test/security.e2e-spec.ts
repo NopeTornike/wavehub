@@ -3,9 +3,9 @@ import { createApp, credit, E2eApp, makeAdmin, publishItemListing, recordedRespo
 // Walks a broad slice of the API as several users and then sweeps EVERY recorded JSON response for
 // keys that must never reach a client (password hashes, other users' balances/emails/roles). This
 // is a regression net for the "joined User entity serialized into a public response" bug class.
-const ALWAYS_FORBIDDEN = ['passwordHash', 'adminRole', 'moderationReason', 'emailVerifiedAt', 'wavecoinBalance', 'email'];
+const ALWAYS_FORBIDDEN = ['passwordHash', 'adminRole', 'moderationReason', 'emailVerifiedAt', 'wavecoinBalance', 'email', 'flagged', 'ipHash', 'uaHash', 'codeHash', 'emailNotifications'];
 // Endpoints that legitimately return the caller's OWN private fields.
-const OWN_DATA_PATHS = [/^\/auth\/(me|login|register)/, /^\/wallet\//];
+const OWN_DATA_PATHS = [/^\/auth\/(me|login|register)/, /^\/wallet\//, /^\/me\/profile/];
 const ADMIN_PATH = /^\/(admin|withdrawals\/pending|coaches\/(all|pending-verification)|listings\/pending-review|reviews\/reported|disputes)/;
 
 function findKeys(value: any, keys: string[], trail = ''): string[] {
