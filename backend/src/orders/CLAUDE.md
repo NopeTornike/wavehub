@@ -113,8 +113,10 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
   (`platformFeePercentSnapshot`) so a later admin rate change never retroactively changes an
   existing order's math. Read `backend/src/settings/CLAUDE.md` before touching fee calculation.
 - **The buyer pays the marketplace fee on top (owner decision 2026-10-03).** `purchase()` computes
-  `calculateBuyerFee(price, feePercent)` (`wallet/fee.util.ts`, rounded to the nearest whole coin —
-  80 at 6% → 5, since WaveCoin is an integer) and stores `buyerTotalWaveCoin = price + fee`,
+  `calculateBuyerFee(price, feePercent)` (`wallet/fee.util.ts`) — **exact to the tetri, never
+  rounded to whole coins** (owner, 2026-10-03): 80 at 6% → 4.80, total 84.80. `platformFeeWaveCoin`
+  and `buyerTotalWaveCoin` are `numeric(14,2)` (migration `1784378000000-DecimalWallet`); price and
+  seller payout stay whole GEL and stores `buyerTotalWaveCoin = price + fee`,
   `sellerPayoutWaveCoin = price`, `feePaidBy = 'buyer'`. The escrow debit, every refund (buyer cancel,
   seller cancel, dispute refund/cancel) and analytics `inEscrow` use `buyerTotalWaveCoin`; a release
   pays `sellerPayoutWaveCoin`. Orders before migration `1784377000000-BuyerPaidFee` were backfilled

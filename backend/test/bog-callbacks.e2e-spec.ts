@@ -118,7 +118,7 @@ describe('BOG callbacks with real RSA signatures (e2e)', () => {
       expect((await intentFor(bogOrderId)).status).toBe('completed');
       const ledger = await ctx.dataSource.query(`SELECT "amountWaveCoin" a FROM wallet_ledger_entries WHERE reference = $1`, [intentId]);
       expect(ledger).toHaveLength(1);
-      expect(ledger[0].a).toBe(60);
+      expect(Number(ledger[0].a)).toBe(60);
 
       // BOG retries / replays: sequential and a concurrent burst — still exactly one credit.
       for (let i = 0; i < 3; i++) await callback(bogOrderId);

@@ -8,6 +8,7 @@ import PageHead from '../../../components/PageHead'
 import LanguageSwitcher from '../../../components/LanguageSwitcher'
 import { api, errorMessage } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
+import { gel } from '../../../lib/money'
 
 // Tornike's 6-step coach booking (prototype coach-booking.html + coach-booking-flow.js, 38b086d),
 // markup and `booking-*` classes 1:1, on real data:
@@ -463,7 +464,8 @@ export default function CoachBooking() {
     .toUpperCase()
   const rating = coach.ratingAvg ? Number(coach.ratingAvg) : null
   const balance = user.wavecoinBalance
-  const shortBy = Math.max(0, option.total - balance)
+  // Top-ups are whole GEL, so a shortfall with tetri rounds up.
+  const shortBy = Math.max(0, Math.ceil(option.total - balance))
   const step = draft.step
 
   const coachCard = (
@@ -956,7 +958,7 @@ export default function CoachBooking() {
             <span className="bog-mini">WC</span>
             <div>
               <strong>WaveCoin ბალანსი</strong>
-              <small>შენი ბალანსი: {balance} WC (1 WC = 1 GEL)</small>
+              <small>შენი ბალანსი: {gel(balance)} WC (1 WC = 1 GEL)</small>
             </div>
             <em>{shortBy > 0 ? `აკლია ${shortBy} WC` : 'საკმარისია'}</em>
           </div>

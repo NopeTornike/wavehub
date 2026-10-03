@@ -57,7 +57,8 @@ describe('admin analytics (e2e)', () => {
     expect((await buyer.client.post(`/orders/${cancelled}/cancel-as-buyer`)).status).toBeLessThan(300);
 
     const after = (await superAdmin.client.get(q)).body;
-    const d = (path: (x: any) => number) => path(after) - path(before);
+    // Money figures carry tetri (exact buyer fees) — compare deltas to the tetri.
+    const d = (path: (x: any) => number) => Math.round((path(after) - path(before)) * 100) / 100;
     expect(d((x) => x.sales.orders)).toBe(3);
     expect(d((x) => x.sales.gmv)).toBe(8000); // the cancelled 2000 is excluded
     expect(d((x) => x.sales.completedOrders)).toBe(1);

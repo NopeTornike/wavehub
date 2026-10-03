@@ -917,6 +917,9 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   list has "Local"; Clash of Clans gained TH18 and lost Laboratory Level (`lib/game-details.json`).
 - **Sell Service** (`/sell/services`) is its own flow: own title/description/photos (≥1, uploaded
   after create), category optional (defaults to custom gaming services).
+- **Money with tetri**: buyer fees are exact (84.80), so balances can have tetri — render every
+  balance/fee/total with `lib/money.ts#gel` ("84.80" / "84"), round sums with `roundMoney`; a
+  top-up shortfall rounds *up* to whole GEL (top-ups are whole).
 - **Buyer-paid fee**: `components/FeeBreakdown.tsx` renders `GET /order-quote` (price / fee % /
   total) on the listing buy panel and Steam key page; the cart sums each line's quoted fee; the
   balance check uses the total. Order page details are cards: parties, money breakdown (buyer: total

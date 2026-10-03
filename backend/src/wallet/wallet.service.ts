@@ -3,6 +3,7 @@ import { DataSource, EntityManager } from 'typeorm';
 import { WalletLedgerStatus, WalletLedgerType } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { WalletLedgerEntry } from './wallet-ledger-entry.entity';
+import { roundMoney } from './money';
 
 const DEFAULT_HOLD_DAYS = 7;
 
@@ -58,7 +59,7 @@ export class WalletService {
         return existing;
       }
 
-      const balanceAfter = user.wavecoinBalance + amountWaveCoin;
+      const balanceAfter = roundMoney(user.wavecoinBalance + amountWaveCoin);
       await m.update(User, userId, { wavecoinBalance: balanceAfter });
 
       const entry = m.create(WalletLedgerEntry, {
@@ -86,7 +87,7 @@ export class WalletService {
     return this.dataSource.transaction(async (m) => {
       const user = await m.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
       if (!user) throw new Error('USER_NOT_FOUND');
-      const balanceAfter = user.wavecoinBalance + amountWaveCoin;
+      const balanceAfter = roundMoney(user.wavecoinBalance + amountWaveCoin);
       if (balanceAfter < 0) throw new Error('INSUFFICIENT_BALANCE');
       await m.update(User, userId, { wavecoinBalance: balanceAfter });
       return m.save(
@@ -110,7 +111,7 @@ export class WalletService {
     if (!Number.isInteger(amountWaveCoin) || amountWaveCoin <= 0) throw new Error('amountWaveCoin must be a positive integer');
     const user = await manager.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
     if (!user) throw new Error('USER_NOT_FOUND');
-    const balanceAfter = user.wavecoinBalance + amountWaveCoin;
+    const balanceAfter = roundMoney(user.wavecoinBalance + amountWaveCoin);
     await manager.update(User, userId, { wavecoinBalance: balanceAfter });
     return manager.save(
       manager.create(WalletLedgerEntry, {
@@ -148,7 +149,7 @@ export class WalletService {
         throw new Error('INSUFFICIENT_BALANCE');
       }
 
-      const balanceAfter = user.wavecoinBalance - amountWaveCoin;
+      const balanceAfter = roundMoney(user.wavecoinBalance - amountWaveCoin);
       await m.update(User, userId, { wavecoinBalance: balanceAfter });
 
       const entry = m.create(WalletLedgerEntry, {
@@ -190,7 +191,7 @@ export class WalletService {
         throw new Error('USER_NOT_FOUND');
       }
 
-      const balanceAfter = seller.wavecoinBalance + sellerReceivesWaveCoin;
+      const balanceAfter = roundMoney(seller.wavecoinBalance + sellerReceivesWaveCoin);
       await m.update(User, sellerId, { wavecoinBalance: balanceAfter });
 
       const entry = m.create(WalletLedgerEntry, {
@@ -227,7 +228,7 @@ export class WalletService {
         throw new Error('USER_NOT_FOUND');
       }
 
-      const balanceAfter = buyer.wavecoinBalance + amountWaveCoin;
+      const balanceAfter = roundMoney(buyer.wavecoinBalance + amountWaveCoin);
       await m.update(User, buyerId, { wavecoinBalance: balanceAfter });
 
       const entry = m.create(WalletLedgerEntry, {
@@ -268,7 +269,7 @@ export class WalletService {
         throw new Error('INSUFFICIENT_BALANCE');
       }
 
-      const balanceAfter = user.wavecoinBalance - amountWaveCoin;
+      const balanceAfter = roundMoney(user.wavecoinBalance - amountWaveCoin);
       await m.update(User, userId, { wavecoinBalance: balanceAfter });
 
       const entry = m.create(WalletLedgerEntry, {
@@ -302,7 +303,7 @@ export class WalletService {
         throw new Error('USER_NOT_FOUND');
       }
 
-      const balanceAfter = coach.wavecoinBalance + coachReceivesWaveCoin;
+      const balanceAfter = roundMoney(coach.wavecoinBalance + coachReceivesWaveCoin);
       await m.update(User, coachUserId, { wavecoinBalance: balanceAfter });
 
       const entry = m.create(WalletLedgerEntry, {
@@ -336,7 +337,7 @@ export class WalletService {
         throw new Error('USER_NOT_FOUND');
       }
 
-      const balanceAfter = buyer.wavecoinBalance + amountWaveCoin;
+      const balanceAfter = roundMoney(buyer.wavecoinBalance + amountWaveCoin);
       await m.update(User, buyerId, { wavecoinBalance: balanceAfter });
 
       const entry = m.create(WalletLedgerEntry, {
@@ -384,7 +385,7 @@ export class WalletService {
         throw new Error('INSUFFICIENT_BALANCE');
       }
 
-      const balanceAfter = user.wavecoinBalance - amountWaveCoin;
+      const balanceAfter = roundMoney(user.wavecoinBalance - amountWaveCoin);
       await m.update(User, userId, { wavecoinBalance: balanceAfter });
 
       const entry = m.create(WalletLedgerEntry, {
@@ -427,7 +428,7 @@ export class WalletService {
         throw new Error('USER_NOT_FOUND');
       }
 
-      const balanceAfter = user.wavecoinBalance + amountWaveCoin;
+      const balanceAfter = roundMoney(user.wavecoinBalance + amountWaveCoin);
       await m.update(User, userId, { wavecoinBalance: balanceAfter });
 
       const entry = m.create(WalletLedgerEntry, {
@@ -479,7 +480,7 @@ export class WalletService {
     // <= 0. Without this, the same cleared earnings could be withdrawn again and again for as long
     // as the wallet balance (which also holds top-up money) stayed above them.
     const withdrawnNet = await this.sumEntries(repo, userId, WalletLedgerType.Withdrawal);
-    const clearedEarnings = totalEarned - pendingClearance + withdrawnNet;
+    const clearedEarnings = roundMoney(totalEarned - pendingClearance + withdrawnNet);
 
     return {
       walletBalance: user.wavecoinBalance,
@@ -488,7 +489,8 @@ export class WalletService {
       // Capped by the actual current balance — a seller who already spent earned coins on a
       // purchase can't request a withdrawal against money they no longer have. See this method's
       // own comment above for the fuller reasoning.
-      availableToWithdraw: Math.max(0, Math.min(user.wavecoinBalance, clearedEarnings)),
+      // Withdrawals are whole GEL, so a balance with tetri (left over after a buyer fee) floors.
+      availableToWithdraw: Math.max(0, Math.floor(Math.min(user.wavecoinBalance, clearedEarnings))),
     };
   }
 
@@ -519,6 +521,6 @@ export class WalletService {
       extra(qb);
     }
     const { sum } = await qb.getRawOne<{ sum: string }>();
-    return Number(sum);
+    return roundMoney(Number(sum));
   }
 }

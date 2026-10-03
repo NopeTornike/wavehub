@@ -10,6 +10,7 @@ import { useShell } from '../lib/shell'
 import LanguageSwitcher from './LanguageSwitcher'
 import NotificationCenter from './NotificationCenter'
 import RankIcon from './RankIcon'
+import { gel } from '../lib/money'
 
 // The static prototype's global topbar (profile-nav.js#standardizeTopbars + getProfileMenuMarkup),
 // markup-for-markup, on real data: the search box submits to /marketplace?q=, the message/cart/
@@ -298,7 +299,7 @@ export default function Topbar({
           </span>
         </button>
         <Link className="home-top-wallet" href={signedIn ? '/wallet' : loginHref} aria-label="Wallet balance">
-          <span id="homeTopWalletBalance">{user?.wavecoinBalance ?? 0}</span> WC
+          <span id="homeTopWalletBalance">{gel(user?.wavecoinBalance)}</span> WC
         </Link>
 
         {action}

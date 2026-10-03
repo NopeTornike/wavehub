@@ -263,9 +263,9 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
 
     const result = await service.purchase(buyerId, { listingId: 'listing-1' } as any);
 
-    // Buyer pays the fee on top: 25 + round(25 × 10%) = 28; the seller keeps the full 25.
-    expect(wallet.debitForOrder).toHaveBeenCalledWith(buyerId, 'order-1', 28, manager);
-    expect(manager.create).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ priceWaveCoin: 25, sellerPayoutWaveCoin: 25, buyerTotalWaveCoin: 28, feePaidBy: 'buyer' }));
+    // Buyer pays the exact fee on top: 25 + 25 × 10% = 27.50; the seller keeps the full 25.
+    expect(wallet.debitForOrder).toHaveBeenCalledWith(buyerId, 'order-1', 27.5, manager);
+    expect(manager.create).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ priceWaveCoin: 25, platformFeeWaveCoin: 2.5, sellerPayoutWaveCoin: 25, buyerTotalWaveCoin: 27.5, feePaidBy: 'buyer' }))
     // The only update is the order itself going straight to Delivered (a key is delivered the
     // moment it's claimed) — the listing must not be paused while keys remain.
     expect(manager.update).toHaveBeenCalledTimes(1);

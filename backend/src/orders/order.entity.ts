@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { ListingType, OrderStatus } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { Listing } from '../listings/listing.entity';
+import { moneyTransformer } from '../wallet/money';
 import { Package } from '../listings/package.entity';
 
 // The structural core everything else (reviews, disputes, seller payouts) hangs off. Every field
@@ -67,14 +68,14 @@ export class Order {
   @Column({ type: 'integer' })
   platformFeePercentSnapshot: number;
 
-  @Column({ type: 'integer' })
+  @Column({ type: 'numeric', precision: 14, scale: 2, transformer: moneyTransformer })
   platformFeeWaveCoin: number;
 
   @Column({ type: 'integer' })
   sellerPayoutWaveCoin: number;
 
   // What the buyer paid into escrow (price + buyer fee for feePaidBy 'buyer'); refunds return this.
-  @Column({ type: 'integer' })
+  @Column({ type: 'numeric', precision: 14, scale: 2, transformer: moneyTransformer })
   buyerTotalWaveCoin: number;
 
   // Who carried the platform fee: 'buyer' (on top, since 2026-10-03) or 'seller' (older orders).

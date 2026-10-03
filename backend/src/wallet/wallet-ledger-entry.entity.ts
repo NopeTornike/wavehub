@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { WalletLedgerStatus, WalletLedgerType } from '@wavehub/shared-types';
+import { moneyTransformer } from './money';
 import { User } from '../users/user.entity';
 
 // Single source of truth for all WaveCoin movement. Never mutate `users.wavecoinBalance` directly
@@ -31,16 +32,16 @@ export class WalletLedgerEntry {
   @Column({ type: 'varchar' })
   type: WalletLedgerType;
 
-  // Signed integer — positive credits the user, negative debits. WaveCoin has no fractional unit
-  // in the spec's examples, so this is a plain integer, not a decimal — don't switch to float.
-  @Column({ type: 'integer' })
+  // Signed — positive credits the user, negative debits. numeric(14,2) since 2026-10-03: buyer
+  // fees are exact (4.80), so amounts carry tetri. Never a float column; compute via roundMoney.
+  @Column({ type: 'numeric', precision: 14, scale: 2, transformer: moneyTransformer })
   amountWaveCoin: number;
 
   // Snapshot of the user's balance immediately after this entry was applied. Exists so historical
   // reconciliation doesn't depend solely on summing every prior row — a live SUM() should always
   // agree with the latest entry's balanceAfter for a given user; if it doesn't, something wrote to
   // wavecoinBalance outside of WalletService.
-  @Column({ type: 'integer' })
+  @Column({ type: 'numeric', precision: 14, scale: 2, transformer: moneyTransformer })
   balanceAfter: number;
 
   @Column({ type: 'varchar', default: WalletLedgerStatus.Available })

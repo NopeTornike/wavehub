@@ -38,7 +38,7 @@ export async function assertConserved(ctx: E2eApp): Promise<void> {
   const q = async (sql: string) => Number((await ctx.dataSource.query(sql))[0].v);
   const balances = await q(`SELECT COALESCE(SUM("wavecoinBalance"),0) v FROM users`);
   const ledger = await q(`SELECT COALESCE(SUM("amountWaveCoin"),0) v FROM wallet_ledger_entries`);
-  expect(balances).toBe(ledger);
+  expect(Math.round(balances * 100)).toBe(Math.round(ledger * 100));
   const bad = await ctx.dataSource.query(
     `SELECT u.id FROM users u WHERE u."wavecoinBalance" <> COALESCE((SELECT SUM(e."amountWaveCoin") FROM wallet_ledger_entries e WHERE e."userId" = u.id),0)`,
   );
@@ -51,7 +51,10 @@ export async function assertConserved(ctx: E2eApp): Promise<void> {
   const orderFees = await q(`SELECT COALESCE(SUM("buyerTotalWaveCoin" - "sellerPayoutWaveCoin"),0) v FROM orders WHERE status = 'completed'`);
   const sessEscrow = await q(`SELECT COALESCE(SUM("priceWaveCoin"),0) v FROM coaching_sessions WHERE status IN ('scheduled','in_progress','awaiting_confirmation','disputed')`);
   const sessFees = await q(`SELECT COALESCE(SUM("priceWaveCoin" - "coachPayoutWaveCoin"),0) v FROM coaching_sessions WHERE status = 'completed'`);
-  expect(balances).toBe(topups + adjustments + withdrawalNet - orderEscrow - orderFees - sessEscrow - sessFees);
+  // Amounts carry tetri since buyer fees are exact — compare in whole tetri so float noise in the JS
+  // sum can't mask (or fake) a real one-tetri leak.
+  const tetri = (v: number) => Math.round(v * 100);
+  expect(tetri(balances)).toBe(tetri(topups + adjustments + withdrawalNet - orderEscrow - orderFees - sessEscrow - sessFees));
 }
 
 // Coaching lifecycle v2: move a booked session's time to "now" (so the start can be confirmed),

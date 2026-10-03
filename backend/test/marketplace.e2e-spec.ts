@@ -1,4 +1,5 @@
 import { balanceOf, createApp, credit, E2eApp, makeAdmin, publishItemListing, registerUser, TestUser } from './helpers';
+import { assertConserved } from './flows';
 
 describe('marketplace spine (e2e)', () => {
   let ctx: E2eApp;
@@ -14,7 +15,10 @@ describe('marketplace spine (e2e)', () => {
     buyer = await registerUser(ctx, 'buyer');
     await credit(ctx, buyer, 1000);
   });
-  afterAll(async () => ctx.close());
+  afterAll(async () => {
+    await assertConserved(ctx);
+    await ctx.close();
+  });
 
   it('an unapproved listing is invisible to the public and un-purchasable', async () => {
     const cats = await seller.client.get('/categories');
@@ -72,6 +76,40 @@ describe('marketplace spine (e2e)', () => {
 
     // Accepting twice must not double-release.
     expect((await buyer.client.post(`/orders/${orderId}/accept`)).status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("charges the exact fee, never rounded — the owner's example: 80 GEL at 6% = 4.80, total 84.80", async () => {
+    expect((await admin.client.post('/admin/platform-settings', { platformFeePercent: 6 })).status).toBe(200);
+    try {
+      const listingId = await publishItemListing(ctx, seller, admin, 80);
+      const quote = await fetch(`${ctx.baseUrl}/order-quote?listingId=${listingId}`).then((r) => r.json());
+      expect(quote).toEqual({ priceWaveCoin: 80, feePercent: 6, feeWaveCoin: 4.8, totalWaveCoin: 84.8 });
+
+      const exact = await registerUser(ctx, 'exact');
+      await credit(ctx, exact, 100);
+      const order = await exact.client.post('/orders', { listingId });
+      expect(order.status).toBeLessThan(300);
+      expect(order.body).toMatchObject({ priceWaveCoin: 80, platformFeeWaveCoin: 4.8, buyerTotalWaveCoin: 84.8, sellerPayoutWaveCoin: 80 });
+      expect(await balanceOf(ctx, exact)).toBe(15.2);
+      expect((await exact.client.get('/auth/me')).body.user.wavecoinBalance).toBe(15.2);
+
+      // A refund returns the exact 84.80…
+      expect((await exact.client.post(`/orders/${order.body.id}/cancel-as-buyer`)).status).toBe(200);
+      expect(await balanceOf(ctx, exact)).toBe(100);
+
+      // …and completion pays the seller the full 80 while the platform keeps exactly 4.80.
+      const again = await exact.client.post('/orders', { listingId: await publishItemListing(ctx, seller, admin, 80) });
+      const sellerBefore = await balanceOf(ctx, seller);
+      await seller.client.post(`/orders/${again.body.id}/start`);
+      await seller.client.post(`/orders/${again.body.id}/deliver`);
+      expect((await exact.client.post(`/orders/${again.body.id}/accept`)).status).toBe(200);
+      expect(await balanceOf(ctx, seller)).toBe(sellerBefore + 80);
+      expect(await balanceOf(ctx, exact)).toBe(15.2);
+      const tx = (await exact.client.get('/wallet/transactions')).body;
+      expect(tx.some((t: { amountWaveCoin: number }) => t.amountWaveCoin === -84.8)).toBe(true);
+    } finally {
+      await admin.client.post('/admin/platform-settings', { platformFeePercent: 10 });
+    }
   });
 
   it('quotes price + buyer fee publicly before purchase, as whole coins', async () => {

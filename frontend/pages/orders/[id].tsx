@@ -7,6 +7,7 @@ import Layout from '../../components/Layout'
 import OrderReview from '../../components/OrderReview'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { gel } from '../../lib/money'
 
 const MESSAGE_POLL_MS = 5000
 
@@ -376,13 +377,13 @@ export default function OrderDetail() {
                   <dt>
                     {`მარკეტფლეისის საკომისიო (${order.platformFeePercent}%) — ${order.feePaidBy === 'buyer' ? 'იხდის მყიდველი' : 'იხდის გამყიდველი'}`}
                   </dt>
-                  <dd>{`${order.feePaidBy === 'buyer' ? '+' : '−'}${order.platformFeeWaveCoin} GEL`}</dd>
+                  <dd>{`${order.feePaidBy === 'buyer' ? '+' : '−'}${gel(order.platformFeeWaveCoin)} GEL`}</dd>
                 </div>
               )}
               {(isBuyer || isSuperAdmin) && (
                 <div className="fee-breakdown-total">
                   <dt>{isBuyer ? 'თქვენ გადაიხადეთ' : 'მყიდველმა გადაიხადა'}</dt>
-                  <dd>{order.buyerTotalWaveCoin} GEL</dd>
+                  <dd>{gel(order.buyerTotalWaveCoin)} GEL</dd>
                 </div>
               )}
               {(isSeller || isSuperAdmin) && (

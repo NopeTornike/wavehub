@@ -37,13 +37,18 @@ describe('calculatePlatformFee', () => {
 });
 
 describe('calculateBuyerFee', () => {
-  it("matches the owner's example: 80 GEL at 6% -> 4.8 rounds to a 5-coin fee, buyer pays 85", () => {
-    expect(calculateBuyerFee(80, 6)).toEqual({ feeWaveCoin: 5, buyerTotalWaveCoin: 85 });
+  it("matches the owner's example exactly: 80 GEL at 6% -> 4.80 fee, buyer pays 84.80", () => {
+    expect(calculateBuyerFee(80, 6)).toEqual({ feeWaveCoin: 4.8, buyerTotalWaveCoin: 84.8 });
   });
 
-  it('rounds half up and handles 0%', () => {
-    expect(calculateBuyerFee(25, 10)).toEqual({ feeWaveCoin: 3, buyerTotalWaveCoin: 28 });
+  it('keeps tetri, never rounds to whole coins, and handles 0%', () => {
+    expect(calculateBuyerFee(25, 10)).toEqual({ feeWaveCoin: 2.5, buyerTotalWaveCoin: 27.5 });
+    expect(calculateBuyerFee(7, 6)).toEqual({ feeWaveCoin: 0.42, buyerTotalWaveCoin: 7.42 });
     expect(calculateBuyerFee(50, 0)).toEqual({ feeWaveCoin: 0, buyerTotalWaveCoin: 50 });
+  });
+
+  it('rounds only a fractional percentage, to the nearest tetri', () => {
+    expect(calculateBuyerFee(33, 6.5)).toEqual({ feeWaveCoin: 2.15, buyerTotalWaveCoin: 35.15 }); // 2.145 -> 2.15
   });
 
   it('rejects fractional prices and out-of-range percentages', () => {

@@ -12,6 +12,7 @@ import RankIcon from '../components/RankIcon'
 import { useCoachingFromPrice } from '../lib/coaching-price'
 import HomeBanners from '../components/HomeBanners'
 import { useFavorites } from '../lib/favorites'
+import { gel } from '../lib/money'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
 // the prototype's final DOM order (its script moves competition/steam/featured/how-it-works in
@@ -330,7 +331,7 @@ export default function Home() {
           <span>
             <small>ხელმისაწვდომი ბალანსი</small>
             <strong>
-              <span id="mobileWalletBalance">{user?.wavecoinBalance ?? 0}</span> WC
+              <span id="mobileWalletBalance">{gel(user?.wavecoinBalance)}</span> WC
             </strong>
           </span>
           <span className="mobile-shortcut-arrow" aria-hidden="true">

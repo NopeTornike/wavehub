@@ -49,7 +49,7 @@ describe('admin user powers (e2e)', () => {
       `SELECT type, "amountWaveCoin", "createdBy" FROM wallet_ledger_entries WHERE "userId" = $1 AND type = 'admin_adjustment' ORDER BY "createdAt" ASC LIMIT 1`,
       [user.id],
     );
-    expect(entry).toMatchObject({ type: 'admin_adjustment', amountWaveCoin: 150, createdBy: superAdmin.id });
+    expect({ ...entry, amountWaveCoin: Number(entry.amountWaveCoin) }).toMatchObject({ type: 'admin_adjustment', amountWaveCoin: 150, createdBy: superAdmin.id });
     const audits = await ctx.dataSource.query(`SELECT metadata FROM audit_logs WHERE action = 'user.wallet_adjust' AND "entityId" = $1`, [user.id]);
     expect(audits).toHaveLength(2);
     expect(audits[0].metadata.reason).toBeDefined();

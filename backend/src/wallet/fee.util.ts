@@ -7,13 +7,15 @@ export interface FeeSplit {
   sellerReceivesWaveCoin: number;
 }
 
-// The marketplace fee the BUYER pays on top of the price (owner decision 2026-10-03): whole WaveCoin
-// (1 WC = 1 GEL), rounded to the nearest coin — e.g. 80 at 6% = 4.8 → 5, so the buyer pays 85.
+// The marketplace fee the BUYER pays on top of the price (owner decision 2026-10-03), exact to the
+// tetri — no rounding to whole coins: 80 at 6% = 4.80, so the buyer pays 84.80. A whole-GEL price ×
+// a percentage is an exact number of tetri (price × percent), so only a fractional percentage (a
+// membership discount like 6.5%) is rounded, to the nearest tetri.
 export function calculateBuyerFee(priceWaveCoin: number, feePercent: number): { feeWaveCoin: number; buyerTotalWaveCoin: number } {
   if (!Number.isInteger(priceWaveCoin) || priceWaveCoin < 0) throw new Error('priceWaveCoin must be a non-negative integer');
   if (feePercent < 0 || feePercent > 100) throw new Error('feePercent must be between 0 and 100');
-  const feeWaveCoin = Math.round((priceWaveCoin * feePercent) / 100);
-  return { feeWaveCoin, buyerTotalWaveCoin: priceWaveCoin + feeWaveCoin };
+  const feeTetri = Math.round(priceWaveCoin * feePercent);
+  return { feeWaveCoin: feeTetri / 100, buyerTotalWaveCoin: (priceWaveCoin * 100 + feeTetri) / 100 };
 }
 
 export function calculatePlatformFee(amountWaveCoin: number, feePercent: number): FeeSplit {

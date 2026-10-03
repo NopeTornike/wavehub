@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { moneyTransformer } from '../wallet/money';
 import { AdminRole, UserStatus } from '@wavehub/shared-types';
 
 @Entity('users')
@@ -33,7 +34,8 @@ export class User {
   // Buyer-spendable balance. Never write to this column directly — every change must go through
   // WalletService so a matching wallet_ledger_entries row is written in the same transaction. See
   // backend/src/wallet/CLAUDE.md.
-  @Column({ type: 'integer', default: 0 })
+  // numeric(14,2) since 2026-10-03 (exact buyer fees) — see wallet/money.ts.
+  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0, transformer: moneyTransformer })
   wavecoinBalance: number;
 
   // Seller-level rating aggregate — meaningless for a user with no listings, only ever populated

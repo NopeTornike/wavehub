@@ -7,6 +7,7 @@ import Layout from '../components/Layout'
 import PromoCodeForm from '../components/PromoCodeForm'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { gel } from '../lib/money'
 
 // The prototype's wallet.html (wallet.js), on real data. Hero + the four summary cards:
 //   Available Balance = the spendable WaveCoin balance; In Escrow = the buyer's money currently held
@@ -259,7 +260,7 @@ export default function Wallet() {
         <div className="wallet-hero-balance">
           <span>საერთო ბალანსი</span>
           <h2 id="walletBalanceTitle">
-            <strong id="walletBalanceLarge">{walletBalance} WC</strong>
+            <strong id="walletBalanceLarge">{gel(walletBalance)} WC</strong>
           </h2>
           <small>1 WaveCoin = 1 GEL</small>
         </div>
@@ -274,7 +275,7 @@ export default function Wallet() {
                 <i className={key === 'purchased' ? 'withdrawn' : key}></i>
                 {label}
               </dt>
-              <dd>{value} WC</dd>
+              <dd>{gel(value)} WC</dd>
             </div>
           ))}
         </dl>
@@ -286,7 +287,7 @@ export default function Wallet() {
             <i>{icon}</i>
             <div>
               <span>{label}</span>
-              <strong>{value} WC</strong>
+              <strong>{gel(value)} WC</strong>
               <small>{note}</small>
             </div>
           </article>
@@ -504,7 +505,7 @@ export default function Wallet() {
                 </time>
                 <strong className="wallet-transaction-amount">
                   {credit ? '+' : ''}
-                  {tx.amountWaveCoin} WC
+                  {gel(tx.amountWaveCoin)} WC
                 </strong>
                 <span className={`wallet-transaction-status ${tone}`}>{label}</span>
               </article>

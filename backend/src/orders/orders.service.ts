@@ -20,6 +20,7 @@ import { validateRequirementsAnswers } from './requirements-validator';
 import { PurchaseOrderDto } from './dto/purchase-order.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { calculateBuyerFee } from '../wallet/fee.util';
+import { formatGel } from '../wallet/money';
 import { StorageService } from '../storage/storage.service';
 import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -293,8 +294,8 @@ export class OrdersService {
       NotificationType.OrderPlaced,
       'შეკვეთა გაფორმდა',
       listing.type === ListingType.DigitalKey
-        ? `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${saved.buyerTotalWaveCoin} GEL (ფასი ${saved.priceWaveCoin} + საკომისიო ${saved.platformFeeWaveCoin}). გასაღები უკვე შენს შეკვეთაშია: გახსენი, გააქტიურე და დაადასტურე მიღება.`
-        : `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${saved.buyerTotalWaveCoin} GEL (ფასი ${saved.priceWaveCoin} + საკომისიო ${saved.platformFeeWaveCoin}). თანხა დაცულია და გამყიდველს ჩაერიცხება მხოლოდ მას შემდეგ, რაც მიღებას დაადასტურებ.`,
+        ? `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${formatGel(saved.buyerTotalWaveCoin)} GEL (ფასი ${saved.priceWaveCoin} + საკომისიო ${formatGel(saved.platformFeeWaveCoin)}). გასაღები უკვე შენს შეკვეთაშია: გახსენი, გააქტიურე და დაადასტურე მიღება.`
+        : `შეკვეთა #${saved.orderNumber} („${listing.title}“) გადახდილია — ${formatGel(saved.buyerTotalWaveCoin)} GEL (ფასი ${saved.priceWaveCoin} + საკომისიო ${formatGel(saved.platformFeeWaveCoin)}). თანხა დაცულია და გამყიდველს ჩაერიცხება მხოლოდ მას შემდეგ, რაც მიღებას დაადასტურებ.`,
       saved.id,
     );
 

@@ -25,8 +25,15 @@ that records every change to it. Nothing outside this module should ever write t
   whole transaction on Postgres `40P01`/`40001` (see the deadlock note under Conventions)
 - `fee.util.ts` — `calculatePlatformFee(amountWaveCoin, feePercent)`, a pure function (floors the
   fee rather than losing a fractional coin) — the coach-pays split for coaching sessions; and
-  `calculateBuyerFee(price, feePercent)` — the marketplace fee the *buyer* pays on top (rounded to
-  the nearest coin; `buyerTotalWaveCoin = price + fee`), see `backend/src/orders/CLAUDE.md`
+  `calculateBuyerFee(price, feePercent)` — the marketplace fee the *buyer* pays on top, exact to the
+  tetri (`buyerTotalWaveCoin = price + fee`, e.g. 84.80)
+- `money.ts` — **amounts carry tetri since 2026-10-03**: `users.wavecoinBalance`,
+  `wallet_ledger_entries.amountWaveCoin`/`balanceAfter` (and an order's fee/total) are
+  `numeric(14,2)` with `moneyTransformer` (pg returns numeric as a string; entities expose a
+  number). Every computed balance goes through `roundMoney` (JS: 100 − 84.8 = 15.200000000000003);
+  `formatGel` renders "84.80"/"84". Raw SQL over these columns returns strings — wrap in `Number()`.
+  Top-ups, promo credits, admin adjustments, prices, payouts and **withdrawals stay whole GEL**
+  (`availableToWithdraw` floors), see `backend/src/orders/CLAUDE.md`
 - `wallet.module.ts` — exports `WalletService`
 
 ## Data model

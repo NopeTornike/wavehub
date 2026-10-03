@@ -62,26 +62,26 @@ export class AnalyticsService {
                 count(*) FILTER (WHERE o."status" = 'completed')::int AS "completedOrders",
                 COALESCE(sum(o."priceWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::int AS "completedValue",
                 count(*) FILTER (WHERE o."status" IN ('cancelled', 'refunded'))::int AS "refundedOrders",
-                COALESCE(sum(o."buyerTotalWaveCoin") FILTER (WHERE o."status" IN ('cancelled', 'refunded')), 0)::int AS "refundedValue"
+                COALESCE(sum(o."buyerTotalWaveCoin") FILTER (WHERE o."status" IN ('cancelled', 'refunded')), 0)::float8 AS "refundedValue"
          FROM "orders" o WHERE o."createdAt" >= $1 AND o."createdAt" < $2`),
       // Fees are earned when an order completes, so they follow completedAt; escrow is "right now".
-      q(`SELECT COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed' AND o."completedAt" >= $1 AND o."completedAt" < $2), 0)::int AS fees,
-                COALESCE(sum(o."buyerTotalWaveCoin") FILTER (WHERE ${HELD}), 0)::int AS "inEscrow"
+      q(`SELECT COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed' AND o."completedAt" >= $1 AND o."completedAt" < $2), 0)::float8 AS fees,
+                COALESCE(sum(o."buyerTotalWaveCoin") FILTER (WHERE ${HELD}), 0)::float8 AS "inEscrow"
          FROM "orders" o`),
       q(`SELECT COALESCE(g."slug", 'none') AS key, COALESCE(g."name", '') AS label,
                 count(*)::int AS orders, COALESCE(sum(o."priceWaveCoin") FILTER (WHERE ${KEPT}), 0)::int AS gmv,
-                COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::int AS "platformFees"
+                COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::float8 AS "platformFees"
          FROM "orders" o JOIN "listings" l ON l."id" = o."listingId" LEFT JOIN "games" g ON g."id" = l."gameId"
          WHERE ${PAID} AND o."createdAt" >= $1 AND o."createdAt" < $2
          GROUP BY g."slug", g."name" ORDER BY gmv DESC, orders DESC`),
       q(`SELECT o."listingType" AS key, o."listingType" AS label, count(*)::int AS orders,
                 COALESCE(sum(o."priceWaveCoin") FILTER (WHERE ${KEPT}), 0)::int AS gmv,
-                COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::int AS "platformFees"
+                COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::float8 AS "platformFees"
          FROM "orders" o WHERE ${PAID} AND o."createdAt" >= $1 AND o."createdAt" < $2
          GROUP BY o."listingType" ORDER BY gmv DESC`),
       q(`SELECT c."slug" AS key, c."name" AS label, count(*)::int AS orders,
                 COALESCE(sum(o."priceWaveCoin") FILTER (WHERE ${KEPT}), 0)::int AS gmv,
-                COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::int AS "platformFees"
+                COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::float8 AS "platformFees"
          FROM "orders" o JOIN "listings" l ON l."id" = o."listingId" JOIN "categories" c ON c."id" = l."categoryId"
          WHERE ${PAID} AND o."createdAt" >= $1 AND o."createdAt" < $2
          GROUP BY c."slug", c."name" ORDER BY gmv DESC`),
@@ -92,7 +92,7 @@ export class AnalyticsService {
          WHERE ${PAID} AND o."createdAt" >= $1 AND o."createdAt" < $2
          GROUP BY l."id", g."name", u."username" ORDER BY gmv DESC, orders DESC LIMIT 10`),
       q(`SELECT u."username", count(*)::int AS orders, COALESCE(sum(o."priceWaveCoin") FILTER (WHERE ${KEPT}), 0)::int AS gmv,
-                COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::int AS "platformFees"
+                COALESCE(sum(o."platformFeeWaveCoin") FILTER (WHERE o."status" = 'completed'), 0)::float8 AS "platformFees"
          FROM "orders" o JOIN "users" u ON u."id" = o."sellerId"
          WHERE ${PAID} AND o."createdAt" >= $1 AND o."createdAt" < $2
          GROUP BY u."username" ORDER BY gmv DESC, orders DESC LIMIT 10`),

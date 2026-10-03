@@ -10,6 +10,7 @@ import { gameCover } from '../lib/games'
 import { ORDER_STATUS_LABELS } from '../lib/labels'
 import { useShell } from '../lib/shell'
 import RankIcon from '../components/RankIcon'
+import { gel } from '../lib/money'
 
 // docs/design-mockups/09-user-dashboard.jpg for the signed-in user: welcome, the next coaching
 // session with a live countdown, coaching progress, marketplace / tournament summaries, the most
@@ -302,7 +303,7 @@ export default function Dashboard() {
             <div className="db-wallet">
               <div>
                 <small>საფულის ბალანსი</small>
-                <strong>{user.wavecoinBalance} WC</strong>
+                <strong>{gel(user.wavecoinBalance)} WC</strong>
                 <Link className="db-primary sm" href="/wallet">
                   შევსება
                 </Link>

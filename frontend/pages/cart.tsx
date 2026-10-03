@@ -6,6 +6,7 @@ import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useCart, type CartLine } from '../lib/cart'
 import { gameCover } from '../lib/games'
+import { gel, roundMoney } from '../lib/money'
 
 // The prototype's cart.html (head + 3-step progress + item list + order summary), on the real
 // order system. The prototype's checkout only records a local "checkout request"; here checkout
@@ -60,9 +61,9 @@ export default function CartPage() {
   const priceOf = (line: CartLine) => live[line.listingId]?.price ?? line.priceWaveCoin
   const buyable = cart.lines.filter((line) => live[line.listingId]?.available !== false)
   const subtotal = buyable.reduce((sum, line) => sum + priceOf(line) * line.quantity, 0)
-  const fees = buyable.reduce((sum, line) => sum + (live[line.listingId]?.fee ?? 0) * line.quantity, 0)
+  const fees = roundMoney(buyable.reduce((sum, line) => sum + (live[line.listingId]?.fee ?? 0) * line.quantity, 0))
   const feePercents = [...new Set(buyable.map((line) => live[line.listingId]?.feePercent).filter((p): p is number => p != null))]
-  const total = subtotal + fees
+  const total = roundMoney(subtotal + fees)
   const itemCount = buyable.reduce((sum, line) => sum + line.quantity, 0)
   const balance = user?.wavecoinBalance ?? 0
 
@@ -73,7 +74,7 @@ export default function CartPage() {
     }
     if (buyable.length === 0) return
     if (total > balance) {
-      setStatus({ kind: 'error', text: `ბალანსი არ არის საკმარისი: საჭიროა ${total} GEL, გაქვთ ${balance} WC.` })
+      setStatus({ kind: 'error', text: `ბალანსი არ არის საკმარისი: საჭიროა ${gel(total)} GEL, გაქვთ ${gel(balance)} WC.` })
       return
     }
     setBusy(true)
@@ -216,17 +217,17 @@ export default function CartPage() {
           </div>
           <div className="cart-summary-row cart-fee-row">
             <span>{feePercents.length === 1 ? `მარკეტფლეისის საკომისიო (${feePercents[0]}%)` : 'მარკეტფლეისის საკომისიო'}</span>
-            <strong>{fees > 0 ? `+${fees} GEL` : '0 GEL'}</strong>
+            <strong>{fees > 0 ? `+${gel(fees)} GEL` : '0 GEL'}</strong>
           </div>
           {user && (
             <div className="cart-summary-row">
               <span>ბალანსი</span>
-              <strong>{balance} WC</strong>
+              <strong>{gel(balance)} WC</strong>
             </div>
           )}
           <div className="cart-summary-total">
             <span>სულ</span>
-            <strong id="cartTotal">{total} GEL</strong>
+            <strong id="cartTotal">{gel(total)} GEL</strong>
           </div>
           {checked && !user ? (
             <Link className="cart-checkout-button" href="/login?next=/cart">

@@ -67,7 +67,7 @@ describe('notification events (e2e)', () => {
     const placed = mailsTo(buyer).slice(before.buyer).find((m) => m.subject.startsWith('შეკვეთა გაფორმდა'));
     expect(placed).toBeTruthy();
     expect(placed!.html).toContain(`/orders/${order.id}`);
-    expect(placed!.body).toContain('8 GEL (ფასი 7 + საკომისიო 1)');
+    expect(placed!.body).toContain('7.70 GEL (ფასი 7 + საკომისიო 0.70)'); // exact fee, not rounded
     expect(mailsTo(seller).slice(before.seller).some((m) => m.subject.startsWith('ახალი შეკვეთა'))).toBe(true);
     expect(mailsTo(seller).slice(before.seller).some((m) => m.subject.startsWith('განცხადება დამტკიცდა'))).toBe(true);
     await new Promise((r) => setTimeout(r, 300));

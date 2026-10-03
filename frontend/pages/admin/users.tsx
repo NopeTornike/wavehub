@@ -5,6 +5,7 @@ import { AdminRole, UserStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { gel } from '../../lib/money'
 
 const ROLE_LABELS: Record<AdminRole, string> = {
   [AdminRole.SuperAdmin]: 'Super Admin',
@@ -78,7 +79,7 @@ function SuperAdminPanel({
     <div className="au-panel">
       <form className="au-form" onSubmit={adjust}>
         <strong>
-          <span>ბალანსი:</span> {item.wavecoinBalance} WC
+          <span>ბალანსი:</span> {gel(item.wavecoinBalance)} WC
         </strong>
         <input type="number" step={1} placeholder="+100 ან -50" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="თანხა (WC)" />
         <input maxLength={300} placeholder="მიზეზი (ჩანს აუდიტში)" value={walletReason} onChange={(e) => setWalletReason(e.target.value)} aria-label="მიზეზი" />
@@ -263,7 +264,7 @@ export default function AdminUsers() {
                   {item.moderationReason ? ` — ${item.moderationReason}` : ''}
                 </span>
                 <span className="note" style={{ margin: 0 }}>
-                  {item.wavecoinBalance} WC{item.adminRole ? ` · ${ROLE_LABELS[item.adminRole]}` : ''}
+                  {gel(item.wavecoinBalance)} WC{item.adminRole ? ` · ${ROLE_LABELS[item.adminRole]}` : ''}
                 </span>
               </div>
               <div className="admin-row-actions">

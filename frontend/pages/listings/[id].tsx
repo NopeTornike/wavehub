@@ -15,6 +15,7 @@ import RankIcon from '../../components/RankIcon'
 import ReportButton from '../../components/ReportButton'
 import ImageLightbox from '../../components/ImageLightbox'
 import FeeBreakdown from '../../components/FeeBreakdown'
+import { gel } from '../../lib/money'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
 // the game's title icon, About card, the game-specific details grid, Access & Delivery, Linked
@@ -669,7 +670,7 @@ export default function ListingDetail() {
               <>
                 {notEnoughBalance && (
                   <p className="note">
-                    თქვენი ბალანსია {me!.wavecoinBalance} WC — ამ შეძენისთვის არ გყოფნით. <Link href="/wallet">შეავსეთ საფულე</Link>
+                    თქვენი ბალანსია {gel(me!.wavecoinBalance)} WC — ამ შეძენისთვის არ გყოფნით. <Link href="/wallet">შეავსეთ საფულე</Link>
                   </p>
                 )}
                 <button
