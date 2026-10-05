@@ -70,6 +70,16 @@ export class MarketingController {
     return code;
   }
 
+  @Delete('admin/promo-codes/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  async deleteCode(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string) {
+    const deleted = await this.marketing.deleteCode(id);
+    await this.audit.log({ adminId, adminRole, action: 'promo_code.delete', entityType: 'promo_code', entityId: id, metadata: deleted });
+    return { ok: true };
+  }
+
   // --- Banners (Content Management) ---
 
   @Get('admin/banners')

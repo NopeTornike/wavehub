@@ -103,6 +103,7 @@ export class Client {
 
   get = (path: string) => this.request('GET', path);
   post = (path: string, body?: unknown) => this.request('POST', path, body ?? {});
+  patch = (path: string, body?: unknown) => this.request('PATCH', path, body ?? {});
   del = (path: string) => this.request('DELETE', path);
 }
 

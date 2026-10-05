@@ -2196,5 +2196,11 @@
   "2. პაკეტები და ფასები": "2. Packages and prices",
   "მაგ. ბაზის აწყობა Clash of Clans-ში": "e.g. Base building in Clash of Clans",
   "პირველი ფოტო გამოჩნდება სერვისის ბარათზე (არა თამაშის სურათი). მაქს. 6, JPG/PNG/WEBP — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.": "The first photo is shown on the service card (not the game picture). Max 6, JPG/PNG/WEBP — large photos are automatically reduced to 2MB.",
-  "შენახული მონახაზი აღდგა.": "Your saved draft was restored."
+  "შენახული მონახაზი აღდგა.": "Your saved draft was restored.",
+  "განცხადება გაიგზავნა შესამოწმებლად": "Listing sent for review",
+  "„{0}“ მარკეტში გამოჩნდება მოდერაციის დამტკიცების შემდეგ — შეტყობინებას მიიღებ.": "“{0}” will appear on the marketplace once moderation approves it — you'll get a notification.",
+  "ჩემი განცხადებები": "My listings",
+  "კიდევ ერთის დამატება": "Add another",
+  "მარკეტიდან მოხსნა": "Take off marketplace",
+  "წაშლა": "Delete"
 }

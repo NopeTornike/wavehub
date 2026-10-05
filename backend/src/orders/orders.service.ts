@@ -3,7 +3,7 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, LessThanOrEqual, Repository } from 'typeorm';
-import { KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus } from '@wavehub/shared-types';
+import { KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus, UserStatus } from '@wavehub/shared-types';
 import type { OrderQuote, PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
 import { Order } from './order.entity';
 import { OrderDeliveryFile } from './order-delivery-file.entity';
@@ -92,7 +92,7 @@ export class OrdersService {
   // What a purchase would cost right now — price, the buyer's fee (rate snapshot rules as in
   // purchase) and the total. Public: the listing page and the cart show it before paying.
   async quote(listingId: string, packageId?: string): Promise<OrderQuote> {
-    const listing = await this.listings.findOne({ where: { id: listingId, status: ListingStatus.Active } });
+    const listing = await this.listings.findOne({ where: { id: listingId, status: ListingStatus.Active, seller: { status: UserStatus.Active } } });
     if (!listing) throw new NotFoundException('Listing not found');
     let price: number | null = listing.priceWaveCoin;
     if (listing.type === ListingType.Service) {
@@ -108,7 +108,8 @@ export class OrdersService {
 
   async purchase(buyerId: string, dto: PurchaseOrderDto): Promise<Order> {
     const listing = await this.listings.findOne({
-      where: { id: dto.listingId, status: ListingStatus.Active },
+      // A suspended/banned seller's listings can't be bought (they're hidden from the marketplace too).
+      where: { id: dto.listingId, status: ListingStatus.Active, seller: { status: UserStatus.Active } },
     });
     if (!listing) {
       throw new NotFoundException('Listing not found');

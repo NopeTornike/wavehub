@@ -57,6 +57,17 @@ export default function AdminPromoCodes() {
     }
   }
 
+  // Only an unused code can be deleted; a redeemed one is the record of credit handed out (409).
+  const remove = async (c: AdminPromoCode) => {
+    if (!window.confirm(`კოდი ${c.code} სამუდამოდ წაიშლება. გავაგრძელოთ?`)) return
+    try {
+      await api.adminDeletePromoCode(c.id)
+      setCodes((list) => list?.filter((x) => x.id !== c.id) ?? null)
+    } catch (err) {
+      setStatus({ kind: 'error', text: errorMessage(err, 'გამოყენებული კოდი ვერ წაიშლება — გამორთე.') })
+    }
+  }
+
   const raiseCap = async (c: AdminPromoCode) => {
     const value = window.prompt(`ახალი ლიმიტი (ახლა ${c.maxRedemptions}, გამოყენებულია ${c.redeemedCount})`, String(c.maxRedemptions))
     if (!value) return
@@ -135,6 +146,11 @@ export default function AdminPromoCodes() {
                 <button type="button" className="button ghost" onClick={() => void toggle(c)}>
                   {c.active ? 'გამორთვა' : 'ჩართვა'}
                 </button>
+                {c.redeemedCount === 0 && (
+                  <button type="button" className="button danger" onClick={() => void remove(c)}>
+                    წაშლა
+                  </button>
+                )}
               </div>
             </div>
           ))}

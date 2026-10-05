@@ -363,3 +363,10 @@ status under the row lock (a participant's cancel can never consume a disputed s
 Frontend: `components/SessionDisputePanel.tsx`, Admin → Disputes "ქოუჩინგის სესიები" tab,
 `pages/admin/session-disputes/[id].tsx`. Tests: `test/session-disputes.e2e-spec.ts`.
 Packages are no longer shown on the coach profile — only in the booking flow (owner, 2026-10-02).
+
+## 2026-10-04 Coach delete
+`DELETE admin/coaches/:id` (Super Admin) deletes a coach profile only when the coach has **no
+session history** — `coaching_sessions.coachId` cascades, so deleting would wipe escrow/payment
+history; such coaches are suspended instead (409). Runs under `SELECT … FOR UPDATE` on the coach row
+so a racing booking (its INSERT takes KEY SHARE on the coach) can't be cascade-deleted. The user
+account stays. Audited (`coach.delete`, with username/status).

@@ -488,6 +488,22 @@ export class CoachesService {
     return this.toAdminSummary(await this.getOrThrow(id));
   }
 
+  // Permanently remove a coach profile (2026-10-03) — only one with no session history: sessions
+  // cascade from the coach row and carry money/escrow history, so a coach who ever had a booking is
+  // suspended instead. The user account itself stays; favourites go with the profile.
+  async adminDelete(id: string): Promise<{ username: string; status: CoachStatus }> {
+    const coach = await this.getOrThrow(id);
+    await this.dataSource.transaction(async (m) => {
+      // FOR UPDATE conflicts with the KEY SHARE lock a booking's session INSERT takes on the coach
+      // row, so no booking can land between this check and the delete (and be cascade-deleted).
+      await m.query(`SELECT id FROM coaches WHERE id = $1 FOR UPDATE`, [id]);
+      const [{ count }] = await m.query(`SELECT count(*)::int AS count FROM coaching_sessions WHERE "coachId" = $1`, [id]);
+      if (count > 0) throw new ConflictException('This coach has session history and can’t be deleted — suspend them instead');
+      await m.delete(Coach, { id });
+    });
+    return { username: coach.user.username, status: coach.status };
+  }
+
   private toSummary(coach: Coach, profileBadge: string | null = null, completedSessions = 0, responseMinutes: number | null = null): PublicCoachSummary {
     return {
       id: coach.id,

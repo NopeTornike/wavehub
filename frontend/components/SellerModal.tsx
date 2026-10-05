@@ -77,6 +77,9 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
   const [detailsDraft, setDetailsDraft] = useState<Record<string, string>>({})
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [status, setStatus] = useState<Status>({ kind: '', text: '' })
+  // The listing just sent to review — shown as a success panel at the top of the form (the status
+  // line sits at the bottom of a very long form, so a seller never saw it and re-submitted).
+  const [published, setPublished] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [zoom, setZoom] = useState<number | null>(null)
   const [draftRestored, setDraftRestored] = useState(false)
@@ -135,6 +138,13 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
   useEffect(() => {
     document.body.classList.toggle('modal-open', open)
     return () => document.body.classList.remove('modal-open')
+  }, [open])
+
+  // Reopening the builder starts on the form, not on the last "sent for review" panel.
+  useEffect(() => {
+    // A response to the modal closing, not derived state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!open) setPublished(null)
   }, [open])
 
   // Draft: everything typed is kept in this browser until the listing is published, so leaving the
@@ -279,6 +289,8 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
       await api.submitListingForReview(listing.id)
       reset()
       setStatus({ kind: 'success', text: 'განცხადება გაიგზავნა შესამოწმებლად — დამტკიცების შემდეგ გამოჩნდება მარკეტში.' })
+      setPublished(listing.title)
+      document.querySelector('.listing-builder-panel')?.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setStatus({ kind: 'error', text: errorMessage(err, 'განცხადების შექმნა ვერ მოხერხდა.') })
     } finally {
@@ -311,7 +323,24 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
             x
           </button>
         </div>
-        <form className="seller-form listing-builder-form" id="sellerForm" onSubmit={submit} noValidate>
+        {published && (
+          <div className="seller-published" role="status">
+            <span aria-hidden="true">✓</span>
+            <div>
+              <strong>განცხადება გაიგზავნა შესამოწმებლად</strong>
+              <p>{`„${published}“ მარკეტში გამოჩნდება მოდერაციის დამტკიცების შემდეგ — შეტყობინებას მიიღებ.`}</p>
+              <div className="seller-published-actions">
+                <Link className="button" href="/profile#profileListings" onClick={onClose}>
+                  ჩემი განცხადებები
+                </Link>
+                <button type="button" className="button ghost" onClick={() => setPublished(null)}>
+                  კიდევ ერთის დამატება
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        <form className="seller-form listing-builder-form" id="sellerForm" onSubmit={submit} noValidate hidden={!!published}>
           <section className="listing-builder-section">
             <header>
               <b>1</b>

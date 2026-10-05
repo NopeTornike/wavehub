@@ -29,3 +29,8 @@ Promo codes and homepage banners (SPECIFICATION.md §5.13 "Marketing" + "Content
 
 ## Tests
 `test/marketing.e2e-spec.ts`.
+
+## 2026-10-04 Promo code delete
+`DELETE admin/promo-codes/:id` (Super Admin) removes a code **only while `redeemedCount = 0`** — the
+condition is inside the DELETE, so a racing redemption turns it into a 409, never a lost record.
+A used code is deactivated (`PATCH … {active:false}`) instead. Audited (`promo_code.delete`).

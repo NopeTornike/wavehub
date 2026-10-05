@@ -94,6 +94,44 @@ export class ListingsController {
     return result;
   }
 
+  // Take a live listing off the marketplace with a reason the seller sees (→ Rejected; the seller
+  // must fix and resubmit). Restore puts it straight back. Delete only for never-ordered listings
+  // and Super Admin only. All audit-logged.
+  @Post('admin/listings/:id/take-down')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  async adminTakeDown(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RejectListingDto,
+  ) {
+    const listing = await this.listings.adminTakeDown(id, dto.reason);
+    await this.audit.log({ adminId, adminRole, action: 'listing.take_down', entityType: 'listing', entityId: id, metadata: { reason: dto.reason } });
+    return listing;
+  }
+
+  @Post('admin/listings/:id/restore')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  async adminRestore(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string) {
+    const listing = await this.listings.adminRestore(id);
+    await this.audit.log({ adminId, adminRole, action: 'listing.restore', entityType: 'listing', entityId: id });
+    return listing;
+  }
+
+  @Delete('admin/listings/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  async adminDelete(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string) {
+    const deleted = await this.listings.adminDelete(id);
+    await this.audit.log({ adminId, adminRole, action: 'listing.delete', entityType: 'listing', entityId: id, metadata: deleted });
+    return { ok: true };
+  }
+
   // Moderator preview of any listing (description, packages, requirements, FAQ, photos) before
   // approving or rejecting it — the public GET listings/:id only serves active listings.
   @Get('admin/listings/:id')

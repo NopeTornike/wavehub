@@ -182,6 +182,17 @@ export class MarketingService {
     return this.toAdminBanner(await this.banners.findOneOrFail({ where: { id } }));
   }
 
+  // Delete a promo code nobody has redeemed (a typo, a test). A used code is only deactivated —
+  // redemptions cascade from it and are the record of credit handed out. The redeemedCount = 0
+  // condition sits in the DELETE itself, so a redemption racing it makes this a no-op, not a loss.
+  async deleteCode(id: string): Promise<{ code: string }> {
+    const c = await this.codes.findOne({ where: { id } });
+    if (!c) throw new NotFoundException('Promo code not found');
+    const res = await this.codes.createQueryBuilder().delete().where('id = :id AND "redeemedCount" = 0', { id }).execute();
+    if (!res.affected) throw new ConflictException('This code has been redeemed and can’t be deleted — deactivate it instead');
+    return { code: c.code };
+  }
+
   async deleteBanner(id: string): Promise<void> {
     const res = await this.banners.delete(id);
     if (!res.affected) throw new NotFoundException('Banner not found');

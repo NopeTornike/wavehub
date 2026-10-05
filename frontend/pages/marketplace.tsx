@@ -8,6 +8,7 @@ import SellerModal from '../components/SellerModal'
 import { api, errorMessage } from '../lib/api'
 import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
+import { gel } from '../lib/money'
 
 // The prototype's marketplace.html, section for section: head + product count, the three filter
 // selects (product / game / sort), the listing grid, the floating cart footer, and the
@@ -264,13 +265,13 @@ export default function Marketplace() {
         )}
       </section>
 
-      <footer className="marketplace-cart-footer" aria-label="კალათა">
+      <footer className={`marketplace-cart-footer${cart.count === 0 ? ' is-empty' : ''}`} aria-label="კალათა">
         <Link className="marketplace-cart-button" id="cartButton" href="/cart">
           <span>
             <img className="cart-icon-image" src="/assets/cart-icon.png" alt="" aria-hidden="true" /> კალათა{' '}
           </span>
           <strong id="cartCount">{cart.count}</strong>
-          <small id="cartTotal">{cart.totalWaveCoin} GEL</small>
+          <small id="cartTotal">{gel(cart.totalWaveCoin)} GEL</small>
         </Link>
       </footer>
 

@@ -481,6 +481,12 @@ export const api = {
     const query = qs.toString()
     return request<AdminListingSummary[]>(`/admin/listings${query ? `?${query}` : ''}`)
   },
+  // Staff moderation of live listings: take down (→ rejected, with a reason the seller sees),
+  // restore, and Super-Admin delete (only never-ordered listings; 409 otherwise).
+  adminTakeDownListing: (id: string, reason: string) =>
+    request<unknown>(`/admin/listings/${id}/take-down`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  adminRestoreListing: (id: string) => request<unknown>(`/admin/listings/${id}/restore`, { method: 'POST' }),
+  adminDeleteListing: (id: string) => request<{ ok: true }>(`/admin/listings/${id}`, { method: 'DELETE' }),
   adminSetListingFeatured: (id: string, isFeatured: boolean) =>
     request<{ id: string; isFeatured: boolean }>(`/admin/listings/${id}/featured`, { method: 'POST', body: JSON.stringify({ isFeatured }) }),
   addListingPackage: (id: string, payload: PackageInput) => request<PublicPackage>(`/listings/${id}/packages`, { method: 'POST', body: JSON.stringify(payload) }),
@@ -870,6 +876,8 @@ export const api = {
   adminRejectCoach: (id: string, reason: string) =>
     request<AdminCoachSummary>(`/coaches/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
+  // Super Admin only; a coach with any session history can't be deleted (409 — suspend instead).
+  adminDeleteCoach: (id: string) => request<{ ok: true }>(`/admin/coaches/${id}`, { method: 'DELETE' }),
   adminSuspendCoach: (id: string) => request<AdminCoachSummary>(`/coaches/${id}/suspend`, { method: 'POST' }),
 
   adminRestoreCoach: (id: string) => request<AdminCoachSummary>(`/coaches/${id}/restore`, { method: 'POST' }),
@@ -987,6 +995,8 @@ export const api = {
 
   adminUploadBannerImage: (id: string, file: File) => upload<AdminBanner>(`/admin/banners/${id}/image`, file),
 
+  // Only an unused code can be deleted (409 once redeemed — deactivate it instead).
+  adminDeletePromoCode: (id: string) => request<{ ok: true }>(`/admin/promo-codes/${id}`, { method: 'DELETE' }),
   adminDeleteBanner: (id: string) => request<{ ok: true }>(`/admin/banners/${id}`, { method: 'DELETE' }),
 
   // --- Trust & Safety (backend/src/trust/) ---

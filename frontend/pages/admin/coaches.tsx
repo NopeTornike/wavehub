@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { AdminCoachSummary, MyCoachProfile, PublicGame } from '@wavehub/shared-types'
-import { VerificationStatus } from '@wavehub/shared-types'
+import { AdminRole, VerificationStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { CoachHoursEditor, CoachQuestionsEditor, CoachVideoEditor, LANGUAGE_OPTIONS } from '../../components/CoachExtras'
 import { api, errorMessage } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
 
 // Staff side of coaching: the verification queue, the coach list (suspend/restore), "add coach"
 // (an existing active account becomes a verified coach — POST /admin/coaches) and a per-coach
@@ -164,6 +165,7 @@ export default function AdminCoaches() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const isSuperAdmin = useAuth().user?.adminRole === AdminRole.SuperAdmin
   const [games, setGames] = useState<PublicGame[]>([])
   const [form, setForm] = useState<CoachForm>(EMPTY_FORM)
   const [creating, setCreating] = useState(false)
@@ -271,6 +273,22 @@ export default function AdminCoaches() {
     }
   }
 
+  // Super Admin only. A coach with session history can't be deleted (the API answers 409 — the
+  // message says to suspend instead); the user account itself is kept.
+  const removeCoach = async (coach: AdminCoachSummary) => {
+    if (!window.confirm(`@${coach.username} — ქოუჩის პროფილი სამუდამოდ წაიშლება (ანგარიში დარჩება). გავაგრძელოთ?`)) return
+    setBusyId(coach.id)
+    setError('')
+    try {
+      await api.adminDeleteCoach(coach.id)
+      reload()
+    } catch (err) {
+      setError(errorMessage(err, 'წაშლა ვერ მოხერხდა — თუ ქოუჩს სესიები ჰქონდა, შეაჩერე.'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <AdminLayout title="მწვრთნელები">
       <h1 className="page-title">მწვრთნელები</h1>
@@ -333,7 +351,7 @@ export default function AdminCoaches() {
                     <div className="admin-row-main">
                       <strong>{coach.specialty}</strong>
                       <span className="note" style={{ margin: 0 }}>
-                        @{coach.username} · {VERIFICATION_LABELS[coach.verificationStatus]} · {coach.status}
+                        @{coach.username} · {VERIFICATION_LABELS[coach.verificationStatus]} · {coach.status === 'suspended' ? 'შეჩერებული' : 'აქტიური'}
                       </span>
                     </div>
                     <div className="admin-row-actions">
@@ -343,6 +361,11 @@ export default function AdminCoaches() {
                       {coach.verificationStatus === VerificationStatus.Verified && (
                         <button type="button" className="button" disabled={busyId === coach.id} onClick={() => toggleSuspend(coach)}>
                           {coach.status === 'suspended' ? 'აღდგენა' : 'შეჩერება'}
+                        </button>
+                      )}
+                      {isSuperAdmin && (
+                        <button type="button" className="button danger" disabled={busyId === coach.id} onClick={() => void removeCoach(coach)}>
+                          წაშლა
                         </button>
                       )}
                     </div>

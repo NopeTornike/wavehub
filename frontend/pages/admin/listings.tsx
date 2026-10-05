@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { AdminListingSummary, ListingForEdit } from '@wavehub/shared-types'
-import { AdminRole, ListingType } from '@wavehub/shared-types'
+import { AdminRole, ListingStatus, ListingType } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 import { LISTING_STATUS_LABELS } from '../../lib/labels'
@@ -22,7 +22,7 @@ function EditLink({ id }: { id: string }) {
 
 const TYPE_LABELS: Record<ListingType, string> = {
   [ListingType.Service]: 'სერვისი',
-  [ListingType.Item]: 'ნივთი',
+  [ListingType.Item]: 'პროდუქტი', // accounts, skins and items — the category name follows
   [ListingType.DigitalKey]: 'გასაღები',
 }
 
@@ -89,6 +89,35 @@ function AllListings() {
     }
   }
 
+  // Take down (→ rejected with a reason the seller sees), restore, delete (Super Admin; refused
+  // with 409 when the listing has orders — take it down instead).
+  const moderate = async (item: AdminListingSummary, action: 'take-down' | 'restore' | 'delete') => {
+    let reason = ''
+    if (action === 'take-down') {
+      reason = window.prompt(`„${item.title}“ — მოხსნის მიზეზი (გამყიდველი დაინახავს):`)?.trim() ?? ''
+      if (!reason) return
+    }
+    if (action === 'delete' && !window.confirm(`„${item.title}“ სამუდამოდ წაიშლება. გავაგრძელოთ?`)) return
+    setBusyId(item.id)
+    setError('')
+    try {
+      if (action === 'take-down') await api.adminTakeDownListing(item.id, reason)
+      else if (action === 'restore') await api.adminRestoreListing(item.id)
+      else await api.adminDeleteListing(item.id)
+      setItems((prev) =>
+        action === 'delete'
+          ? (prev ?? []).filter((row) => row.id !== item.id)
+          : (prev ?? []).map((row) =>
+              row.id === item.id ? { ...row, status: action === 'take-down' ? ListingStatus.Rejected : ListingStatus.Active, isFeatured: action === 'take-down' ? false : row.isFeatured } : row,
+            ),
+      )
+    } catch (err) {
+      setError(errorMessage(err, 'მოქმედება ვერ შესრულდა.'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <>
       <h1 className="page-title">ყველა განცხადება</h1>
@@ -127,9 +156,26 @@ function AllListings() {
                   ნახვა
                 </a>
                 {canEdit && <EditLink id={item.id} />}
-                <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.isFeatured)} onClick={() => void toggle(item)}>
-                  {item.isFeatured ? 'რჩეულიდან ამოღება' : 'რჩეულად მონიშვნა'}
-                </button>
+                {item.status === ListingStatus.Active && (
+                  <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.isFeatured)} onClick={() => void toggle(item)}>
+                    {item.isFeatured ? 'რჩეულიდან ამოღება' : 'რჩეულად მონიშვნა'}
+                  </button>
+                )}
+                {[ListingStatus.Active, ListingStatus.Paused].includes(item.status) && (
+                  <button type="button" className="button ghost" disabled={busyId === item.id} onClick={() => void moderate(item, 'take-down')}>
+                    მარკეტიდან მოხსნა
+                  </button>
+                )}
+                {item.status === ListingStatus.Rejected && (
+                  <button type="button" className="button ghost" disabled={busyId === item.id} onClick={() => void moderate(item, 'restore')}>
+                    აღდგენა
+                  </button>
+                )}
+                {canEdit && (
+                  <button type="button" className="button danger" disabled={busyId === item.id} onClick={() => void moderate(item, 'delete')}>
+                    წაშლა
+                  </button>
+                )}
               </div>
             </div>
           ))}

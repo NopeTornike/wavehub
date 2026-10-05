@@ -93,6 +93,7 @@ export class CommunityService {
       `SELECT g."id" AS "gameId", g."slug", g."name", g."iconUrl", g."coverUrl", g."tileUrl", count(l."id")::int AS "count"
        FROM "games" g
        LEFT JOIN "listings" l ON l."gameId" = g."id" AND l."status" = 'active' AND l."type" <> 'digital_key'
+        AND EXISTS (SELECT 1 FROM "users" su WHERE su."id" = l."sellerId" AND su."status" = 'active')
        WHERE g."isActive" = true
        GROUP BY g."id"
        ORDER BY g."sortOrder" ASC, g."name" ASC`,

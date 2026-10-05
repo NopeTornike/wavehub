@@ -325,3 +325,13 @@ Item listings now come in three kinds: accounts, skins and **items** — `itemAt
 (`'account' | 'skin' | 'item'` in shared-types) plus the `items` category (migration
 `1784376000000-ItemsCategory`, type `item`, idempotent `ON CONFLICT (slug) DO NOTHING`). No schema
 change otherwise; the marketplace filters by category id. Listing photos are capped at 2MB.
+
+## 2026-10-04 Staff moderation of live listings + seller-status gate
+- `POST admin/listings/:id/take-down {reason}` (Marketplace & Coaching Ops / Super Admin) → status
+  `rejected` + reason, Featured cleared, seller notified; the seller must fix and resubmit.
+  `POST admin/listings/:id/restore` → back to `active` (admin-only path — `Rejected → Active` is
+  deliberately NOT in the lifecycle table, because that table also gates the seller's own unpause).
+  `DELETE admin/listings/:id` — Super Admin, only never-ordered listings (409 otherwise). All audited.
+- **A suspended/banned seller's listings leave the marketplace**: browse, detail, favourites, the
+  per-game counts (community), `GET order-quote` and purchase all require `seller.status = active`.
+- Covered by `test/admin-crud.e2e-spec.ts`.

@@ -11,6 +11,8 @@ describe('assertValidTransition', () => {
     [ListingStatus.Paused, ListingStatus.Active],
     [ListingStatus.Active, ListingStatus.PendingReview], // seller edit → re-review
     [ListingStatus.Paused, ListingStatus.PendingReview], // seller edit → re-review
+    [ListingStatus.Active, ListingStatus.Rejected], // staff take-down
+    [ListingStatus.Paused, ListingStatus.Rejected], // staff take-down
   ];
 
   it.each(valid)('allows %s -> %s', (from, to) => {
@@ -21,7 +23,7 @@ describe('assertValidTransition', () => {
     [ListingStatus.Draft, ListingStatus.Active], // can't skip review
     [ListingStatus.Draft, ListingStatus.Paused],
     [ListingStatus.Active, ListingStatus.Draft], // no going back to draft once live
-    [ListingStatus.Rejected, ListingStatus.Active], // must go through review again
+    [ListingStatus.Rejected, ListingStatus.Active], // must go through review again — and a seller can't unpause a take-down
     [ListingStatus.PendingReview, ListingStatus.Draft],
     [ListingStatus.PendingReview, ListingStatus.Paused],
   ];

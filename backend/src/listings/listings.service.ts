@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { ListingFavorite } from './listing-favorite.entity';
-import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType, NotificationType } from '@wavehub/shared-types';
+import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType, NotificationType, UserStatus } from '@wavehub/shared-types';
 import type { AdminListingSummary, ListingForEdit, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { Listing } from './listing.entity';
@@ -293,7 +293,9 @@ export class ListingsService {
       .leftJoinAndSelect('listing.category', 'category')
       .leftJoinAndSelect('listing.game', 'game')
       .leftJoinAndSelect('listing.images', 'images')
-      .where('listing.status = :status', { status: ListingStatus.Active });
+      .where('listing.status = :status', { status: ListingStatus.Active })
+      // A suspended or banned seller's listings leave the marketplace with them (2026-10-03).
+      .andWhere('seller.status = :sellerStatus', { sellerStatus: UserStatus.Active });
 
     if (filters.categoryId) {
       qb.andWhere('listing.categoryId = :categoryId', { categoryId: filters.categoryId });
@@ -486,7 +488,7 @@ export class ListingsService {
     const ids = await this.listFavoriteIds(userId);
     if (ids.length === 0) return [];
     const rows = await this.listings.find({
-      where: { id: In(ids), status: ListingStatus.Active },
+      where: { id: In(ids), status: ListingStatus.Active, seller: { status: UserStatus.Active } },
       relations: ['seller', 'category', 'game', 'images'],
     });
     const order = new Map(ids.map((id, index) => [id, index]));
@@ -504,7 +506,7 @@ export class ListingsService {
   // this shape yet — see packages/shared-types/CLAUDE.md if that becomes worth formalizing.
   async findPublicById(id: string) {
     const listing = await this.listings.findOne({
-      where: { id, status: ListingStatus.Active },
+      where: { id, status: ListingStatus.Active, seller: { status: UserStatus.Active } },
       relations: ['seller', 'category', 'game', 'images'],
     });
     if (!listing) {
@@ -769,6 +771,70 @@ export class ListingsService {
       { link: '/sell' },
     );
     return saved;
+  }
+
+  // --- Staff moderation of live listings (2026-10-03) ---
+
+  // Take a live (or paused / waiting) listing off the marketplace: it becomes Rejected with the
+  // moderation reason, loses the Featured flag, and the seller is told why. Open orders are not
+  // touched — they finish (or get disputed) as usual.
+  async adminTakeDown(listingId: string, reason: string): Promise<Listing> {
+    const listing = await this.getListingOrThrow(listingId);
+    assertValidTransition(listing.status, ListingStatus.Rejected);
+    listing.status = ListingStatus.Rejected;
+    listing.rejectionReason = reason;
+    listing.isFeatured = false;
+    const saved = await this.listings.save(listing);
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingRejected,
+      'განცხადება მოხსნილია მარკეტიდან',
+      `„${listing.title}“ მოდერაციამ მოხსნა მარკეტიდან. მიზეზი: ${reason}. შეასწორე და ხელახლა გაგზავნე განსახილველად.`,
+      { link: '/sell' },
+    );
+    return saved;
+  }
+
+  // Put a taken-down (or rejected) listing straight back on the marketplace.
+  async adminRestore(listingId: string): Promise<Listing> {
+    const listing = await this.getListingOrThrow(listingId);
+    if (listing.status !== ListingStatus.Rejected) throw new ConflictException('Only a removed or rejected listing can be restored');
+    // Admin-only override of the lifecycle table (which keeps Rejected → Active closed to sellers).
+    listing.status = ListingStatus.Active;
+    listing.rejectionReason = null;
+    const saved = await this.listings.save(listing);
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingApproved,
+      'განცხადება აღდგა',
+      `„${listing.title}“ მოდერაციამ აღადგინა და ისევ ჩანს მარკეტზე.`,
+      { link: `/listings/${listing.id}` },
+    );
+    return saved;
+  }
+
+  // Permanently delete a listing — only one nobody ever ordered (orders and reviews reference it;
+  // their history must survive). Anything with orders is taken down instead.
+  async adminDelete(listingId: string): Promise<{ title: string; sellerId: string }> {
+    const listing = await this.getListingOrThrow(listingId);
+    const [{ count }] = await this.listings.query(`SELECT count(*)::int AS count FROM "orders" WHERE "listingId" = $1`, [listingId]);
+    if (count > 0) throw new ConflictException('This listing has orders and can’t be deleted — take it down instead');
+    try {
+      await this.listings.delete({ id: listing.id });
+    } catch (err) {
+      if ((err as { code?: string }).code === '23503') {
+        throw new ConflictException('This listing has orders and can’t be deleted — take it down instead');
+      }
+      throw err;
+    }
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingRejected,
+      'განცხადება წაიშალა',
+      `„${listing.title}“ მოდერაციამ წაშალა.`,
+      { link: '/sell' },
+    );
+    return { title: listing.title, sellerId: listing.sellerId };
   }
 
   // Bulk "paste a list of keys" upload — a seller realistically has dozens/hundreds per title (see

@@ -4,7 +4,7 @@ import { CoachingSessionStatus, KeyInventoryStatus, ListingStatus, ListingType, 
 // ("pending_review") to a user.
 export const LISTING_TYPE_LABELS: Record<ListingType, string> = {
   [ListingType.Service]: 'სერვისი',
-  [ListingType.Item]: 'ანგარიში / სკინი',
+  [ListingType.Item]: 'ანგარიში / სკინი / ნივთი',
   [ListingType.DigitalKey]: 'Steam გასაღები',
 }
 

@@ -1,6 +1,6 @@
 import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
@@ -213,6 +213,18 @@ export class CoachesController {
     const coach = await this.coaches.suspend(id);
     await this.audit.log({ adminId, adminRole, action: 'coach.suspend', entityType: 'coach', entityId: id });
     return coach;
+  }
+
+  // Super Admin only: permanently delete a coach profile with no session history (else 409 —
+  // suspend instead). The user account stays. Audit-logged with who it was.
+  @Delete('admin/coaches/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole()
+  async adminDelete(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string) {
+    const deleted = await this.coaches.adminDelete(id);
+    await this.audit.log({ adminId, adminRole, action: 'coach.delete', entityType: 'coach', entityId: id, metadata: deleted });
+    return { ok: true };
   }
 
   @Post('coaches/:id/restore')

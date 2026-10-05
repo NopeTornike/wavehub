@@ -938,3 +938,11 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   (`FeaturedHeart`), a "View details" action on mobile featured cards, featured-items bottom padding
   90→24px (the gap before the CTA), tournament cover without overlaid status labels, competition
   button fit, mobile DM composer layout. His rank renames were already in shared-types.
+
+## 2026-10-04 Admin CRUD + marketplace walkthrough fixes
+- Admin → Listings → all: take down (reason prompt) / restore / delete (Super Admin); Admin →
+  Coaches: delete (Super Admin); Admin → Promo codes: delete while unused. `.button.danger` style.
+- Marketplace (phones): the fixed cart bar is hidden while the cart is empty and is one compact row
+  otherwise; product cards get a phone footer (3 rows, readable sizes) and a shade under the title.
+- Listing builder: action bar `bottom: 0` (the Publish button was clipped), dropzone hint wraps, and a
+  "sent for review" panel replaces the form after publishing (the old status line sat at the bottom).
