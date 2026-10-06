@@ -49,7 +49,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { href: '/admin/listings', label: 'განცხადებები', icon: 'listing' },
       { href: '/admin/games', label: 'თამაშები', icon: 'game' },
-      { href: '/sell/digital-keys', label: 'Steam თამაშები', icon: 'steam', steamPublisherOnly: true },
+      { href: '/admin/steam', label: 'Steam თამაშები', icon: 'steam', steamPublisherOnly: true },
       { href: '/admin/reviews', label: 'შეფასებები', icon: 'star' },
       { href: '/admin/disputes', label: 'დავები', icon: 'scale' },
     ],

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { ListingFavorite } from './listing-favorite.entity';
 import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType, NotificationType, UserStatus } from '@wavehub/shared-types';
-import type { AdminListingSummary, ListingForEdit, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
+import type { AdminListingSummary, AdminSteamGameSummary, ListingForEdit, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { Listing } from './listing.entity';
 import { ListingImage } from './listing-image.entity';
@@ -163,6 +163,65 @@ export class ListingsService {
   // A moderator's preview of any listing before deciding (GET admin/listings/:id).
   findForReview(listingId: string): Promise<ListingForEdit> {
     return this.toListingForEdit(listingId);
+  }
+
+  // --- Admin → Steam (2026-10-07): the whole Steam catalogue for any Steam publisher ---
+
+  // Every Steam game (digital-key listing), whoever created it, newest first, with key stock.
+  async steamCatalogue(): Promise<AdminSteamGameSummary[]> {
+    const rows: Array<Record<string, unknown>> = await this.listings.query(
+      `SELECT l.id, l.title, l.status, l."priceWaveCoin", l."ordersCount", l."isFeatured", l."createdAt", l."updatedAt", u.username AS "createdByUsername",
+              (SELECT i.url FROM listing_images i WHERE i."listingId" = l.id ORDER BY i."sortOrder" ASC LIMIT 1) AS "coverUrl",
+              (SELECT count(*)::int FROM listing_key_inventory k WHERE k."listingId" = l.id AND k.status = $2) AS "availableKeys",
+              (SELECT count(*)::int FROM listing_key_inventory k WHERE k."listingId" = l.id AND k.status = $3) AS "soldKeys"
+         FROM listings l JOIN users u ON u.id = l."sellerId"
+        WHERE l.type = $1
+        ORDER BY l."createdAt" DESC`,
+      [ListingType.DigitalKey, KeyInventoryStatus.Available, KeyInventoryStatus.Sold],
+    );
+    return rows.map((r) => ({
+      id: String(r.id),
+      title: String(r.title),
+      status: r.status as ListingStatus,
+      priceWaveCoin: r.priceWaveCoin === null ? null : Number(r.priceWaveCoin),
+      coverUrl: (r.coverUrl as string | null) ?? null,
+      availableKeys: Number(r.availableKeys),
+      soldKeys: Number(r.soldKeys),
+      ordersCount: Number(r.ordersCount),
+      isFeatured: r.isFeatured === true,
+      createdByUsername: String(r.createdByUsername),
+      createdAt: new Date(r.createdAt as string).toISOString(),
+      updatedAt: new Date(r.updatedAt as string).toISOString(),
+    }));
+  }
+
+  // 404 unless the listing is a Steam game — the Steam routes never touch other listing types.
+  async assertSteamGame(listingId: string): Promise<void> {
+    const listing = await this.listings.findOne({ where: { id: listingId }, select: ['id', 'type'] });
+    if (!listing || listing.type !== ListingType.DigitalKey) throw new NotFoundException('Steam game not found');
+  }
+
+  async steamGameForEdit(listingId: string): Promise<ListingForEdit> {
+    await this.assertSteamGame(listingId);
+    return this.toListingForEdit(listingId);
+  }
+
+  // Staff publish a Steam game straight to the store (they are the moderators of their own
+  // catalogue) — only with at least one key in stock — or pause / resume it.
+  async steamSetLive(listingId: string, live: boolean): Promise<Listing> {
+    await this.assertSteamGame(listingId);
+    const listing = await this.getListingOrThrow(listingId);
+    if (live) {
+      if (listing.status === ListingStatus.Active) throw new ConflictException('This game is already live');
+      const available = await this.keyInventory.count({ where: { listingId, status: KeyInventoryStatus.Available } });
+      if (available === 0) throw new ConflictException('Add at least one key before publishing');
+      listing.status = ListingStatus.Active;
+      listing.rejectionReason = null;
+    } else {
+      if (listing.status !== ListingStatus.Active) throw new ConflictException('Only a live game can be paused');
+      listing.status = ListingStatus.Paused;
+    }
+    return this.listings.save(listing);
   }
 
   private async toListingForEdit(listingId: string): Promise<ListingForEdit> {

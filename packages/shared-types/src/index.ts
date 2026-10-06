@@ -969,6 +969,22 @@ export interface AdminListingSummary {
   priceWaveCoin?: number | null;
 }
 
+// Admin → Steam (GET admin/steam-games): every Steam game whoever created it, with live key stock.
+export interface AdminSteamGameSummary {
+  id: string;
+  title: string;
+  status: ListingStatus;
+  priceWaveCoin: number | null;
+  coverUrl: string | null;
+  availableKeys: number;
+  soldKeys: number;
+  ordersCount: number;
+  isFeatured: boolean;
+  createdByUsername: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // What ReviewsService.listReported() returns for the admin `GET reviews/reported` queue — same
 // "purpose-built projection, not the raw entity" reasoning as AdminListingSummary above.
 export interface AdminReviewSummary {

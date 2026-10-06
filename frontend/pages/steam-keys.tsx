@@ -117,7 +117,7 @@ export default function SteamGames() {
             <TIcon name="back" /> უკან
           </button>
           {canPublishSteam(user) && (
-            <Link className="wt-head-link" href="/sell/digital-keys">
+            <Link className="wt-head-link" href="/admin/steam">
               თამაშების მართვა
             </Link>
           )}

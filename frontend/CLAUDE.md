@@ -1035,3 +1035,12 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - Support / dispute threads: photo + full name (see `backend/src/support/CLAUDE.md`).
 - `lib/support.tsx#formatTicketDate` and message bubbles use the manual Georgian date helpers.
 
+## 2026-10-07 Admin → Steam
+- `pages/admin/steam/index.tsx` and `pages/admin/steam/[id].tsx` replace `/sell/digital-keys`
+  (now redirects) for Steam publishers. Pages are inside `AdminLayout`; CSS uses the `st-` /
+  `aki-` prefixes. Admin nav, the Steam store header, the seller modal, My Listings and the Steam
+  game page's edit link all point here.
+- `components/AdminKeyInventory.tsx` shows per-status counts and Georgian dates, collapses long
+  lists to the latest 50, and reports the available count through `onChange` (pass a stable
+  setter — it's an effect dependency). Backend: `backend/src/listings/CLAUDE.md`.
+

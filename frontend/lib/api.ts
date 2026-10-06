@@ -50,6 +50,7 @@ import type {
   AdminPromoCode,
   PromoRedemptionResult,
   PublicBanner,
+  AdminSteamGameSummary,
   PlatformTimings,
   BannerPlacement,
   AdminBanner,
@@ -543,6 +544,17 @@ export const api = {
   // Super Admin edits any listing (no re-review; audit-logged) — same shapes as the seller calls.
   adminUpdateListing: (id: string, payload: ListingEditPayload) =>
     request<MyListing>(`/admin/listings/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  // --- Admin → Steam (any Steam publisher; backend/src/listings/steam-admin.controller.ts) ---
+  adminListSteamGames: () => request<AdminSteamGameSummary[]>('/admin/steam-games'),
+  adminGetSteamGame: (id: string) => request<ListingForEdit>(`/admin/steam-games/${id}`),
+  adminUpdateSteamGame: (id: string, payload: { title?: string; description?: string; priceWaveCoin?: number; attributes?: ItemAttributes }) =>
+    request<ListingForEdit>(`/admin/steam-games/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  adminUploadSteamImage: async (id: string, file: File) => upload<{ id: string; url: string }>(`/admin/steam-games/${id}/images`, await shrinkPhoto(file)),
+  adminSetSteamCover: (id: string, imageId: string) => request<{ ok: true }>(`/admin/steam-games/${id}/images/${imageId}/cover`, { method: 'POST' }),
+  adminRemoveSteamImage: (id: string, imageId: string) => request<{ ok: true }>(`/admin/steam-games/${id}/images/${imageId}`, { method: 'DELETE' }),
+  adminPublishSteamGame: (id: string) => request<ListingForEdit>(`/admin/steam-games/${id}/publish`, { method: 'POST' }),
+  adminPauseSteamGame: (id: string) => request<ListingForEdit>(`/admin/steam-games/${id}/pause`, { method: 'POST' }),
 
   adminUploadListingImage: async (listingId: string, file: File) => upload<{ id: string; url: string }>(`/admin/listings/${listingId}/images`, await shrinkPhoto(file)),
 

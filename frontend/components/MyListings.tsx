@@ -21,7 +21,7 @@ type Status = { kind: '' | 'error' | 'success' | 'pending'; text: string }
 // The full editor for each listing type.
 function editHref(listing: MyListing): string {
   if (listing.type === ListingType.Service) return `/sell/services/${listing.id}`
-  if (listing.type === ListingType.DigitalKey) return `/sell/digital-keys/${listing.id}`
+  if (listing.type === ListingType.DigitalKey) return `/admin/steam/${listing.id}`
   return `/sell/items/${listing.id}`
 }
 

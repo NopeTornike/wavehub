@@ -296,4 +296,45 @@ describe('client feedback batch (e2e)', () => {
     expect((await buyer.client.get(`/coaching-sessions/${sess.id}`)).body.autoConfirmAt).toBe(done.autoConfirmAt);
     await buyer.client.post(`/coaching-sessions/${sess.id}/confirm-complete`);
   });
+
+  it('Admin → Steam: any Steam publisher sees and manages every Steam game; publish needs stock; audited', async () => {
+    const steamCat = (await superAdmin.client.get('/categories')).body.find((c: { slug: string }) => c.slug === 'steam-games').id;
+    const created = await superAdmin.client.post('/listings', {
+      type: 'digital_key', categoryId: steamCat, title: 'Admin Steam Catalogue Game', description: 'Steam activation key with confirmed resale rights, described in detail.',
+      priceWaveCoin: 12, resaleRightsAttested: true,
+    });
+    expect(created.status).toBe(201);
+    const id = created.body.id;
+
+    expect((await stranger.client.get('/admin/steam-games')).status).toBe(403);
+    expect((await support.client.get('/admin/steam-games')).status).toBe(403);
+    // Another publisher (not the creator) sees it in the catalogue with its stock.
+    const row = ((await ops.client.get('/admin/steam-games')).body as Array<{ id: string; availableKeys: number; status: string; createdByUsername: string }>).find((g) => g.id === id);
+    expect(row).toMatchObject({ availableKeys: 0, status: 'draft', createdByUsername: superAdmin.username });
+    expect(JSON.stringify(row)).not.toMatch(/email|passwordHash|wavecoinBalance/);
+
+    expect((await ops.client.post(`/admin/steam-games/${id}/publish`)).status).toBe(409); // no keys yet
+    expect((await ops.client.post(`/admin/listings/${id}/keys`, { keys: ['ADM-STEAM-0001', 'ADM-STEAM-0002'] })).status).toBeLessThan(300);
+    const published = await ops.client.post(`/admin/steam-games/${id}/publish`);
+    expect(published.status).toBe(200);
+    expect(published.body.status).toBe('active');
+    expect((await stranger.client.get(`/listings/${id}`)).status).toBe(200);
+
+    const edited = await ops.client.request('PATCH', `/admin/steam-games/${id}`, { title: 'Admin Steam Catalogue Game v2', priceWaveCoin: 14 });
+    expect(edited.status).toBe(200);
+    expect(edited.body).toMatchObject({ title: 'Admin Steam Catalogue Game v2', priceWaveCoin: 14, status: 'active' }); // staff edit: no re-review
+    expect((await ops.client.post(`/admin/steam-games/${id}/pause`)).body.status).toBe('paused');
+    expect((await stranger.client.get(`/listings/${id}`)).status).toBe(404);
+    expect((await ops.client.post(`/admin/steam-games/${id}/pause`)).status).toBe(409);
+
+    // Non-Steam listings are out of reach of these routes.
+    const itemOrder = await buyItem(ctx, seller, buyer, superAdmin, 5, 'paid');
+    const itemListing = (await buyer.client.get(`/orders/${itemOrder}`)).body.listing.id;
+    expect((await ops.client.get(`/admin/steam-games/${itemListing}`)).status).toBe(404);
+    expect((await ops.client.post(`/admin/steam-games/${itemListing}/publish`)).status).toBe(404);
+    await buyer.client.post(`/orders/${itemOrder}/cancel`);
+
+    const actions = (await ctx.dataSource.query(`SELECT action FROM audit_logs WHERE "entityId" = $1 ORDER BY "createdAt"`, [id])).map((r: { action: string }) => r.action);
+    expect(actions).toEqual(expect.arrayContaining(['listing.keys_add', 'steam.publish', 'steam.update', 'steam.pause']));
+  });
 });

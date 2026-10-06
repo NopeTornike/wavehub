@@ -19,6 +19,7 @@ import ReviewCard from '../../components/ReviewCard'
 import FeeBreakdown from '../../components/FeeBreakdown'
 import { gel } from '../../lib/money'
 import { deliveryTimeLabel } from '../../lib/labels'
+import { canPublishSteam } from '../../lib/roles'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
 // the game's title icon, About card, the game-specific details grid, Access & Delivery, Linked
@@ -289,7 +290,7 @@ export default function ListingDetail() {
         purchasing={purchasing}
         status={status}
         isOwnListing={isOwnListing}
-        editHref={isOwnListing ? `/sell/digital-keys/${listing.id}` : me?.adminRole === AdminRole.SuperAdmin ? `/admin/listings/${listing.id}` : null}
+        editHref={me && canPublishSteam(me) ? `/admin/steam/${listing.id}` : null}
         notEnoughBalance={notEnoughBalance}
         quote={quote}
         onBuy={() => void buy()}

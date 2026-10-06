@@ -313,7 +313,7 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
             <h2 id="sellerModalTitle">Sell Your Game Account, Skin or Item</h2>
             {canPublishSteam(user) && (
               <p className="seller-modal-alt">
-                <span>Steam თამაშს ამატებთ (ადმინისტრაცია)?</span> <Link href="/sell/digital-keys">Steam თამაშის დამატება →</Link>
+                <span>Steam თამაშს ამატებთ (ადმინისტრაცია)?</span> <Link href="/admin/steam?new=1">Steam თამაშის დამატება →</Link>
               </p>
             )}
           </div>

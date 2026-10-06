@@ -21519,3 +21519,78 @@ body.modal-open { overflow: hidden; }
    371px phone column and ran 12px past the edge (2026-10-07 sweep). */
 .profile-control-layout { grid-template-columns: minmax(0, 1fr); }
 .profile-control-layout > * { min-width: 0; }
+
+/* ---------- Admin → Steam (2026-10-07): catalogue + per-game management (st- / aki-) ---------- */
+.adm-head .st-new { flex: 0 0 auto; width: auto; margin-left: auto; white-space: nowrap; }
+.st-kpis { margin-top: 16px; }
+.st-create { margin-top: 16px; border: 1px solid rgba(255, 61, 139, .35); border-radius: 14px; background: #0f1424; padding: 18px; }
+.st-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.st-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 18px 0 12px; }
+.st-toolbar input[type="search"] { flex: 1 1 240px; min-width: 0; }
+.st-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-filters button { border: 1px solid rgba(148, 163, 184, .2); border-radius: 999px; color: #c9cfdc; background: #0f1424; padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.st-filters button.active { border-color: rgba(255, 61, 139, .6); color: #fff; background: rgba(255, 61, 139, .16); }
+.st-list { display: grid; gap: 8px; }
+.st-row { display: grid; grid-template-columns: minmax(0, 1fr) 130px 90px 80px 90px 190px; align-items: center; gap: 12px; border: 1px solid rgba(148, 163, 184, .14); border-radius: 12px; background: #0f1424; padding: 10px 14px; }
+.st-row-head { border: 0; background: none; padding: 0 14px; color: #8f98ad; font-size: 12px; font-weight: 700; }
+.st-game { display: flex; align-items: center; gap: 12px; min-width: 0; color: #fff; text-decoration: none; }
+.st-game > span:last-child { display: grid; gap: 2px; min-width: 0; }
+.st-game strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; }
+.st-game small { color: #8f98ad; font-size: 12px; }
+.st-cover { flex: 0 0 auto; width: 64px; height: 40px; display: grid; place-items: center; border-radius: 8px; background: #1a2035 center / cover no-repeat; }
+.st-cover img { width: 22px; height: 22px; opacity: .7; }
+.st-status { justify-self: start; border: 1px solid rgba(148, 163, 184, .3); border-radius: 999px; color: #c9cfdc; padding: 3px 10px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.st-status.active { border-color: rgba(46, 204, 138, .5); color: #2ee59d; background: rgba(46, 204, 138, .1); }
+.st-status.paused, .st-status.pending_review { border-color: rgba(245, 192, 68, .5); color: #f5c044; background: rgba(245, 192, 68, .1); }
+.st-status.rejected { border-color: rgba(255, 92, 120, .5); color: #ff6b85; background: rgba(255, 92, 120, .1); }
+.st-cell { color: #e6e8ef; font-size: 14px; font-weight: 700; }
+.st-stock.empty { color: #ff6b85; }
+.st-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.st-back { display: inline-block; margin-bottom: 12px; color: #ff8cc4; font-weight: 700; text-decoration: none; }
+.st-hero { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; align-items: center; gap: 18px; border: 1px solid rgba(148, 163, 184, .14); border-radius: 14px; background: #0f1424; padding: 16px; }
+.st-hero-cover { height: 100px; border-radius: 10px; background: #1a2035 url('/assets/steam-logo.png') center / 40px no-repeat; }
+.st-hero-cover[style] { background-size: cover; }
+.st-hero-copy { display: grid; gap: 6px; min-width: 0; }
+.st-hero-copy h1 { margin: 0; color: #fff; font-size: 22px; overflow-wrap: anywhere; }
+.st-hero-copy p { margin: 0; color: #a9b0c2; font-size: 13.5px; }
+.st-hero-copy .st-warn { color: #ff8fa8; }
+.st-hero-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.st-hint { margin: 10px 0 0; color: #f5c044; font-size: 13px; }
+.st-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 14px; }
+.st-details { margin-top: 14px; }
+.aki-counts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.aki-counts span { border: 1px solid rgba(148, 163, 184, .2); border-radius: 10px; color: #a9b0c2; padding: 6px 10px; font-size: 12.5px; }
+.aki-counts span b { color: #fff; font-size: 15px; }
+.aki-counts span.ok { border-color: rgba(46, 204, 138, .45); }
+.aki-counts span.ok b { color: #2ee59d; }
+.aki-upload { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 12px; }
+.admin-key-list { display: grid; gap: 6px; max-height: 420px; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+.admin-key-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; border: 1px solid rgba(148, 163, 184, .12); border-radius: 10px; padding: 8px 10px; }
+.admin-key-list small { color: #8f98ad; font-size: 12px; }
+.aki-status { border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; color: #c9cfdc; background: rgba(148, 163, 184, .12); }
+.aki-status.available { color: #2ee59d; background: rgba(46, 204, 138, .12); }
+.aki-status.sold { color: #b59cff; background: rgba(124, 58, 237, .14); }
+.aki-status.revoked { color: #ff6b85; background: rgba(255, 92, 120, .1); }
+.aki-more { margin-top: 8px; }
+@media (max-width: 980px) {
+  .st-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .st-row-head { display: none; }
+  .st-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .st-game { grid-column: 1 / -1; }
+  .st-status { grid-column: 1 / -1; }
+  .st-cell::before { content: attr(data-label); display: block; color: #8f98ad; font-size: 11px; font-weight: 600; }
+  .st-actions { grid-column: 1 / -1; justify-content: stretch; }
+  .st-actions > * { flex: 1; text-align: center; }
+  .st-hero { grid-template-columns: minmax(0, 1fr); }
+  .st-hero-cover { height: 140px; }
+  .st-hero-actions { justify-content: stretch; }
+  .st-hero-actions > * { flex: 1; text-align: center; }
+  .st-two { grid-template-columns: minmax(0, 1fr); }
+}
+/* One key per row (an older rule laid the list out as a 2-column card grid). */
+.admin-key-inventory .admin-key-list { grid-template-columns: minmax(0, 1fr); }
+.admin-key-inventory .admin-key-list li { grid-template-columns: auto minmax(0, 1fr) auto; }
+.admin-key-inventory .admin-key-list li small { white-space: normal; }
+.aki-upload .button { min-width: 180px; }

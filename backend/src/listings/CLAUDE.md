@@ -346,3 +346,23 @@ change otherwise; the marketplace filters by category id. Listing photos are cap
     newlines only, which is why only one key was added).
 - `findMine` adds `favoriteCount` (My Listings stats). `findPublicById` sets `seller.verified` from
   the Verified badge, and `PublicSeller` gains `avatarUrl` and `verified`.
+
+## 2026-10-07 Admin → Steam (`steam-admin.controller.ts`)
+- Guarded by `STEAM_PUBLISHER_ROLES` at class level; every route 404s for non-Steam listings
+  (`assertSteamGame`). The old `/sell/digital-keys` only listed the caller's own games, so staff
+  couldn't see or stock a game someone else had added.
+- Routes:
+  - `GET admin/steam-games` — `steamCatalogue()`: every digital-key listing, whoever created it,
+    with cover, available / sold key counts, orders, status and creator. No private user fields.
+  - `GET admin/steam-games/:id` — `ListingForEdit`.
+  - `PATCH admin/steam-games/:id` — `UpdateListingDto` with `STAFF_EDITOR`, applied as-is with no
+    re-review.
+  - `POST …/images`, `POST …/images/:imageId/cover`, `DELETE …/images/:imageId`.
+  - `POST …/publish` — `steamSetLive`: Draft / Pending / Rejected / Paused → Active; needs ≥1
+    available key, else 409.
+  - `POST …/pause` — Active → Paused.
+- Keys still use `admin/listings/:id/keys`. Everything is audited (`steam.*`, `listing.keys_add`).
+- Frontend: `/admin/steam` (catalogue, KPIs, search / status filter, new-game panel; `?new=1`
+  opens it) and `/admin/steam/[id]` (hero with publish / pause, `AdminKeyInventory`, photos,
+  details). `/sell/digital-keys[/id]` redirect there for staff.
+- Covered by `test/client-feedback.e2e-spec.ts`.
