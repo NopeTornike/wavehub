@@ -9,6 +9,7 @@ import { api, errorMessage } from '../lib/api'
 import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
 import { gel } from '../lib/money'
+import StepsGuide from '../components/StepsGuide'
 
 // The prototype's marketplace.html, section for section: head + product count, the three filter
 // selects (product / game / sort), the listing grid, the floating cart footer, and the
@@ -32,7 +33,17 @@ function queryString(value: string | string[] | undefined): string {
   return typeof value === 'string' ? value : ''
 }
 
+// Seller steps shown under the header (design 2026-10-04, "როგორ მუშაობს Escrow?").
+const SELLER_STEPS = ['დააჭირე „გახდი გამყიდველი“', 'შეავსე ინფორმაცია', 'შეამოწმე', 'გამოაქვეყნე', 'დაელოდე დადასტურებას']
+const SERVICE_STEPS = ['დააჭირე „გაყიდე სერვისი“', 'აღწერე სერვისი და ფოტოები', 'დაამატე პაკეტები', 'გამოაქვეყნე', 'დაელოდე დადასტურებას']
+
 export default function Marketplace() {
+  return <MarketplaceView />
+}
+
+// `servicesOnly` = the separate Services page (/services, client feedback #7): services only, its
+// own heading, and "Sell a service" where the marketplace has "Become a seller".
+export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boolean }) {
   const router = useRouter()
   const { games } = useShell()
   const cart = useCart()
@@ -44,8 +55,15 @@ export default function Marketplace() {
   const [error, setError] = useState('')
   const [ranks, setRanks] = useState<SellerRanks>({})
   const [sellerOpen, setSellerOpen] = useState(false)
+  // "Add a listing" elsewhere (My Listings) links to /marketplace?sell=1 — open the seller form.
+  const sellParam = queryString(router.query.sell)
+  useEffect(() => {
+    // Follows the URL, not derived state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (sellParam === '1' && !servicesOnly) setSellerOpen(true)
+  }, [sellParam, servicesOnly])
 
-  const product = (queryString(router.query.type) || 'all') as Product
+  const product = (servicesOnly ? 'service' : queryString(router.query.type) || 'all') as Product
   const game = queryString(router.query.game)
   const sort = (queryString(router.query.sort) || 'newest') as Sort
   const q = queryString(router.query.q)
@@ -135,28 +153,54 @@ export default function Marketplace() {
       for (const [k, v] of Object.entries(router.query)) if (typeof v === 'string' && v) next[k] = v
       if (!value || value === fallback) delete next[key]
       else next[key] = value
-      router.push({ pathname: '/marketplace', query: next }, undefined, { shallow: true, scroll: false })
+      // Services live on their own page; every other product type on the marketplace.
+      if (key === 'type') {
+        delete next.type
+        if (value === 'service') {
+          router.push({ pathname: '/services', query: next })
+          return
+        }
+        if (value && value !== fallback) next.type = value
+        if (servicesOnly) {
+          router.push({ pathname: '/marketplace', query: next })
+          return
+        }
+      }
+      router.push({ pathname: servicesOnly ? '/services' : '/marketplace', query: next }, undefined, { shallow: true, scroll: false })
     },
-    [router],
+    [router, servicesOnly],
   )
 
+  const steps = servicesOnly ? SERVICE_STEPS : SELLER_STEPS
   const listTitle =
     product === 'account' ? 'ანგარიშები' : product === 'skin' ? 'სკინები' : product === 'item' ? 'ნივთები' : product === 'service' ? 'სერვისები' : 'ყველა პროდუქტი'
 
   return (
     <Layout
-      title="მარკეტი"
-      description="იყიდეთ და გაყიდეთ გეიმინგ ანგარიშები, სკინები, სერვისები და ციფრული გასაღებები — WaveHubX მარკეტი."
+      title={servicesOnly ? 'სერვისები' : 'მარკეტი'}
+      description={
+        servicesOnly
+          ? 'გეიმინგ სერვისები — ბუსტინგი, ქოუჩინგი, დუო თამაში და სხვა — WaveHubX-ზე.'
+          : 'იყიდეთ და გაყიდეთ გეიმინგ ანგარიშები, სკინები, სერვისები და ციფრული გასაღებები — WaveHubX მარკეტი.'
+      }
       topbarAction={
-        <button className="seller-button" id="sellerButton" type="button" aria-haspopup="dialog" aria-controls="sellerModal" aria-expanded={sellerOpen} onClick={() => setSellerOpen(true)}>
-          გახდი გამყიდველი
-        </button>
+        servicesOnly ? (
+          <Link className="seller-button" id="sellServiceButton" href="/sell/services">
+            გაყიდე სერვისი
+          </Link>
+        ) : (
+          <button className="seller-button" id="sellerButton" type="button" aria-haspopup="dialog" aria-controls="sellerModal" aria-expanded={sellerOpen} onClick={() => setSellerOpen(true)}>
+            გახდი გამყიდველი
+          </button>
+        )
       }
     >
+      <StepsGuide id="escrowStepsTitle" title="როგორ მუშაობს" accent="Escrow" steps={steps} />
+
       <section className="marketplace-head" aria-labelledby="marketplaceTitle">
         <div>
-          <p className="section-kicker">ანგარიშები, სკინები, ნივთები და სერვისები</p>
-          <h1 id="marketplaceTitle">მარკეტი</h1>
+          <p className="section-kicker">{servicesOnly ? 'ბუსტინგი, ქოუჩინგი, დუო და სხვა' : 'ანგარიშები, სკინები, ნივთები და სერვისები'}</p>
+          <h1 id="marketplaceTitle">{servicesOnly ? 'სერვისები' : 'მარკეტი'}</h1>
         </div>
         <div className="marketplace-total" aria-label="ხილული განცხადებები">
           <strong id="marketplaceCount">{total}</strong>
@@ -164,25 +208,28 @@ export default function Marketplace() {
         </div>
       </section>
 
-      {/* The product categories as one-tap chips (owner: "Accounts / Skins / Items" must be visible). */}
-      <nav className="marketplace-kinds" aria-label="კატეგორიები">
-        {(
-          [
-            ['all', 'ყველა'],
-            ['account', 'ანგარიშები'],
-            ['skin', 'სკინები'],
-            ['item', 'ნივთები'],
-            ['service', 'სერვისები'],
-          ] as const
-        ).map(([value, label]) => (
-          <button key={value} type="button" aria-pressed={product === value} className={product === value ? 'active' : undefined} onClick={() => setFilter('type', value, 'all')}>
-            {label}
-          </button>
-        ))}
-      </nav>
+      {/* The product categories as one-tap chips (owner: "Accounts / Skins / Items" must be visible).
+          The Services page is services-only, so it has neither the chips nor the product select. */}
+      {!servicesOnly && (
+        <nav className="marketplace-kinds" aria-label="კატეგორიები">
+          {(
+            [
+              ['all', 'ყველა'],
+              ['account', 'ანგარიშები'],
+              ['skin', 'სკინები'],
+              ['item', 'ნივთები'],
+              ['service', 'სერვისები'],
+            ] as const
+          ).map(([value, label]) => (
+            <button key={value} type="button" aria-pressed={product === value} className={product === value ? 'active' : undefined} onClick={() => setFilter('type', value, 'all')}>
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
 
-      <section className="marketplace-toolbar" aria-label="მარკეტფლეისის ფილტრები">
-        <label>
+      <section className={`marketplace-toolbar${servicesOnly ? ' services-only' : ''}`} aria-label="მარკეტფლეისის ფილტრები">
+        <label hidden={servicesOnly}>
           <span>პროდუქტი</span>
           <select id="productTypeFilter" value={product} onChange={(e) => setFilter('type', e.target.value, 'all')}>
             <option value="all">ყველა პროდუქტი</option>

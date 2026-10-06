@@ -1,4 +1,5 @@
 import { NotificationType, type PublicNotification } from '@wavehub/shared-types'
+import { kaDateTime } from './dates'
 
 // Shared by the bell panel (components/NotificationCenter.tsx), the pop-up toasts
 // (components/NotificationToasts.tsx) and the full list (pages/notifications.tsx).
@@ -17,6 +18,48 @@ export function notificationTarget(notification: PublicNotification): string {
   if (notification.type.startsWith('subscription_')) return '/plans'
   if (notification.type === NotificationType.Welcome) return '/marketplace'
   return '/notifications'
+}
+
+// The owner's notification icon set (2026-10-04, `public/assets/ui/*`), one per kind of event.
+export function notificationIcon(type: NotificationType): string {
+  const icon = (name: string) => `/assets/ui/${name}.png`
+  switch (type) {
+    case NotificationType.NewMessage:
+      return icon('chat-notify')
+    case NotificationType.TicketReplied:
+      return icon('headset')
+    case NotificationType.NewFollower:
+      return icon('user-notify')
+    case NotificationType.WithdrawalStatusChanged:
+    case NotificationType.WalletTopup:
+    case NotificationType.WalletAdjusted:
+      return icon('wallet-notify')
+    case NotificationType.OrderCompleted:
+    case NotificationType.ListingApproved:
+    case NotificationType.CoachApproved:
+      return icon('check-circle-green')
+    case NotificationType.OrderCancelled:
+    case NotificationType.ListingRejected:
+    case NotificationType.CoachRejected:
+    case NotificationType.AccountWarning:
+    case NotificationType.SubscriptionPastDue:
+      return icon('warning')
+    case NotificationType.DisputeOpened:
+    case NotificationType.DisputeResolved:
+      return icon('gavel-notify')
+    case NotificationType.ReviewPosted:
+    case NotificationType.SessionReviewRequest:
+      return icon('star-notify')
+    case NotificationType.TournamentTeamAdded:
+      return icon('trophy')
+    case NotificationType.BadgeGranted:
+      return icon('shield-check-green')
+    default:
+      if (type.startsWith('order_')) return icon('cart-notify')
+      if (type.startsWith('session_')) return icon('calendar-coaching')
+      if (type.startsWith('subscription_')) return icon('wallet-notify')
+      return icon('bell')
+  }
 }
 
 // The prototype's four visual kinds (icon letter + accent colour).
@@ -47,5 +90,7 @@ export function notificationKind(type: NotificationType): { kind: string; letter
 export function formatNotificationTime(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  // Georgian months in Tbilisi time like every other date on the site (the browser locale gave
+  // "Oct 6, 11:11 AM" on a Georgian page); EN mode translates the month names.
+  return kaDateTime(date)
 }

@@ -9,6 +9,7 @@ import { gameCover } from '../../lib/games'
 import RankIcon from '../../components/RankIcon'
 import ReportButton from '../../components/ReportButton'
 import ImageLightbox from '../../components/ImageLightbox'
+import { BadgeKey, badgeIcon } from '@wavehub/shared-types'
 
 // docs/design-mockups/12-public-profile.jpg: hero (photo with real online dot, name, @handle,
 // WaveHubX ID with copy, role, location, join date, tagline, Message / Follow), the Wave Rank panel,
@@ -150,7 +151,7 @@ export default function PublicProfile() {
           <div className="up-identity">
             <h1>
               <span className="up-name">{name}</span>
-              {(p.coachId || p.badges.some((b) => b.key === 'trusted-seller')) && <span className="up-verified" aria-label="ვერიფიცირებული" role="img"></span>}
+              {p.badges.some((b) => b.key === BadgeKey.Verified) && <span className="up-verified" aria-label="ვერიფიცირებული" role="img"></span>}
             </h1>
             <p className="up-handle">@{p.username}</p>
             <p className="up-id">
@@ -331,14 +332,25 @@ export default function PublicProfile() {
               <p>მიღწევები და აღიარება</p>
             </header>
             <div className="up-badge-row">
-              {p.badges.map((badge) => (
-                <div key={badge.key} className={`up-badge ${badge.key}`}>
-                  <span aria-hidden="true">
-                    {badge.key === 'tier' ? <RankIcon name={badge.label} className="up-badge-rank" /> : <svg viewBox="0 0 24 24">{BADGE_ICON[badge.key] ?? BADGE_ICON.tier}</svg>}
-                  </span>
-                  <small>{badge.label}</small>
-                </div>
-              ))}
+              <div className="up-badge tier" title={`Wave რანკი: ${p.waveRank.name}`}>
+                <span aria-hidden="true">
+                  <RankIcon name={p.waveRank.name} className="up-badge-rank" />
+                </span>
+                <small>{p.waveRank.name}</small>
+              </div>
+              {p.badges.map((badge) => {
+                // The owner's badge set has its own art (badges/ spec); tournament titles keep their glyph.
+                const art = (Object.values(BadgeKey) as string[]).includes(badge.key)
+                return (
+                  <div key={badge.key} className={`up-badge ${badge.key}${art ? ' has-art' : ''}`} title={badge.description ? `${badge.label} — ${badge.description}` : badge.label}>
+                    <span aria-hidden="true">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {art ? <img className="up-badge-art" src={badgeIcon(badge.key)} alt="" /> : <svg viewBox="0 0 24 24">{BADGE_ICON[badge.key] ?? BADGE_ICON.tier}</svg>}
+                    </span>
+                    <small>{badge.label}</small>
+                  </div>
+                )
+              })}
             </div>
           </section>
 

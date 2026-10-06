@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
@@ -8,6 +9,11 @@ import OrderReview from '../../components/OrderReview'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gel } from '../../lib/money'
+import { gameCover } from '../../lib/games'
+import { kaDateTime, kaTime } from '../../lib/dates'
+import { LISTING_TYPE_LABELS } from '../../lib/labels'
+import Avatar, { displayName } from '../../components/Avatar'
+import VerifiedMark from '../../components/VerifiedMark'
 
 const MESSAGE_POLL_MS = 5000
 
@@ -24,6 +30,19 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 }
 
 const DISPUTABLE_STATUSES = [OrderStatus.Paid, OrderStatus.InProgress, OrderStatus.Delivered]
+// The dispute form's counter (design 2026-10-04: 0/500) — within the API's 10–2000 bound.
+const DISPUTE_REASON_MAX = 500
+
+function formatWhen(value: string) {
+  return kaDateTime(value)
+}
+
+// Status pill colour, same rule as the orders list.
+function orderTone(status: OrderStatus): 'ok' | 'wait' | 'bad' {
+  if ([OrderStatus.Cancelled, OrderStatus.Refunded, OrderStatus.Disputed, OrderStatus.Expired].includes(status)) return 'bad'
+  if (status === OrderStatus.PendingPayment) return 'wait'
+  return 'ok'
+}
 
 const DISPUTE_STATUS_LABELS: Record<DisputeStatus, string> = {
   [DisputeStatus.Open]: 'გახსნილია',
@@ -70,6 +89,8 @@ export default function OrderDetail() {
   const [disputeBusy, setDisputeBusy] = useState(false)
   const [disputeError, setDisputeError] = useState('')
   const [resolveNote, setResolveNote] = useState('')
+  // Evidence picked before the dispute exists — uploaded right after it opens.
+  const [pendingEvidence, setPendingEvidence] = useState<File[]>([])
 
   useEffect(() => {
     if (checked && !me && id) {
@@ -162,9 +183,11 @@ export default function OrderDetail() {
     setDisputeError('')
     setDisputeBusy(true)
     try {
-      const opened = await api.openDispute(id, disputeReason)
+      let opened = await api.openDispute(id, disputeReason)
+      for (const file of pendingEvidence) opened = await api.addDisputeEvidence(id, file)
       setDispute(opened)
       setDisputeReason('')
+      setPendingEvidence([])
       await reload()
     } catch (err) {
       setDisputeError(errorMessage(err, 'დავის გახსნა ვერ მოხერხდა.'))
@@ -242,6 +265,24 @@ export default function OrderDetail() {
       setChatError(errorMessage(err, 'შეტყობინების გაგზავნა ვერ მოხერხდა.'))
     } finally {
       setSendingMessage(false)
+    }
+  }
+
+  // A photo/file in the order chat (design 2026-10-04: the composer's attach button).
+  const sendAttachment = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    if (!file || !id) return
+    setChatError('')
+    setSendingMessage(true)
+    try {
+      const message = await api.sendOrderAttachment(id, file)
+      setMessages((prev) => [...prev, message])
+    } catch (err) {
+      setChatError(errorMessage(err, 'ფაილის გაგზავნა ვერ მოხერხდა.'))
+    } finally {
+      setSendingMessage(false)
+      input.value = ''
     }
   }
 
@@ -330,437 +371,621 @@ export default function OrderDetail() {
   const isBuyer = me?.id === order.buyer.id
   const isSeller = me?.id === order.seller.id
 
+  const otherParty = isBuyer ? order.seller : order.buyer
+  const cover = order.listing.imageUrl ?? gameCover(order.listing.gameSlug)
+  const isKey = order.listing.type === ListingType.DigitalKey
+  const isService = order.listing.type === ListingType.Service
+  const disputeOpen = !!dispute && dispute.status !== DisputeStatus.Resolved && dispute.status !== DisputeStatus.Closed
+
+  // The order's real history (design "შეკვეთის სტატუსი") — only steps that have happened carry a
+  // time; the rest stay grey. Paid = created (WaveCoin orders are paid at checkout).
+  const timeline: Array<{ label: string; at: string | null; tone?: 'bad' }> = [
+    { label: 'შეკვეთა შექმნილია', at: order.createdAt },
+    { label: 'გადახდა დადასტურდა', at: order.status === OrderStatus.PendingPayment ? null : order.createdAt },
+    ...(order.cancelledAt
+      ? [{ label: order.status === OrderStatus.Refunded ? 'თანხა დაბრუნდა' : 'გაუქმებულია', at: order.cancelledAt, tone: 'bad' as const }]
+      : [
+          { label: isKey ? 'გასაღები გადმოგეცათ' : 'გამყიდველმა მიაწოდა', at: order.deliveredAt },
+          { label: 'დასრულებულია', at: order.completedAt },
+        ]),
+  ]
+
+  // "შეკვეთის მიმდინარეობა": what each side does, per listing type (design screenshot "discussion").
+  const progress: Array<{ icon: string; title: string; text: string }> = isBuyer
+    ? [
+        { icon: 'cart', title: 'შეკვეთა შექმნილია', text: 'თქვენი შეკვეთა წარმატებით შეიქმნა.' },
+        { icon: 'card', title: 'თანხა წარმატებით გადაიხადეთ', text: 'თანხა დაცულია WaveHub-ზე, სანამ მიღებას არ დაადასტურებთ.' },
+        isKey
+          ? { icon: 'key', title: 'გასაღები ზემოთაა', text: 'გახსენით, გააქტიურეთ და შეამოწმეთ.' }
+          : isService
+            ? { icon: 'chat', title: 'მიწერეთ გამყიდველს ამ ჩატში', text: 'შეუთანხმდით დეტალებს და დროს.' }
+            : { icon: 'chat', title: 'მიწერეთ გამყიდველს ამ ჩატში', text: 'სთხოვეთ ლოგინი და პაროლი.' },
+        { icon: 'check-circle', title: 'შემოწმების შემდეგ', text: 'დაადასტურეთ მიღება.' },
+      ]
+    : [
+        { icon: 'cart', title: 'ახალი შეკვეთა', text: 'მყიდველმა შეიძინა თქვენი განცხადება.' },
+        { icon: 'card', title: 'თანხა დაცულია', text: 'WaveHub-ზე, მყიდველის დადასტურებამდე.' },
+        { icon: 'chat', title: 'მიაწოდეთ მყიდველს', text: isService ? 'შეასრულეთ სერვისი და მიწერეთ ამ ჩატში.' : 'მონაცემები გაუგზავნეთ ამ ჩატში.' },
+        { icon: 'check-circle', title: 'მყიდველის დადასტურების შემდეგ', text: 'თანხა ჩაგერიცხებათ ბალანსზე.' },
+      ]
+  const progressStep =
+    order.status === OrderStatus.Completed ? 4 : order.status === OrderStatus.Delivered ? 3 : order.status === OrderStatus.PendingPayment ? 1 : 2
+
+  const systemIcon = (body: string) => (/გადახდ|თანხ/.test(body) ? 'card' : /გასაღებ|მიწოდ/.test(body) ? 'bag' : /დასრულ/.test(body) ? 'check-circle' : 'gear')
+
   return (
     <Layout title={`შეკვეთა ${order.orderNumber}`} noIndex>
-      <div className="page">
-        <div className="page-inner" style={{ maxWidth: 760 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <h1 className="page-title" style={{ marginBottom: 4 }}>
-                {order.listing.title}
-              </h1>
-              <span className="note">
-                {order.orderNumber}
-                {order.package ? ` · ${order.package.name}` : ''}
-              </span>
-            </div>
-            <span className={`order-status order-status-${order.status}`}>{STATUS_LABELS[order.status]}</span>
+      <div className="od-page">
+        <header className="od-head">
+          <Link className="od-back" href="/orders" aria-label="შეკვეთებზე დაბრუნება">
+            <img src="/assets/ui/arrow-left.png" alt="" />
+          </Link>
+          <div className="od-head-title">
+            <h1>{order.listing.title}</h1>
+            <span>{order.orderNumber}</span>
           </div>
+          <span className={`oc-status ${orderTone(order.status)}`}>
+            <i aria-hidden="true" />
+            {STATUS_LABELS[order.status]}
+          </span>
+        </header>
 
-          <div className="order-section">
-            <h2>დეტალები</h2>
-            <div className="order-parties">
-              {[
-                { role: 'მყიდველი', user: order.buyer, you: isBuyer },
-                { role: 'გამყიდველი', user: order.seller, you: isSeller },
-              ].map(({ role, user, you }) => (
-                <Link key={role} className="order-party" href={`/u/${user.username}`}>
-                  <span className="order-party-avatar" aria-hidden="true">
-                    {user.username.slice(0, 1).toUpperCase()}
-                  </span>
-                  <span>
-                    <small>{you ? `${role} · თქვენ` : role}</small>
-                    <strong>@{user.username}</strong>
-                  </span>
+        <section className="od-card od-product">
+          <span className="od-product-cover" style={cover ? { backgroundImage: `url('${cover}')` } : undefined}>
+            {cover ? '' : (order.listing.gameName ?? 'WH').slice(0, 2).toUpperCase()}
+          </span>
+          <div className="od-product-copy">
+            {order.listing.gameName && <small>{order.listing.gameName.toUpperCase()}</small>}
+            <strong>{order.listing.title}</strong>
+            <span className="od-tag">
+              <img src="/assets/ui/gamepad.png" alt="" aria-hidden="true" />
+              {order.package?.name ?? LISTING_TYPE_LABELS[order.listing.type]}
+            </span>
+            <code># {order.orderNumber}</code>
+          </div>
+          <div className="od-product-price">
+            <small>ფასი</small>
+            <b>{order.priceWaveCoin} GEL</b>
+          </div>
+        </section>
+
+        <section className="od-card">
+          <h2 className="od-card-title">
+            <img src="/assets/ui/user-notify.png" alt="" aria-hidden="true" />
+            მონაწილეები
+          </h2>
+          {[
+            { role: 'მყიდველი', user: order.buyer, seller: false },
+            { role: 'გამყიდველი', user: order.seller, seller: true },
+          ].map(({ role, user, seller }) => (
+            <div key={role} className="od-person">
+              <Link href={`/u/${user.username}`} className="od-person-main">
+                <Avatar name={displayName(user)} src={user.avatarUrl} size={58} />
+                <span>
+                  <small>{role}</small>
+                  <strong>
+                    {displayName(user)}
+                    {user.verified && <VerifiedMark size={16} />}
+                  </strong>
+                  <em>@{user.username}</em>
+                </span>
+              </Link>
+              {seller ? (
+                <Link className="od-role-pill seller" href={`/u/${user.username}`}>
+                  <img src="/assets/ui/store.png" alt="" aria-hidden="true" />
+                  გამყიდველი <span aria-hidden="true">›</span>
                 </Link>
-              ))}
+              ) : (
+                <span className="od-role-pill buyer">
+                  <img src="/assets/ui/user-blue.png" alt="" aria-hidden="true" />
+                  მყიდველი
+                </span>
+              )}
             </div>
-            {/* Orders since 2026-10-03: the buyer pays the fee on top and the seller gets the full
-                price; older orders (feePaidBy 'seller') took the fee out of the seller's payout. */}
-            <dl className="fee-breakdown order-money">
+          ))}
+        </section>
+
+        <section className="od-card">
+          <h2 className="od-card-title">
+            <img src="/assets/ui/card.png" alt="" aria-hidden="true" />
+            გადახდის დეტალები
+          </h2>
+          {/* Orders since 2026-10-03: the buyer pays the fee on top and the seller gets the full
+              price; older orders (feePaidBy 'seller') took the fee out of the seller's payout. */}
+          <dl className="od-money">
+            <div>
+              <dt>ფასი</dt>
+              <dd>{order.priceWaveCoin} GEL</dd>
+            </div>
+            {(isSeller || isSuperAdmin || (isBuyer && order.feePaidBy === 'buyer')) && (
               <div>
-                <dt>ფასი</dt>
-                <dd>{order.priceWaveCoin} GEL</dd>
-              </div>
-              {(isSeller || isSuperAdmin || (isBuyer && order.feePaidBy === 'buyer')) && (
-                <div>
-                  <dt>
-                    {`მარკეტფლეისის საკომისიო (${order.platformFeePercent}%) — ${order.feePaidBy === 'buyer' ? 'იხდის მყიდველი' : 'იხდის გამყიდველი'}`}
-                  </dt>
-                  <dd>{`${order.feePaidBy === 'buyer' ? '+' : '−'}${gel(order.platformFeeWaveCoin)} GEL`}</dd>
-                </div>
-              )}
-              {(isBuyer || isSuperAdmin) && (
-                <div className="fee-breakdown-total">
-                  <dt>{isBuyer ? 'თქვენ გადაიხადეთ' : 'მყიდველმა გადაიხადა'}</dt>
-                  <dd>{gel(order.buyerTotalWaveCoin)} GEL</dd>
-                </div>
-              )}
-              {(isSeller || isSuperAdmin) && (
-                <div className={isSeller ? 'fee-breakdown-total' : undefined}>
-                  <dt>{isSeller ? 'თქვენ მიიღებთ' : 'გამყიდველი მიიღებს'}</dt>
-                  <dd>{order.sellerPayoutWaveCoin} GEL</dd>
-                </div>
-              )}
-            </dl>
-            {(order.deliveryDueAt || (order.autoCompleteAt && order.status === OrderStatus.Delivered)) && (
-              <dl className="order-dates">
-                <div>
-                  <dt>შეკვეთის თარიღი</dt>
-                  <dd>{new Date(order.createdAt).toLocaleString('ka-GE')}</dd>
-                </div>
-                {order.deliveryDueAt && (
-                  <div>
-                    <dt>მიწოდების ვადა</dt>
-                    <dd>{new Date(order.deliveryDueAt).toLocaleString('ka-GE')}</dd>
-                  </div>
-                )}
-                {order.autoCompleteAt && order.status === OrderStatus.Delivered && (
-                  <div>
-                    <dt>ავტომატურად დასრულდება</dt>
-                    <dd>{new Date(order.autoCompleteAt).toLocaleString('ka-GE')}</dd>
-                  </div>
-                )}
-              </dl>
-            )}
-            {order.cancellationReason && <p className="note">გაუქმების მიზეზი: {order.cancellationReason}</p>}
-            {isBuyer && (
-              <button type="button" className="button" disabled={busy} onClick={() => messageOtherParty(order.seller.id)}>
-                გამყიდველისთვის მესიჯის გაგზავნა
-              </button>
-            )}
-            {isSeller && (
-              <button type="button" className="button" disabled={busy} onClick={() => messageOtherParty(order.buyer.id)}>
-                მყიდველისთვის მესიჯის გაგზავნა
-              </button>
-            )}
-            {order.revisionReason && <p className="note">გადასამუშავებელი შენიშვნა: {order.revisionReason}</p>}
-          </div>
-
-          {isBuyer && order.listing.type === ListingType.DigitalKey && (
-            <div className="order-section">
-              <h2>გასაღები</h2>
-              {revealError && <div className="status-text status-error" role="alert">{revealError}</div>}
-              {revealedKey ? (
-                <div className="key-reveal">
-                  <code aria-label="თქვენი გასაღები">{revealedKey}</code>
-                  <button type="button" className="button" onClick={copyKey}>
-                    {keyCopied ? 'დაკოპირდა ✓' : 'კოპირება'}
-                  </button>
-                  <button type="button" className="button" onClick={() => setRevealedKey(null)}>
-                    დამალვა
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <p className="note" style={{ marginTop: 0 }}>
-                    გასაღები მხოლოდ თქვენთვის ჩანს. ნახეთ და შეინახეთ უსაფრთხო ადგილას.
-                  </p>
-                  <button type="button" className="button" disabled={revealing} onClick={revealKey}>
-                    {revealing ? 'მიმდინარეობს…' : 'გასაღების ჩვენება'}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {order.requirementsAnswers && Object.keys(order.requirementsAnswers).length > 0 && (
-            <div className="order-section">
-              <h2>მყიდველის პასუხები</h2>
-              <ul>
-                {Object.entries(order.requirementsAnswers).map(([key, value]) => (
-                  <li key={key}>
-                    {key}: {String(value)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {order.listing.type !== ListingType.DigitalKey && (
-            <div className="order-section">
-              <h2>მიწოდებული ფაილები</h2>
-            {order.deliveryFiles.length === 0 ? (
-              <p className="note">ფაილები ჯერ არ არის.</p>
-            ) : (
-              <div className="delivery-file-list">
-                {order.deliveryFiles.map((file) => (
-                  <div key={file.id} className="delivery-file-item">
-                    <a href={file.fileUrl} target="_blank" rel="noreferrer">
-                      {file.fileUrl.split('/').pop()}
-                    </a>
-                    <span className="note" style={{ margin: 0 }}>
-                      {new Date(file.createdAt).toLocaleDateString('ka-GE')}
-                    </span>
-                  </div>
-                ))}
+                <dt>
+                  {`მარკეტფლეისის საკომისიო (${order.platformFeePercent}%)`}
+                  <span
+                    className="od-info"
+                    title={order.feePaidBy === 'buyer' ? 'საკომისიოს იხდის მყიდველი, გამყიდველი იღებს სრულ ფასს.' : 'ეს შეკვეთა გაფორმდა მანამ, სანამ საკომისიოს მყიდველი გადაიხდიდა — ის გამყიდველის შემოსავლიდან დაიქვითა.'}
+                  >
+                    <img src="/assets/ui/info.png" alt="" aria-hidden="true" />
+                  </span>
+                </dt>
+                <dd>{`${order.feePaidBy === 'buyer' ? '+' : '−'}${gel(order.platformFeeWaveCoin)} GEL`}</dd>
               </div>
             )}
-            {isSeller && (order.status === OrderStatus.InProgress || order.status === OrderStatus.Delivered) && (
-              <div style={{ marginTop: 12 }}>
-                <input type="file" aria-label="მიწოდების ფაილის ატვირთვა" onChange={uploadFile} disabled={busy} />
+            {(isBuyer || isSuperAdmin) && (
+              <div className="od-money-total">
+                <dt>{isBuyer ? 'თქვენ გადაიხადეთ' : 'მყიდველმა გადაიხადა'}</dt>
+                <dd>{gel(order.buyerTotalWaveCoin)} GEL</dd>
               </div>
             )}
+            <div className={isSeller ? 'od-money-total' : undefined}>
+              <dt>{isSeller ? 'თქვენ მიიღებთ' : 'გამყიდველი მიიღებს'}</dt>
+              <dd>{order.sellerPayoutWaveCoin} GEL</dd>
             </div>
-          )}
+          </dl>
+        </section>
 
-          <div className="order-section">
-            <h2>დისკუსია</h2>
-            <div className="chat-panel">
-              <div className="chat-messages" role="log" aria-live="polite" aria-label="შეკვეთის დისკუსია">
-                {messages.length === 0 ? (
-                  <p className="note" style={{ margin: 0 }}>
-                    შეტყობინებები ჯერ არ არის.
-                  </p>
-                ) : (
-                  messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`chat-message${
-                        message.type === MessageType.System
-                          ? ' chat-message-system'
-                          : message.senderId === me?.id
-                            ? ' chat-message-mine'
-                            : ''
-                      }`}
-                    >
-                      {message.type !== MessageType.System && message.senderId !== me?.id && (
-                        <strong>@{message.senderUsername} </strong>
-                      )}
-                      {message.body}
-                      <span className="chat-message-meta">
-                        {new Date(message.createdAt).toLocaleTimeString('ka-GE', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-              <form className="chat-form" onSubmit={sendMessage}>
-                <input
-                  className="input"
-                  placeholder="დაწერეთ შეტყობინება…"
-                  aria-label="შეტყობინება"
-                  value={draftMessage}
-                  onChange={(event) => setDraftMessage(event.target.value)}
-                  disabled={sendingMessage}
-                />
-                <button className="button glow-on-hover" type="submit" disabled={sendingMessage || !draftMessage.trim()}>
-                  გაგზავნა
-                </button>
-              </form>
-            </div>
-            {chatError && (
-              <div className="status-text status-error" style={{ marginTop: 8 }}>
-                {chatError}
-              </div>
-            )}
-          </div>
+        <section className="od-card">
+          <h2 className="od-card-title">
+            <img src="/assets/ui/clock.png" alt="" aria-hidden="true" />
+            შეკვეთის სტატუსი
+          </h2>
+          <ol className="od-timeline">
+            {timeline.map((step) => (
+              <li key={step.label} className={`${step.at ? 'done' : ''}${step.tone === 'bad' ? ' bad' : ''}`}>
+                <i aria-hidden="true">{step.at ? (step.tone === 'bad' ? '×' : '✓') : ''}</i>
+                <span>{step.label}</span>
+                <time>{step.at ? formatWhen(step.at) : '—'}</time>
+              </li>
+            ))}
+          </ol>
+          {order.deliveryDueAt && !order.completedAt && !order.cancelledAt && <p className="od-note">მიწოდების ვადა: {formatWhen(order.deliveryDueAt)}</p>}
+          {order.autoCompleteAt && order.status === OrderStatus.Delivered && <p className="od-note">ავტომატურად დასრულდება: {formatWhen(order.autoCompleteAt)}</p>}
+          {order.cancellationReason && <p className="od-note">გაუქმების მიზეზი: {order.cancellationReason}</p>}
+          {order.revisionReason && <p className="od-note">გადასამუშავებელი შენიშვნა: {order.revisionReason}</p>}
+        </section>
 
-          {(isBuyer || isSeller || isSuperAdmin) && (
-            <div className="order-section">
-              <h2>დავა</h2>
-              {disputeError && <div className="status-text status-error" role="alert">{disputeError}</div>}
-
-              {dispute ? (
-                <>
-                  <p>
-                    სტატუსი: <strong>{DISPUTE_STATUS_LABELS[dispute.status]}</strong>
-                  </p>
-                  <p className="note">მიზეზი: {dispute.reason}</p>
-                  {dispute.status === DisputeStatus.Resolved && (
-                    <p className="note">გადაწყვეტილება: {dispute.resolutionNote}</p>
-                  )}
-
-                  <div className="chat-panel" style={{ marginTop: 12 }}>
-                    <div className="chat-messages">
-                      {dispute.messages.length === 0 ? (
-                        <p className="note" style={{ margin: 0 }}>
-                          შეტყობინებები ჯერ არ არის.
-                        </p>
-                      ) : (
-                        dispute.messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`chat-message${message.senderId === me?.id ? ' chat-message-mine' : ''}`}
-                          >
-                            {message.senderId !== me?.id && <strong>@{message.senderUsername} </strong>}
-                            {message.body}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    {(isBuyer || isSeller) &&
-                      dispute.status !== DisputeStatus.Resolved &&
-                      dispute.status !== DisputeStatus.Closed && (
-                        <form className="dispute-composer" onSubmit={sendDisputeMessage}>
-                          <textarea
-                            rows={2}
-                            placeholder="დაწერეთ შეტყობინება დავაზე…"
-                            aria-label="შეტყობინება დავაზე"
-                            value={disputeDraftMessage}
-                            onChange={(event) => setDisputeDraftMessage(event.target.value)}
-                            disabled={disputeBusy}
-                          />
-                          <button type="submit" disabled={disputeBusy || !disputeDraftMessage.trim()}>
-                            გაგზავნა <span aria-hidden="true">➤</span>
-                          </button>
-                        </form>
-                      )}
-                  </div>
-
-                  <div style={{ marginTop: 16 }}>
-                    <h2 style={{ fontSize: '1rem' }}>მტკიცებულებები</h2>
-                    {dispute.evidence.length === 0 ? (
-                      <p className="note">მტკიცებულებები ჯერ არ არის.</p>
-                    ) : (
-                      <div className="delivery-file-list">
-                        {dispute.evidence.map((file) => (
-                          <div key={file.id} className="delivery-file-item">
-                            <a href={file.fileUrl} target="_blank" rel="noreferrer">
-                              {file.fileUrl.split('/').pop()}
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {(isBuyer || isSeller) &&
-                      dispute.status !== DisputeStatus.Resolved &&
-                      dispute.status !== DisputeStatus.Closed && (
-                        <label className={`dispute-upload${disputeBusy ? ' is-busy' : ''}`}>
-                          <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf,application/zip,.zip" aria-label="მტკიცებულების ატვირთვა" onChange={uploadDisputeEvidence} disabled={disputeBusy} />
-                          <span aria-hidden="true">⇪</span>
-                          <span>
-                            <strong>მტკიცებულების ატვირთვა</strong>
-                            <small>JPG, PNG, WEBP, PDF ან ZIP · 20 MB-მდე</small>
-                          </span>
-                        </label>
-                      )}
-                  </div>
-
-                  {isSuperAdmin && dispute.status === DisputeStatus.Open && (
-                    <div className="order-section">
-                      <h2 style={{ fontSize: '1rem' }}>დავის გადაწყვეტა</h2>
-                      <div className="form-group">
-                        <label htmlFor="resolveNote">შენიშვნა გადაწყვეტილებაზე</label>
-                        <textarea
-                          id="resolveNote"
-                          className="input"
-                          value={resolveNote}
-                          onChange={(event) => setResolveNote(event.target.value)}
-                          placeholder="დაასაბუთეთ გადაწყვეტილება — ჩანს ორივე მხარისთვის"
-                        />
-                      </div>
-                      <div className="order-actions">
-                        {Object.values(DisputeResolution).map((resolution) => (
-                          <button
-                            key={resolution}
-                            type="button"
-                            className="button"
-                            disabled={disputeBusy || !resolveNote.trim()}
-                            onClick={() => resolveDispute(resolution)}
-                          >
-                            {RESOLUTION_LABELS[resolution]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                (isBuyer || isSeller) &&
-                DISPUTABLE_STATUSES.includes(order.status) && (
-                  <form onSubmit={openDispute}>
-                    <div className="form-group">
-                      <label htmlFor="disputeReason">
-                        თუ პრობლემა გაქვთ ამ შეკვეთასთან დაკავშირებით, შეგიძლიათ დავის გახსნა
-                      </label>
-                      <textarea
-                        id="disputeReason"
-                        className="input"
-                        value={disputeReason}
-                        onChange={(event) => setDisputeReason(event.target.value)}
-                        placeholder="აღწერეთ პრობლემა (მინიმუმ 10 სიმბოლო)"
-                        required
-                      />
-                    </div>
-                    <button className="button" type="submit" disabled={disputeBusy || disputeReason.trim().length < 10}>
-                      დავის გახსნა
-                    </button>
-                  </form>
-                )
-              )}
-            </div>
-          )}
-
-          {actionError && (
-            <div className="status-text status-error" role="alert" style={{ marginTop: 16 }}>
-              {actionError}
-            </div>
-          )}
-
-          <div className="order-actions">
+        {/* Next step for this side (start / deliver / accept / revise / cancel). */}
+        {(isBuyer || isSeller) && (
+          <section className="od-actions">
             {isSeller && order.status === OrderStatus.Paid && (
-              <button type="button" className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.startOrder(order.id))}>
+              <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.startOrder(order.id))}>
                 სამუშაოს დაწყება
               </button>
             )}
             {isSeller && order.status === OrderStatus.InProgress && (
-              <button type="button" className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.deliverOrder(order.id))}>
+              <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.deliverOrder(order.id))}>
                 მიწოდებულად მონიშვნა
               </button>
             )}
+            {isBuyer && order.status === OrderStatus.Delivered && (
+              <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.acceptDelivery(order.id))}>
+                <img src="/assets/ui/check-circle-light.png" alt="" aria-hidden="true" />
+                მიღების დადასტურება
+              </button>
+            )}
+            {isBuyer && order.status === OrderStatus.Delivered && !isKey && (
+              <form
+                className="od-inline-form"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  runAction(() => api.requestRevision(order.id, revisionReason))
+                }}
+              >
+                <input placeholder="რა უნდა შესწორდეს?" aria-label="რა უნდა შესწორდეს" value={revisionReason} onChange={(event) => setRevisionReason(event.target.value)} required />
+                <button className="od-btn" type="submit" disabled={busy}>
+                  გადამუშავება
+                </button>
+              </form>
+            )}
             {isBuyer && order.status === OrderStatus.Paid && (
-              <button type="button" className="button" disabled={busy} onClick={() => runAction(() => api.cancelOrderAsBuyer(order.id))}>
-                გაუქმება
+              <button type="button" className="od-btn" disabled={busy} onClick={() => runAction(() => api.cancelOrderAsBuyer(order.id))}>
+                შეკვეთის გაუქმება
               </button>
             )}
             {isSeller && (order.status === OrderStatus.Paid || order.status === OrderStatus.InProgress) && (
               <form
-                className="chat-form-row"
+                className="od-inline-form"
                 onSubmit={(event) => {
                   event.preventDefault()
                   runAction(() => api.cancelOrderAsSeller(order.id, cancelReason))
                 }}
               >
-                <input
-                  className="input"
-                  placeholder="გაუქმების მიზეზი"
-                  aria-label="გაუქმების მიზეზი"
-                  value={cancelReason}
-                  onChange={(event) => setCancelReason(event.target.value)}
-                  required
-                />
-                <button className="button" type="submit" disabled={busy}>
+                <input placeholder="გაუქმების მიზეზი" aria-label="გაუქმების მიზეზი" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} required />
+                <button className="od-btn" type="submit" disabled={busy}>
                   გაუქმება
                 </button>
               </form>
             )}
-            {isBuyer && order.status === OrderStatus.Delivered && (
-              <>
-                <button type="button" className="button glow-on-hover" disabled={busy} onClick={() => runAction(() => api.acceptDelivery(order.id))}>
-                  მიღების დადასტურება
+            {actionError && (
+              <div className="status-text status-error" role="alert">
+                {actionError}
+              </div>
+            )}
+          </section>
+        )}
+
+        {(isBuyer || isSeller) && (
+          <>
+            <button type="button" className="od-cta" disabled={busy} onClick={() => messageOtherParty(otherParty.id)}>
+              <img src="/assets/ui/send-light.png" alt="" aria-hidden="true" />
+              {isBuyer ? 'გამყიდველისთვის მესიჯის გაგზავნა' : 'მყიდველისთვის მესიჯის გაგზავნა'}
+              <span aria-hidden="true">›</span>
+            </button>
+            <Link className="od-cta ghost" href="/support">
+              <img src="/assets/ui/headset.png" alt="" aria-hidden="true" />
+              მხარდაჭერა
+              <span aria-hidden="true">›</span>
+            </Link>
+          </>
+        )}
+
+        {isBuyer && isKey && (
+          <section className="od-card od-key">
+            <h2>გასაღები</h2>
+            {revealError && <div className="status-text status-error" role="alert">{revealError}</div>}
+            {revealedKey ? (
+              <div className="key-reveal">
+                <code aria-label="თქვენი გასაღები">{revealedKey}</code>
+                <button type="button" className="od-btn" onClick={copyKey}>
+                  {keyCopied ? 'დაკოპირდა ✓' : 'კოპირება'}
                 </button>
-                {/* A key can't be "reworked" — a wrong/used key is a dispute. */}
-                {order.listing.type !== ListingType.DigitalKey && (
-                <form
-                  className="chat-form-row"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    runAction(() => api.requestRevision(order.id, revisionReason))
-                  }}
-                >
-                  <input
-                    className="input"
-                    placeholder="რა უნდა შესწორდეს?"
-                    aria-label="რა უნდა შესწორდეს"
-                    value={revisionReason}
-                    onChange={(event) => setRevisionReason(event.target.value)}
-                    required
-                  />
-                  <button className="button" type="submit" disabled={busy}>
-                    გადამუშავება
-                  </button>
-                </form>
-                )}
+                <button type="button" className="od-btn" onClick={() => setRevealedKey(null)}>
+                  დამალვა
+                </button>
+              </div>
+            ) : (
+              <>
+                <p>გასაღები მხოლოდ თქვენთვის ჩანს. ნახეთ და შეინახეთ უსაფრთხო ადგილას.</p>
+                <button type="button" className="od-key-button" disabled={revealing} onClick={revealKey}>
+                  <img src="/assets/ui/key.png" alt="" aria-hidden="true" />
+                  {revealing ? 'მიმდინარეობს…' : 'გასაღების ჩვენება'}
+                  <span aria-hidden="true">›</span>
+                </button>
               </>
             )}
-          </div>
+          </section>
+        )}
 
-          {order.status === OrderStatus.Completed && (isBuyer || isSeller) && <OrderReview orderId={order.id} isBuyer={isBuyer} isSeller={isSeller} />}
-        </div>
+        {order.requirementsAnswers && Object.keys(order.requirementsAnswers).length > 0 && (
+          <section className="od-card">
+            <h2 className="od-card-title">
+              <img src="/assets/ui/chat-square.png" alt="" aria-hidden="true" />
+              მყიდველის პასუხები
+            </h2>
+            <dl className="od-answers">
+              {Object.entries(order.requirementsAnswers).map(([key, value]) => (
+                <div key={key}>
+                  <dt>{key}</dt>
+                  <dd>{String(value)}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+
+        {!isKey && (
+          <section className="od-section">
+            <h2>მიწოდებული ფაილები</h2>
+            {order.deliveryFiles.length === 0 ? (
+              <p className="od-empty-line">
+                <img src="/assets/ui/file-light.png" alt="" aria-hidden="true" />
+                ფაილები ჯერ არ არის.
+              </p>
+            ) : (
+              <ul className="od-files">
+                {order.deliveryFiles.map((file) => (
+                  <li key={file.id}>
+                    <img src="/assets/ui/file-light.png" alt="" aria-hidden="true" />
+                    <span>{file.fileUrl.split('/').pop()}</span>
+                    <a className="od-download" href={file.fileUrl} target="_blank" rel="noreferrer" aria-label="ჩამოტვირთვა">
+                      ⤓
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {isSeller && (order.status === OrderStatus.InProgress || order.status === OrderStatus.Delivered) && (
+              <label className={`dispute-upload${busy ? ' is-busy' : ''}`}>
+                <input type="file" aria-label="მიწოდების ფაილის ატვირთვა" onChange={uploadFile} disabled={busy} />
+                <span aria-hidden="true">⇪</span>
+                <span>
+                  <strong>ფაილის მიწოდება</strong>
+                  <small>მყიდველი ფაილს შეკვეთის გვერდზე ნახავს</small>
+                </span>
+              </label>
+            )}
+          </section>
+        )}
+
+        <section className="od-section">
+          <h2>დისკუსია</h2>
+          {/* The step guide only while the order is still in motion — a finished order has nothing left to do. */}
+          {(isBuyer || isSeller) && ![OrderStatus.Completed, OrderStatus.Cancelled, OrderStatus.Refunded].includes(order.status) && (
+            <div className="od-progress">
+              <h3>
+                <img src="/assets/ui/info.png" alt="" aria-hidden="true" />
+                შეკვეთის მიმდინარეობა
+              </h3>
+              <ol>
+                {progress.map((step, index) => (
+                  <li key={step.title} className={index + 1 <= progressStep ? 'reached' : undefined}>
+                    <b>{index + 1}</b>
+                    <span className="od-progress-icon">
+                      <img src={`/assets/ui/${step.icon}.png`} alt="" aria-hidden="true" />
+                    </span>
+                    <span>
+                      <strong>{step.title}</strong>
+                      <small>{step.text}</small>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          <div className="od-chat">
+            <div className="od-chat-log" role="log" aria-live="polite" aria-label="შეკვეთის დისკუსია">
+              {messages.length === 0 ? (
+                <p className="od-chat-empty">შეტყობინებები ჯერ არ არის.</p>
+              ) : (
+                messages.map((message) => {
+                  const time = kaTime(message.createdAt)
+                  if (message.type === MessageType.System) {
+                    return (
+                      <div key={message.id} className="od-msg-system">
+                        <span className="od-msg-icon">
+                          <img src={`/assets/ui/${systemIcon(message.body)}.png`} alt="" aria-hidden="true" />
+                        </span>
+                        <span>
+                          {message.body}
+                          <time>{time}</time>
+                        </span>
+                      </div>
+                    )
+                  }
+                  const mine = message.senderId === me?.id
+                  return (
+                    <div key={message.id} className={`od-msg${mine ? ' mine' : ''}`}>
+                      {!mine && <strong>{message.senderUsername}</strong>}
+                      {message.type === MessageType.Image ? (
+                        <a href={message.body} target="_blank" rel="noreferrer">
+                          <img className="od-msg-image" src={message.body} alt="გაგზავნილი ფოტო" />
+                        </a>
+                      ) : message.type === MessageType.File ? (
+                        <a className="od-msg-file" href={message.body} target="_blank" rel="noreferrer">
+                          <img src="/assets/ui/file-light.png" alt="" aria-hidden="true" />
+                          {message.body.split('/').pop()}
+                        </a>
+                      ) : (
+                        <p>{message.body}</p>
+                      )}
+                      <time>{time}</time>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+            {(isBuyer || isSeller) && (
+              <form className="od-composer" onSubmit={sendMessage}>
+                <label className={`od-attach${sendingMessage ? ' is-busy' : ''}`} aria-label="ფოტოს ან ფაილის გაგზავნა">
+                  <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf,application/zip,.zip" onChange={sendAttachment} disabled={sendingMessage} />
+                  <img src={isKey ? '/assets/ui/image.png' : '/assets/ui/paperclip-light.png'} alt="" aria-hidden="true" />
+                </label>
+                <input
+                  placeholder={isBuyer && !isKey && !isService ? 'გამარჯობა, მომწერეთ ლოგინი და პაროლი შესამოწმებლად...' : 'შეტყობინების გაგზავნა...'}
+                  aria-label="შეტყობინება"
+                  value={draftMessage}
+                  onChange={(event) => setDraftMessage(event.target.value)}
+                  disabled={sendingMessage}
+                />
+                <button className="od-send" type="submit" disabled={sendingMessage || !draftMessage.trim()} aria-label="გაგზავნა">
+                  <img src="/assets/ui/send-light.png" alt="" aria-hidden="true" />
+                </button>
+              </form>
+            )}
+            {chatError && <div className="status-text status-error">{chatError}</div>}
+          </div>
+          {(isBuyer || isSeller) && (
+            <p className="od-safety">
+              <span>
+                <img src="/assets/ui/shield-check.png" alt="" aria-hidden="true" />
+              </span>
+              {isBuyer ? 'დაადასტურეთ შეკვეთა მხოლოდ მონაცემების სრულად შემოწმების შემდეგ.' : 'თანხა ჩაგერიცხებათ მყიდველის მიერ მიღების დადასტურების შემდეგ.'}
+            </p>
+          )}
+        </section>
+
+        {(isBuyer || isSeller || isSuperAdmin) && (dispute || DISPUTABLE_STATUSES.includes(order.status)) && (
+          <section className="od-section">
+            <h2 className="od-icon-title">
+              <span>
+                <img src={dispute ? '/assets/ui/gavel-pink.png' : '/assets/ui/shield-alert.png'} alt="" aria-hidden="true" />
+              </span>
+              დავა
+            </h2>
+            {disputeError && <div className="status-text status-error" role="alert">{disputeError}</div>}
+
+            {dispute ? (
+              <>
+                <dl className="od-dispute-facts">
+                  <div>
+                    <dt>
+                      <img src="/assets/ui/alert-circle.png" alt="" aria-hidden="true" />
+                      სტატუსი:
+                    </dt>
+                    <dd>
+                      <span className="od-dispute-pill">{DISPUTE_STATUS_LABELS[dispute.status]}</span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <img src="/assets/ui/doc.png" alt="" aria-hidden="true" />
+                      მიზეზი:
+                    </dt>
+                    <dd>{dispute.reason}</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <img src="/assets/ui/scales.png" alt="" aria-hidden="true" />
+                      გადაწყვეტილება:
+                    </dt>
+                    <dd>{dispute.resolutionNote ?? 'მიმდინარეობს განხილვა'}</dd>
+                  </div>
+                </dl>
+
+                <div className="od-dispute-thread">
+                  {dispute.messages.length === 0 ? (
+                    <p className="od-thread-empty">
+                      <span>
+                        <img src="/assets/ui/chat-square.png" alt="" aria-hidden="true" />
+                      </span>
+                      შეტყობინებები ჯერ არ არის.
+                    </p>
+                  ) : (
+                    dispute.messages.map((message) => (
+                      <div key={message.id} className={`od-msg${message.senderId === me?.id ? ' mine' : ''}`}>
+                        {message.senderId !== me?.id && <strong>{message.senderUsername}</strong>}
+                        <p>{message.body}</p>
+                      </div>
+                    ))
+                  )}
+                  {(isBuyer || isSeller) && disputeOpen && (
+                    <form className="od-composer" onSubmit={sendDisputeMessage}>
+                      <input
+                        placeholder="დაწერეთ შეტყობინება დავაზე…"
+                        aria-label="შეტყობინება დავაზე"
+                        value={disputeDraftMessage}
+                        onChange={(event) => setDisputeDraftMessage(event.target.value)}
+                        disabled={disputeBusy}
+                      />
+                      <button className="od-send" type="submit" disabled={disputeBusy || !disputeDraftMessage.trim()} aria-label="გაგზავნა">
+                        <img src="/assets/ui/send-light.png" alt="" aria-hidden="true" />
+                      </button>
+                    </form>
+                  )}
+                </div>
+
+                <h2 className="od-icon-title">
+                  <span>
+                    <img src="/assets/ui/paperclip-pink.png" alt="" aria-hidden="true" />
+                  </span>
+                  მტკიცებულებები
+                </h2>
+                {dispute.evidence.length === 0 ? (
+                  <p className="od-empty-line">
+                    <img src="/assets/ui/file-light.png" alt="" aria-hidden="true" />
+                    მტკიცებულებები ჯერ არ არის.
+                  </p>
+                ) : (
+                  <ul className="od-files">
+                    {dispute.evidence.map((file) => (
+                      <li key={file.id}>
+                        <img src="/assets/ui/file-light.png" alt="" aria-hidden="true" />
+                        <span>{file.fileUrl.split('/').pop()}</span>
+                        <a className="od-download" href={file.fileUrl} target="_blank" rel="noreferrer" aria-label="ჩამოტვირთვა">
+                          ⤓
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {(isBuyer || isSeller) && disputeOpen && (
+                  <label className={`od-evidence-button${disputeBusy ? ' is-busy' : ''}`}>
+                    <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf,application/zip,.zip" aria-label="მტკიცებულების ატვირთვა" onChange={uploadDisputeEvidence} disabled={disputeBusy} />
+                    <img src="/assets/ui/paperclip-light.png" alt="" aria-hidden="true" />
+                    მტკიცებულების დამატება
+                    <span aria-hidden="true">›</span>
+                  </label>
+                )}
+
+                {isSuperAdmin && dispute.status === DisputeStatus.Open && (
+                  <div className="od-card od-resolve">
+                    <h3>დავის გადაწყვეტა</h3>
+                    <textarea
+                      id="resolveNote"
+                      value={resolveNote}
+                      onChange={(event) => setResolveNote(event.target.value)}
+                      placeholder="დაასაბუთეთ გადაწყვეტილება — ჩანს ორივე მხარისთვის"
+                      aria-label="შენიშვნა გადაწყვეტილებაზე"
+                    />
+                    <div className="od-resolve-actions">
+                      {Object.values(DisputeResolution).map((resolution) => (
+                        <button key={resolution} type="button" className="od-btn" disabled={disputeBusy || !resolveNote.trim()} onClick={() => resolveDispute(resolution)}>
+                          {RESOLUTION_LABELS[resolution]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              (isBuyer || isSeller) && (
+                <form className="od-dispute-form" onSubmit={openDispute}>
+                  <p>თუ პრობლემა გაქვთ ამ შეკვეთასთან დაკავშირებით, შეგიძლიათ დავის გახსნა.</p>
+                  <label className="od-textarea">
+                    <span className="od-textarea-icon">
+                      <img src="/assets/ui/pencil.png" alt="" aria-hidden="true" />
+                    </span>
+                    <textarea
+                      id="disputeReason"
+                      maxLength={DISPUTE_REASON_MAX}
+                      value={disputeReason}
+                      onChange={(event) => setDisputeReason(event.target.value)}
+                      placeholder="აღწერეთ პრობლემა (მინიმუმ 10 სიმბოლო)"
+                      aria-label="დავის მიზეზი"
+                      required
+                    />
+                    <small>{`${disputeReason.length}/${DISPUTE_REASON_MAX}`}</small>
+                  </label>
+                  <button className="od-dispute-open" type="submit" disabled={disputeBusy || disputeReason.trim().length < 10}>
+                    <img src="/assets/ui/gavel.png" alt="" aria-hidden="true" />
+                    დავის გახსნა
+                    <span aria-hidden="true">›</span>
+                  </button>
+                  <label className={`od-evidence-button${disputeBusy ? ' is-busy' : ''}`}>
+                    <input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf,application/zip,.zip" aria-label="მტკიცებულების დამატება" onChange={(event) => setPendingEvidence(Array.from(event.target.files ?? []).slice(0, 5))} />
+                    <img src="/assets/ui/paperclip-light.png" alt="" aria-hidden="true" />
+                    {pendingEvidence.length ? `მტკიცებულება: ${pendingEvidence.length} ფაილი` : 'მტკიცებულების დამატება'}
+                    <span aria-hidden="true">›</span>
+                  </label>
+                </form>
+              )
+            )}
+          </section>
+        )}
+
+        {(isBuyer || isSeller) && (
+          <section className="od-section" id="review">
+            <h2 className="od-icon-title">
+              <span>
+                <img src="/assets/ui/star-notify.png" alt="" aria-hidden="true" />
+              </span>
+              შეფასება
+            </h2>
+            {order.status === OrderStatus.Completed ? (
+              <OrderReview orderId={order.id} isBuyer={isBuyer} isSeller={isSeller} />
+            ) : (
+              <div className="od-review-empty">
+                <span>
+                  <img src="/assets/ui/star-notify.png" alt="" aria-hidden="true" />
+                </span>
+                <strong>შეფასება ჯერ არ არის.</strong>
+                <small>შეკვეთის დასრულების შემდეგ შეძლებთ შეფასების დატოვებას.</small>
+              </div>
+            )}
+          </section>
+        )}
+
+        <aside className="od-brand">
+          <div>
+            <img src="/assets/logo-wavehubx-main.png" alt="WaveHubX" />
+            <p>ითამაშე. დაუკავშირდი. გამოიმუშავე.</p>
+          </div>
+          <p className="od-brand-info">
+            <img src="/assets/ui/info-light.png" alt="" aria-hidden="true" />
+            WaveHubX არის გეიმინგ მარკეტპლეისი. იყიდეთ, გაყიდეთ და გაიცვალეთ უნარები სანდო ქოუჩებთან — ყველაფერი ერთ სივრცეში.
+          </p>
+        </aside>
       </div>
     </Layout>
   )

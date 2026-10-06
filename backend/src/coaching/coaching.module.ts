@@ -24,9 +24,10 @@ import { SettingsModule } from '../settings/settings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { CommunityModule } from '../community/community.module';
+import { BadgesModule } from '../badges/badges.module';
 
 @Module({
-  imports: [
+  imports: [BadgesModule, 
     TypeOrmModule.forFeature([Coach, CoachingSession, CoachingSessionReview, CoachFavorite, CoachingPackage, CoachingSessionDispute, CoachingSessionDisputeMessage, Game, User]),
     AuthModule,
     AdminModule,

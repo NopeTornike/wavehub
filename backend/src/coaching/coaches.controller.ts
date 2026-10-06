@@ -1,3 +1,4 @@
+import { IsBoolean } from 'class-validator';
 import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
@@ -25,6 +26,11 @@ import { AdminAuditService } from '../admin/admin-audit.service';
 export const COACH_MANAGEMENT_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];
 // Intro videos: byte-sniffed MP4/WebM, 5MB (multer limit + the service check).
 const VIDEO_UPLOAD = FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_COACH_VIDEO_BYTES } });
+
+class SetCoachFeaturedDto {
+  @IsBoolean()
+  isFeatured: boolean;
+}
 
 @Controller()
 export class CoachesController {
@@ -212,6 +218,17 @@ export class CoachesController {
   async suspend(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string) {
     const coach = await this.coaches.suspend(id);
     await this.audit.log({ adminId, adminRole, action: 'coach.suspend', entityType: 'coach', entityId: id });
+    return coach;
+  }
+
+  // Home page coach section (client feedback #2): staff choose who is featured. Audit-logged.
+  @Post('admin/coaches/:id/featured')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...COACH_MANAGEMENT_ROLES)
+  async setFeatured(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SetCoachFeaturedDto) {
+    const coach = await this.coaches.setFeatured(id, dto.isFeatured);
+    await this.audit.log({ adminId, adminRole, action: dto.isFeatured ? 'coach.feature' : 'coach.unfeature', entityType: 'coach', entityId: id });
     return coach;
   }
 

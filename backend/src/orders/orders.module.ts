@@ -17,9 +17,10 @@ import { ChatModule } from '../chat/chat.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SettingsModule } from '../settings/settings.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { BadgesModule } from '../badges/badges.module';
 
 @Module({
-  imports: [
+  imports: [BadgesModule, 
     TypeOrmModule.forFeature([Order, OrderDeliveryFile, Listing, Package, ServiceDetails, ItemDetails, ListingKeyInventory]),
     WalletModule,
     StorageModule,

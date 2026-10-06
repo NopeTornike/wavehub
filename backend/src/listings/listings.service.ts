@@ -26,12 +26,14 @@ import { NotificationsService } from '../notifications/notifications.service';
 // reason...). Anything public must go through this projection — the shared `PublicSeller` type
 // always promised exactly these fields, but the raw entity was being serialized instead (found by
 // the response-privacy sweep in backend/test/security.e2e-spec.ts).
-function toPublicSeller(seller: User): PublicSeller {
+function toPublicSeller(seller: User, verified = false): PublicSeller {
   return {
     id: seller.id,
     username: seller.username,
     firstName: seller.firstName,
     lastName: seller.lastName,
+    avatarUrl: seller.avatarUrl ?? null,
+    verified,
     sellerRatingAvg: seller.sellerRatingAvg,
     sellerRatingCount: seller.sellerRatingCount,
   };
@@ -136,13 +138,20 @@ export class ListingsService {
 
   // The seller's own listings (any status), with the attributes they entered so edit forms can be
   // pre-filled.
-  async findMine(sellerId: string): Promise<Array<Listing & { itemAttributes: Record<string, unknown> | null }>> {
+  async findMine(sellerId: string): Promise<Array<Listing & { itemAttributes: Record<string, unknown> | null; favoriteCount: number }>> {
     const rows = await this.listings.find({ where: { sellerId }, relations: ['game', 'images'], order: { createdAt: 'DESC' } });
     rows.forEach(sortImages);
     const ids = rows.filter((row) => row.type !== ListingType.Service).map((row) => row.id);
     const details = ids.length ? await this.itemDetails.find({ where: { listingId: In(ids) }, select: ['listingId', 'attributes'] }) : [];
     const byId = new Map(details.map((d) => [d.listingId, d.attributes]));
-    return rows.map((row) => Object.assign(row, { itemAttributes: row.type === ListingType.Service ? null : (byId.get(row.id) ?? {}) }));
+    // ♡ counts for the seller panel's stats line (views / likes / orders — design 2026-10-04).
+    const favCounts: Array<{ listingId: string; n: number }> = rows.length
+      ? await this.listings.query(`SELECT "listingId", count(*)::int AS n FROM "listing_favorites" WHERE "listingId" = ANY($1) GROUP BY 1`, [rows.map((r) => r.id)])
+      : [];
+    const favById = new Map(favCounts.map((f) => [f.listingId, f.n]));
+    return rows.map((row) =>
+      Object.assign(row, { itemAttributes: row.type === ListingType.Service ? null : (byId.get(row.id) ?? {}), favoriteCount: favById.get(row.id) ?? 0 }),
+    );
   }
 
   // The seller's own listing in any status, everything needed to edit it (GET listings/mine/:id).
@@ -522,6 +531,11 @@ export class ListingsService {
       ),
     ]);
 
+    const [{ n: verifiedCount }] = await this.listings.query(
+      `SELECT count(*)::int AS n FROM "user_badges" WHERE "userId" = $1 AND "badgeKey" = 'verified'`,
+      [listing.sellerId],
+    );
+    const sellerVerified = verifiedCount > 0;
     if (listing.type === ListingType.Service) {
       const [packages, details] = await Promise.all([
         this.packages.find({ where: { listingId: id }, order: { sortOrder: 'ASC' } }),
@@ -529,7 +543,7 @@ export class ListingsService {
       ]);
       return {
         ...listing,
-        seller: toPublicSeller(listing.seller),
+        seller: toPublicSeller(listing.seller, sellerVerified),
         packages,
         requirementsSchema: details?.requirementsSchema ?? [],
         faq: details?.faq ?? [],
@@ -546,7 +560,7 @@ export class ListingsService {
       const keyDetails = await this.itemDetails.findOne({ where: { listingId: id } });
       return {
         ...listing,
-        seller: toPublicSeller(listing.seller),
+        seller: toPublicSeller(listing.seller, sellerVerified),
         packages: [],
         stockQuantity: availableCount,
         itemAttributes: keyDetails?.attributes ?? {},
@@ -556,7 +570,7 @@ export class ListingsService {
     }
 
     const itemDetails = await this.itemDetails.findOne({ where: { listingId: id } });
-    return { ...listing, seller: toPublicSeller(listing.seller), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount, sellerCompletedOrders };
+    return { ...listing, seller: toPublicSeller(listing.seller, sellerVerified), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount, sellerCompletedOrders };
   }
 
   // Packages are what a buyer pays for, so changing them on a live (Active/Paused) service sends it
@@ -840,8 +854,10 @@ export class ListingsService {
   // Bulk "paste a list of keys" upload — a seller realistically has dozens/hundreds per title (see
   // LAUNCH_PLAN.md §2d). Each raw key is encrypted before it ever touches a `save()` call; nothing
   // in this method (or its caller) ever logs or returns a raw value back.
-  async addKeys(sellerId: string, listingId: string, rawKeys: string[]): Promise<{ added: number }> {
-    const listing = await this.getOwnedListing(sellerId, listingId);
+  // `editor` is the owner's id, or STAFF_EDITOR for a Steam publisher managing a game another staff
+  // member created (client feedback #5: only the publishing account could add stock).
+  async addKeys(editor: ListingEditor, listingId: string, rawKeys: string[]): Promise<{ added: number }> {
+    const listing = await this.getEditableListing(editor, listingId);
     if (listing.type !== ListingType.DigitalKey) {
       throw new ForbiddenException('Only digital key listings accept key inventory');
     }
@@ -860,8 +876,8 @@ export class ListingsService {
   // SellerListingKeySummary's own comment in packages/shared-types). Once uploaded, a seller has no
   // way to read a key back through this app; they're expected to keep their own record before
   // pasting it in, same as any real key-reseller platform.
-  async listKeys(sellerId: string, listingId: string): Promise<SellerListingKeySummary[]> {
-    const listing = await this.getOwnedListing(sellerId, listingId);
+  async listKeys(editor: ListingEditor, listingId: string): Promise<SellerListingKeySummary[]> {
+    const listing = await this.getEditableListing(editor, listingId);
     if (listing.type !== ListingType.DigitalKey) {
       throw new ForbiddenException('Only digital key listings have key inventory');
     }
@@ -877,8 +893,8 @@ export class ListingsService {
   // Soft-delete only — an already-`sold` key is permanent (it's tied to a real order), and this
   // query's WHERE clause only ever matches an `available` row, so attempting to "remove" a sold key
   // just 404s rather than silently no-op'ing on the wrong row.
-  async removeKey(sellerId: string, listingId: string, keyId: string): Promise<void> {
-    await this.getOwnedListing(sellerId, listingId);
+  async removeKey(editor: ListingEditor, listingId: string, keyId: string): Promise<void> {
+    await this.getEditableListing(editor, listingId);
     const result = await this.keyInventory.update(
       { id: keyId, listingId, status: KeyInventoryStatus.Available },
       { status: KeyInventoryStatus.Revoked },
@@ -948,4 +964,4 @@ export const STEAM_CATEGORY_SLUG = 'steam-games';
 // staff are the moderators, so their edits apply as-is (and are audit-logged by the controller).
 export const STAFF_EDITOR = Symbol('staff-editor');
 export type ListingEditor = string | typeof STAFF_EDITOR;
-const STEAM_PUBLISHER_ROLES: AdminRole[] = [AdminRole.SuperAdmin, AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];
+export const STEAM_PUBLISHER_ROLES: AdminRole[] = [AdminRole.SuperAdmin, AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];

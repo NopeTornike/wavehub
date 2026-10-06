@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
@@ -5,7 +6,7 @@ import type { PublicNotification } from '@wavehub/shared-types'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
-import { formatNotificationTime as formatTime, notificationKind as kindOf, notificationTarget as targetFor } from '../lib/notifications'
+import { formatNotificationTime as formatTime, notificationKind as kindOf, notificationIcon } from '../lib/notifications'
 
 // useLayoutEffect warns during server rendering; the panel only ever positions itself in the browser.
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
@@ -114,18 +115,21 @@ export default function NotificationCenter({
           <p className="notification-center-empty">შეტყობინებები ჯერ არ არის.</p>
         ) : (
           items.map((item) => {
-            const { kind, letter } = kindOf(item.type)
+            const { kind } = kindOf(item.type)
             return (
               <Link
                 key={item.id}
                 className={`notification-center-item ${kind}${item.readAt ? '' : ' unread'}`}
-                href={targetFor(item)}
+                // Opens the notification in full (client feedback #14); its page is one tap from there.
+                href={`/notifications?id=${item.id}`}
                 onClick={() => {
                   markRead(item)
                   onClose()
                 }}
               >
-                <span className="notification-center-icon">{letter}</span>
+                <span className="notification-center-icon has-img">
+                <img src={notificationIcon(item.type)} alt="" />
+              </span>
                 <span>
                   <strong>{item.title}</strong>
                   <small>{item.body}</small>

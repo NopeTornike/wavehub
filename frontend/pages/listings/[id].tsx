@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import type { OrderQuote, PublicListingDetail, PublicReview } from '@wavehub/shared-types'
+import type { MyReviewLikes, OrderQuote, PublicListingDetail, PublicReview } from '@wavehub/shared-types'
 import { AdminRole, ListingType } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import SteamGameDetail from '../../components/SteamGameDetail'
@@ -14,6 +14,8 @@ import GAME_DETAILS from '../../lib/game-details.json'
 import RankIcon from '../../components/RankIcon'
 import ReportButton from '../../components/ReportButton'
 import ImageLightbox from '../../components/ImageLightbox'
+import EscrowExplainer from '../../components/EscrowExplainer'
+import ReviewCard from '../../components/ReviewCard'
 import FeeBreakdown from '../../components/FeeBreakdown'
 import { gel } from '../../lib/money'
 
@@ -74,6 +76,22 @@ export default function ListingDetail() {
   const [favoriteCount, setFavoriteCount] = useState(0)
   // A completed, not yet reviewed order of this listing by the viewer → "write a review".
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null)
+  // Which reviews / seller replies here the viewer liked (the review list itself carries counts).
+  const [myLikes, setMyLikes] = useState<MyReviewLikes>({ review: [], reply: [] })
+  const meId = me?.id
+  useEffect(() => {
+    if (!id || !meId) return
+    let cancelled = false
+    api
+      .myReviewLikes(id)
+      .then((likes) => {
+        if (!cancelled) setMyLikes(likes)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [id, meId])
   // Price + buyer fee + total for the current selection (GET /order-quote).
   const [quote, setQuote] = useState<OrderQuote | null>(null)
   const quoteListingId = listing?.id
@@ -310,6 +328,8 @@ export default function ListingDetail() {
               / {kindLabel} / {listing.title}
             </nav>
 
+            <EscrowExplainer kind={kind} />
+
             <div className="detail-title-block">
               <p className="section-kicker" id="detailKicker">
                 {kindLabel} detail
@@ -523,40 +543,26 @@ export default function ListingDetail() {
                     </select>
                   </label>
                 )}
-                <div className="detail-review-list" id="detailReviewList">
-                  {reviews.map((review) => {
-                    const stars = Math.max(0, Math.min(5, Math.round(review.rating)))
-                    return (
-                      <article key={review.id} className="public-review-card">
-                        <div className="public-review-head">
-                          <Link className="public-review-reviewer" href={`/u/${review.buyer.username}`} aria-label={`Open ${review.buyer.username} profile`}>
-                            <span className="message-avatar">{review.buyer.username[0]?.toUpperCase()}</span>
-                            <span className="public-review-reviewer-identity">
-                              <strong>{review.buyer.username}</strong>
-                              {review.buyerRank && (
-                                <small className="public-review-reviewer-rank">
-                                  <RankIcon name={review.buyerRank} />
-                                  {review.buyerRank}
-                                </small>
-                              )}
-                            </span>
-                          </Link>
-                          <span className="public-review-rating">
-                            {'★'.repeat(stars)}
-                            {'☆'.repeat(5 - stars)}
-                          </span>
-                          <small>{new Date(review.createdAt).toLocaleDateString('ka-GE', { year: 'numeric', month: 'short', day: 'numeric' })}</small>
-                        </div>
-                        <span className="public-review-item">პროდუქტი: {listing.title}</span>
-                        <p>{review.body || 'კომენტარის გარეშე.'}</p>
-                        {review.sellerReply && (
-                          <p className="seller-reply">
-                            <strong>გამყიდველის პასუხი:</strong> {review.sellerReply}
-                          </p>
-                        )}
-                      </article>
-                    )
-                  })}
+                <div className="detail-review-list rv-list" id="detailReviewList">
+                  {reviews.map((review) => (
+                    <ReviewCard
+                      key={review.id}
+                      review={review}
+                      viewerId={me?.id ?? null}
+                      isSeller={me?.id === listing.seller.id}
+                      liked={myLikes.review.includes(review.id)}
+                      replyLiked={myLikes.reply.includes(review.id)}
+                      onChange={(next) => {
+                        const { liked, replyLiked, ...fields } = next
+                        setReviews((list) => list.map((r) => (r.id === review.id ? { ...r, ...fields } : r)))
+                        if (liked !== undefined || replyLiked !== undefined)
+                          setMyLikes((cur) => ({
+                            review: liked === undefined ? cur.review : liked ? [...cur.review, review.id] : cur.review.filter((x) => x !== review.id),
+                            reply: replyLiked === undefined ? cur.reply : replyLiked ? [...cur.reply, review.id] : cur.reply.filter((x) => x !== review.id),
+                          }))
+                      }}
+                    />
+                  ))}
                 </div>
                 <div className="marketplace-empty" id="detailReviewsEmpty" hidden={reviews.length > 0}>
                   შეფასებები ჯერ არ არის.
@@ -577,7 +583,7 @@ export default function ListingDetail() {
                 <i></i> {inStock ? 'მარაგშია' : 'ამოიწურა'}
               </span>
               <span>
-                <i></i> Sold by <strong id="detailSoldBy">{sellerName}</strong>
+                <i></i> გამყიდველი: <strong id="detailSoldBy">{sellerName}</strong>
               </span>
             </div>
             <div className="detail-buy-tags">
@@ -624,8 +630,13 @@ export default function ListingDetail() {
             )}
 
             {kind === 'service' && listing.requirementsSchema && listing.requirementsSchema.length > 0 && (
-              <div className="detail-requirements">
-                <strong>შეავსეთ შეკვეთამდე</strong>
+              <div className="detail-requirements rq-card">
+                <h3 className="rq-title">
+                  <span>
+                    <img src="/assets/ui/chat-light.png" alt="" aria-hidden="true" />
+                  </span>
+                  შეკვეთამდე შეავსეთ კითხვები
+                </h3>
                 {listing.requirementsSchema.map((field) => {
                   const value = requirementAnswers[field.key] ?? ''
                   const set = (next: string) => setRequirementAnswers((prev) => ({ ...prev, [field.key]: next }))
@@ -645,9 +656,9 @@ export default function ListingDetail() {
                           ))}
                         </select>
                       ) : field.type === 'textarea' ? (
-                        <textarea aria-required={field.required} value={value} onChange={(e) => set(e.target.value)} />
+                        <textarea aria-required={field.required} value={value} placeholder={field.placeholder} onChange={(e) => set(e.target.value)} />
                       ) : (
-                        <input aria-required={field.required} type={field.type === 'number' ? 'number' : 'text'} value={value} onChange={(e) => set(e.target.value)} />
+                        <input aria-required={field.required} type={field.type === 'number' ? 'number' : 'text'} value={value} placeholder={field.placeholder} onChange={(e) => set(e.target.value)} />
                       )}
                     </label>
                   )
@@ -658,7 +669,10 @@ export default function ListingDetail() {
             {!isOwnListing && <FeeBreakdown quote={quote} />}
             {isOwnListing ? (
               <>
-                <p className="note">ეს თქვენი განცხადებაა — საკუთარი განცხადების ყიდვა შეუძლებელია.</p>
+                <p className="note rq-info">
+                  <img src="/assets/ui/info.png" alt="" aria-hidden="true" />
+                  ეს თქვენი განცხადებაა — საკუთარი განცხადების ყიდვა შეუძლებელია.
+                </p>
                 <Link
                   className="detail-buy-button detail-edit-button"
                   href={kind === 'service' ? `/sell/services/${listing.id}` : `/sell/items/${listing.id}`}
@@ -695,7 +709,7 @@ export default function ListingDetail() {
               )}
               {!isOwnListing && (
                 <button id="messageSellerButton" type="button" onClick={() => void messageSeller()}>
-                  Message Seller
+                  გამყიდველთან მიწერა
                 </button>
               )}
               {!isOwnListing && <ReportButton targetType="listing" targetId={listing.id} label="განცხადების დაჩივრება" />}

@@ -1,3 +1,5 @@
+import { IsBoolean, IsIn, IsUUID } from 'class-validator';
+import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { CREATE_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
@@ -24,6 +26,19 @@ const REVIEW_MODERATION_ROLES = [
   AdminRole.TrustSafetyOfficer,
 ];
 
+class LikeReviewDto {
+  @IsIn(['review', 'reply'])
+  target: 'review' | 'reply';
+
+  @IsBoolean()
+  liked: boolean;
+}
+
+class MyReviewLikesDto {
+  @IsUUID()
+  listingId: string;
+}
+
 @Controller()
 export class ReviewsController {
   constructor(
@@ -34,6 +49,22 @@ export class ReviewsController {
   @Get('listings/:listingId/reviews')
   findForListing(@Param('listingId') listingId: string, @Query() query: BrowseReviewsDto) {
     return this.reviews.findForListing(listingId, query.sort);
+  }
+
+  // 👍 on a review or on the seller's reply (signed-in, verified email). Idempotent like/unlike.
+  @Post('reviews/:id/like')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, VerifiedEmailGuard)
+  @Throttle(CREATE_THROTTLE)
+  like(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string, @Body() dto: LikeReviewDto) {
+    return this.reviews.like(userId, id, dto.target, dto.liked);
+  }
+
+  // Which reviews/replies on a listing the viewer liked (the public list carries only counts).
+  @Get('me/review-likes')
+  @UseGuards(AuthGuard)
+  myLikes(@CurrentUserId() userId: string, @Query() query: MyReviewLikesDto) {
+    return this.reviews.myLikes(userId, query.listingId);
   }
 
   // Admin-only — the moderation queue for `hide`/`remove`/`restore` below.

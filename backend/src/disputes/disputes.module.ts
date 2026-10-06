@@ -14,9 +14,10 @@ import { ChatModule } from '../chat/chat.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { BadgesModule } from '../badges/badges.module';
 
 @Module({
-  imports: [
+  imports: [BadgesModule, 
     TypeOrmModule.forFeature([Dispute, DisputeMessage, DisputeEvidence, Order, Listing]),
     WalletModule,
     StorageModule,

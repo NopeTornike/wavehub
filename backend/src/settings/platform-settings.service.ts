@@ -31,6 +31,11 @@ export class PlatformSettingsService {
     return (await this.get()).platformFeePercent;
   }
 
+  // Coaching sessions' fee — its own setting since 2026-10-04 (client feedback #16).
+  async getCoachingFeePercent(): Promise<number> {
+    return (await this.get()).coachingFeePercent;
+  }
+
   async getMinWithdrawalWaveCoin(): Promise<number> {
     return (await this.get()).minWithdrawalWaveCoin;
   }

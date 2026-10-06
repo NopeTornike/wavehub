@@ -153,3 +153,9 @@ only ever starts from a concrete order/session, matching the "transacted users o
 `GET /direct-messages/unread-count` (`countUnreadDirect`) feeds the topbar/sidebar message badge;
 opening a thread (`listDirectMessages`) marks the other side's messages seen, and the conversation
 summaries carry `unreadCount`.
+
+## 2026-10-04
+- `PublicConversationSummary.otherUser` gains `firstName`, `lastName`, `avatarUrl`; the inbox shows
+  full names and photos (#13).
+- `ChatService.postMessage` takes a `type` (Text / Image / File) for order-chat attachments (see
+  `backend/src/orders/CLAUDE.md`).

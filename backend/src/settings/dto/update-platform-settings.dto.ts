@@ -25,6 +25,12 @@ export class UpdatePlatformSettingsDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
+  @Max(100)
+  coachingFeePercent?: number;
+
+  @IsOptional()
+  @IsInt()
   @Min(1)
   minWithdrawalWaveCoin?: number;
 

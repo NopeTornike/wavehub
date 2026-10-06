@@ -40,6 +40,10 @@ export class TournamentTeam {
   @Column({ type: 'varchar', length: 30, nullable: true })
   coachName: string | null;
 
+  // Discord invite link or username (client feedback #6) — staff and the team only.
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  discord: string | null;
+
   // In-game names in roster order (kept alongside `roster` for match stats and the player count).
   @Column({ type: 'jsonb', default: [] })
   members: string[];

@@ -26,6 +26,12 @@ export class RequirementFieldDto {
   @IsString({ each: true })
   @Length(1, 60, { each: true })
   options?: string[];
+
+  // An example answer shown in the empty field ("მაგ: 24 ინჩი…" — design 2026-10-04).
+  @IsOptional()
+  @IsString()
+  @Length(0, 80)
+  placeholder?: string;
 }
 
 export class FaqEntryDto {

@@ -100,3 +100,10 @@ yet.
 - UI: Admin → Platform settings "Support-ის უფლებები"; Admin → Users shows Support only what's on.
 - e2e: `test/support-permissions.e2e-spec.ts` (defaults, SA-only editing, cap, self/staff
   refusals, audit, switching off takes effect at once).
+
+## Coaching fee (client feedback #16, 2026-10-04)
+- `platform_settings.coachingFeePercent` (migration `1784381000000-CoachingFeeAndFeaturedCoach`):
+  backfilled from `platformFeePercent`, CHECK 0–100.
+- It is set through the same `POST admin/platform-settings` (Super Admin, audited).
+- `getCoachingFeePercent()` is what coaching session booking snapshots. `platformFeePercent` is
+  now the **marketplace** fee only.

@@ -273,6 +273,19 @@ export default function AdminCoaches() {
     }
   }
 
+  const toggleFeatured = async (coach: AdminCoachSummary) => {
+    setBusyId(coach.id)
+    setError('')
+    try {
+      await api.adminSetCoachFeatured(coach.id, !coach.isFeatured)
+      reload()
+    } catch (err) {
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   // Super Admin only. A coach with session history can't be deleted (the API answers 409 — the
   // message says to suspend instead); the user account itself is kept.
   const removeCoach = async (coach: AdminCoachSummary) => {
@@ -361,6 +374,11 @@ export default function AdminCoaches() {
                       {coach.verificationStatus === VerificationStatus.Verified && (
                         <button type="button" className="button" disabled={busyId === coach.id} onClick={() => toggleSuspend(coach)}>
                           {coach.status === 'suspended' ? 'აღდგენა' : 'შეჩერება'}
+                        </button>
+                      )}
+                      {coach.verificationStatus === VerificationStatus.Verified && coach.status !== 'suspended' && (
+                        <button type="button" className={`button${coach.isFeatured ? ' is-on' : ''}`} aria-pressed={coach.isFeatured} disabled={busyId === coach.id} onClick={() => void toggleFeatured(coach)}>
+                          {coach.isFeatured ? '★ მთავარზე ჩანს' : 'მთავარზე ჩვენება'}
                         </button>
                       )}
                       {isSuperAdmin && (

@@ -84,6 +84,10 @@ export class Coach {
   @Column({ type: 'varchar', default: CoachStatus.Active })
   status: CoachStatus;
 
+  // Staff pick for the home page's coach section (client feedback #2, 2026-10-04).
+  @Column({ type: 'boolean', default: false })
+  isFeatured: boolean;
+
   // Recomputed from coaching_session_reviews whenever a buyer reviews a completed session
   // (CoachingSessionsService#review) — same stored-aggregate precedent as Listing.ratingAvg.
   @Column({ type: 'numeric', precision: 3, scale: 2, nullable: true })

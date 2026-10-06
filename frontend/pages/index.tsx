@@ -191,15 +191,16 @@ export default function Home() {
       .browseListings({ type: ListingType.DigitalKey, limit: 16 })
       .then((res) => setKeys(res.items))
       .catch(() => setKeys([]))
+    // Staff-featured coaches (Admin → Coaches, client feedback #2); the top-rated ones until staff
+    // feature anyone.
     api
-      .browseCoaches({ limit: 12 })
-      .then((res) =>
-        setCoaches(
-          [...res.items]
-            .sort((a, b) => Number(b.ratingAvg ?? 0) - Number(a.ratingAvg ?? 0) || b.ratingCount - a.ratingCount)
-            .slice(0, 3),
-        ),
-      )
+      .browseCoaches({ featured: true, limit: 12 })
+      .then(async (featuredRes) => {
+        if (featuredRes.items.length > 0) return featuredRes.items
+        const res = await api.browseCoaches({ limit: 12 })
+        return [...res.items].sort((a, b) => Number(b.ratingAvg ?? 0) - Number(a.ratingAvg ?? 0) || b.ratingCount - a.ratingCount).slice(0, 3)
+      })
+      .then((items) => setCoaches(items))
       .catch(() => setCoaches([]))
     Promise.all([
       api.browseTournaments({ status: TournamentStatus.Open, limit: 1 }),

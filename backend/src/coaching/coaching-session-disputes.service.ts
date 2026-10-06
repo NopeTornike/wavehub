@@ -9,6 +9,7 @@ import { CoachingSessionsService, formatSessionTime } from './coaching-sessions.
 import { assertValidSessionTransition } from './coaching-session-lifecycle';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
+import { personName } from '../common/person-name';
 
 const EVIDENCE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'application/zip', 'application/x-zip-compressed'];
 export const MAX_SESSION_EVIDENCE_BYTES = 20 * 1024 * 1024;
@@ -98,7 +99,7 @@ export class CoachingSessionDisputesService {
     }
     const isBuyer = session.buyerId === userId;
     const otherId = isBuyer ? session.coach.userId : session.buyerId;
-    const who = isBuyer ? `@${session.buyer.username}-მა` : `ქოუჩმა @${session.coach.user.username}-მა`;
+    const who = isBuyer ? `${personName(session.buyer)}-მა` : `ქოუჩმა ${personName(session.coach.user)}-მა`;
     await this.notify(
       otherId,
       NotificationType.DisputeOpened,

@@ -335,3 +335,14 @@ change otherwise; the marketplace filters by category id. Listing photos are cap
 - **A suspended/banned seller's listings leave the marketplace**: browse, detail, favourites, the
   per-game counts (community), `GET order-quote` and purchase all require `seller.status = active`.
 - Covered by `test/admin-crud.e2e-spec.ts`.
+
+## 2026-10-04 client feedback
+- **Staff Steam key stocking (#5)**: `GET|POST admin/listings/:id/keys`,
+  `DELETE admin/listings/:id/keys/:keyId`.
+  - `STEAM_PUBLISHER_ROLES`, so any Steam publisher can stock a game, not only its creator.
+  - `addKeys` / `listKeys` / `removeKey` take a `ListingEditor` (owner or `STAFF_EDITOR`).
+  - Audited with **counts / ids only**: key values are never returned or logged.
+  - The frontend splits a pasted list on whitespace, commas and semicolons (it used to split on
+    newlines only, which is why only one key was added).
+- `findMine` adds `favoriteCount` (My Listings stats). `findPublicById` sets `seller.verified` from
+  the Verified badge, and `PublicSeller` gains `avatarUrl` and `verified`.

@@ -88,7 +88,7 @@ describe('coaching sessions (e2e)', () => {
     expect((await stranger.client.get(`/coaching-sessions/${sess.id}`)).status).toBe(403);
 
     // A later fee change must not alter this session's already-snapshotted fee.
-    await admin.client.post('/admin/platform-settings', { platformFeePercent: 30 });
+    await admin.client.post('/admin/platform-settings', { coachingFeePercent: 30 });
     const coachBefore = await balanceOf(ctx, coachUser);
     expect((await coachUser.client.post(`/coaching-sessions/${sess.id}/complete`)).status).toBe(200);
     // Not paid until the student confirms.
@@ -107,7 +107,9 @@ describe('coaching sessions (e2e)', () => {
     // New bookings pick up the new 30% fee.
     const next = (await book(buyer)).body;
     expect((await sessionRow(next.id)).platformFeePercentSnapshot).toBe(30);
-    await admin.client.post('/admin/platform-settings', { platformFeePercent: 10 });
+    await admin.client.post('/admin/platform-settings', { coachingFeePercent: 10 });
+    // The marketplace fee is a separate setting (client feedback #16) and stayed put.
+    expect((await admin.client.get('/admin/platform-settings')).body.platformFeePercent).toBe(10);
     await clearHold(ctx, coachUser);
     expect((await coachUser.client.get('/wallet/balance')).body.availableToWithdraw).toBeGreaterThanOrEqual(135);
     await assertConserved(ctx);

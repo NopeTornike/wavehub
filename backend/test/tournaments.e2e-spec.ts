@@ -15,10 +15,10 @@ describe('tournament teams + matches (e2e)', () => {
   });
   afterAll(async () => ctx.close());
 
-  const SOLO = { inGameName: 'Player', inGameId: '51234567' };
+  const SOLO = { inGameName: 'Player', inGameId: '51234567', discord: 'player_disc' };
   // A squad registration body: players by WaveHub username, each with an in-game name and id.
   function roster(name: string, users: TestUser[], inGame: string[], extra: Record<string, unknown> = {}) {
-    return { name, ...extra, players: users.map((u, i) => ({ player: u.username, inGameName: inGame[i] ?? `p${i}`, inGameId: `5${i}00000${i}` })) };
+    return { name, discord: 'https://discord.gg/teamwave', ...extra, players: users.map((u, i) => ({ player: u.username, inGameName: inGame[i] ?? `p${i}`, inGameId: `5${i}00000${i}` })) };
   }
 
   async function squadTournament(maxPlayers: number) {
@@ -41,7 +41,7 @@ describe('tournament teams + matches (e2e)', () => {
     expect((await a.client.post(`/tournaments/${id}/teams`, roster('Alpha', [a, a2], ['a1', 'A1']))).status).toBe(400);
     expect((await a.client.post(`/tournaments/${id}/teams`, roster('Alpha', [a, a], ['a1', 'a2']))).status).toBe(400);
     // Unknown accounts, a roster without the captain, and missing in-game ids are refused.
-    const ghost = { name: 'Alpha', players: [{ player: a.username, inGameName: 'a1', inGameId: '5000001' }, { player: 'nobody_here_x', inGameName: 'a2', inGameId: '5000002' }] };
+    const ghost = { name: 'Alpha', discord: 'alpha_team', players: [{ player: a.username, inGameName: 'a1', inGameId: '5000001' }, { player: 'nobody_here_x', inGameName: 'a2', inGameId: '5000002' }] };
     expect((await a.client.post(`/tournaments/${id}/teams`, ghost)).status).toBe(400);
     expect((await a.client.post(`/tournaments/${id}/teams`, roster('Alpha', [b, a2], ['a1', 'a2']))).status).toBe(400);
     expect((await a.client.post(`/tournaments/${id}/teams`, { name: 'Alpha', players: [{ player: a.username, inGameName: 'a1' }, { player: a2.username, inGameName: 'a2' }] })).status).toBe(400);

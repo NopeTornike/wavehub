@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
@@ -7,11 +8,32 @@ import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { SESSION_STATUS_LABELS } from '../../lib/labels'
+import { kaTime } from '../../lib/dates'
+import VerifiedMark from '../../components/VerifiedMark'
 
 
 // Mirrors orders/index.tsx's structure exactly — same .orders-page-head/.orders-tabs/.order-card
 // design, since coaching sessions are conceptually a sibling of orders (a paid, escrowed
 // transaction) with no static-prototype page of its own to port from.
+// Status pill colour: green while booked/running/done, amber while waiting on a confirmation,
+// red when cancelled or disputed.
+function sessionTone(status: CoachingSessionStatus): 'ok' | 'wait' | 'bad' {
+  if (status === CoachingSessionStatus.Cancelled || status === CoachingSessionStatus.Disputed) return 'bad'
+  if (status === CoachingSessionStatus.AwaitingConfirmation) return 'wait'
+  return 'ok'
+}
+
+// Package names in capitals like the design ("STARTER") — Latin only: upper-casing Georgian
+// turns it into the Mtavruli capital script.
+function latinUpper(value: string): string {
+  return /[\u10A0-\u10FF]/.test(value) ? value : value.toUpperCase()
+}
+
+// "4.10.2026" (the design's short date), built by hand like lib/dates.
+function numericDate(d: Date): string {
+  return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`
+}
+
 const LIVE = [CoachingSessionStatus.Scheduled, CoachingSessionStatus.InProgress, CoachingSessionStatus.AwaitingConfirmation, CoachingSessionStatus.Disputed]
 
 export default function CoachingSessions() {
@@ -93,7 +115,7 @@ export default function CoachingSessions() {
           </article>
         </div>
 
-        <div className="orders-tabs" role="tablist">
+        <div className="oc-tabs" role="tablist">
           <button className={tab === 'buyer' ? 'active' : ''} type="button" role="tab" aria-selected={tab === 'buyer'} onClick={() => setTab('buyer')}>
             ჩემი დაჯავშნები
           </button>
@@ -116,32 +138,56 @@ export default function CoachingSessions() {
             <p>თქვენი შესაბამისი სესიები აქ გამოჩნდება.</p>
           </div>
         ) : (
-          <div className="orders-list">
+          // Session cards (design 2026-10-04, screenshot "sessions"): the other person by photo,
+          // full name and @handle — the coach on "my bookings", the student on "coach sessions".
+          <div className="sc-list">
             {sessions.map((session) => {
-              // Who the session is with, spelled out (client screenshot #2): the coach for a
-              // student, the student for a coach — the title used to always name the coach.
-              const coachName = [session.coachFirstName, session.coachLastName].filter(Boolean).join(' ') || session.coachUsername
-              const withName = tab === 'buyer' ? coachName : `@${session.buyerUsername}`
-              const withHandle = tab === 'buyer' ? `@${session.coachUsername}` : null
+              const asBuyer = tab === 'buyer'
+              const name = asBuyer
+                ? [session.coachFirstName, session.coachLastName].filter(Boolean).join(' ') || session.coachUsername
+                : [session.buyerFirstName, session.buyerLastName].filter(Boolean).join(' ') || session.buyerUsername
+              const handle = asBuyer ? session.coachUsername : session.buyerUsername
+              const photo = asBuyer ? session.coachAvatarUrl : session.buyerAvatarUrl
+              const start = new Date(session.scheduledAt)
+              const end = new Date(start.getTime() + session.durationMinutes * 60_000)
               return (
-                <Link key={session.id} href={`/coaching-sessions/${session.id}`} className="order-card session-card">
-                  <span className="order-thumb" aria-hidden="true">
-                    {(tab === 'buyer' ? coachName : session.buyerUsername).slice(0, 2).toUpperCase()}
-                  </span>
-                  <div className="order-copy">
-                    <div>
-                      <span className="order-status">{SESSION_STATUS_LABELS[session.status]}</span>
-                    </div>
-                    <p className="session-card-with">
-                      <small>{tab === 'buyer' ? 'მწვრთნელი' : 'მოსწავლე'}</small>
-                      <strong>{withName}</strong>
-                      {withHandle && <span>{withHandle}</span>}
-                    </p>
-                    <h2>{session.packageName ?? `${session.durationMinutes} წუთიანი სესია`}</h2>
-                    <p>{`${new Date(session.scheduledAt).toLocaleString('ka-GE')} · ${session.durationMinutes} წთ`}</p>
+                <Link key={session.id} href={`/coaching-sessions/${session.id}`} className="sc-card">
+                  <span className="sc-photo">{photo ? <img src={photo} alt="" /> : <span>{name.slice(0, 2).toUpperCase()}</span>}</span>
+                  <div className="sc-body">
+                    <span className={`sc-status ${sessionTone(session.status)}`}>
+                      <i aria-hidden="true" />
+                      {SESSION_STATUS_LABELS[session.status]}
+                    </span>
+                    <span className="sc-role">
+                      <span aria-hidden="true">🎓</span>
+                      {asBuyer ? 'მწვრთნელი' : 'მოსწავლე'}
+                    </span>
+                    <strong className="sc-name">
+                      {name}
+                      {asBuyer && session.coachVerified && <VerifiedMark size={17} />}
+                    </strong>
+                    <small className="sc-handle">@{handle}</small>
+                    <b className="sc-package">{latinUpper(session.packageName ?? `${session.durationMinutes} წუთიანი სესია`)}</b>
                   </div>
-                  <div className="order-side">
-                    <strong>{session.priceWaveCoin} GEL</strong>
+                  <span className="sc-chevron" aria-hidden="true">
+                    <img src="/assets/ui/chevron.png" alt="" />
+                  </span>
+                  <div className="sc-foot">
+                    <span className="sc-when">
+                      <img src="/assets/ui/calendar.png" alt="" aria-hidden="true" />
+                      <span>
+                        {numericDate(start)}
+                        <small>{`${kaTime(start)} - ${kaTime(end)}`}</small>
+                      </span>
+                    </span>
+                    <span className="sc-when">
+                      <img src="/assets/ui/clock.png" alt="" aria-hidden="true" />
+                      <span>
+                        {`${session.durationMinutes} წთ`}
+                        <small>ხანგრძლივობა</small>
+                      </span>
+                    </span>
+                    <b className="sc-price">{session.priceWaveCoin} GEL</b>
                   </div>
                 </Link>
               )

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type CSSProperties } from 'react'
 import type { MyTournamentEntry, PublicTournamentMatch, PublicTournamentSummary, PublicTournamentTeam, TournamentPlayerLookup } from '@wavehub/shared-types'
 import { TOURNAMENT_DETAIL_KEYS, TournamentStatus, TournamentTeamStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
@@ -72,6 +72,9 @@ function SummaryCell({ icon, label, value, sub, tone }: { icon: string; label: s
   )
 }
 
+// Mirrors the backend's DISCORD_CONTACT: an invite link or a Discord username.
+const DISCORD_CONTACT = /^(https:\/\/(discord\.gg|(www\.)?discord\.com\/invite)\/[A-Za-z0-9-]{2,40}|[a-z0-9_.]{2,32})$/
+
 type PlayerRow = { player: string; inGameName: string; inGameId: string; account: TournamentPlayerLookup | null; checking: boolean; problem: string }
 const IN_GAME_ID = /^[\p{L}\p{N}#_.:\- ]{2,40}$/u
 
@@ -94,6 +97,8 @@ function RegistrationModal({
   const [name, setName] = useState('')
   const [tag, setTag] = useState('')
   const [coach, setCoach] = useState('')
+  // Discord invite link or username (client feedback #6) — how staff reach the team/player.
+  const [discord, setDiscord] = useState('')
   const [rows, setRows] = useState<PlayerRow[]>(() =>
     Array.from({ length: tournament.teamSize }, (_, i) => ({
       player: i === 0 ? me.username : '',
@@ -139,19 +144,21 @@ function RegistrationModal({
         return setError('ლოგო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — ავტომატურად მცირდება 2MB-მდე.')
       }
     }
+    if (!DISCORD_CONTACT.test(discord.trim())) return setError('Discord: ჩაწერეთ მოსაწვევი ბმული (https://discord.gg/…) ან Discord-ის მომხმარებლის სახელი.')
     if (!agreed) return setError('დაეთანხმეთ ტურნირის წესებს.')
     setBusy(true)
     try {
       if (squad) {
         await api.registerTournamentTeam(tournament.id, {
           name: name.trim(),
+          discord: discord.trim(),
           tag: tag.trim() || undefined,
           coachName: coach.trim() || undefined,
           players: players.map((p) => ({ player: p.account!.id, inGameName: p.inGameName, inGameId: p.inGameId })),
         })
         if (logo) await api.uploadMyTeamLogo(tournament.id, logo).catch(() => undefined)
       } else {
-        await api.registerForTournament(tournament.id, { inGameName: players[0].inGameName, inGameId: players[0].inGameId })
+        await api.registerForTournament(tournament.id, { inGameName: players[0].inGameName, inGameId: players[0].inGameId, discord: discord.trim() })
       }
       onDone()
     } catch (err) {
@@ -196,6 +203,14 @@ function RegistrationModal({
               </div>
             </section>
           )}
+          <section className="listing-builder-section">
+            <h3>Discord</h3>
+            <label className="tr-discord-field">
+              <span>{squad ? 'გუნდის Discord — მოსაწვევი ბმული ან კაპიტნის username *' : 'შენი Discord — username ან მოსაწვევი ბმული *'}</span>
+              <input required maxLength={120} value={discord} onChange={(e) => setDiscord(e.target.value)} placeholder="https://discord.gg/… ან username" autoComplete="off" />
+              <small>ადმინისტრაცია ამ Discord-ით დაგიკავშირდებათ ტურნირის დეტალებზე.</small>
+            </label>
+          </section>
           <section className="listing-builder-section">
             <h3>{squad ? `მოთამაშეები (${tournament.teamSize})` : 'მოთამაშე'}</h3>
             {squad && <p className="tr-hint">დაამატეთ თანაგუნდელები WaveHub-ის მომხმარებლის სახელით ან ID-ით — მათი პროფილი ავტომატურად დაემატება გუნდს.</p>}
@@ -631,9 +646,13 @@ export default function TournamentDetail() {
                             <div className="team-identity">
                               <div
                                 className="team-mark"
-                                style={team.logoUrl ? { backgroundImage: `url("${team.logoUrl}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+                                style={(() => {
+                                  // A squad's logo; a solo entry shows the player's own photo (client feedback #6b).
+                                  const photo = team.logoUrl ?? (squad ? null : team.players[0]?.avatarUrl ?? null)
+                                  return photo ? { backgroundImage: `url("${photo}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined
+                                })()}
                               >
-                                {team.logoUrl ? '' : (team.tag || team.name).slice(0, 3).toUpperCase()}
+                                {team.logoUrl || (!squad && team.players[0]?.avatarUrl) ? '' : (team.tag || team.name).slice(0, 3).toUpperCase()}
                               </div>
                               <div className="team-name">
                                 <strong>{team.name}</strong>
@@ -649,7 +668,7 @@ export default function TournamentDetail() {
                                 const player = team.players.find((p) => p.inGameName === member) ?? (i === 0 ? team.players[0] : undefined)
                                 return player?.username ? (
                                   <Link key={member} href={`/u/${encodeURIComponent(player.username)}`} title={`@${player.username}`}>
-                                    <i style={player.avatarUrl ? { backgroundImage: `url("${player.avatarUrl}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+                                    <i className={player.avatarUrl ? 'has-photo' : undefined} style={player.avatarUrl ? ({ '--avatar': `url("${player.avatarUrl}")` } as CSSProperties) : undefined}>
                                       {player.avatarUrl ? '' : member.slice(0, 1).toUpperCase()}
                                     </i>
                                     <small>{member}</small>
@@ -781,9 +800,9 @@ export default function TournamentDetail() {
           me={me}
           onClose={() => setTeamModal(false)}
           onDone={() => {
+            // Success page with the next steps (client feedback #6).
             setTeamModal(false)
-            setTab('teams')
-            load()
+            void router.push(`/tournaments/${t.id}/registered`)
           }}
         />
       )}

@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { ArrayMaxSize, IsIn, IsInt, IsOptional, IsUUID, Matches, Max, Min } from 'class-validator';
+import { ArrayMaxSize, IsIn, IsInt, IsOptional, IsUUID, Matches, Max, Min, IsBoolean } from 'class-validator';
 
 export const COACH_SORTS = ['rating', 'price_asc', 'price_desc', 'reviews'] as const;
 export type CoachSort = (typeof COACH_SORTS)[number];
@@ -33,6 +33,12 @@ export class BrowseCoachesDto {
   @IsOptional()
   @IsIn(COACH_SORTS)
   sort?: CoachSort;
+
+  // Only staff-featured coaches (the home page's coach section).
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  featured?: boolean;
 
   @IsOptional()
   @Transform(({ value }) => Number(value))

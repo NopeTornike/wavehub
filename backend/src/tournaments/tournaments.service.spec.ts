@@ -100,7 +100,7 @@ describe('TournamentsService', () => {
     return { service, saved, tournaments, teams, matches, notifications };
   }
 
-  const solo = { inGameName: 'PlayerOne', inGameId: '5123456789' };
+  const solo = { inGameName: 'PlayerOne', inGameId: '5123456789', discord: 'player_one' };
 
   describe('register (solo)', () => {
     it('rejects a tournament that does not exist', async () => {
@@ -139,7 +139,7 @@ describe('TournamentsService', () => {
 
     it('requires the in-game name and ID', async () => {
       const { service } = build();
-      await expect(service.register(tournamentId, userId, { inGameName: ' ', inGameId: '12345' })).rejects.toThrow(BadRequestException);
+      await expect(service.register(tournamentId, userId, { inGameName: ' ', inGameId: '12345', discord: 'player_one' })).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -148,6 +148,7 @@ describe('TournamentsService', () => {
     // Players by WaveHub username; in-game names default to the upper-cased username.
     const dto = (names: string[], inGame?: string[]) => ({
       name: 'Wave Riders',
+      discord: 'https://discord.gg/waveriders',
       tag: 'wrd',
       players: names.map((player, i) => ({ player, inGameName: inGame?.[i] ?? player.toUpperCase(), inGameId: `id-${i}0000` })),
     });

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ReviewLike } from './review-like.entity';
 import { Review } from './review.entity';
 import { ReviewReport } from './review-report.entity';
 import { Order } from '../orders/order.entity';
@@ -17,7 +18,7 @@ import { CommunityModule } from '../community/community.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Review, ReviewReport, Order, Listing, User, CoachingSessionReview, Coach]),
+    TypeOrmModule.forFeature([Review, ReviewReport, ReviewLike, Order, Listing, User, CoachingSessionReview, Coach]),
     AuthModule,
     AdminModule,
     NotificationsModule,

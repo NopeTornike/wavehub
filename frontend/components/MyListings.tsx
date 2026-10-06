@@ -1,10 +1,11 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { ListingStatus, ListingType } from '@wavehub/shared-types'
 import { api, errorMessage, type MyListing } from '../lib/api'
 import { gameCover } from '../lib/games'
-import { LISTING_STATUS_LABELS } from '../lib/labels'
-import RecordCard from './RecordCard'
+import { LISTING_STATUS_LABELS, LISTING_TYPE_LABELS } from '../lib/labels'
+import { kaDate } from '../lib/dates'
 
 // The prototype's seller "My Listings" record panel — it appears on both profile.html (Settings) and
 // orders.html, each with the same Edit / Delete / View actions. On real data: Edit opens the full
@@ -25,9 +26,7 @@ function editHref(listing: MyListing): string {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return ''
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ka-GE', { year: 'numeric', month: 'short', day: 'numeric' })
+  return value ? kaDate(value) : ''
 }
 
 export default function MyListings({
@@ -77,80 +76,144 @@ export default function MyListings({
   )
 
   return (
-    <>
-      <section className={`profile-record-section ${className}`.trim()} aria-labelledby={`${gridId ?? 'myListings'}Title`}>
-        <div className="section-heading">
-          <div>
-            <p className="section-kicker">გამყიდველის პანელი</p>
-            <h2 id={`${gridId ?? 'myListings'}Title`}>ჩემი განცხადებები</h2>
-          </div>
-          <Link className="secondary-seller-action" href="/marketplace">
-            განცხადების დამატება
-          </Link>
+    <section className={`ml-panel ${className}`.trim()} aria-labelledby={`${gridId ?? 'myListings'}Title`}>
+      <header className="ml-head">
+        <div>
+          <p className="section-kicker">გამყიდველის პანელი</p>
+          <h2 id={`${gridId ?? 'myListings'}Title`}>ჩემი განცხადებები</h2>
+          <p>აქ ნახავთ თქვენ მიერ განთავსებულ ყველა განცხადებას.</p>
         </div>
-        <p className={`seller-status${status.kind ? ` ${status.kind}` : ''}`} aria-live="polite">
-          {status.text}
-        </p>
-        <div className="profile-record-grid" id={gridId}>
-          {shown.map((listing) => (
-            <RecordCard
-              key={listing.id}
-              href={
-                listing.status === ListingStatus.Active
-                  ? `/listings/${listing.id}`
-                  : listing.type === ListingType.DigitalKey
-                    ? `/sell/digital-keys/${listing.id}`
-                    : editHref(listing)
-              }
-              image={listing.images?.[0]?.url ?? gameCover(listing.game?.slug)}
-              fallback={(listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
-              title={listing.title}
-              meta={`${listing.game?.name ?? 'WaveHub'} / ${LISTING_STATUS_LABELS[listing.status]}`}
-              footer={`${listing.priceWaveCoin ?? '—'} GEL / ${formatDate(listing.createdAt)}${listing.rejectionReason ? ` / ${listing.rejectionReason}` : ''}`}
-              actions={
-                <>
-                  <Link className="profile-record-action" href={editHref(listing)}>
-                    Edit
-                  </Link>
-                  {listing.status === ListingStatus.Active && (
-                    <button className="profile-record-action" type="button" onClick={() => void act(() => api.pauseListing(listing.id), 'განცხადება შეჩერდა.')}>
-                      Pause
-                    </button>
-                  )}
-                  {listing.status === ListingStatus.Paused && (
-                    <button className="profile-record-action" type="button" onClick={() => void act(() => api.unpauseListing(listing.id), 'განცხადება კვლავ აქტიურია.')}>
-                      Resume
-                    </button>
-                  )}
-                  {(listing.status === ListingStatus.Draft || listing.status === ListingStatus.Rejected) && (
-                    <button className="profile-record-action" type="button" onClick={() => void act(() => api.submitListingForReview(listing.id), 'გაიგზავნა შესამოწმებლად.')}>
-                      Submit
-                    </button>
-                  )}
-                  <button
-                    className="profile-record-action danger"
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm(`წავშალოთ „${listing.title}“?`)) void act(() => api.deleteListing(listing.id), 'განცხადება წაიშალა.')
-                    }}
-                  >
-                    Delete
-                  </button>
-                  {listing.status === ListingStatus.Active && (
-                    <Link className="profile-record-action" href={`/listings/${listing.id}`}>
-                      View
-                    </Link>
-                  )}
-                </>
-              }
-            />
-          ))}
-        </div>
-        <div className="marketplace-empty" hidden={listings === null || shown.length > 0}>
-          განცხადებები ჯერ არ არის.
-        </div>
-      </section>
+        <Link className="ml-add" href="/marketplace?sell=1">
+          <img src="/assets/ui/plus-circle.png" alt="" aria-hidden="true" />
+          განცხადების დამატება
+        </Link>
+      </header>
 
-    </>
+      <div className="ml-how">
+        <span className="ml-how-icon">
+          <img src="/assets/ui/cart-light.png" alt="" aria-hidden="true" />
+        </span>
+        <div>
+          <strong>როგორ მუშაობს?</strong>
+          <ol>
+            <li>
+              <span>
+                <img src="/assets/ui/doc-pink.png" alt="" aria-hidden="true" />
+              </span>
+              1. შექმენი განცხადება
+            </li>
+            <li>
+              <span>
+                <img src="/assets/ui/chat-light.png" alt="" aria-hidden="true" />
+              </span>
+              2. მოლაპარაკე მყიდველთან
+            </li>
+            <li>
+              <span>
+                <img src="/assets/ui/check-circle-light.png" alt="" aria-hidden="true" />
+              </span>
+              3. დაადასტურე შეკვეთა
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <p className={`seller-status${status.kind ? ` ${status.kind}` : ''}`} aria-live="polite">
+        {status.text}
+      </p>
+      <div className="ml-grid" id={gridId}>
+        {shown.map((listing) => {
+          const image = listing.images?.[0]?.url ?? gameCover(listing.game?.slug)
+          const tone = listing.status === ListingStatus.Active ? 'ok' : listing.status === ListingStatus.PendingReview || listing.status === ListingStatus.Draft ? 'wait' : 'bad'
+          const view = listing.status === ListingStatus.Active ? `/listings/${listing.id}` : editHref(listing)
+          return (
+            <article key={listing.id} className="ml-card">
+              <Link className="ml-thumb" href={view} style={image ? { backgroundImage: `url('${image}')` } : undefined} aria-label={listing.title}>
+                {image ? '' : (listing.game?.name ?? 'WH').slice(0, 2).toUpperCase()}
+              </Link>
+              <div className="ml-body">
+                <div className="ml-top">
+                  <span className={`ml-status ${tone}`}>
+                    <i aria-hidden="true" />
+                    {LISTING_STATUS_LABELS[listing.status]}
+                  </span>
+                  <details className="ml-more">
+                    <summary aria-label="მეტი მოქმედება">
+                      <img src="/assets/ui/ellipsis.png" alt="" aria-hidden="true" />
+                    </summary>
+                    <div>
+                      {listing.status === ListingStatus.Active && <Link href={`/listings/${listing.id}`}>ნახვა</Link>}
+                      {listing.status === ListingStatus.Active && (
+                        <button type="button" onClick={() => void act(() => api.pauseListing(listing.id), 'განცხადება შეჩერდა.')}>
+                          შეჩერება
+                        </button>
+                      )}
+                      {listing.status === ListingStatus.Paused && (
+                        <button type="button" onClick={() => void act(() => api.unpauseListing(listing.id), 'განცხადება კვლავ აქტიურია.')}>
+                          განახლება
+                        </button>
+                      )}
+                      {(listing.status === ListingStatus.Draft || listing.status === ListingStatus.Rejected) && (
+                        <button type="button" onClick={() => void act(() => api.submitListingForReview(listing.id), 'გაიგზავნა შესამოწმებლად.')}>
+                          შესამოწმებლად გაგზავნა
+                        </button>
+                      )}
+                    </div>
+                  </details>
+                </div>
+                <h3>
+                  <Link href={view}>{listing.title}</Link>
+                </h3>
+                <p className="ml-sub">{[listing.game?.name, LISTING_TYPE_LABELS[listing.type]].filter(Boolean).join(' / ')}</p>
+                {listing.rejectionReason && listing.status === ListingStatus.Rejected && <p className="ml-reason">{listing.rejectionReason}</p>}
+                <div className="ml-price-row">
+                  <span className="ml-price">
+                    <img src="/assets/ui/tag.png" alt="" aria-hidden="true" />
+                    {listing.priceWaveCoin != null ? `${listing.priceWaveCoin} GEL` : '— GEL'}
+                  </span>
+                  <span className="ml-date">
+                    <img src="/assets/ui/calendar.png" alt="" aria-hidden="true" />
+                    {formatDate(listing.createdAt)}
+                  </span>
+                </div>
+                <div className="ml-stats">
+                  <span>
+                    <img src="/assets/ui/eye.png" alt="" aria-hidden="true" />
+                    {`${listing.viewsCount ?? 0} ნახვა`}
+                  </span>
+                  <span>
+                    <img src="/assets/ui/heart.png" alt="" aria-hidden="true" />
+                    {`${listing.favoriteCount ?? 0} მოწონება`}
+                  </span>
+                  <span>
+                    <img src="/assets/ui/cart-sm.png" alt="" aria-hidden="true" />
+                    {`${listing.ordersCount ?? 0} შეკვეთა`}
+                  </span>
+                </div>
+              </div>
+              <div className="ml-actions">
+                <Link className="ml-edit" href={editHref(listing)}>
+                  <img src="/assets/ui/pencil-light.png" alt="" aria-hidden="true" />
+                  რედაქტირება
+                </Link>
+                <button
+                  className="ml-delete"
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`წავშალოთ „${listing.title}“?`)) void act(() => api.deleteListing(listing.id), 'განცხადება წაიშალა.')
+                  }}
+                >
+                  <img src="/assets/ui/trash.png" alt="" aria-hidden="true" />
+                  წაშლა
+                </button>
+              </div>
+            </article>
+          )
+        })}
+      </div>
+      <div className="marketplace-empty" hidden={listings === null || shown.length > 0}>
+        განცხადებები ჯერ არ არის.
+      </div>
+    </section>
   )
 }

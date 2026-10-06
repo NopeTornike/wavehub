@@ -64,7 +64,7 @@ describe('CoachingSessionsService', () => {
       releaseCoachEarnings: jest.fn(),
       refundBuyerForSession: jest.fn(),
     } as any;
-    const platformSettings = { getPlatformFeePercent: jest.fn(async () => 10) } as any;
+    const platformSettings = { getPlatformFeePercent: jest.fn(async () => 10), getCoachingFeePercent: jest.fn(async () => 10) } as any;
     const notifications = { emit: jest.fn() } as any;
 
     const packages = {

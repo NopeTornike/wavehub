@@ -21,6 +21,7 @@ import { withTransactionRetry } from '../wallet/transaction-retry.util';
 import { CoachingPackage } from './coaching-package.entity';
 import { CoachingPackagesService } from './coaching-packages.service';
 import { validateBookingAnswers } from './booking-questions';
+import { personName } from '../common/person-name';
 
 const DEFAULT_HOLD_DAYS = 7;
 // Lifecycle v2 timings (coaching/CLAUDE.md "Lifecycle v2").
@@ -88,8 +89,13 @@ export class CoachingSessionsService {
       coachUsername: session.coach.user.username,
       coachFirstName: session.coach.user.firstName,
       coachLastName: session.coach.user.lastName,
+      coachAvatarUrl: session.coach.user.avatarUrl ?? null,
+      coachVerified: session.coach.verificationStatus === VerificationStatus.Verified,
       buyerId: session.buyerId,
       buyerUsername: session.buyer.username,
+      buyerFirstName: session.buyer.firstName,
+      buyerLastName: session.buyer.lastName,
+      buyerAvatarUrl: session.buyer.avatarUrl ?? null,
       scheduledAt: session.scheduledAt.toISOString(),
       durationMinutes: session.durationMinutes,
       priceWaveCoin: session.priceWaveCoin,
@@ -204,7 +210,7 @@ export class CoachingSessionsService {
     const total = pkg ? pkg.priceWaveCoin : Math.round((coach.hourlyRateWaveCoin * durationMinutes) / 60);
     // Split a package's total over its sessions (the first carries any remainder).
     const prices = Array.from({ length: count }, (_, i) => Math.floor(total / count) + (i === 0 ? total % count : 0));
-    const platformFeePercent = await this.subscriptions.effectiveFeePercent(coach.userId, await this.platformSettings.getPlatformFeePercent());
+    const platformFeePercent = await this.subscriptions.effectiveFeePercent(coach.userId, await this.platformSettings.getCoachingFeePercent());
     const bookingGroupId = randomUUID();
 
     const ids = await withTransactionRetry(() =>
@@ -264,14 +270,14 @@ export class CoachingSessionsService {
       buyerId,
       NotificationType.SessionBooked,
       'სესია წარმატებით დაიჯავშნა',
-      `შენ დაჯავშნე ${what} @${coach.user.username}-თან: ${when}. თანხა (${total} GEL) დაცულია და ქოუჩს ჩაერიცხება მხოლოდ სესიის დასრულების შემდეგ.`,
+      `შენ დაჯავშნე ${what} ${personName(coach.user)}-თან: ${when}. თანხა (${total} GEL) დაცულია და ქოუჩს ჩაერიცხება მხოლოდ სესიის დასრულების შემდეგ.`,
       first.id,
     );
     await this.notify(
       coach.userId,
       NotificationType.SessionBooked,
       'ახალი ჯავშანი',
-      `@${first.buyer.username}-მა დაჯავშნა ${what}: ${when}.`,
+      `${personName(first.buyer)}-მა დაჯავშნა ${what}: ${when}.`,
       first.id,
     );
     return rows.map((r) => this.toPublic(r));
@@ -418,7 +424,7 @@ export class CoachingSessionsService {
       }
     } else {
       const otherId = isCoach ? full.buyerId : full.coach.userId;
-      const who = isCoach ? `ქოუჩმა @${full.coach.user.username}-მა` : `@${full.buyer.username}-მა`;
+      const who = isCoach ? `ქოუჩმა ${personName(full.coach.user)}-მა` : `${personName(full.buyer)}-მა`;
       await this.notify(otherId, NotificationType.SessionStarting, 'დაადასტურე სესიის დაწყება', `${who} დაადასტურა, რომ სესია დაიწყო. ახლა შენი დადასტურებაა საჭირო.`, full.id);
     }
     return this.toPublic(full);
@@ -450,14 +456,14 @@ export class CoachingSessionsService {
       full.buyerId,
       NotificationType.SessionAwaitingConfirmation,
       'დაადასტურე სესიის დასრულება',
-      `${auto ? 'სესიის დრო დასრულდა.' : `ქოუჩმა @${full.coach.user.username}-მა სესია დასრულებულად მონიშნა.`} დაადასტურე, რომ სესია შედგა — თუ ${AUTO_CONFIRM_HOURS} საათში არ უპასუხებ, ავტომატურად დადასტურდება.`,
+      `${auto ? 'სესიის დრო დასრულდა.' : `ქოუჩმა ${personName(full.coach.user)}-მა სესია დასრულებულად მონიშნა.`} დაადასტურე, რომ სესია შედგა — თუ ${AUTO_CONFIRM_HOURS} საათში არ უპასუხებ, ავტომატურად დადასტურდება.`,
       full.id,
     );
     await this.notify(
       full.coach.userId,
       NotificationType.SessionAwaitingConfirmation,
       auto ? 'სესიის დრო დასრულდა' : 'სესია დასრულებულად მოინიშნა',
-      `ველოდებით @${full.buyer.username}-ის დადასტურებას. ${full.coachPayoutWaveCoin} GEL ჩაგერიცხება დადასტურებისთანავე (არაუგვიანეს ${AUTO_CONFIRM_HOURS} საათისა).`,
+      `ველოდებით ${personName(full.buyer)}-ის დადასტურებას. ${full.coachPayoutWaveCoin} GEL ჩაგერიცხება დადასტურებისთანავე (არაუგვიანეს ${AUTO_CONFIRM_HOURS} საათისა).`,
       full.id,
     );
   }
@@ -500,14 +506,14 @@ export class CoachingSessionsService {
       full.coach.userId,
       NotificationType.SessionCompleted,
       'სესია წარმატებით დასრულდა',
-      `${lead ?? `@${full.buyer.username}-მა დაადასტურა სესია. `}დაგერიცხა ${full.coachPayoutWaveCoin} GEL (ფასი ${full.priceWaveCoin} GEL, პლატფორმის საკომისიო ${full.platformFeePercentSnapshot}% — ${full.platformFeeWaveCoin} GEL). თანხა გასატანად ხელმისაწვდომი იქნება ${DEFAULT_HOLD_DAYS} დღეში.`,
+      `${lead ?? `${personName(full.buyer)}-მა დაადასტურა სესია. `}დაგერიცხა ${full.coachPayoutWaveCoin} GEL (ფასი ${full.priceWaveCoin} GEL, პლატფორმის საკომისიო ${full.platformFeePercentSnapshot}% — ${full.platformFeeWaveCoin} GEL). თანხა გასატანად ხელმისაწვდომი იქნება ${DEFAULT_HOLD_DAYS} დღეში.`,
       full.id,
     );
     await this.notify(
       full.buyerId,
       NotificationType.SessionReviewRequest,
       'შეაფასე სესია',
-      `როგორ ჩაიარა სესიამ @${full.coach.user.username}-თან? დაწერე შეფასება — ის სხვა მოსწავლეებს დაეხმარება.`,
+      `როგორ ჩაიარა სესიამ ${personName(full.coach.user)}-თან? დაწერე შეფასება — ის სხვა მოსწავლეებს დაეხმარება.`,
       full.id,
     );
   }
@@ -531,7 +537,7 @@ export class CoachingSessionsService {
     await this.refund(session.id);
     const full = await this.getJoinedOrThrow(session.id);
     const notifyUserId = isBuyer ? full.coach.userId : full.buyerId;
-    const who = isBuyer ? `@${full.buyer.username}-მა` : `ქოუჩმა @${full.coach.user.username}-მა`;
+    const who = isBuyer ? `${personName(full.buyer)}-მა` : `ქოუჩმა ${personName(full.coach.user)}-მა`;
     await this.notify(
       notifyUserId,
       NotificationType.SessionCancelled,

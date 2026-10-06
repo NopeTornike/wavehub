@@ -24,6 +24,7 @@ export default function ManageDigitalKeyListing() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [keysText, setKeysText] = useState('')
+  const [uploadNotice, setUploadNotice] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -61,12 +62,13 @@ export default function ManageDigitalKeyListing() {
     void reload()
   }, [userId, id, reload])
 
+  // Keys may be pasted one per line or on one line separated by spaces, commas or semicolons
+  // (client feedback #5: a pasted batch on one line used to arrive as a single "key").
+  const parsedKeys = [...new Set(keysText.split(/[\s,;]+/).map((key) => key.trim()).filter(Boolean))]
+
   const uploadKeys = async () => {
     if (!id) return
-    const parsed = keysText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
+    const parsed = parsedKeys
     if (parsed.length === 0) {
       setUploadError('ჩასვით მინიმუმ ერთი გასაღები.')
       return
@@ -81,10 +83,12 @@ export default function ManageDigitalKeyListing() {
       return
     }
     setUploadError('')
+    setUploadNotice('')
     setUploading(true)
     try {
-      await api.addListingKeys(id, parsed)
+      const res = await api.addListingKeys(id, parsed)
       setKeysText('')
+      setUploadNotice(`დაემატა ${res.added} გასაღები.`)
       await reload()
     } catch (err) {
       setUploadError(errorMessage(err, 'ატვირთვა ვერ მოხერხდა.'))
@@ -323,13 +327,18 @@ export default function ManageDigitalKeyListing() {
               void uploadKeys()
             }}
           >
+            {uploadNotice && (
+              <div className="status-text status-success" role="status">
+                {uploadNotice}
+              </div>
+            )}
             {uploadError && (
               <div className="status-text status-error" role="alert">
                 {uploadError}
               </div>
             )}
             <label className="field">
-              გასაღებები <small>ჩასვით ერთი გასაღები თითო ხაზზე (მაქს. {MAX_KEYS_PER_UPLOAD})</small>
+              გასაღებები <small>ჩასვით გასაღებები — თითო ხაზზე, ან გამოყავით სფეისით/მძიმით (მაქს. {MAX_KEYS_PER_UPLOAD})</small>
               <textarea
                 placeholder={'XXXXX-XXXXX-XXXXX\nYYYYY-YYYYY-YYYYY'}
                 value={keysText}
@@ -339,8 +348,9 @@ export default function ManageDigitalKeyListing() {
                 autoComplete="off"
               />
             </label>
-            <button type="submit" className="detail-buy-button" disabled={uploading}>
-              {uploading ? 'იტვირთება…' : 'გასაღებების ატვირთვა'}
+            <p className="note" aria-live="polite">{`ამოცნობილია ${parsedKeys.length} გასაღები`}</p>
+            <button type="submit" className="detail-buy-button" disabled={uploading || parsedKeys.length === 0}>
+              {uploading ? 'იტვირთება…' : parsedKeys.length > 1 ? `${parsedKeys.length} გასაღების ატვირთვა` : 'გასაღების ატვირთვა'}
             </button>
           </form>
         </section>

@@ -20,7 +20,7 @@ import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
-import { ListingsService, MAX_IMAGE_BYTES, STAFF_EDITOR } from './listings.service';
+import { ListingsService, MAX_IMAGE_BYTES, STAFF_EDITOR, STEAM_PUBLISHER_ROLES } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
@@ -92,6 +92,35 @@ export class ListingsController {
     const result = await this.listings.setFeatured(id, dto.isFeatured);
     await this.audit.log({ adminId, adminRole, action: dto.isFeatured ? 'listing.feature' : 'listing.unfeature', entityType: 'listing', entityId: id });
     return result;
+  }
+
+  // Steam key inventory for staff (client feedback #5): any Steam publisher can stock a game, not
+  // only the account that created it. Keys are never returned or logged — only counts.
+  @Get('admin/listings/:id/keys')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...STEAM_PUBLISHER_ROLES)
+  adminListKeys(@Param('id', ParseUUIDPipe) id: string) {
+    return this.listings.listKeys(STAFF_EDITOR, id);
+  }
+
+  @Post('admin/listings/:id/keys')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...STEAM_PUBLISHER_ROLES)
+  @Throttle(UPLOAD_THROTTLE)
+  async adminAddKeys(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string, @Body() dto: AddListingKeysDto) {
+    const result = await this.listings.addKeys(STAFF_EDITOR, id, dto.keys);
+    await this.audit.log({ adminId, adminRole, action: 'listing.keys_add', entityType: 'listing', entityId: id, metadata: { added: result.added } });
+    return result;
+  }
+
+  @Delete('admin/listings/:id/keys/:keyId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...STEAM_PUBLISHER_ROLES)
+  async adminRemoveKey(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string, @Param('keyId', ParseUUIDPipe) keyId: string) {
+    await this.listings.removeKey(STAFF_EDITOR, id, keyId);
+    await this.audit.log({ adminId, adminRole, action: 'listing.key_revoke', entityType: 'listing', entityId: id, metadata: { keyId } });
+    return { ok: true };
   }
 
   // Take a live listing off the marketplace with a reason the seller sees (→ Rejected; the seller

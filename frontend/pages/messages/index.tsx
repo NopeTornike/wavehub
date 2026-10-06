@@ -4,15 +4,12 @@ import { useRouter } from 'next/router'
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { PublicConversationSummary, PublicMessage } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
+import Avatar, { displayName } from '../../components/Avatar'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import ReportButton from '../../components/ReportButton'
 
 const POLL_MS = 5000
-
-function initials(username: string) {
-  return username.slice(0, 2).toUpperCase()
-}
 
 // Direct (non-order) messaging — LAUNCH_PLAN.md §4. Reuses messages.html's real
 // `.direct-messages-shell` two-pane markup (contacts + thread in one page, not route-per-
@@ -207,13 +204,13 @@ export default function Messages() {
                       setSelectedId(c.id)
                     }}
                   >
-                    <span className="message-avatar" aria-hidden="true">
-                      {initials(c.otherUser.username)}
-                    </span>
+                    <Avatar name={displayName(c.otherUser)} src={c.otherUser.avatarUrl} size={44} />
                     <span>
-                      <strong>@{c.otherUser.username}</strong>
+                      <strong>{displayName(c.otherUser)}</strong>
+                      <em className="dm-handle">@{c.otherUser.username}</em>
                       <small>{c.lastMessage?.body || 'დაიწყეთ საუბარი'}</small>
                     </span>
+                    {c.unreadCount > 0 && <b className="dm-unread">{c.unreadCount}</b>}
                   </button>
                 ))
               )}
@@ -222,13 +219,25 @@ export default function Messages() {
 
           <section className="direct-message-thread" aria-labelledby="directMessageTitle">
             <header>
-              <span className="message-avatar" aria-hidden="true">
-                {selected ? initials(selected.otherUser.username) : '?'}
-              </span>
-              <div>
-                <h2 id="directMessageTitle">{selected ? `@${selected.otherUser.username}` : 'აირჩიეთ საუბარი'}</h2>
-                {!selected && <small>აირჩიეთ მომხმარებელი მარცხნივ</small>}
-              </div>
+              {selected ? (
+                <Link href={`/u/${selected.otherUser.username}`} className="dm-head-person">
+                  <Avatar name={displayName(selected.otherUser)} src={selected.otherUser.avatarUrl} size={46} />
+                  <div>
+                    <h2 id="directMessageTitle">{displayName(selected.otherUser)}</h2>
+                    <small>@{selected.otherUser.username}</small>
+                  </div>
+                </Link>
+              ) : (
+                <>
+                  <span className="message-avatar" aria-hidden="true">
+                    ?
+                  </span>
+                  <div>
+                    <h2 id="directMessageTitle">აირჩიეთ საუბარი</h2>
+                    <small>აირჩიეთ მომხმარებელი მარცხნივ</small>
+                  </div>
+                </>
+              )}
             </header>
 
             <div className="direct-message-history" ref={historyRef} role="log" aria-live="polite" aria-label="შეტყობინებები">
@@ -241,15 +250,14 @@ export default function Messages() {
               ) : (
                 thread.map((m) => {
                   const mine = m.senderId === me.id
-                  const sender = mine ? me.username : selected?.otherUser.username ?? ''
+                  const senderName = mine ? displayName(me) : selected ? displayName(selected.otherUser) : ''
+                  const senderPhoto = mine ? me.avatarUrl ?? null : selected?.otherUser.avatarUrl ?? null
                   return (
                     <div key={m.id} className={`direct-message-row ${mine ? 'mine' : 'theirs'}`}>
-                      <span className="direct-message-avatar" aria-hidden="true">
-                        {initials(sender)}
-                      </span>
+                      <Avatar name={senderName} src={senderPhoto} size={34} ring={false} className="direct-message-avatar" />
                       <article className={`direct-message-bubble ${mine ? 'mine' : 'theirs'}`}>
                         <div className="direct-message-meta">
-                          <strong>{mine ? 'თქვენ' : `@${sender}`}</strong>
+                          <strong>{mine ? 'თქვენ' : senderName}</strong>
                           <small>{new Date(m.createdAt).toLocaleString('ka-GE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>
                         </div>
                         <p>{m.body}</p>

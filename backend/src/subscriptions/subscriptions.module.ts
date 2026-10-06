@@ -9,11 +9,12 @@ import { PaymentsModule } from '../payments/payments.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminModule } from '../admin/admin.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { BadgesModule } from '../badges/badges.module';
 
 // One-directional import (subscriptions → payments), same shape as orders → wallet/chat elsewhere
 // — PaymentsModule has zero awareness that subscriptions exist, see PaymentsModule's own comment.
 @Module({
-  imports: [
+  imports: [BadgesModule, 
     TypeOrmModule.forFeature([SubscriptionPlan, UserSubscription, SubscriptionChargeAttempt]),
     PaymentsModule,
     AuthModule,

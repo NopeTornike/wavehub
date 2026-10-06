@@ -209,6 +209,7 @@ export enum NotificationType {
   CoachApproved = 'coach_approved',
   CoachRejected = 'coach_rejected',
   NewFollower = 'new_follower',
+  BadgeGranted = 'badge_granted',
   // An official warning from Trust & Safety (trust/).
   AccountWarning = 'account_warning',
 }
@@ -304,6 +305,9 @@ export interface PublicSeller {
   username: string;
   firstName: string;
   lastName: string;
+  avatarUrl: string | null;
+  // Carries the Verified badge (badges/) — set on the listing detail; false on browse cards.
+  verified: boolean;
   sellerRatingAvg: string | null;
   sellerRatingCount: number;
 }
@@ -381,6 +385,8 @@ export interface RequirementField {
   type: 'text' | 'dropdown' | 'number' | 'textarea';
   required: boolean;
   options?: string[];
+  // Example answer shown in the empty input (seller-entered, optional).
+  placeholder?: string;
 }
 
 export interface FaqEntry {
@@ -431,6 +437,9 @@ export interface PublicOrderParty {
   username: string;
   firstName: string;
   lastName: string;
+  // Client feedback #9 (2026-10-04): people are shown by name + photo, with the verified mark.
+  avatarUrl: string | null;
+  verified: boolean;
 }
 
 export interface PublicOrderListingRef {
@@ -520,7 +529,8 @@ export interface PublicMessage {
 // buyerId/sellerId columns just record who happened to start it — see conversation.entity.ts).
 export interface PublicConversationSummary {
   id: string;
-  otherUser: { id: string; username: string };
+  // Client feedback #13: the other person by name + photo, not just @username.
+  otherUser: { id: string; username: string; firstName: string; lastName: string; avatarUrl: string | null };
   lastMessage: { body: string; createdAt: string; senderId: string | null } | null;
   createdAt: string;
   // Messages the other participant sent that the viewer hasn't opened yet (status != 'seen').
@@ -572,9 +582,31 @@ export interface PublicReview {
   sellerReply: string | null;
   sellerRepliedAt: string | null;
   createdAt: string;
-  buyer: Pick<PublicUser, 'id' | 'username'>;
+  // Design 2026-10-04 (client #9): the reviewer by name + photo + online dot + rank.
+  buyer: { id: string; username: string; firstName: string; lastName: string; avatarUrl: string | null; online: boolean };
   // The reviewer's current Wave rank tier name (CommunityService#waveRank), shown under the name.
   buyerRank: string;
+  // Who replies (the seller), for the nested reply card.
+  seller: { id: string; username: string; firstName: string; lastName: string; avatarUrl: string | null; rank: string };
+  // 👍 counts (review_likes) on the review and on the seller's reply.
+  likeCount: number;
+  replyLikeCount: number;
+}
+
+// GET /me/following, /me/followers (client feedback #15).
+export interface PublicFollowEntry {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  followedAt: string;
+}
+
+// GET /me/review-likes?listingId — which reviews / replies on that listing the viewer has liked.
+export interface MyReviewLikes {
+  review: string[];
+  reply: string[];
 }
 
 // --- Wallet & withdrawal response shapes ---
@@ -843,6 +875,8 @@ export interface AdminCoachSummary {
   hourlyRateWaveCoin: number;
   verificationStatus: VerificationStatus;
   status: CoachStatus;
+  // Shown in the home page's coach section (staff pick).
+  isFeatured: boolean;
   rejectionReason: string | null;
   createdAt: string;
 }
@@ -1002,6 +1036,8 @@ export interface AdminWithdrawRequestSummary {
 export interface PublicPlatformSettings {
   id: string;
   platformFeePercent: number;
+  // Coaching sessions' fee (from the coach), separate from the marketplace fee since 2026-10-04.
+  coachingFeePercent: number;
   minWithdrawalWaveCoin: number;
   maintenanceMode: boolean;
   supportPermissions: SupportPermissions;
@@ -1114,7 +1150,8 @@ export interface PublicUserProfile {
     latest: Array<{ rating: number; body: string | null; buyerUsername: string; createdAt: string }>;
   };
   // Earned achievements only — see backend/src/follows/CLAUDE.md for each rule.
-  badges: Array<{ key: string; label: string }>;
+  // The owner's badge set (BadgeKey — icon at badgeIcon(key)) plus tournament champion/finalist.
+  badges: Array<{ key: string; label: string; description?: string }>;
   coachId: string | null;
 }
 
@@ -1202,8 +1239,14 @@ export interface PublicCoachingSession {
   coachUsername: string;
   coachFirstName: string;
   coachLastName: string;
+  // Client feedback #9: both sides shown by name + photo (+ verified mark for the coach).
+  coachAvatarUrl: string | null;
+  coachVerified: boolean;
   buyerId: string;
   buyerUsername: string;
+  buyerFirstName: string;
+  buyerLastName: string;
+  buyerAvatarUrl: string | null;
   scheduledAt: string;
   durationMinutes: number;
   priceWaveCoin: number;
@@ -1301,6 +1344,8 @@ export interface PublicTournamentTeam {
   // The linked WaveHub accounts, roster order (captain first). Teams registered before 2026-10-01
   // list only their captain here; their other players exist only as `members` names.
   players: TournamentTeamPlayer[];
+  // Discord invite/username (client feedback #6) — only in staff views and the caller's own team.
+  discord?: string | null;
   status: TournamentTeamStatus;
   createdAt: string;
 }
@@ -1773,4 +1818,60 @@ export interface TrustUserDetail {
   reportsAgainst: AdminUserReport[];
   reportsFiled: number;
   stats: { ordersAsBuyer: number; ordersAsSeller: number; cancelledAsSeller: number; disputesAgainst: number; promoRedemptions: number; warnings: number };
+}
+
+// --- Badges (backend/src/badges/, owner spec "WaveHubX Badge Assignment Logic", 2026-10-04) ---
+// Every badge is stored once per user (user_badges, unique per key) with who/what granted it.
+// mode: 'auto' = system trigger only; 'super_admin' = Super Admin only; 'admin' = authorised staff;
+// 'coach' = the user's own coach (with a completed session), staff as fallback; 'auto_admin' = system
+// trigger, staff may also grant.
+export enum BadgeKey {
+  Chosen = 'chosen',
+  Staff = 'staff',
+  FirstOrder = 'first-order',
+  OfficialSeller = 'official-seller',
+  OfficialCoach = 'official-coach',
+  StrongestStudent = 'strongest-student',
+  BestCoach = 'best-coach',
+  Subscriber = 'subscriber',
+  MaxLevel = 'max-level',
+  BestSeller = 'best-seller',
+  CoachChosenStudent = 'coach-chosen-student',
+  Orders100 = 'orders-100',
+  Verified = 'verified',
+}
+
+export type BadgeMode = 'auto' | 'super_admin' | 'admin' | 'coach' | 'auto_admin';
+
+export const BADGE_CATALOG: Record<BadgeKey, { label: string; description: string; mode: BadgeMode }> = {
+  [BadgeKey.Chosen]: { label: 'ვეივჰაბის რჩეული', description: 'WaveHubX-ის ექსკლუზიური ბეიჯი — ანიჭებს მხოლოდ Super Admin.', mode: 'super_admin' },
+  [BadgeKey.Staff]: { label: 'სტაფის წევრი', description: 'WaveHubX-ის გუნდის წევრი.', mode: 'super_admin' },
+  [BadgeKey.FirstOrder]: { label: 'პირველი დასრულებული შეკვეთა', description: 'პირველი წარმატებით დასრულებული შეკვეთა.', mode: 'auto' },
+  [BadgeKey.OfficialSeller]: { label: 'ვეივჰაბის ოფიციალური სელერი', description: 'ადმინისტრაციის მიერ დადასტურებული გამყიდველი.', mode: 'admin' },
+  [BadgeKey.OfficialCoach]: { label: 'ვეივჰაბის ოფიციალური ქოუჩი', description: 'ადმინისტრაციის მიერ დადასტურებული ქოუჩი.', mode: 'admin' },
+  [BadgeKey.StrongestStudent]: { label: 'საუკეთესო სტუდენტი', description: 'ქოუჩმა საუკეთესო სტუდენტად აღიარა.', mode: 'coach' },
+  [BadgeKey.BestCoach]: { label: 'საუკეთესო ქოუჩი', description: 'ადმინისტრაციის მიერ აღიარებული საუკეთესო ქოუჩი.', mode: 'admin' },
+  [BadgeKey.Subscriber]: { label: 'საბსქრიბშენის წევრი', description: 'აქტიური გამოწერის მქონე წევრი.', mode: 'auto' },
+  [BadgeKey.MaxLevel]: { label: 'ყველაზე მაღალი ლეველი', description: 'მიაღწია WaveHub-ის უმაღლეს რანკს.', mode: 'auto' },
+  [BadgeKey.BestSeller]: { label: 'საუკეთესო სელერი', description: 'ადმინისტრაციის მიერ აღიარებული საუკეთესო გამყიდველი.', mode: 'admin' },
+  [BadgeKey.CoachChosenStudent]: { label: 'ქოუჩის რჩეული სტუდენტი', description: 'ქოუჩის რჩეული სტუდენტი.', mode: 'coach' },
+  [BadgeKey.Orders100]: { label: '100+ შეკვეთა', description: '100 წარმატებით დასრულებული შეკვეთა.', mode: 'auto' },
+  [BadgeKey.Verified]: { label: 'ვერიფიცირებული', description: 'ვერიფიკაცია წარმატებით დასრულდა.', mode: 'auto_admin' },
+};
+
+export function badgeIcon(key: BadgeKey | string): string {
+  return `/assets/badges/${key}.png`;
+}
+
+export interface PublicBadge {
+  key: BadgeKey;
+  label: string;
+  description: string;
+  grantedAt: string;
+}
+
+// Admin/coach view of one grant: who/what granted it.
+export interface AdminBadgeGrant extends PublicBadge {
+  source: 'system' | 'admin' | 'coach';
+  grantedByUsername: string | null;
 }

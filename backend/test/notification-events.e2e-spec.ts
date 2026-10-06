@@ -121,7 +121,7 @@ describe('notification events (e2e)', () => {
     await fan.client.post(`/users/${seller.username}/follow`);
     const follows = await ofType(seller, 'new_follower');
     expect(follows).toHaveLength(1);
-    expect(follows[0].body).toContain(`@${fan.username}`);
+    expect(follows[0].body).toContain('Test User'); // full name (client feedback #9), @handle only without one
     expect(follows[0].metadata?.link).toBe(`/u/${fan.username}`);
   });
 

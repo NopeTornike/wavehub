@@ -197,3 +197,12 @@ harmless (no pollution), just clears the details.
   avatarUrl}` of an active account, else 404; registered before `GET tournaments/:id`.
 - Tests: unit (roster rules, captain-first order, notifications), e2e `tournaments.e2e-spec.ts`
   (linked accounts, lookup, privacy of in-game ids, teammates in My Tournaments/hub).
+
+## Discord contact (client feedback #6, 2026-10-04)
+- `tournament_teams.discord` (migration `1784382000000-TournamentTeamDiscord`) is **required** on
+  solo and squad registration. `DISCORD_CONTACT` in `dto/register-team.dto.ts` accepts a
+  `discord.gg` / `discord.com` invite or a Discord username.
+- `toPublicTeam` exposes it only with `withInGameIds`, i.e. to staff and the caller's own team
+  (`GET me/tournaments`). It never appears on the public Teams tab.
+- After registering, the frontend goes to `/tournaments/[id]/registered`: success, start, the
+  community Discord, and a button to the hub.

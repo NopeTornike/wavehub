@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, In, IsNull, LessThanOrEqual, QueryFailedError, Repository } from 'typeorm';
@@ -21,6 +21,7 @@ import { BogPaymentsService } from '../payments/bog-payments.service';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { GrantSubscriptionDto } from './dto/grant-subscription.dto';
+import { BadgesService } from '../badges/badges.service';
 
 // A `past_due` subscription (a declined recharge) keeps its perks for this long before the cron
 // gives up and expires it — LAUNCH_PLAN.md §3c's "a brief grace period, not an instant perk
@@ -46,6 +47,7 @@ export class SubscriptionsService {
     private readonly bogPayments: BogPaymentsService,
     private readonly users: UsersService,
     private readonly notifications: NotificationsService,
+    @Optional() private readonly badges?: BadgesService,
   ) {}
 
   // Best-effort in-app notification + email — a failure here must never block the billing/admin
@@ -208,6 +210,7 @@ export class SubscriptionsService {
       `WaveHub-მა გაგიფორმათ გეგმა „${plan.name}“ ${days} დღით. ავტომატური განახლება არ არის.`,
       saved.id,
     );
+    await this.badges?.onSubscriptionActivated(dto.userId);
     return saved;
   }
 
@@ -406,6 +409,7 @@ export class SubscriptionsService {
         expiryNoticeSentAt: null,
       }),
     );
+    await this.badges?.onSubscriptionActivated(attempt.userId);
     return true;
   }
 

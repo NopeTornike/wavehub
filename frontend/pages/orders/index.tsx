@@ -1,11 +1,16 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { PublicOrderSummary } from '@wavehub/shared-types'
+import { OrderStatus } from '@wavehub/shared-types'
+import Avatar, { displayName } from '../../components/Avatar'
+import VerifiedMark from '../../components/VerifiedMark'
 import Layout from '../../components/Layout'
 import MyListings from '../../components/MyListings'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gameCover } from '../../lib/games'
+import { kaDate } from '../../lib/dates'
 import { LISTING_TYPE_LABELS, ORDER_STATUS_LABELS } from '../../lib/labels'
 
 // The prototype's orders.html (orders.js), on real data: the page head with the combined order
@@ -16,11 +21,18 @@ import { LISTING_TYPE_LABELS, ORDER_STATUS_LABELS } from '../../lib/labels'
 // filters the orders and listings, as on the prototype.
 
 function formatDate(value: string) {
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ka-GE', { year: 'numeric', month: 'short', day: 'numeric' })
+  return kaDate(value)
 }
 
 type Tab = 'purchased' | 'sold'
+
+// Status pill colour: green while the order is moving or done, amber while it waits on someone,
+// red when it was cancelled / refunded / disputed.
+function orderTone(status: OrderStatus): 'ok' | 'wait' | 'bad' {
+  if ([OrderStatus.Cancelled, OrderStatus.Refunded, OrderStatus.Disputed, OrderStatus.Expired].includes(status)) return 'bad'
+  if (status === OrderStatus.PendingPayment) return 'wait'
+  return 'ok'
+}
 
 export default function Orders() {
   const { user, checked } = useAuth()
@@ -99,7 +111,7 @@ export default function Orders() {
           </article>
         </div>
 
-        <div className="orders-tabs" role="tablist">
+        <div className="oc-tabs" role="tablist">
           {(
             [
               ['purchased', 'შესყიდვები'],
@@ -118,34 +130,58 @@ export default function Orders() {
           </div>
         )}
 
-        <div className="orders-list" id="ordersList">
+        {/* Order cards (design 2026-10-04, screenshot "orders"): the other party by name + photo. */}
+        <div className="oc-list" id="ordersList">
           {shown.map((order) => {
-            const counterpart = tab === 'purchased' ? `გამყიდველი: @${order.seller.username}` : `მყიდველი: @${order.buyer.username}`
+            const other = tab === 'purchased' ? order.seller : order.buyer
+            const otherName = displayName(other)
             const image = order.listing.imageUrl ?? gameCover(order.listing.gameSlug)
             const details = [order.listing.gameName, LISTING_TYPE_LABELS[order.listing.type], order.package?.name].filter(Boolean).join(' · ')
             return (
-              <article key={order.id} className="order-card">
+              <article key={order.id} className="oc-card">
                 <Link
-                  className="order-thumb"
+                  className="oc-thumb"
                   href={`/orders/${order.id}`}
                   aria-label={order.listing.title}
-                  style={image ? { backgroundImage: `linear-gradient(180deg,rgba(5,8,19,.06),rgba(5,8,19,.5)),url('${image}')` } : undefined}
+                  style={image ? { backgroundImage: `url('${image}')` } : undefined}
                 >
                   {image ? '' : (order.listing.gameName ?? 'WH').slice(0, 2).toUpperCase()}
                 </Link>
-                <div className="order-copy">
-                  <div>
-                    <span className="order-status">{ORDER_STATUS_LABELS[order.status]}</span>
-                    <small>{formatDate(order.createdAt)}</small>
+                <div className="oc-body">
+                  <div className="oc-top">
+                    <span className={`oc-status ${orderTone(order.status)}`}>
+                      <i aria-hidden="true" />
+                      {ORDER_STATUS_LABELS[order.status]}
+                    </span>
+                    <time dateTime={order.createdAt}>
+                      <img src="/assets/ui/calendar.png" alt="" aria-hidden="true" />
+                      {formatDate(order.createdAt)}
+                    </time>
                   </div>
-                  <h2>{order.listing.title}</h2>
-                  <p>{details}</p>
-                  <span>{counterpart}</span>
-                  <code>Order #{order.orderNumber}</code>
+                  <h2>
+                    <Link href={`/orders/${order.id}`}>{order.listing.title}</Link>
+                  </h2>
+                  <p className="oc-meta">{details}</p>
+                  <Link className="oc-person" href={`/u/${other.username}`}>
+                    <Avatar name={otherName} src={other.avatarUrl} size={42} />
+                    <span>
+                      <strong>
+                        {tab === 'purchased' ? 'გამყიდველი' : 'მყიდველი'}: {otherName}
+                        {other.verified && <VerifiedMark size={17} />}
+                      </strong>
+                      <small>@{other.username}</small>
+                    </span>
+                    <img className="oc-chevron" src="/assets/ui/chevron.png" alt="" aria-hidden="true" />
+                  </Link>
+                  <p className="oc-number">
+                    Order <span>#{order.orderNumber}</span>
+                  </p>
                 </div>
-                <div className="order-side">
+                <div className="oc-foot">
                   <strong>{order.priceWaveCoin} GEL</strong>
-                  <Link href={`/orders/${order.id}`}>დეტალების ნახვა</Link>
+                  <Link href={`/orders/${order.id}`}>
+                    დეტალების ნახვა <img src="/assets/ui/chevron.png" alt="" aria-hidden="true" />
+                  </Link>
                 </div>
               </article>
             )

@@ -102,7 +102,7 @@ see `backend/src/wallet/CLAUDE.md`.
   route here.
 - `backend/src/wallet/` — `WalletService.debitForSession`/`releaseCoachEarnings`/
   `refundBuyerForSession`, the session-escrow trio `coaching-sessions.service.ts` calls.
-- `backend/src/settings/` — `PlatformSettingsService.getPlatformFeePercent()`, read at booking time
+- `backend/src/settings/` — `PlatformSettingsService.getCoachingFeePercent()` (its own setting since 2026-10-04, client #16), read at booking time
   and snapshotted onto the session, same as `OrdersService#purchase`.
 - `backend/src/notifications/` — best-effort `SessionBooked`/`SessionCompleted`/`SessionCancelled`
   notifications, same try/catch-and-log pattern as every other module's `notify()` helper.
@@ -370,3 +370,17 @@ session history** — `coaching_sessions.coachId` cascades, so deleting would wi
 history; such coaches are suspended instead (409). Runs under `SELECT … FOR UPDATE` on the coach row
 so a racing booking (its INSERT takes KEY SHARE on the coach) can't be cascade-deleted. The user
 account stays. Audited (`coach.delete`, with username/status).
+
+## 2026-10-04 client feedback
+- **Fee**: bookings snapshot `PlatformSettingsService.getCoachingFeePercent()`, separate from the
+  marketplace fee (#16).
+- **Featured coaches (#2)**: `coaches.isFeatured` (same migration as the fee).
+  - `POST admin/coaches/:id/featured {isFeatured}` (`COACH_MANAGEMENT_ROLES`), audited as
+    `coach.feature` / `coach.unfeature`.
+  - `GET coaches?featured=true` returns only those; browse orders `isFeatured DESC` first.
+  - The home coach section asks for featured coaches and falls back to the normal list when none
+    are featured.
+- **Badges**: approve / restore → `BadgesService.onCoachVerified`; reject / suspend / delete →
+  `onCoachUnverified`. Coaches grant student badges through `backend/src/badges/`.
+- **Names**: session shapes carry `coachAvatarUrl`, `coachVerified`, `buyerFirstName`,
+  `buyerLastName`, `buyerAvatarUrl`. Notification texts use full names (`common/person-name.ts`).

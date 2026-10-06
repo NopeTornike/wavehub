@@ -1,11 +1,13 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import type { PublicNotification } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
-import { formatNotificationTime, notificationKind, notificationTarget } from '../lib/notifications'
+import { formatNotificationTime, notificationKind, notificationTarget, notificationIcon } from '../lib/notifications'
 
 // Every notification, newest first, 20 per page (the bell panel only shows the latest 12).
 const PAGE = 20
@@ -19,6 +21,16 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
+  // The notification opened in full (client feedback #14) — from ?id= (the bell panel / toasts link
+  // here) or by tapping one in the list. Its page, if any, is one button away.
+  const router = useRouter()
+  const [openId, setOpenId] = useState<string | null>(null)
+  const queryId = typeof router.query.id === 'string' ? router.query.id : null
+  useEffect(() => {
+    // Follows the URL, not derived from other state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (queryId) setOpenId(queryId)
+  }, [queryId])
 
   useEffect(() => {
     if (!userId) return
@@ -126,17 +138,40 @@ export default function NotificationsPage() {
           ) : (
             <ul className="notif-list">
               {shown.map((n) => {
-                const { kind, letter } = notificationKind(n.type)
+                const { kind } = notificationKind(n.type)
+                const open = openId === n.id
+                const target = notificationTarget(n)
                 return (
                   <li key={n.id}>
-                    <Link href={notificationTarget(n)} className={`notif-item ${kind}${n.readAt ? '' : ' unread'}`} onClick={() => markRead(n)}>
-                      <span className="notification-center-icon">{letter}</span>
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      className={`notif-item ${kind}${n.readAt ? '' : ' unread'}${open ? ' is-open' : ''}`}
+                      onClick={() => {
+                        markRead(n)
+                        setOpenId(open ? null : n.id)
+                      }}
+                    >
+                      <span className="notification-center-icon has-img">
+                <img src={notificationIcon(n.type)} alt="" />
+              </span>
                       <span className="notif-text">
                         <strong>{n.title}</strong>
                         <span>{n.body}</span>
                       </span>
                       <time dateTime={n.createdAt}>{formatNotificationTime(n.createdAt)}</time>
-                    </Link>
+                    </button>
+                    {open && (
+                      <div className="notif-detail">
+                        <p>{n.body}</p>
+                        <small>{new Date(n.createdAt).toLocaleString('ka-GE', { dateStyle: 'long', timeStyle: 'short' })}</small>
+                        {target !== '/notifications' && (
+                          <Link className="notif-detail-open" href={target}>
+                            გახსნა <span aria-hidden="true">→</span>
+                          </Link>
+                        )}
+                      </div>
+                    )}
                   </li>
                 )
               })}

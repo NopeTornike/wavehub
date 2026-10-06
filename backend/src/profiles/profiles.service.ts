@@ -1,12 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { NotificationType } from '@wavehub/shared-types';
-import type { PublicUserProfile } from '@wavehub/shared-types';
+import { NotificationType, WAVE_RANK_TIERS } from '@wavehub/shared-types';
+import type { PublicUserProfile, PublicFollowEntry } from '@wavehub/shared-types';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UserFollow } from './user-follow.entity';
 import { UsersService } from '../users/users.service';
 import { CommunityService, ONLINE_WINDOW_MINUTES } from '../community/community.service';
+import { BadgesService } from '../badges/badges.service';
+import { personName } from '../common/person-name';
 
 type Facts = Pick<PublicUserProfile, 'role' | 'followers' | 'following' | 'waveRank' | 'completedDeals' | 'reviews' | 'badges' | 'coachId' | 'online'>;
 
@@ -20,6 +22,7 @@ export class ProfilesService {
     private readonly community: CommunityService,
     private readonly db: DataSource,
     private readonly notifications: NotificationsService,
+    private readonly badgeService: BadgesService,
   ) {}
 
   private async targetId(username: string): Promise<string> {
@@ -35,7 +38,7 @@ export class ProfilesService {
     if ((inserted.raw as unknown[]).length && !(await this.notifications.sentRecently(followeeId, NotificationType.NewFollower, 'followerId', followerId, 24))) {
       const follower = await this.users.findById(followerId);
       if (follower) {
-        await this.notifications.tryEmit(followeeId, NotificationType.NewFollower, 'ახალი გამომწერი', `@${follower.username} გამოგიწერა.`, {
+        await this.notifications.tryEmit(followeeId, NotificationType.NewFollower, 'ახალი გამომწერი', `${personName(follower)} გამოგიწერა.`, {
           followerId,
           link: `/u/${follower.username}`,
         });
@@ -48,6 +51,18 @@ export class ProfilesService {
     const followeeId = await this.targetId(username);
     await this.follows.delete({ followerId, followeeId });
     return { following: false, followers: await this.follows.count({ where: { followeeId } }) };
+  }
+
+  async listFollows(userId: string, direction: 'following' | 'followers'): Promise<PublicFollowEntry[]> {
+    const [mine, other] = direction === 'following' ? ['followerId', 'followeeId'] : ['followeeId', 'followerId'];
+    const rows: Array<{ id: string; username: string; firstName: string; lastName: string; avatarUrl: string | null; followedAt: Date }> = await this.db.query(
+      `SELECT u."id", u."username", u."firstName", u."lastName", u."avatarUrl", f."createdAt" AS "followedAt"
+         FROM "user_follows" f JOIN "users" u ON u."id" = f."${other}"
+        WHERE f."${mine}" = $1 AND u."status" IN ('active', 'pending_verification')
+        ORDER BY f."createdAt" DESC LIMIT 1000`,
+      [userId],
+    );
+    return rows.map((r) => ({ ...r, followedAt: new Date(r.followedAt).toISOString() }));
   }
 
   async status(followerId: string, username: string): Promise<{ following: boolean }> {
@@ -101,14 +116,17 @@ export class ProfilesService {
     const sold = row.sold as number;
     const deals = sold + (row.bought as number);
 
-    const badges: Array<{ key: string; label: string }> = [{ key: 'tier', label: waveRank.name }];
+    // Reaching the top Wave rank grants the Max Level badge once (badges/ is idempotent).
+    await this.badgeService.onRank(userId, waveRank.tierIndex, WAVE_RANK_TIERS.length - 1);
+    // The owner's badge set (badges/, stored grants with icons) plus the two tournament
+    // achievements, which aren't part of that set. The Wave rank tier is shown separately.
+    const badges: Array<{ key: string; label: string; description?: string }> = (await this.badgeService.listVisible(userId)).map((b) => ({
+      key: b.key,
+      label: b.label,
+      description: b.description,
+    }));
     if (row.titles > 0) badges.push({ key: 'champion', label: 'ტურნირის ჩემპიონი' });
     else if (row.finals > 0) badges.push({ key: 'finalist', label: 'ტურნირის ფინალისტი' });
-    if (row.coachId) badges.push({ key: 'coach', label: 'ვერიფიცირებული ქოუჩი' });
-    if (average !== null && average >= 4.8 && count >= 5) badges.push({ key: 'top-rated', label: 'ტოპ რეიტინგი' });
-    if (sold >= 10 && (average ?? 0) >= 4.5) badges.push({ key: 'trusted-seller', label: 'სანდო გამყიდველი' });
-    if (deals >= 100) badges.push({ key: 'deals-100', label: '100 გარიგება' });
-    else if (deals >= 1) badges.push({ key: 'first-deal', label: 'პირველი გარიგება' });
 
     return {
       role: row.coachId ? 'coach' : activeListingCount > 0 || sold > 0 ? 'seller' : 'player',

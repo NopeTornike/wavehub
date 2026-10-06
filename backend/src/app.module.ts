@@ -63,7 +63,10 @@ import { ContentModule } from './content/content.module';
 import { ContentPage } from './content/content-page.entity';
 import { TournamentsModule } from './tournaments/tournaments.module';
 import { ProfilesModule } from './profiles/profiles.module';
+import { BadgesModule } from './badges/badges.module';
 import { UserFollow } from './profiles/user-follow.entity';
+import { UserBadge } from './badges/user-badge.entity';
+import { ReviewLike } from './reviews/review-like.entity';
 import { Tournament } from './tournaments/tournament.entity';
 import { TournamentRegistration } from './tournaments/tournament-registration.entity';
 import { TournamentTeam } from './tournaments/tournament-team.entity';
@@ -149,6 +152,8 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
         TournamentTeamMember,
         TournamentMatch,
         UserFollow,
+        UserBadge,
+        ReviewLike,
         SubscriptionPlan,
         UserSubscription,
         SubscriptionChargeAttempt,
@@ -175,6 +180,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
     TrustModule,
     TournamentsModule,
     ProfilesModule,
+    BadgesModule,
     SubscriptionsModule,
     CommonModule,
     CommunityModule,

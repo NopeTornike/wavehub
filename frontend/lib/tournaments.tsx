@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { PublicTournamentMatch, PublicTournamentSummary, TournamentTeamRef } from '@wavehub/shared-types'
 import { TournamentMatchStage, TournamentMatchStatus, TournamentStatus } from '@wavehub/shared-types'
 import { gameCover } from './games'
+import { kaDate, kaDateTime } from './dates'
 
 // Shared pieces of the tournament pages (docs/design-mockups 01–03, 07, 08, 10, 11, 13).
 
@@ -35,18 +36,17 @@ export function tournamentCover(t: PublicTournamentSummary, slugByGameId: Map<st
   return t.coverImageUrl ?? gameCover(slugByGameId.get(t.gameId))
 }
 
-const DATE_FMT: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }
-
+// Formatted by hand (lib/dates.ts): `ka-GE` locale data is missing in some browsers, which then
+// printed English dates on Georgian pages.
 export function formatDay(value: string | null | undefined): string {
   if (!value) return ''
   const d = new Date(value.length === 10 ? `${value}T00:00:00` : value)
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('ka-GE', DATE_FMT)
+  return Number.isNaN(d.getTime()) ? value : kaDate(d)
 }
 
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return ''
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('ka-GE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return kaDateTime(value)
 }
 
 // "25 May, 2026" or "25 May – 28 May, 2026" when staff entered an end date (details.endDate).

@@ -13,6 +13,7 @@ export default function AdminSettings() {
   const [saved, setSaved] = useState(false)
 
   const [platformFeePercent, setPlatformFeePercent] = useState(10)
+  const [coachingFeePercent, setCoachingFeePercent] = useState(10)
   const [minWithdrawalWaveCoin, setMinWithdrawalWaveCoin] = useState(20)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   // What the Support Specialist role may do beyond its defaults (both off by default).
@@ -28,6 +29,7 @@ export default function AdminSettings() {
         if (cancelled) return
         setSettings(data)
         setPlatformFeePercent(data.platformFeePercent)
+        setCoachingFeePercent(data.coachingFeePercent)
         setMinWithdrawalWaveCoin(data.minWithdrawalWaveCoin)
         setMaintenanceMode(data.maintenanceMode)
         if (data.supportPermissions) setSupportPerms(data.supportPermissions)
@@ -55,6 +57,7 @@ export default function AdminSettings() {
     try {
       const updated = await api.adminUpdatePlatformSettings({
         platformFeePercent,
+        coachingFeePercent,
         minWithdrawalWaveCoin,
         maintenanceMode,
         supportPermissions: supportPerms,
@@ -81,7 +84,7 @@ export default function AdminSettings() {
       ) : !settings ? null : (
         <form className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }} onSubmit={save}>
           <div className="form-group">
-            <label htmlFor="platformFeePercent">პლატფორმის საკომისიო (%)</label>
+            <label htmlFor="platformFeePercent">მარკეტფლეისის საკომისიო (%) — იხდის მყიდველი</label>
             <input
               id="platformFeePercent"
               className="input"
@@ -95,6 +98,20 @@ export default function AdminSettings() {
               ეხება მხოლოდ ახალ შეკვეთებს — უკვე გაფორმებული შეკვეთები ინახავენ იმ დროის განაკვეთს, როცა
               შეიქმნენ.
             </p>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="coachingFeePercent">ქოუჩინგის საკომისიო (%) — იკავებს ქოუჩის შემოსავლიდან</label>
+            <input
+              id="coachingFeePercent"
+              className="input"
+              type="number"
+              min={0}
+              max={100}
+              value={coachingFeePercent}
+              onChange={(event) => setCoachingFeePercent(Number(event.target.value))}
+            />
+            <p className="note">ეხება მხოლოდ ახალ ჯავშნებს — დაჯავშნილი სესიები ინახავენ დაჯავშნის დროის განაკვეთს.</p>
           </div>
 
           <div className="form-group">

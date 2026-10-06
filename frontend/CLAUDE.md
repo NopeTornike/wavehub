@@ -946,3 +946,41 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   otherwise; product cards get a phone footer (3 rows, readable sizes) and a shade under the title.
 - Listing builder: action bar `bottom: 0` (the Publish button was clipped), dropzone hint wraps, and a
   "sent for review" panel replaces the form after publishing (the old status line sat at the bottom).
+
+## 2026-10-04 Owner screenshots ("Wavehub icon guides") + client feedback round
+- **Icons**: `public/assets/ui/*.png` (the owner's icon set, 96px) and `public/assets/badges/*.png`
+  (13 badges, 192px; black-backed art uses `mix-blend-mode: lighten`).
+  - Pages that use them start with `/* eslint-disable @next/next/no-img-element */`: static
+    sprites, nothing for `next/image` to optimise.
+  - Notifications (bell panel, toasts, `/notifications`) use `lib/notifications.ts#notificationIcon`
+    instead of letter glyphs.
+- **Rebuilt to the screenshots (phone first; desktop is the same column centred)**:
+
+  | Page | CSS prefix | Notes |
+  |---|---|---|
+  | `/orders` | `oc-` | |
+  | `/orders/[id]` | `od-` | product, participants, payment, timeline, key card, progress guide (open orders only), chat with photo/file attachments, dispute, review empty state |
+  | My Listings | `ml-` | |
+  | `/coaching-sessions` | `sc-` | |
+  | `/coaching-sessions/[id]` | `ss-` | **not `sd-`**, which is the Steam page; includes the coach's `StudentBadges` panel |
+  | listing reviews | `rv-` | `components/ReviewCard.tsx`, likes |
+  | service questions | `rq-` | with seller placeholders |
+  | Escrow explainer | `ex-` | `components/EscrowExplainer.tsx` |
+
+- **Client feedback items**:
+  - `/services` is its own page (`MarketplaceView servicesOnly`: no product chips/select, Sidebar
+    "სერვისები", "გაყიდე სერვისი" button);
+  - `components/StepsGuide.tsx` on marketplace / services / coaching (stacks on phones);
+  - `/tournaments/[id]/registered` success page; the registration modal requires Discord;
+  - `components/FollowLists.tsx` on `/profile`;
+  - `/notifications?id=` expands one notification in full;
+  - Admin: online-now KPI (30s refresh), coach "featured" toggle, coaching fee field,
+    `AdminBadgeManager` (Users → ბეიჯები), `AdminKeyInventory` (Steam keys on
+    `/admin/listings/[id]`);
+  - dashboard next session refetches every 60s and when a start passes.
+- **People are shown by photo + full name** (`components/Avatar.tsx` `displayName`,
+  `VerifiedMark`), not `@handle`; rank icons are 26px.
+- **Dates**: `lib/dates.ts` (`kaDate` / `kaDateTime` / `kaTime`, Georgian months by hand).
+  `lib/tournaments.tsx` and notification times use it too, because `ka-GE` locale data is missing
+  in some browsers and printed English.
+- Georgian `toUpperCase()` turns text into Mtavruli; use `latinUpper` for upper-case labels.

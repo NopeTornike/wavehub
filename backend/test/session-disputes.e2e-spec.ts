@@ -31,7 +31,7 @@ describe('coaching session disputes (e2e)', () => {
     await credit(ctx, buyer, 500);
     coachId = (await ops.client.post('/admin/coaches', { username: coachUser.username, specialty: 'Macro play', bio: 'Ten years of competitive experience across several titles.', hourlyRateWaveCoin: 30 })).body.id;
     await openAllHours(ctx, coachId);
-    await ctx.dataSource.query(`UPDATE platform_settings SET "platformFeePercent" = 10`);
+    await ctx.dataSource.query(`UPDATE platform_settings SET "platformFeePercent" = 10, "coachingFeePercent" = 10`);
   });
   afterAll(async () => {
     await assertConserved(ctx);

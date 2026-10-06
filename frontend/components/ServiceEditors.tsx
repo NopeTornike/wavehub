@@ -76,6 +76,12 @@ export function RequirementsEditor({ value, onChange }: { value: RequirementFiel
               ))}
             </select>
           </label>
+          {field.type !== 'dropdown' && (
+            <label className="sp-field sv-wide">
+              <span>პასუხის მაგალითი (არასავალდებულო)</span>
+              <input maxLength={80} value={field.placeholder ?? ''} placeholder={'მაგ: 24 ინჩი, 27"'} onChange={(e) => patch(i, { placeholder: e.target.value || undefined })} />
+            </label>
+          )}
           {field.type === 'dropdown' && (
             <label className="sp-field sv-wide">
               <span>ვარიანტები (მძიმით)</span>

@@ -1,5 +1,9 @@
 import { shrinkPhoto } from './image-resize'
 import type {
+  MyReviewLikes,
+  BadgeKey,
+  AdminBadgeGrant,
+  PublicFollowEntry,
   OrderQuote,
   AdminAnalytics,
   AdminRole,
@@ -133,6 +137,10 @@ export interface MyListing {
   game?: { name: string; slug: string } | null
   images?: Array<{ id: string; url: string }>
   itemAttributes?: ItemAttributes | null
+  // Seller panel stats (views / likes / completed orders).
+  viewsCount?: number
+  favoriteCount?: number
+  ordersCount?: number
 }
 
 // PATCH listings/:id (seller) and admin/listings/:id (Super Admin) — every field optional.
@@ -561,6 +569,11 @@ export const api = {
   addListingKeys: (listingId: string, keys: string[]) =>
     request<{ added: number }>(`/listings/${listingId}/keys`, { method: 'POST', body: JSON.stringify({ keys }) }),
 
+  // Staff stock a Steam game they didn't create (client feedback #5).
+  adminListListingKeys: (listingId: string) => request<SellerListingKeySummary[]>(`/admin/listings/${listingId}/keys`),
+  adminAddListingKeys: (listingId: string, keys: string[]) =>
+    request<{ added: number }>(`/admin/listings/${listingId}/keys`, { method: 'POST', body: JSON.stringify({ keys }) }),
+  adminRemoveListingKey: (listingId: string, keyId: string) => request<{ ok: true }>(`/admin/listings/${listingId}/keys/${keyId}`, { method: 'DELETE' }),
   listListingKeys: (listingId: string) => request<SellerListingKeySummary[]>(`/listings/${listingId}/keys`),
 
   removeListingKey: (listingId: string, keyId: string) =>
@@ -575,6 +588,12 @@ export const api = {
   // The caller's completed orders still waiting for a review.
   listPendingReviews: () => request<PendingReview[]>('/reviews/pending'),
 
+  // 👍 on a review or the seller's reply; which ones on a listing the viewer liked.
+  likeReview: (reviewId: string, target: 'review' | 'reply', liked: boolean) =>
+    request<{ liked: boolean; count: number }>(`/reviews/${reviewId}/like`, { method: 'POST', body: JSON.stringify({ target, liked }) }),
+  myReviewLikes: (listingId: string) => request<MyReviewLikes>(`/me/review-likes?listingId=${listingId}`),
+  reportReview: (reviewId: string, reason: 'spam' | 'fake' | 'abusive' | 'other') =>
+    request<unknown>(`/reviews/${reviewId}/report`, { method: 'POST', body: JSON.stringify({ reason }) }),
   replyToReview: (reviewId: string, body: string) =>
     request<unknown>(`/reviews/${reviewId}/reply`, { method: 'POST', body: JSON.stringify({ body }) }),
 
@@ -621,6 +640,9 @@ export const api = {
   // conversation id; the participant check happens server-side against the order.
   listMessages: (orderId: string) => request<PublicMessage[]>(`/orders/${orderId}/messages`),
 
+  // A photo or file in the order chat (byte-sniffed server-side, 10MB).
+  sendOrderAttachment: async (orderId: string, file: File) =>
+    upload<PublicMessage>(`/orders/${orderId}/messages/attachment`, file.type.startsWith('image/') ? await shrinkPhoto(file) : file),
   sendMessage: (orderId: string, body: string) =>
     request<PublicMessage>(`/orders/${orderId}/messages`, {
       method: 'POST',
@@ -805,6 +827,7 @@ export const api = {
 
   adminUpdatePlatformSettings: (patch: {
     platformFeePercent?: number
+    coachingFeePercent?: number
     minWithdrawalWaveCoin?: number
     maintenanceMode?: boolean
     supportPermissions?: SupportPermissions
@@ -855,7 +878,7 @@ export const api = {
   getMyCoachApplication: () => request<MyCoachApplication | null>('/coaches/mine'),
 
   browseCoaches: (
-    filters: { gameId?: string; gameIds?: string; maxRate?: number; language?: string; sort?: string; limit?: number; offset?: number } = {},
+    filters: { gameId?: string; gameIds?: string; maxRate?: number; language?: string; sort?: string; featured?: boolean; limit?: number; offset?: number } = {},
   ) => {
     const params = new URLSearchParams()
     Object.entries(filters).forEach(([key, value]) => {
@@ -878,6 +901,20 @@ export const api = {
 
   // Super Admin only; a coach with any session history can't be deleted (409 — suspend instead).
   adminDeleteCoach: (id: string) => request<{ ok: true }>(`/admin/coaches/${id}`, { method: 'DELETE' }),
+  // Home page coach section: staff choose who is featured (client feedback #2).
+  adminSetCoachFeatured: (id: string, isFeatured: boolean) =>
+    request<AdminCoachSummary>(`/admin/coaches/${id}/featured`, { method: 'POST', body: JSON.stringify({ isFeatured }) }),
+  // Badges (backend/src/badges/): staff grant/revoke (permission per badge enforced server-side).
+  adminListUserBadges: (userId: string) => request<AdminBadgeGrant[]>(`/admin/users/${userId}/badges`),
+  adminGrantBadge: (userId: string, badgeKey: BadgeKey) =>
+    request<AdminBadgeGrant[]>(`/admin/users/${userId}/badges`, { method: 'POST', body: JSON.stringify({ badgeKey }) }),
+  adminRevokeBadge: (userId: string, badgeKey: BadgeKey) => request<AdminBadgeGrant[]>(`/admin/users/${userId}/badges/${badgeKey}`, { method: 'DELETE' }),
+  // A coach's students (completed sessions) and the student badges the coach granted them.
+  listMyStudents: () =>
+    request<Array<{ userId: string; username: string; firstName: string; lastName: string; avatarUrl: string | null; completedSessions: number; badges: BadgeKey[] }>>('/coaches/mine/students'),
+  coachGrantBadge: (studentId: string, badgeKey: BadgeKey) =>
+    request<{ ok: true }>(`/coaches/mine/students/${studentId}/badges`, { method: 'POST', body: JSON.stringify({ badgeKey }) }),
+  coachRevokeBadge: (studentId: string, badgeKey: BadgeKey) => request<{ ok: true }>(`/coaches/mine/students/${studentId}/badges/${badgeKey}`, { method: 'DELETE' }),
   adminSuspendCoach: (id: string) => request<AdminCoachSummary>(`/coaches/${id}/suspend`, { method: 'POST' }),
 
   adminRestoreCoach: (id: string) => request<AdminCoachSummary>(`/coaches/${id}/restore`, { method: 'POST' }),
@@ -926,6 +963,9 @@ export const api = {
   coachBusyTimes: (coachId: string) => request<Array<{ start: string; end: string }>>(`/coaches/${coachId}/busy`),
 
   // --- Follows (docs/design-mockups/12) ---
+  // The viewer's own follow lists (client feedback #15).
+  listMyFollowing: () => request<PublicFollowEntry[]>('/me/following'),
+  listMyFollowers: () => request<PublicFollowEntry[]>('/me/followers'),
   getFollowStatus: (username: string) => request<{ following: boolean }>(`/users/${encodeURIComponent(username)}/follow-status`),
 
   followUser: (username: string) => request<{ following: boolean; followers: number }>(`/users/${encodeURIComponent(username)}/follow`, { method: 'POST' }),
@@ -1064,7 +1104,7 @@ export const api = {
 
   listMyTournamentRegistrations: () => request<string[]>('/tournaments/mine'),
 
-  registerForTournament: (id: string, payload: { inGameName: string; inGameId: string }) =>
+  registerForTournament: (id: string, payload: { inGameName: string; inGameId: string; discord: string }) =>
     request<PublicTournamentSummary>(`/tournaments/${id}/register`, { method: 'POST', body: JSON.stringify(payload) }),
   // Public username search (topbar suggestions, marketplace search) — active accounts, ≤8.
   searchUsers: (q: string) => request<PublicUserSearchResult[]>(`/users/search?q=${encodeURIComponent(q)}`),
@@ -1073,7 +1113,7 @@ export const api = {
 
   registerTournamentTeam: (
     id: string,
-    payload: { name: string; tag?: string; coachName?: string; players: Array<{ player: string; inGameName: string; inGameId: string }> },
+    payload: { name: string; discord: string; tag?: string; coachName?: string; players: Array<{ player: string; inGameName: string; inGameId: string }> },
   ) =>
     request<PublicTournamentTeam>(`/tournaments/${id}/teams`, { method: 'POST', body: JSON.stringify(payload) }),
 

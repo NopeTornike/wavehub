@@ -20,9 +20,11 @@ ListingsModule); it spreads `ProfilesService.facts()` into the response.
 - `waveRank` from `community/` (which counts coaching too).
 - `online`: last authenticated request within the community window — shown publicly on profiles,
   same presence signal as the coach cards.
-- `badges` (earned only): the Wave tier; `champion` (captained a team that won a recorded final) or
-  `finalist` (played a final); `coach` (verified coach); `top-rated` (≥4.8 from ≥5 reviews);
-  `trusted-seller` (≥10 completed sales and ≥4.5 average); `deals-100` (≥100 deals) or `first-deal`.
+- `badges` (since 2026-10-04): the stored grants from `backend/src/badges/` (`listVisible`, with
+  `description` for tooltips) plus `champion` (captained a team that won a recorded final) or
+  `finalist` (played a final). The old computed set (tier / coach / top-rated / trusted-seller /
+  deals-100 / first-deal) is gone. The Wave tier is `waveRank`, and `facts()` calls
+  `BadgesService.onRank` so the top tier earns Max Level.
 - `shortId` = first 8 hex chars of the user id (the design's "WaveHubX ID"); `userId` is public like
   `PublicSeller.id`.
 
@@ -31,3 +33,12 @@ Self-entered profile fields live on `users` (migration `1784356000000-ProfilesAn
 
 ## Tests
 `test/profiles.e2e-spec.ts` (fields + privacy sweep, follow rules, deals/reviews → role/badges).
+
+## Follow lists (client feedback #15, 2026-10-04)
+`MyFollowsController`: `GET me/following` and `GET me/followers` (`AuthGuard`).
+
+- Each returns `PublicFollowEntry[]`: id, username, first/last name, avatar, `followedAt`.
+  No email or balance.
+- The frontend shows them in `components/FollowLists.tsx` on `/profile`, with unfollow.
+- A new follower still gets one `new_follower` notification, now naming the follower by full name
+  (`common/person-name.ts`).

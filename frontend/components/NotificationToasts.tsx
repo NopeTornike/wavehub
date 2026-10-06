@@ -1,10 +1,11 @@
+/* eslint-disable @next/next/no-img-element */
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PublicNotification } from '@wavehub/shared-types'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
-import { notificationKind, notificationTarget } from '../lib/notifications'
+import { notificationKind, notificationIcon } from '../lib/notifications'
 
 // Pop-up toasts for new notifications (client, 2026-10-02: "should appear … and must show").
 // Driven by the shell's unread-count poll: whenever a newer unread one arrives it fetches the newest
@@ -86,7 +87,7 @@ export default function NotificationToasts() {
   return (
     <div className="notification-toasts" role="status" aria-live="polite">
       {toasts.map((n) => {
-        const { kind, letter } = notificationKind(n.type)
+        const { kind } = notificationKind(n.type)
         return (
           <div key={n.id} className={`notification-toast ${kind}`}>
             <button
@@ -98,10 +99,12 @@ export default function NotificationToasts() {
                   .markNotificationRead(n.id)
                   .then(refreshBadges)
                   .catch(() => undefined)
-                void router.push(notificationTarget(n))
+                void router.push(`/notifications?id=${n.id}`)
               }}
             >
-              <span className="notification-center-icon">{letter}</span>
+              <span className="notification-center-icon has-img">
+                <img src={notificationIcon(n.type)} alt="" />
+              </span>
               <span>
                 <strong>{n.title}</strong>
                 <small>{n.body}</small>

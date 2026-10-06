@@ -7,6 +7,7 @@ import { api, errorMessage } from '../../lib/api'
 import { gameIcon } from '../../lib/games'
 import { useShell } from '../../lib/shell'
 import { useCoachingFromPrice } from '../../lib/coaching-price'
+import StepsGuide from '../../components/StepsGuide'
 
 /* eslint-disable @next/next/no-img-element */
 // The prototype's coaching.html (coaching.js), on real data: the filter panel (Game checkboxes with
@@ -136,6 +137,13 @@ export default function CoachingDirectory() {
       description="ვერიფიცირებული გეიმინგ ქოუჩები WaveHub-ზე — დაჯავშნეთ სესია PUBG Mobile, COD Mobile, Free Fire და სხვა თამაშებისთვის."
       pageSearch={{ value: query, onChange: setQuery, placeholder: 'მოძებნე ქოუჩები...', label: 'ქოუჩების ძიება' }}
     >
+      {/* Booking guide (client feedback #8 — same form as the marketplace's). */}
+      <StepsGuide
+        id="coachStepsTitle"
+        title="როგორ მუშაობს"
+        accent="ქოუჩინგი"
+        steps={['აირჩიე ქოუჩი', 'დაჯავშნე სესია', 'დაადასტურე გადახდა', 'დაელოდე ქოუჩს', 'ჩაატარე და შეაფასე']}
+      />
       {/* .coaching-body scopes coaching.html's --coach-* variables (it's the prototype's <body> class). */}
       <div className="coaching-body">
         <div className={`cl-shell${filtersOpen ? ' filters-open' : ''}`}>

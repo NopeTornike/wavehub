@@ -300,7 +300,11 @@ describe('ChatService', () => {
       const rows = await service.listMyDirectConversations(userA);
 
       expect(rows).toEqual([
-        expect.objectContaining({ id: 'conversation-1', otherUser: { id: userB, username: 'seller-guy' }, lastMessage: null }),
+        expect.objectContaining({
+          id: 'conversation-1',
+          otherUser: expect.objectContaining({ id: userB, username: 'seller-guy' }),
+          lastMessage: null,
+        }),
       ]);
     });
   });

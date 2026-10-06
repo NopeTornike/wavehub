@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundEx
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { NotificationType, OrderStatus, ReviewStatus } from '@wavehub/shared-types';
-import type { AdminReviewRow, AdminReviewSummary, OrderReviewState, PendingReview, PublicReview } from '@wavehub/shared-types';
+import type { AdminReviewRow, AdminReviewSummary, OrderReviewState, PendingReview, PublicReview, MyReviewLikes } from '@wavehub/shared-types';
 import { Review } from './review.entity';
 import { ReviewReport } from './review-report.entity';
 import { Order } from '../orders/order.entity';
@@ -10,10 +10,11 @@ import { Listing } from '../listings/listing.entity';
 import { User } from '../users/user.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { NotificationsService } from '../notifications/notifications.service';
-import { CommunityService } from '../community/community.service';
+import { CommunityService, ONLINE_WINDOW_MINUTES } from '../community/community.service';
 import { CoachingSessionReview } from '../coaching/coaching-session-review.entity';
 import { Coach } from '../coaching/coach.entity';
 import { AdminEditReviewDto, ListAdminReviewsDto } from './dto/admin-reviews.dto';
+import { ReviewLike } from './review-like.entity';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
@@ -118,7 +119,9 @@ export class ReviewsService {
     const qb = this.reviews
       .createQueryBuilder('review')
       .leftJoin('review.buyer', 'buyer')
-      .addSelect(['buyer.id', 'buyer.username'])
+      .addSelect(['buyer.id', 'buyer.username', 'buyer.firstName', 'buyer.lastName', 'buyer.avatarUrl', 'buyer.lastSeenAt'])
+      .leftJoin('review.seller', 'seller')
+      .addSelect(['seller.id', 'seller.username', 'seller.firstName', 'seller.lastName', 'seller.avatarUrl'])
       .where('review.listingId = :listingId', { listingId })
       .andWhere('review.status = :status', { status: ReviewStatus.Published });
 
@@ -133,12 +136,40 @@ export class ReviewsService {
     const rows = await qb.getMany();
     const ranks = new Map<string, string>();
     await Promise.all(
-      [...new Set(rows.map((r) => r.buyerId))].map(async (id) => ranks.set(id, (await this.community.waveRank(id)).name)),
+      [...new Set(rows.flatMap((r) => [r.buyerId, r.sellerId]))].map(async (id) => ranks.set(id, (await this.community.waveRank(id)).name)),
     );
-    return rows.map((r) => this.toPublic(r, ranks.get(r.buyerId) ?? ''));
+    const likes = new Map<string, number>();
+    if (rows.length) {
+      const counts: Array<{ reviewId: string; target: string; n: number }> = await this.dataSource.query(
+        `SELECT "reviewId", "target", count(*)::int AS n FROM "review_likes" WHERE "reviewId" = ANY($1) GROUP BY 1, 2`,
+        [rows.map((r) => r.id)],
+      );
+      for (const c of counts) likes.set(`${c.reviewId}:${c.target}`, c.n);
+    }
+    return rows.map((r) => this.toPublic(r, ranks.get(r.buyerId) ?? '', ranks.get(r.sellerId) ?? '', likes));
   }
 
-  private toPublic(r: Review, rank = ''): PublicReview {
+  // 👍 on a review (any signed-in, verified user) or on the seller's reply to it. Idempotent.
+  async like(userId: string, reviewId: string, target: 'review' | 'reply', liked: boolean): Promise<{ liked: boolean; count: number }> {
+    const review = await this.reviews.findOne({ where: { id: reviewId, status: ReviewStatus.Published } });
+    if (!review) throw new NotFoundException('Review not found');
+    if (target === 'reply' && !review.sellerReply) throw new NotFoundException('This review has no reply');
+    const repo = this.dataSource.getRepository(ReviewLike);
+    if (liked) await repo.createQueryBuilder().insert().values({ reviewId, userId, target }).orIgnore().execute();
+    else await repo.delete({ reviewId, userId, target });
+    return { liked, count: await repo.count({ where: { reviewId, target } }) };
+  }
+
+  async myLikes(userId: string, listingId: string): Promise<MyReviewLikes> {
+    const rows: Array<{ reviewId: string; target: 'review' | 'reply' }> = await this.dataSource.query(
+      `SELECT l."reviewId", l."target" FROM "review_likes" l JOIN "reviews" r ON r."id" = l."reviewId"
+        WHERE l."userId" = $1 AND r."listingId" = $2`,
+      [userId, listingId],
+    );
+    return { review: rows.filter((r) => r.target === 'review').map((r) => r.reviewId), reply: rows.filter((r) => r.target === 'reply').map((r) => r.reviewId) };
+  }
+
+  private toPublic(r: Review, rank = '', sellerRank = '', likes = new Map<string, number>()): PublicReview {
     return {
       id: r.id,
       rating: r.rating,
@@ -147,8 +178,20 @@ export class ReviewsService {
       sellerReply: r.sellerReply,
       sellerRepliedAt: r.sellerRepliedAt ? r.sellerRepliedAt.toISOString() : null,
       createdAt: r.createdAt.toISOString(),
-      buyer: { id: r.buyer.id, username: r.buyer.username },
+      buyer: {
+        id: r.buyer.id,
+        username: r.buyer.username,
+        firstName: r.buyer.firstName ?? '',
+        lastName: r.buyer.lastName ?? '',
+        avatarUrl: r.buyer.avatarUrl ?? null,
+        online: !!r.buyer.lastSeenAt && Date.now() - new Date(r.buyer.lastSeenAt).getTime() < ONLINE_WINDOW_MINUTES * 60_000,
+      },
       buyerRank: rank,
+      seller: r.seller
+        ? { id: r.seller.id, username: r.seller.username, firstName: r.seller.firstName ?? '', lastName: r.seller.lastName ?? '', avatarUrl: r.seller.avatarUrl ?? null, rank: sellerRank }
+        : { id: r.sellerId, username: '', firstName: '', lastName: '', avatarUrl: null, rank: sellerRank },
+      likeCount: likes.get(`${r.id}:review`) ?? 0,
+      replyLikeCount: likes.get(`${r.id}:reply`) ?? 0,
     };
   }
 

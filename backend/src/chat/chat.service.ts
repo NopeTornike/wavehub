@@ -53,13 +53,14 @@ export class ChatService {
     return rows.map((message) => this.toPublicMessage(message));
   }
 
-  async postMessage(orderId: string, senderId: string, body: string): Promise<PublicMessage> {
+  // `type` Image/File: `body` is the stored file's URL (see OrdersService#sendAttachment).
+  async postMessage(orderId: string, senderId: string, body: string, type: MessageType = MessageType.Text): Promise<PublicMessage> {
     const conversation = await this.conversations.findOne({ where: { orderId } });
     if (!conversation) {
       throw new NotFoundException('Conversation not found for this order');
     }
     const message = await this.messages.save(
-      this.messages.create({ conversationId: conversation.id, senderId, type: MessageType.Text, body }),
+      this.messages.create({ conversationId: conversation.id, senderId, type, body }),
     );
     // Re-fetch with the sender relation loaded rather than hand-assembling the public shape from
     // the caller's own user id — keeps `toPublicMessage` the single place that does this mapping.
@@ -73,7 +74,7 @@ export class ChatService {
         recipientId,
         NotificationType.NewMessage,
         'ახალი შეტყობინება',
-        body,
+        type === MessageType.Image ? '📷 ფოტო' : type === MessageType.File ? '📎 ფაილი' : body,
         { orderId },
       );
     } catch (err) {
@@ -232,7 +233,7 @@ export class ChatService {
   private async toConversationSummary(conversation: Conversation, viewerId: string): Promise<PublicConversationSummary> {
     const otherUserId = conversation.buyerId === viewerId ? conversation.sellerId : conversation.buyerId;
     const [otherUser, lastMessage, unreadCount] = await Promise.all([
-      this.users.findOne({ where: { id: otherUserId }, select: ['id', 'username'] }),
+      this.users.findOne({ where: { id: otherUserId }, select: ['id', 'username', 'firstName', 'lastName', 'avatarUrl'] }),
       this.messages.findOne({ where: { conversationId: conversation.id }, order: { createdAt: 'DESC' } }),
       this.messages
         .createQueryBuilder('m')
@@ -243,7 +244,13 @@ export class ChatService {
     ]);
     return {
       id: conversation.id,
-      otherUser: { id: otherUserId, username: otherUser?.username ?? 'deleted-user' },
+      otherUser: {
+        id: otherUserId,
+        username: otherUser?.username ?? 'deleted-user',
+        firstName: otherUser?.firstName ?? '',
+        lastName: otherUser?.lastName ?? '',
+        avatarUrl: otherUser?.avatarUrl ?? null,
+      },
       lastMessage: lastMessage
         ? { body: lastMessage.body, createdAt: lastMessage.createdAt.toISOString(), senderId: lastMessage.senderId }
         : null,

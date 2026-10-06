@@ -26,6 +26,7 @@ import { MatchDto, MatchTeamStatsDto } from './dto/match.dto';
 import { StorageService } from '../storage/storage.service';
 import { User } from '../users/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { personName } from '../common/person-name';
 
 const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
@@ -130,6 +131,7 @@ export class TournamentsService {
       coachName: team.coachName,
       members: team.members ?? [],
       players,
+      ...(withInGameIds ? { discord: team.discord } : {}),
       status: team.status,
       createdAt: team.createdAt.toISOString(),
     };
@@ -337,6 +339,7 @@ export class TournamentsService {
           tournamentId,
           captainUserId: userId,
           name: user.username.slice(0, 30),
+          discord: dto.discord.trim(),
           members: [inGameName],
           status: TournamentTeamStatus.Verified,
         }),
@@ -393,6 +396,7 @@ export class TournamentsService {
           name: dto.name.trim(),
           tag: dto.tag?.trim().toUpperCase() || null,
           coachName: dto.coachName?.trim() || null,
+          discord: dto.discord.trim(),
           members: order.map((i) => entries[i].inGameName),
           status: TournamentTeamStatus.Pending,
         }),
@@ -426,7 +430,7 @@ export class TournamentsService {
           mate.id,
           NotificationType.TournamentTeamAdded,
           'გუნდში დაგამატეს',
-          `@${team.captain?.username ?? ''}-მა დაგამატა გუნდში „${team.name}“ ტურნირზე „${tournament.name}“.`,
+          `${personName(team.captain)}-მა დაგამატა გუნდში „${team.name}“ ტურნირზე „${tournament.name}“.`,
           { tournamentId: tournament.id, teamId: team.id },
         );
       } catch (err) {

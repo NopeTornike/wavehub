@@ -6,6 +6,7 @@ import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gel } from '../../lib/money'
+import AdminBadgeManager from '../../components/AdminBadgeManager'
 
 const ROLE_LABELS: Record<AdminRole, string> = {
   [AdminRole.SuperAdmin]: 'Super Admin',
@@ -141,6 +142,9 @@ export default function AdminUsers() {
     (isSupport && !!perms?.suspendUsers && supportTarget(item))
   const canManage = (item: AdminUserSummary) => isSuperAdmin || (isSupport && !!perms?.walletAdjust && supportTarget(item))
   const [openId, setOpenId] = useState<string | null>(null)
+  // Badge management (badges/ spec): Super Admin + the roles allowed to grant administration badges.
+  const canBadge = !!me?.adminRole && [AdminRole.SuperAdmin, AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager].includes(me.adminRole)
+  const [badgeId, setBadgeId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<UserStatus | ''>('')
   const [items, setItems] = useState<AdminUserSummary[]>([])
@@ -291,7 +295,13 @@ export default function AdminUsers() {
                     {openId === item.id ? 'დახურვა' : 'მართვა'}
                   </button>
                 )}
+                {canBadge && (
+                  <button type="button" className="button ghost" aria-expanded={badgeId === item.id} onClick={() => setBadgeId(badgeId === item.id ? null : item.id)}>
+                    {badgeId === item.id ? 'ბეიჯების დახურვა' : 'ბეიჯები'}
+                  </button>
+                )}
               </div>
+              {canBadge && badgeId === item.id && <AdminBadgeManager userId={item.id} myRole={me?.adminRole} />}
               {canManage(item) && openId === item.id && (
                 <SuperAdminPanel
                   item={item}

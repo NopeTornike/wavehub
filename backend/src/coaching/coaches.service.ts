@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { CoachStatus, DEFAULT_COACH_AVAILABILITY, NotificationType, SubscriptionAudience, UserStatus, VerificationStatus } from '@wavehub/shared-types';
@@ -19,6 +19,7 @@ import { assertBookingQuestions } from './booking-questions';
 import { User } from '../users/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
+import { BadgesService } from '../badges/badges.service';
 
 // Coach intro video: 5MB (owner decision 2026-10-03 — was 50MB).
 export const MAX_COACH_VIDEO_BYTES = 5 * 1024 * 1024;
@@ -61,9 +62,13 @@ export class CoachesService {
     private readonly dataSource: DataSource,
     private readonly notifications: NotificationsService,
     private readonly packages: CoachingPackagesService,
+    @Optional() private readonly badges?: BadgesService,
   ) {}
 
+  // Called exactly when a coach becomes verified (approve / admin create) — also grants the
+  // system Verified badge (badges/).
   private async notifyApproved(userId: string): Promise<void> {
+    await this.badges?.onCoachVerified(userId);
     await this.notifications.tryEmit(
       userId,
       NotificationType.CoachApproved,
@@ -181,6 +186,9 @@ export class CoachesService {
       )
       .addSelect('CASE WHEN "coachPlan"."id" IS NOT NULL THEN 1 ELSE 0 END', 'featured_boost');
 
+    if (filters.featured) {
+      qb.andWhere('coach.isFeatured = true');
+    }
     if (filters.gameId) {
       qb.andWhere('coach.gameId = :gameId', { gameId: filters.gameId });
     }
@@ -194,7 +202,8 @@ export class CoachesService {
       qb.andWhere(':language = ANY(coach.languages)', { language: filters.language });
     }
 
-    qb.orderBy('featured_boost', 'DESC');
+    // Staff-featured coaches first, then the membership boost, then the chosen sort.
+    qb.orderBy('coach.isFeatured', 'DESC').addOrderBy('featured_boost', 'DESC');
     switch (filters.sort) {
       case 'price_asc':
         qb.addOrderBy('coach.hourlyRateWaveCoin', 'ASC');
@@ -460,6 +469,7 @@ export class CoachesService {
     const coach = await this.getOrThrow(id);
     assertValidVerificationTransition(coach.verificationStatus, VerificationStatus.Rejected);
     await this.coaches.update(id, { verificationStatus: VerificationStatus.Rejected, rejectionReason: reason });
+    await this.badges?.onCoachUnverified(coach.userId);
     await this.notifications.tryEmit(
       coach.userId,
       NotificationType.CoachRejected,
@@ -476,6 +486,7 @@ export class CoachesService {
       throw new ForbiddenException('Coach is already suspended');
     }
     await this.coaches.update(id, { status: CoachStatus.Suspended });
+    await this.badges?.onCoachUnverified(coach.userId);
     return this.toAdminSummary(await this.getOrThrow(id));
   }
 
@@ -485,6 +496,7 @@ export class CoachesService {
       throw new ForbiddenException('Coach is not currently suspended');
     }
     await this.coaches.update(id, { status: CoachStatus.Active });
+    if (coach.verificationStatus === VerificationStatus.Verified) await this.badges?.onCoachVerified(coach.userId);
     return this.toAdminSummary(await this.getOrThrow(id));
   }
 
@@ -501,6 +513,7 @@ export class CoachesService {
       if (count > 0) throw new ConflictException('This coach has session history and can’t be deleted — suspend them instead');
       await m.delete(Coach, { id });
     });
+    await this.badges?.onCoachUnverified(coach.userId);
     return { username: coach.user.username, status: coach.status };
   }
 
@@ -539,9 +552,16 @@ export class CoachesService {
       hourlyRateWaveCoin: coach.hourlyRateWaveCoin,
       verificationStatus: coach.verificationStatus,
       status: coach.status,
+      isFeatured: coach.isFeatured,
       rejectionReason: coach.rejectionReason,
       createdAt: coach.createdAt.toISOString(),
     };
+  }
+
+  async setFeatured(id: string, isFeatured: boolean): Promise<AdminCoachSummary> {
+    await this.getOrThrow(id);
+    await this.coaches.update(id, { isFeatured });
+    return this.toAdminSummary(await this.getOrThrow(id));
   }
 
   private async getOrThrow(id: string): Promise<Coach> {

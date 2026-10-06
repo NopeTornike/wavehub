@@ -259,3 +259,15 @@ through Start/Deliver.
   buyer now asks for a review. See `backend/src/notifications/CLAUDE.md`.
 - Unit: `orders.service.spec.ts` asserts the key order's own `Delivered` update and that the listing
   isn't paused while keys remain. e2e: `digital-keys.e2e-spec.ts`.
+
+## 2026-10-04 client feedback
+- **Chat attachments**: `POST orders/:id/messages/attachment` (multipart `file`).
+  - Guards: participants only, `UPLOAD_THROTTLE`, `ParseUUIDPipe`, 10MB (`MAX_CHAT_FILE_BYTES`).
+  - The file goes through `StorageService.save('attachment')`, which identifies it by content (an
+    HTML file labelled PNG → 415).
+  - It is posted as a `MessageType.Image` or `File` chat message whose body is the stored URL. The
+    notification reads "📷 ფოტო" / "📎 ფაილი".
+- **Parties**: `PublicOrderParty` gains `avatarUrl` and `verified` (Verified badge, batched via
+  `BadgesService.verifiedSet`).
+- **Badges**: `completeOrder` and a dispute's ReleaseToSeller call `BadgesService.onOrdersCompleted`
+  (first-order / orders-100).

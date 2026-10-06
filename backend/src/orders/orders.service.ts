@@ -1,9 +1,9 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, LessThanOrEqual, Repository } from 'typeorm';
-import { KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus, UserStatus } from '@wavehub/shared-types';
+import { KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus, UserStatus, MessageType } from '@wavehub/shared-types';
 import type { OrderQuote, PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
 import { Order } from './order.entity';
 import { OrderDeliveryFile } from './order-delivery-file.entity';
@@ -26,6 +26,7 @@ import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { withTransactionRetry } from '../wallet/transaction-retry.util';
+import { BadgesService } from '../badges/badges.service';
 
 const AUTO_COMPLETE_HOURS = 72;
 const ALLOWED_DELIVERY_MIME_TYPES = [
@@ -37,6 +38,8 @@ const ALLOWED_DELIVERY_MIME_TYPES = [
   'application/x-zip-compressed',
 ];
 const MAX_DELIVERY_FILE_BYTES = 20 * 1024 * 1024;
+// Order-chat attachments (photos, PDFs, archives).
+export const MAX_CHAT_FILE_BYTES = 10 * 1024 * 1024;
 // Every status a DigitalKey order's key is revealable from — see getRevealedKey's own comment.
 const KEY_REVEALABLE_STATUSES = [OrderStatus.Paid, OrderStatus.InProgress, OrderStatus.Delivered, OrderStatus.Completed];
 
@@ -59,6 +62,8 @@ export class OrdersService {
     private readonly notifications: NotificationsService,
     private readonly platformSettings: PlatformSettingsService,
     private readonly subscriptions: SubscriptionsService,
+    // Optional so unit specs can construct the service without it (badge triggers are best-effort).
+    @Optional() private readonly badges?: BadgesService,
   ) {}
 
   // Every lifecycle system-message post goes through this — chat is a side channel, never allowed
@@ -435,7 +440,8 @@ export class OrdersService {
       relations: ['listing', 'listing.game', 'listing.images', 'package', 'buyer', 'seller'],
       order: { createdAt: 'DESC' },
     });
-    return orders.map((order) => this.toSummary(order));
+    const verified = await this.verifiedFor(orders);
+    return orders.map((order) => this.toSummary(order, verified));
   }
 
   async findMineAsSeller(sellerId: string): Promise<PublicOrderSummary[]> {
@@ -444,7 +450,13 @@ export class OrdersService {
       relations: ['listing', 'listing.game', 'listing.images', 'package', 'buyer', 'seller'],
       order: { createdAt: 'DESC' },
     });
-    return orders.map((order) => this.toSummary(order));
+    const verified = await this.verifiedFor(orders);
+    return orders.map((order) => this.toSummary(order, verified));
+  }
+
+  // Which buyers/sellers on these orders carry the Verified badge (one query for the page).
+  private async verifiedFor(orders: Order[]): Promise<Set<string>> {
+    return (await this.badges?.verifiedSet(orders.flatMap((o) => [o.buyerId, o.sellerId]))) ?? new Set();
   }
 
   async findForParticipant(userId: string, orderId: string): Promise<PublicOrderDetail> {
@@ -462,7 +474,7 @@ export class OrdersService {
     const files = await this.deliveryFiles.find({ where: { orderId }, order: { createdAt: 'ASC' } });
 
     return {
-      ...this.toSummary(order),
+      ...this.toSummary(order, await this.verifiedFor([order])),
       requirementsAnswers: order.requirementsAnswers,
       platformFeeWaveCoin: order.platformFeeWaveCoin,
       platformFeePercent: order.platformFeePercentSnapshot,
@@ -482,7 +494,7 @@ export class OrdersService {
     };
   }
 
-  private toSummary(order: Order): PublicOrderSummary {
+  private toSummary(order: Order, verified: Set<string> = new Set()): PublicOrderSummary {
     return {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -501,12 +513,16 @@ export class OrdersService {
         username: order.buyer.username,
         firstName: order.buyer.firstName,
         lastName: order.buyer.lastName,
+        avatarUrl: order.buyer.avatarUrl ?? null,
+        verified: verified.has(order.buyer.id),
       },
       seller: {
         id: order.seller.id,
         username: order.seller.username,
         firstName: order.seller.firstName,
         lastName: order.seller.lastName,
+        avatarUrl: order.seller.avatarUrl ?? null,
+        verified: verified.has(order.seller.id),
       },
       priceWaveCoin: order.priceWaveCoin,
       deliveryDueAt: order.deliveryDueAt?.toISOString() ?? null,
@@ -564,6 +580,7 @@ export class OrdersService {
       return savedOrder;
     });
     await this.postSystemMessage(order.id, 'შეკვეთა დასრულებულია.');
+    await this.badges?.onOrdersCompleted([saved.buyerId, saved.sellerId]);
     await this.notify(
       saved.buyerId,
       NotificationType.OrderCompleted,
@@ -645,6 +662,21 @@ export class OrdersService {
       throw new ForbiddenException("This order doesn't belong to you");
     }
     return this.chat.postMessage(orderId, userId, body);
+  }
+
+  // A photo or file in the order chat (design 2026-10-04: the composer's 📎). Participant-only; the
+  // type is taken from the file's bytes by StorageService (never the client's label), images show
+  // inline, anything else is a download link.
+  async sendAttachment(userId: string, orderId: string, file: { buffer: Buffer; originalname: string; size: number } | undefined) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    const order = await this.getOrderOrThrow(orderId);
+    if (order.buyerId !== userId && order.sellerId !== userId) {
+      throw new ForbiddenException("This order doesn't belong to you");
+    }
+    if (file.size > MAX_CHAT_FILE_BYTES) throw new BadRequestException('The file must be 10MB or smaller');
+    const stored = await this.storage.save(file.buffer, file.originalname, 'attachment');
+    const type = stored.contentType.startsWith('image/') ? MessageType.Image : MessageType.File;
+    return this.chat.postMessage(orderId, userId, stored.url, type);
   }
 
   // Buyer-only, decrypted on demand — the plaintext key is never stored anywhere except this one

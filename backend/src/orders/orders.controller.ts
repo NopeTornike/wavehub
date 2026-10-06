@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
   UploadedFile,
   UseGuards,
@@ -15,7 +16,7 @@ import {
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { OrdersService } from './orders.service';
+import { MAX_CHAT_FILE_BYTES, OrdersService } from './orders.service';
 import { PurchaseOrderDto } from './dto/purchase-order.dto';
 import { RequestRevisionDto } from './dto/request-revision.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
@@ -122,5 +123,13 @@ export class OrdersController {
   @Throttle(MESSAGE_THROTTLE)
   sendMessage(@CurrentUserId() userId: string, @Param('id') id: string, @Body() dto: SendMessageDto) {
     return this.orders.sendMessage(userId, id, dto.body);
+  }
+
+  // A photo/file in the order chat — byte-sniffed by StorageService, 10MB (multer + service check).
+  @Post(':id/messages/attachment')
+  @Throttle(UPLOAD_THROTTLE)
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_CHAT_FILE_BYTES } }))
+  sendAttachment(@CurrentUserId() userId: string, @Param('id', ParseUUIDPipe) id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.orders.sendAttachment(userId, id, file);
   }
 }

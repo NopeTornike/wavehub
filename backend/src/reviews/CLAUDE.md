@@ -124,3 +124,21 @@ Supersedes the Status notes above ("doesn't pre-check", "no seller-reply UI").
 - Frontend: `components/OrderReview.tsx` (order page), `pages/admin/reviews.tsx` (Reported /
   Products / Coaches tabs, search, status filter, paging, Super Admin edit).
 - e2e: `test/review-admin.e2e-spec.ts`, `test/digital-keys.e2e-spec.ts`.
+
+## Likes + richer public reviews (2026-10-04, design "reviews")
+- `review_likes` (migration `1784380000000-ReviewLikes`, `review-like.entity.ts`): one row per
+  (review, user, target), where target is `review` or `reply`.
+- `POST reviews/:id/like {target, liked}`:
+  - guards: `AuthGuard` + `VerifiedEmailGuard` + `CREATE_THROTTLE`;
+  - idempotent; returns `{liked, count}`;
+  - 404 for liking a reply that doesn't exist.
+- `GET me/review-likes?listingId=` returns `MyReviewLikes` ({review: ids, reply: ids}). The public
+  list only carries counts.
+- `findForListing` now returns:
+  - `buyer {id, username, firstName, lastName, avatarUrl, online}` (online uses
+    `ONLINE_WINDOW_MINUTES`);
+  - `seller {…, rank}`;
+  - `likeCount`, `replyLikeCount`.
+  - Names and photos are public profile data. Email and balance never appear (covered by the
+    security sweep and `client-feedback.e2e-spec.ts`).
+- Frontend: `components/ReviewCard.tsx` on `/listings/[id]`.

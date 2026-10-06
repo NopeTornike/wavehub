@@ -31,7 +31,7 @@ describe('coaching booking + lifecycle v2 (e2e)', () => {
     });
     coachId = created.body.id;
     await openAllHours(ctx, coachId);
-    await ctx.dataSource.query(`UPDATE platform_settings SET "platformFeePercent" = 10`);
+    await ctx.dataSource.query(`UPDATE platform_settings SET "platformFeePercent" = 10, "coachingFeePercent" = 10`);
   });
   afterAll(async () => {
     await assertConserved(ctx);

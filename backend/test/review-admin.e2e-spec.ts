@@ -46,7 +46,7 @@ describe('reviews: buyer state + admin editing (e2e)', () => {
     const state = (await seller.client.get(`/reviews/order/${orderId}`)).body;
     expect(state.status).toBe('published');
     expect(state.review).toMatchObject({ rating: 2, body: 'Took a while but arrived.' });
-    expect(Object.keys(state.review.buyer).sort()).toEqual(['id', 'username']);
+    expect(Object.keys(state.review.buyer).sort()).toEqual(['avatarUrl', 'firstName', 'id', 'lastName', 'online', 'username']);
     expect((await buyer.client.get('/reviews/pending')).body).toEqual([]);
   });
 

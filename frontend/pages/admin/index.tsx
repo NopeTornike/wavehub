@@ -52,6 +52,26 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  // Accounts active on the site right now (an authenticated request in the last 5 minutes — the
+  // same real count as the public header), refreshed every 30 s (client feedback #11).
+  const [online, setOnline] = useState<number | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const load = () =>
+      api
+        .getOnlineStats()
+        .then((s) => {
+          if (!cancelled) setOnline(s.count)
+        })
+        .catch(() => undefined)
+    load()
+    const timer = window.setInterval(load, 30_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
+
   const isSuperAdmin = user?.adminRole === AdminRole.SuperAdmin
   const todo = QUEUES.filter((q) => counts[q.key] !== null)
   const total = todo.reduce((sum, q) => sum + (counts[q.key] ?? 0), 0)
@@ -62,6 +82,11 @@ export default function AdminDashboard() {
         <div>
           <h1>გამარჯობა{user?.firstName ? `, ${user.firstName}` : ''}</h1>
           <p>{total > 0 ? `დღეს ${total} საკითხი ელოდება შენს ყურადღებას.` : 'ყველა რიგი ცარიელია — ყველაფერი წესრიგშია.'}</p>
+        </div>
+        <div className="adm-online" aria-live="polite">
+          <span className="adm-online-dot" aria-hidden="true"></span>
+          <b>{online ?? '—'}</b>
+          <small>აქტიური მომხმარებელი ახლა საიტზე</small>
         </div>
       </header>
 

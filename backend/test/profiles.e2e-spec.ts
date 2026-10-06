@@ -25,7 +25,9 @@ describe('public profiles + follows (e2e)', () => {
     expect(pub).toMatchObject({ location: 'Tbilisi, Georgia', tagline: 'Better players. Brighter stories.', role: 'player', followers: 0, completedDeals: 0 });
     expect(pub.shortId).toMatch(/^[0-9A-F]{8}$/);
     expect(pub.reviews).toEqual({ count: 0, average: null, distribution: [0, 0, 0, 0, 0], latest: [] });
-    expect(pub.badges[0].key).toBe('tier');
+    // The Wave rank tier is its own field now; a fresh account has earned no badges yet.
+    expect(pub.waveRank).toBeTruthy();
+    expect(pub.badges).toEqual([]);
     expect(JSON.stringify(pub)).not.toMatch(/email|passwordHash|wavecoinBalance|lastSeenAt/);
   });
 
@@ -49,6 +51,6 @@ describe('public profiles + follows (e2e)', () => {
     expect(pub.completedDeals).toBe(1);
     expect(pub.reviews).toMatchObject({ count: 1, average: 4, distribution: [0, 1, 0, 0, 0] });
     expect(pub.reviews.latest[0]).toMatchObject({ rating: 4, body: 'Smooth and quick.', buyerUsername: fan.username });
-    expect(pub.badges.map((b: { key: string }) => b.key)).toContain('first-deal');
+    expect(pub.badges.map((b: { key: string }) => b.key)).toContain('first-order');
   });
 });

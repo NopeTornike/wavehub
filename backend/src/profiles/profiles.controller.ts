@@ -27,3 +27,21 @@ export class ProfilesController {
     return this.profiles.unfollow(userId, username);
   }
 }
+
+// The viewer's own follow lists (client feedback #15): who I follow — to unfollow later — and who
+// follows me. Private to the owner; newest first.
+@Controller('me')
+@UseGuards(AuthGuard)
+export class MyFollowsController {
+  constructor(private readonly profiles: ProfilesService) {}
+
+  @Get('following')
+  following(@CurrentUserId() userId: string) {
+    return this.profiles.listFollows(userId, 'following');
+  }
+
+  @Get('followers')
+  followers(@CurrentUserId() userId: string) {
+    return this.profiles.listFollows(userId, 'followers');
+  }
+}

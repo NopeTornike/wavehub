@@ -1,14 +1,17 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useState } from 'react'
 import type { PublicCoachingSession } from '@wavehub/shared-types'
-import { CoachingSessionStatus } from '@wavehub/shared-types'
+import { BADGE_CATALOG, BadgeKey, CoachingSessionStatus, badgeIcon } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { SESSION_STATUS_LABELS } from '../../lib/labels'
 import SessionReview from '../../components/SessionReview'
 import SessionDisputePanel from '../../components/SessionDisputePanel'
+import Avatar from '../../components/Avatar'
+import VerifiedMark from '../../components/VerifiedMark'
 
 // One coaching session, lifecycle v2 (backend/src/coaching/CLAUDE.md "Lifecycle v2"):
 //   booked → both confirm the start (from 15 min before until 60 min after; reminders every 10 min,
@@ -236,43 +239,69 @@ export default function CoachingSessionDetail() {
     }
   }
 
+  const coachName = [session.coachFirstName, session.coachLastName].filter(Boolean).join(' ') || session.coachUsername
+  const studentName = [session.buyerFirstName, session.buyerLastName].filter(Boolean).join(' ') || session.buyerUsername
+  // The 3-step stepper (design): start → run the session → confirm it.
+  const bigStep = stepIndex <= 1 ? 0 : stepIndex === 2 ? 1 : stepIndex === 3 ? 2 : 3
+  const BIG_STEPS: Array<[string, string]> = [
+    ['დაიწყე', stepIndex === 0 ? 'დაგეგმილია' : 'დაწყების დადასტურება'],
+    ['ჩაატარე სესია', 'ქოუჩი იწყებს'],
+    ['დაადასტურე', 'სესიის დასრულება'],
+  ]
+  const startLocked = session.status === S.Scheduled && !canConfirmWindow && now < start
+
   return (
-    <Layout title={`სესია — ${session.coachFirstName} ${session.coachLastName}`} noIndex>
-      <div className="detail-page cs-page">
-        <Link className="detail-back-link" href="/coaching-sessions">
-          ← ჩემი სესიები
+    <Layout title={`სესია — ${isCoach ? studentName : coachName}`} noIndex>
+      <div className="ss-page">
+        <Link className="ss-back" href="/coaching-sessions">
+          <span aria-hidden="true">←</span> ჩემი სესიები
         </Link>
 
-        <header className="cs-head">
+        <header className="ss-head">
           <div>
-            <p className="section-kicker">ქოუჩინგის სესია{session.packageName ? ` · ${session.packageName}` : ''}</p>
-            <h1>
-              {session.coachFirstName} {session.coachLastName}
-            </h1>
-            <p className="cs-when">
-              {when(session.scheduledAt)} · {session.durationMinutes} წუთი
+            <p className="ss-kicker">
+              ქოუჩინგის სესია{session.packageName ? ` • ${/[Ⴀ-ჿ]/.test(session.packageName) ? session.packageName : session.packageName.toUpperCase()}` : ''}
             </p>
+            <h1>{isCoach ? studentName : coachName}</h1>
+            <p className="ss-when">{`${when(session.scheduledAt)} · ${session.durationMinutes} წუთი`}</p>
           </div>
-          <span className={`cs-status s-${session.status}`}>{SESSION_STATUS_LABELS[session.status]}</span>
+          <span className={`ss-status s-${session.status}`}>
+            <img src="/assets/ui/calendar.png" alt="" aria-hidden="true" />
+            {SESSION_STATUS_LABELS[session.status]}
+          </span>
         </header>
 
         {session.status !== S.Cancelled && (
-          <ol className="cs-steps" aria-label="სესიის ეტაპები">
-            {STEPS.map(([title, sub], i) => (
-              <li key={title} className={i < stepIndex ? 'done' : i === stepIndex ? 'current' : ''}>
-                <b>{i < stepIndex ? '✓' : i + 1}</b>
-                <span>
+          <>
+            <ol className="ss-stepper" aria-label="სესიის ეტაპები">
+              {BIG_STEPS.map(([title, sub], i) => (
+                <li key={title} className={i < bigStep ? 'done' : i === bigStep ? 'current' : ''}>
+                  <b>{i < bigStep ? '✓' : i + 1}</b>
                   <strong>{title}</strong>
                   <small>{sub}</small>
-                </span>
-              </li>
-            ))}
-          </ol>
+                </li>
+              ))}
+            </ol>
+            <ol className="ss-stages">
+              {STEPS.map(([title, sub], i) => (
+                <li key={title} className={i < stepIndex ? 'done' : i === stepIndex ? 'current' : ''}>
+                  <b>{i < stepIndex ? '✓' : i + 1}</b>
+                  <span>
+                    <strong>{title}</strong>
+                    <small>{sub}</small>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </>
         )}
 
         {action && (
-          <section className="cs-action">
-            <h2>{action.title}</h2>
+          <section className="ss-action">
+            <h2>
+              <img src="/assets/ui/clock.png" alt="" aria-hidden="true" />
+              {action.title}
+            </h2>
             <p>{action.text}</p>
             {session.status === S.Scheduled && (canConfirmWindow || myStartConfirmed) && (
               <div className="cs-confirms">
@@ -285,19 +314,27 @@ export default function CoachingSessionDetail() {
                 {actionError}
               </p>
             )}
-            <div className="cs-action-buttons">
-              {action.button && (
-                <button type="button" className="detail-buy-button" disabled={busy} onClick={action.button.run}>
-                  {busy ? 'მიმდინარეობს…' : action.button.label}
+            {action.button ? (
+              <button type="button" className="ss-primary" disabled={busy} onClick={action.button.run}>
+                <span aria-hidden="true">▶</span>
+                {busy ? 'მიმდინარეობს…' : action.button.label}
+              </button>
+            ) : (
+              startLocked && (
+                <button type="button" className="ss-primary" disabled title="დაწყება შესაძლებელია სესიამდე 15 წუთით ადრე">
+                  <span aria-hidden="true">▶</span>
+                  სესიის გაშვება
                 </button>
-              )}
+              )
+            )}
+            <div className="ss-secondary-row">
               {action.secondary && (
-                <button type="button" className="button ghost" disabled={busy} onClick={action.secondary.run}>
+                <button type="button" className="ss-link" disabled={busy} onClick={action.secondary.run}>
                   {action.secondary.label}
                 </button>
               )}
               {session.status === S.AwaitingConfirmation && isBuyer && (
-                <Link className="button ghost" href="/support">
+                <Link className="ss-link" href="/support">
                   პრობლემის შეტყობინება
                 </Link>
               )}
@@ -307,114 +344,236 @@ export default function CoachingSessionDetail() {
 
         {session.status === S.Cancelled && <p className="le-note warn">სესია გაუქმდა — {session.priceWaveCoin} GEL დაუბრუნდა სტუდენტის ბალანსს.</p>}
 
-        {(isBuyer || isCoach) && <SessionDisputePanel session={session} onChanged={() => load(true)} />}
-        {session.status === S.Completed && (isBuyer || isCoach) && <SessionReview sessionId={session.id} canReview={isBuyer} />}
 
-        <div className="cs-grid">
-          <section className="detail-section cs-card">
-            <h2>დეტალები</h2>
-            <dl className="cs-facts">
+        <section className="ss-card">
+          <h2>დეტალები</h2>
+          {[
+            { role: 'ქოუჩი', name: coachName, username: session.coachUsername, photo: session.coachAvatarUrl, verified: session.coachVerified, badge: '👑' },
+            { role: 'სტუდენტი', name: studentName, username: session.buyerUsername, photo: session.buyerAvatarUrl, verified: false, badge: '👤' },
+          ].map((p) => (
+            <Link key={p.role} href={`/u/${p.username}`} className="ss-person">
+              <span className="ss-person-photo">
+                <Avatar name={p.name} src={p.photo} size={64} />
+                <i aria-hidden="true">{p.badge}</i>
+              </span>
+              <span className="ss-person-copy">
+                <small>{p.role}</small>
+                <strong>
+                  {p.name}
+                  {p.verified && <VerifiedMark size={16} />}
+                </strong>
+                <em>@{p.username}</em>
+              </span>
+              <img className="ss-chevron" src="/assets/ui/chevron.png" alt="" aria-hidden="true" />
+            </Link>
+          ))}
+          <dl className="ss-facts">
+            <div>
+              <dt>
+                <span>
+                  <img src="/assets/ui/calendar.png" alt="" aria-hidden="true" />
+                </span>
+                დრო
+              </dt>
+              <dd>{when(session.scheduledAt)}</dd>
+            </div>
+            <div>
+              <dt>
+                <span>
+                  <img src="/assets/ui/clock.png" alt="" aria-hidden="true" />
+                </span>
+                ხანგრძლივობა
+              </dt>
+              <dd>{session.durationMinutes} წუთი</dd>
+            </div>
+            {session.discord && (
               <div>
-                <dt>დრო</dt>
-                <dd>{when(session.scheduledAt)}</dd>
+                <dt>
+                  <span className="discord">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="currentColor" d="M18.8 5.7A16 16 0 0 0 15 4.5l-.5 1a13.5 13.5 0 0 0-5 0l-.5-1a16 16 0 0 0-3.8 1.2C3.6 8.1 2.8 10.8 2.6 14c1.8 2 3.6 3.1 5.4 3.8l1.3-1.7a11 11 0 0 1-2-1c3 1.4 6.4 1.4 9.4 0-.6.4-1.3.7-2 1l1.3 1.7c1.8-.7 3.6-1.8 5.4-3.8-.2-3.2-1-5.9-2.6-8.3ZM9 13.4c-.7 0-1.3-.7-1.3-1.6s.6-1.6 1.3-1.6 1.3.7 1.3 1.6-.6 1.6-1.3 1.6Zm6 0c-.7 0-1.3-.7-1.3-1.6s.6-1.6 1.3-1.6 1.3.7 1.3 1.6-.6 1.6-1.3 1.6Z" />
+                    </svg>
+                  </span>
+                  Discord
+                </dt>
+                <dd>{session.discord}</dd>
               </div>
+            )}
+          </dl>
+          {(isCoach || isBuyer) && (
+            <button type="button" className="ss-contact" disabled={busy} onClick={messageOtherParty}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+              </svg>
+              {isCoach ? 'მიწერე სტუდენტს' : 'მიერთე ქოუჩს'}
+              <span aria-hidden="true">›</span>
+            </button>
+          )}
+        </section>
+
+        {isCoach && session.status === S.Completed && <StudentBadges studentId={session.buyerId} studentName={studentName} />}
+
+        <section className="ss-card">
+          <h2 className="ss-card-title">
+            <span>
+              <img src="/assets/ui/wallet.png" alt="" aria-hidden="true" />
+            </span>
+            გადახდა
+          </h2>
+          <div className="ss-price-row">
+            <span>სესიის ფასი</span>
+            <b>{session.priceWaveCoin} GEL</b>
+          </div>
+          {isCoach && (
+            <dl className="ss-fee">
               <div>
-                <dt>ხანგრძლივობა</dt>
-                <dd>{session.durationMinutes} წუთი</dd>
+                <dt>{`პლატფორმის საკომისიო (${session.platformFeePercent}%)`}</dt>
+                <dd>{`−${session.platformFeeWaveCoin} GEL`}</dd>
               </div>
-              <div>
-                <dt>ქოუჩი</dt>
-                <dd>
-                  <Link href={`/u/${session.coachUsername}`}>@{session.coachUsername}</Link>
-                </dd>
+              <div className="total">
+                <dt>შენ მიიღებ</dt>
+                <dd>{session.coachPayoutWaveCoin} GEL</dd>
               </div>
-              <div>
-                <dt>სტუდენტი</dt>
-                <dd>
-                  <Link href={`/u/${session.buyerUsername}`}>@{session.buyerUsername}</Link>
-                </dd>
-              </div>
-              {session.discord && (
-                <div>
-                  <dt>Discord</dt>
-                  <dd>
-                    <code>{session.discord}</code>
-                  </dd>
-                </div>
-              )}
             </dl>
-            {(isCoach || isBuyer) && (
-              <button type="button" className="button ghost" disabled={busy} onClick={messageOtherParty}>
-                {isCoach ? 'მიწერე სტუდენტს' : 'მიწერე ქოუჩს'}
-              </button>
+          )}
+          <p className="ss-safe">
+            <img src="/assets/ui/check-circle-green.png" alt="" aria-hidden="true" />
+            {isCoach
+              ? 'თანხა ჩაგერიცხება სტუდენტის დადასტურების შემდეგ და გასატანად ხელმისაწვდომი იქნება 7 დღეში.'
+              : 'თანხა გადახდილია WaveHub-ზე და ქოუჩს გადაეცემა მხოლოდ მას შემდეგ, რაც დაადასტურებ, რომ სესია შედგა.'}
+          </p>
+        </section>
+
+        {(session.goal || session.buyerMessage || hasAnswers) && (
+          <section className="ss-card">
+            <h2 className="ss-card-title">
+              <span>
+                <img src="/assets/ui/wallet-notify.png" alt="" aria-hidden="true" />
+              </span>
+              სტუდენტის მიზანი
+            </h2>
+            {session.goal && (
+              <div className="ss-brief">
+                <span className="ss-brief-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                    <circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                    <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+                  </svg>
+                </span>
+                <span>
+                  <small>მიზანი</small>
+                  <p>{session.goal}</p>
+                </span>
+              </div>
+            )}
+            {session.buyerMessage && (
+              <div className="ss-brief">
+                <span className="ss-brief-icon">
+                  <img src="/assets/ui/chat-notify.png" alt="" aria-hidden="true" />
+                </span>
+                <span>
+                  <small>შეტყობინება</small>
+                  <p>{session.buyerMessage}</p>
+                </span>
+              </div>
+            )}
+            {hasAnswers && (
+              <dl className="cs-answers">
+                {Object.entries(session.answers ?? {}).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{labels[key] ?? key}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
             )}
           </section>
+        )}
 
-          <section className="detail-section cs-card">
-            <h2>გადახდა</h2>
-            <dl className="cs-facts">
-              <div>
-                <dt>სესიის ფასი</dt>
-                <dd>{session.priceWaveCoin} GEL</dd>
-              </div>
-              {isCoach && (
-                <>
-                  <div>
-                    <dt>პლატფორმის საკომისიო ({session.platformFeePercent}%)</dt>
-                    <dd>−{session.platformFeeWaveCoin} GEL</dd>
-                  </div>
-                  <div className="cs-total">
-                    <dt>შენ მიიღებ</dt>
-                    <dd>{session.coachPayoutWaveCoin} GEL</dd>
-                  </div>
-                </>
-              )}
-            </dl>
-            <p className="le-hint">
-              {isCoach
-                ? 'თანხა ჩაგერიცხება სტუდენტის დადასტურების შემდეგ და გასატანად ხელმისაწვდომი იქნება 7 დღეში.'
-                : 'თანხა დაცულია WaveHub-ზე და ქოუჩს გადაეცემა მხოლოდ მას შემდეგ, რაც დაადასტურებ, რომ სესია შედგა.'}
-            </p>
+        {session.challenges && (
+          <section className="ss-card">
+            <h2 className="ss-card-title">
+              <img className="bare" src="/assets/ui/warning.png" alt="" aria-hidden="true" />
+              სირთულეები
+            </h2>
+            <div className="ss-brief warn">
+              <span className="ss-brief-icon">
+                <img src="/assets/ui/warning.png" alt="" aria-hidden="true" />
+              </span>
+              <span>
+                <small>სირთულეები</small>
+                <p>{session.challenges}</p>
+              </span>
+            </div>
           </section>
+        )}
 
-          {(session.goal || session.challenges || session.buyerMessage || hasAnswers) && (
-            <section className="detail-section cs-card cs-wide">
-              <h2>სტუდენტის მიზანი</h2>
-              {/* Each of the student's answers as its own labelled block (client screenshot #7). */}
-              <div className="cs-brief">
-                {session.goal && (
-                  <div className="cs-brief-item is-goal">
-                    <span>🎯 მიზანი</span>
-                    <p>{session.goal}</p>
-                  </div>
-                )}
-                {session.challenges && (
-                  <div className="cs-brief-item">
-                    <span>⚠ სირთულეები</span>
-                    <p>{session.challenges}</p>
-                  </div>
-                )}
-                {session.buyerMessage && (
-                  <div className="cs-brief-item">
-                    <span>✉ შეტყობინება</span>
-                    <p>{session.buyerMessage}</p>
-                  </div>
-                )}
-              </div>
-              {hasAnswers && (
-                <dl className="cs-answers">
-                  {Object.entries(session.answers ?? {}).map(([key, value]) => (
-                    <div key={key}>
-                      <dt>{labels[key] ?? key}</dt>
-                      <dd>{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-            </section>
-          )}
-        </div>
+        {(isBuyer || isCoach) && <SessionDisputePanel session={session} onChanged={() => load(true)} />}
+        {session.status === S.Completed && (isBuyer || isCoach) && <SessionReview sessionId={session.id} canReview={isBuyer} />}
       </div>
     </Layout>
+  )
+}
+
+// A coach's student badges (badges/ spec): "Strongest student" and "Coach's chosen student" for a
+// student with a completed session. The server checks ownership; one chosen student per coach.
+function StudentBadges({ studentId, studentName }: { studentId: string; studentName: string }) {
+  const [held, setHeld] = useState<BadgeKey[] | null>(null)
+  const [status, setStatus] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    api
+      .listMyStudents()
+      .then((rows) => {
+        if (!cancelled) setHeld(rows.find((r) => r.userId === studentId)?.badges ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setHeld([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [studentId])
+  const toggle = async (key: BadgeKey) => {
+    if (!held) return
+    setBusy(true)
+    setStatus('')
+    try {
+      if (held.includes(key)) {
+        await api.coachRevokeBadge(studentId, key)
+        setHeld(held.filter((k) => k !== key))
+      } else {
+        await api.coachGrantBadge(studentId, key)
+        setHeld([...held, key])
+        setStatus(`ბეიჯი „${BADGE_CATALOG[key].label}“ მიენიჭა.`)
+      }
+    } catch (err) {
+      setStatus(errorMessage(err, 'ოპერაცია ვერ შესრულდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <section className="ss-card ss-badges">
+      <h2>{`ბეიჯი სტუდენტს — ${studentName}`}</h2>
+      <p>აღნიშნე შენი სტუდენტის წარმატება — ბეიჯი გამოჩნდება მის პროფილზე.</p>
+      <div>
+        {[BadgeKey.StrongestStudent, BadgeKey.CoachChosenStudent].map((key) => {
+          const on = held?.includes(key) ?? false
+          return (
+            <button key={key} type="button" className={on ? 'on' : undefined} aria-pressed={on} disabled={busy || held === null} onClick={() => void toggle(key)}>
+              <img src={badgeIcon(key)} alt="" aria-hidden="true" />
+              <span>
+                <strong>{BADGE_CATALOG[key].label}</strong>
+                <small>{on ? 'მინიჭებულია — დააჭირე მოსახსნელად' : 'მინიჭება'}</small>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      {status && <p className="ss-badge-status">{status}</p>}
+    </section>
   )
 }

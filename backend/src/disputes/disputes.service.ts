@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { DisputeResolution, DisputeStatus, ListingStatus, ListingType, NotificationType, OrderStatus } from '@wavehub/shared-types';
@@ -14,6 +14,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { StorageService } from '../storage/storage.service';
 import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BadgesService } from '../badges/badges.service';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 const DISPUTE_WINDOW_DAYS = 7;
@@ -50,6 +51,7 @@ export class DisputesService {
     private readonly storage: StorageService,
     private readonly chat: ChatService,
     private readonly notifications: NotificationsService,
+    @Optional() private readonly badges?: BadgesService,
   ) {}
 
   // Same best-effort principle as postChatNotice below — a notification failure must never block
@@ -240,6 +242,7 @@ export class DisputesService {
     });
 
     await this.postChatNotice(order.id, `დავა გადაწყდა: ${note}`);
+    if (resolution === DisputeResolution.ReleaseToSeller) await this.badges?.onOrdersCompleted([order.buyerId, order.sellerId]);
     await this.notify(order.buyerId, NotificationType.DisputeResolved, 'დავა გადაწყდა', `დავა გადაწყდა შეკვეთაზე #${order.orderNumber}: ${note}`, dispute.id);
     await this.notify(order.sellerId, NotificationType.DisputeResolved, 'დავა გადაწყდა', `დავა გადაწყდა შეკვეთაზე #${order.orderNumber}: ${note}`, dispute.id);
     const resolved = await this.disputes.findOne({ where: { id: dispute.id } });

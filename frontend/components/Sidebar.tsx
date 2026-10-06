@@ -33,6 +33,8 @@ const NAV: NavItem[] = [
     iconClass: 'nav-icon-marketplace',
     match: (p) => p === '/marketplace' || p.startsWith('/listings'),
   },
+  // Services have their own page (client feedback #7).
+  { id: 'services', label: 'სერვისები', href: '/services', icon: 'active-services-icon.svg', iconClass: 'nav-icon-marketplace', match: (p) => p === '/services' || p.startsWith('/sell/services') },
   { id: 'steam-keys', label: 'Steam გასაღებები', href: '/steam-keys', icon: 'steam-logo.png', iconClass: 'steam-side-icon', match: (p) => p.startsWith('/steam-keys') || p.startsWith('/sell/digital-keys') },
   { id: 'coaching', label: 'ქოუჩინგი', href: '/coaching', icon: 'sidebar-coaching-icon.svg', iconClass: 'nav-icon-coaching', match: (p) => p.startsWith('/coaching') },
   { id: 'tournaments', label: 'ტურნირები', href: '/tournaments', icon: 'tournaments-icon.svg', iconClass: 'nav-icon-tournaments', match: (p) => p.startsWith('/tournaments') },

@@ -20,6 +20,11 @@ export class PlatformSettings {
   @Column({ type: 'integer', default: 10 })
   platformFeePercent: number;
 
+  // The coaching-session fee (taken from the coach), separate from the marketplace fee
+  // (client feedback #16, 2026-10-04). Snapshotted onto each session at booking.
+  @Column({ type: 'integer', default: 10 })
+  coachingFeePercent: number;
+
   // Was MIN_WITHDRAWAL_WAVECOIN (hardcoded 20) in backend/src/withdrawals/withdrawals.service.ts.
   @Column({ type: 'integer', default: 20 })
   minWithdrawalWaveCoin: number;

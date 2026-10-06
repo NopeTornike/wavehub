@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { type MyProfile, type PublicCoachingSession, type PublicOrderSummary } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import MyListings from '../components/MyListings'
+import FollowLists from '../components/FollowLists'
 import RecordCard from '../components/RecordCard'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -349,7 +350,7 @@ export default function Profile() {
                     key={session.id}
                     href={`/coaching-sessions/${session.id}`}
                     fallback="CS"
-                    title={asCoach ? `სესია — ${session.buyerUsername}` : `სესია — ${session.coachFirstName} ${session.coachLastName}`}
+                    title={asCoach ? `სესია — ${[session.buyerFirstName, session.buyerLastName].filter(Boolean).join(' ') || session.buyerUsername}` : `სესია — ${session.coachFirstName} ${session.coachLastName}`}
                     meta={`${asCoach ? 'ქოუჩი' : 'მყიდველი'} / ${SESSION_STATUS_LABELS[session.status]}`}
                     footer={`${new Date(session.scheduledAt).toLocaleString('ka-GE', { dateStyle: 'medium', timeStyle: 'short' })} / ${session.durationMinutes} წთ / ${session.priceWaveCoin} GEL`}
                   />
@@ -360,6 +361,8 @@ export default function Profile() {
               ქოუჩინგის სესიები ჯერ არ არის.
             </div>
           </section>
+
+          <FollowLists />
 
           <section className="profile-record-section" aria-labelledby="profilePurchasesTitle">
             <div className="section-heading">

@@ -76,12 +76,25 @@ export default function Dashboard() {
     if (checked && !user) router.replace('/login?next=/dashboard')
   }, [checked, user, router])
 
+  // Sessions change server-side as time passes (start window closes, sessions start/finish), so
+  // they're refetched every minute and as soon as the shown countdown runs out (client feedback
+  // #4: with two sessions the card went blank instead of moving on to the next one).
+  const [sessionsTick, setSessionsTick] = useState(0)
   useEffect(() => {
     if (!userId) return
     // Both sides: a coach's next session is one a student booked with them.
     Promise.all([api.listMySessionsAsBuyer().catch(() => []), api.listMySessionsAsCoach().catch(() => [])]).then(([asBuyer, asCoach]) =>
       setSessions([...asBuyer, ...asCoach]),
     )
+  }, [userId, sessionsTick])
+  useEffect(() => {
+    if (!userId) return
+    const timer = window.setInterval(() => setSessionsTick((t) => t + 1), 60_000)
+    return () => window.clearInterval(timer)
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) return
     Promise.all([api.listOrdersAsBuyer().catch(() => []), api.listOrdersAsSeller().catch(() => [])]).then(([bought, sold]) =>
       setOrders([...bought, ...sold].sort((a, b) => b.createdAt.localeCompare(a.createdAt))),
     )
@@ -89,16 +102,20 @@ export default function Dashboard() {
   }, [userId])
 
   const now = useNow(true)
+  // Live sessions first (in progress / waiting for confirmation / disputed), then scheduled ones
+  // whose start can still be confirmed (the server's startDeadline) — soonest first.
+  const LIVE = [CoachingSessionStatus.InProgress, CoachingSessionStatus.AwaitingConfirmation, CoachingSessionStatus.Disputed]
   const upcoming = (sessions ?? [])
-    .filter(
-      (s) =>
-        s.status === CoachingSessionStatus.InProgress ||
-        s.status === CoachingSessionStatus.AwaitingConfirmation ||
-        s.status === CoachingSessionStatus.Disputed ||
-        (s.status === CoachingSessionStatus.Scheduled && new Date(s.scheduledAt).getTime() > now - 3_600_000),
-    )
-    .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
+    .filter((s) => LIVE.includes(s.status) || (s.status === CoachingSessionStatus.Scheduled && new Date(s.startDeadline).getTime() > now))
+    .sort((a, b) => Number(LIVE.includes(b.status)) - Number(LIVE.includes(a.status)) || a.scheduledAt.localeCompare(b.scheduledAt))
   const next = upcoming[0] ?? null
+  // The shown session's start just passed — refetch so the card reflects the server's state.
+  const nextStartPassed = !!next && next.status === CoachingSessionStatus.Scheduled && new Date(next.scheduledAt).getTime() <= now
+  useEffect(() => {
+    // A refetch trigger on a time edge, not derived state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (nextStartPassed) setSessionsTick((t) => t + 1)
+  }, [nextStartPassed])
 
   useEffect(() => {
     if (!next) return

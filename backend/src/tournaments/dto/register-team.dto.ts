@@ -17,8 +17,16 @@ export class PlayerFieldsDto {
   inGameId: string;
 }
 
+// A Discord contact: an invite link (discord.gg/…, discord.com/invite/…) or a Discord username.
+export const DISCORD_CONTACT = /^(https:\/\/(discord\.gg|(www\.)?discord\.com\/invite)\/[A-Za-z0-9-]{2,40}|[a-z0-9_.]{2,32})$/;
+
 // Solo tournaments (teamSize 1).
-export class RegisterSoloDto extends PlayerFieldsDto {}
+export class RegisterSoloDto extends PlayerFieldsDto {
+  // Client feedback #6: staff reach registrants on Discord.
+  @IsString()
+  @Matches(DISCORD_CONTACT, { message: 'Enter a Discord invite link (https://discord.gg/…) or a Discord username' })
+  discord: string;
+}
 
 // One teammate: a WaveHub account (username or account id) plus their in-game fields.
 export class TeamPlayerDto extends PlayerFieldsDto {
@@ -34,6 +42,11 @@ export class RegisterTeamDto {
   @IsString()
   @Length(2, 30)
   name: string;
+
+  // The team's Discord (invite link or the captain's username) — client feedback #6.
+  @IsString()
+  @Matches(DISCORD_CONTACT, { message: 'Enter a Discord invite link (https://discord.gg/…) or a Discord username' })
+  discord: string;
 
   @IsOptional()
   @IsString()
