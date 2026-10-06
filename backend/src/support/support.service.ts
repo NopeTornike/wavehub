@@ -190,15 +190,19 @@ export class SupportService {
       createdAt: ticket.createdAt.toISOString(),
       updatedAt: ticket.updatedAt.toISOString(),
       closedAt: ticket.closedAt ? ticket.closedAt.toISOString() : null,
-      messages: messages.map((m) => this.toPublicMessage(m)),
+      messages: messages.map((m) => this.toPublicMessage(m, ticket.requesterId)),
     };
   }
 
-  private toPublicMessage(message: TicketMessage): PublicTicketMessage {
+  private toPublicMessage(message: TicketMessage, requesterId: string): PublicTicketMessage {
     return {
       id: message.id,
       senderId: message.senderId,
       senderUsername: message.sender.username,
+      senderFirstName: message.sender.firstName,
+      senderLastName: message.sender.lastName,
+      senderAvatarUrl: message.sender.avatarUrl ?? null,
+      fromSupport: message.senderId !== requesterId,
       body: message.body,
       isInternalNote: message.isInternalNote,
       createdAt: message.createdAt.toISOString(),

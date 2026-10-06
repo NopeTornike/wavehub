@@ -329,7 +329,7 @@ export default function Dashboard() {
                 <small>რანგი</small>
                 {waveRank && <RankIcon name={waveRank.name} className="db-rank-icon" />}
                 <strong>{waveRank?.name ?? '—'}</strong>
-                <small>Wave Score</small>
+                <small>Wave ქულა</small>
                 <b>{waveRank?.score ?? 0}</b>
                 {waveRank && (
                   <>

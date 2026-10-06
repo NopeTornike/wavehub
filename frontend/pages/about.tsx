@@ -7,10 +7,10 @@ import Layout from '../components/Layout'
 // marketplace/coaching/tournaments/keys, support tickets). The longer company text lives in the
 // admin-editable CMS page at /pages/about (footer → "ჩვენ შესახებ").
 const FEATURES = [
-  { tone: 'is-pink', icon: 'payments', glyph: '▣', label: 'Protected payments icon', title: 'დაცული გადახდები', text: 'Secure escrow system keeps your payments safe until the order is completed.' },
-  { tone: 'is-purple', icon: 'verified', glyph: '✓', label: 'Verified sellers and coaches icon', title: 'ვერიფიცირებული გამყიდველები და ქოუჩები', text: 'All sellers and coaches are carefully verified to ensure a safe and trusted experience.' },
-  { tone: 'is-violet', icon: 'services', glyph: '＋', label: 'Gaming and digital services icon', title: 'გეიმინგ და ციფრული სერვისები', text: 'Marketplace, coaching, tournaments, game keys and digital services — all in one place.' },
-  { tone: 'is-blue', icon: 'support', glyph: '?', label: 'Fast support icon', title: 'სწრაფი საფორთი', text: 'Our support team is always ready to help you, 24/7. Quick answers, real support, real people.' },
+  { tone: 'is-pink', icon: 'payments', glyph: '▣', label: 'Protected payments icon', title: 'დაცული გადახდები', text: 'ესქროუ სისტემა თქვენს თანხას იცავს, სანამ შეკვეთა არ დასრულდება.' },
+  { tone: 'is-purple', icon: 'verified', glyph: '✓', label: 'Verified sellers and coaches icon', title: 'ვერიფიცირებული გამყიდველები და ქოუჩები', text: 'ყველა გამყიდველი და ქოუჩი გულდასმით მოწმდება, რომ გამოცდილება იყოს უსაფრთხო და სანდო.' },
+  { tone: 'is-violet', icon: 'services', glyph: '＋', label: 'Gaming and digital services icon', title: 'გეიმინგ და ციფრული სერვისები', text: 'მარკეტი, ქოუჩინგი, ტურნირები, თამაშის გასაღებები და ციფრული სერვისები — ყველაფერი ერთ სივრცეში.' },
+  { tone: 'is-blue', icon: 'support', glyph: '?', label: 'Fast support icon', title: 'სწრაფი მხარდაჭერა', text: 'ჩვენი მხარდაჭერის გუნდი ყოველთვის მზადაა დაგეხმაროთ, 24/7. სწრაფი პასუხები, რეალური ადამიანები.' },
 ]
 
 export default function About() {

@@ -36,7 +36,7 @@ function SteamCard({ listing, size }: { listing: PublicListingSummary; size: 'lg
     <article className={`sg-card ${size}${inStock ? '' : ' out'}`}>
       <Link className="sg-cover" href={href} style={cover ? { backgroundImage: `url('${cover}')` } : undefined} aria-label={listing.title}>
         <span className="sg-pill">
-          <img src="/assets/steam-logo.png" alt="" /> STEAM KEY
+          <img src="/assets/steam-logo.png" alt="" /> STEAM გასაღები
         </span>
         <span className={`sg-stock${inStock ? '' : ' out'}`}>
           <i aria-hidden="true"></i>

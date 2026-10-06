@@ -40,17 +40,17 @@ type DetailField = { id: string; label: string }
 const DETAIL_FIELDS = GAME_DETAILS as unknown as Record<string, { title: string; fields: DetailField[] }>
 
 const ACCESS_FIELDS: Array<{ key: string; label: string; format?: (v: unknown) => string }> = [
-  { key: 'loginMethod', label: 'Login Method' },
-  { key: 'emailChangeable', label: 'Email Changeable', format: (v) => (v ? 'Yes' : 'No') },
-  { key: 'originalEmail', label: 'Original Email Available', format: (v) => (v ? 'Yes' : 'No') },
-  { key: 'fullAccess', label: 'Full Access Provided', format: (v) => (v ? 'Yes' : 'No') },
+  { key: 'loginMethod', label: 'შესვლის მეთოდი' },
+  { key: 'emailChangeable', label: 'იმეილის შეცვლა შესაძლებელია', format: (v) => (v ? 'კი' : 'არა') },
+  { key: 'originalEmail', label: 'ორიგინალი იმეილი', format: (v) => (v ? 'კი' : 'არა') },
+  { key: 'fullAccess', label: 'სრული წვდომა', format: (v) => (v ? 'კი' : 'არა') },
   {
     key: 'twoFactor',
-    label: 'Two-Factor Authentication',
-    format: (v) => (v === 'enabled' ? 'Enabled' : v === 'disabled' ? 'Disabled' : v === 'removable' ? 'Enabled, removable' : String(v)),
+    label: 'ორფაქტორიანი ავთენტიფიკაცია',
+    format: (v) => (v === 'enabled' ? 'ჩართულია' : v === 'disabled' ? 'გამორთულია' : v === 'removable' ? 'ჩართულია, მოხსნადი' : String(v)),
   },
-  { key: 'deliveryMethod', label: 'Delivery Method' },
-  { key: 'deliveryTime', label: 'Delivery Time', format: (v) => deliveryTimeLabel(String(v)) },
+  { key: 'deliveryMethod', label: 'მიწოდების მეთოდი' },
+  { key: 'deliveryTime', label: 'მიწოდების დრო', format: (v) => deliveryTimeLabel(String(v)) },
 ]
 
 function initials(first?: string, last?: string) {
@@ -174,7 +174,7 @@ export default function ListingDetail() {
       <Layout title={loading ? 'განცხადება' : 'განცხადება ვერ მოიძებნა'} noIndex={!loading}>
         <section className="detail-page">
           <div className="marketplace-empty" id="detailEmpty">
-            {loading ? 'იტვირთება…' : error || 'Offer not found.'}
+            {loading ? 'იტვირთება…' : error || 'განცხადება ვერ მოიძებნა.'}
           </div>
         </section>
       </Layout>
@@ -195,7 +195,7 @@ export default function ListingDetail() {
   const selectedPackage = listing.packages.find((pkg) => pkg.id === selectedPackageId) ?? null
   const price = listing.type === ListingType.Service ? selectedPackage?.priceWaveCoin ?? null : listing.priceWaveCoin
   const sellerName = [listing.seller.firstName, listing.seller.lastName].filter(Boolean).join(' ') || listing.seller.username
-  const kindLabel = kind === 'account' ? 'Account' : kind === 'skin' ? 'Skin' : kind === 'item' ? 'Item' : kind === 'service' ? 'Service' : 'Steam Key'
+  const kindLabel = kind === 'account' ? 'ანგარიში' : kind === 'skin' ? 'სკინი' : kind === 'item' ? 'ნივთი' : kind === 'service' ? 'სერვისი' : 'Steam გასაღები'
   const tag =
     kind === 'account' ? accountStatusLabel(attrs.accountStatus) : kind === 'skin' ? 'სკინი' : kind === 'item' ? 'ნივთი' : kind === 'service' ? listing.category.name : 'Steam გასაღები'
   const delivery =
@@ -333,7 +333,7 @@ export default function ListingDetail() {
 
             <div className="detail-title-block">
               <p className="section-kicker" id="detailKicker">
-                {kindLabel} detail
+                {`${kindLabel} — დეტალები`}
               </p>
               <div className="detail-heading-row">
                 {gameIcon(slug) && <img className="detail-title-game-icon" id="detailTitleGameIcon" src={gameIcon(slug) ?? undefined} alt={`${listing.game?.name} icon`} />}
@@ -347,7 +347,7 @@ export default function ListingDetail() {
             <div className="detail-tab-panels">
               <section className="detail-tab-panel detail-info-grid" id="detailOverview">
                 <section className="detail-section detail-summary-card" aria-labelledby="detailInfoTitle">
-                  <h2 id="detailInfoTitle">About This {kindLabel}</h2>
+                  <h2 id="detailInfoTitle">აღწერა</h2>
                   <p id="detailLongDescription" style={{ whiteSpace: 'pre-line' }}>
                     {listing.description}
                   </p>
@@ -357,7 +357,7 @@ export default function ListingDetail() {
               <section className="detail-tab-panel detail-info-grid" id="detailDetails">
                 {gameSpecific.length > 0 && (
                   <section className="detail-section detail-game-specific-card" id="detailGameSpecific" aria-labelledby="detailGameSpecificTitle">
-                    <h2 id="detailGameSpecificTitle">{listing.game?.name} Details</h2>
+                    <h2 id="detailGameSpecificTitle">{`${listing.game?.name ?? ''} — დეტალები`}</h2>
                     <div className="detail-meta-grid detail-game-specific-grid" id="detailGameSpecificGrid">
                       {gameSpecific.map(([label, value]) => (
                         <div key={label}>
@@ -371,11 +371,11 @@ export default function ListingDetail() {
 
                 {kind === 'account' && (
                   <section className="detail-section detail-access-card" id="detailAccessCard" aria-labelledby="detailAccessTitle">
-                    <h2 id="detailAccessTitle">Access &amp; Delivery</h2>
+                    <h2 id="detailAccessTitle">წვდომა და მიწოდება</h2>
                     <div className="detail-facts-grid" id="detailAccessGrid">
                       {ACCESS_FIELDS.map((field) => {
                         const value = attrs[field.key]
-                        const shown = value === undefined || value === '' ? 'Not specified' : field.format ? field.format(value) : String(value)
+                        const shown = value === undefined || value === '' ? 'არ არის მითითებული' : field.format ? field.format(value) : String(value)
                         return (
                           <div key={field.key}>
                             <span>{field.label}</span>
@@ -384,8 +384,8 @@ export default function ListingDetail() {
                         )
                       })}
                       <div>
-                        <span>Platform / Region</span>
-                        <strong>{platformRegion || 'Not specified'}</strong>
+                        <span>პლატფორმა / რეგიონი</span>
+                        <strong>{platformRegion || 'არ არის მითითებული'}</strong>
                       </div>
                     </div>
                   </section>
@@ -393,7 +393,7 @@ export default function ListingDetail() {
 
                 {attrs.linkedAccounts && (
                   <section className="detail-section detail-linked-card" id="detailLinkedCard" aria-labelledby="detailLinkedTitle">
-                    <h2 id="detailLinkedTitle">Linked Accounts</h2>
+                    <h2 id="detailLinkedTitle">დაკავშირებული ანგარიშები</h2>
                     <div className="detail-linked-grid" id="detailLinkedGrid">
                       {String(attrs.linkedAccounts)
                         .split(',')
@@ -600,7 +600,7 @@ export default function ListingDetail() {
             <div className="detail-buy-scores" aria-label="Marketplace scores">
               <div className="detail-icon-score detail-rating-score">
                 <img className="detail-score-icon" src="/assets/seller-rating-star-icon.png" alt="" aria-hidden="true" />
-                <span>Product Rating</span>
+                <span>პროდუქტის რეიტინგი</span>
                 <strong id="detailSideSellerScore">{rating !== null && listing.ratingCount > 0 ? rating.toFixed(1) : '-'}</strong>
                 <small id="detailSideSellerScoreLabel">{listing.ratingCount > 0 ? `${listing.ratingCount} შეფასება` : 'შეფასება არ არის'}</small>
               </div>
@@ -608,19 +608,19 @@ export default function ListingDetail() {
                 <img className="detail-score-icon" src="/assets/favorites-score-icon.svg" alt="" aria-hidden="true" />
                 <span>რჩეულები</span>
                 <strong id="detailSideQualityScore">{favoriteCount}</strong>
-                <small id="detailSideQualityScoreLabel">{favoriteCount === 1 ? 'saved' : 'saves'}</small>
+                <small id="detailSideQualityScoreLabel">შენახვა</small>
               </div>
               <div className="detail-icon-score detail-completed-score">
                 <img className="detail-score-icon" src="/assets/completed-orders-icon.svg" alt="" aria-hidden="true" />
-                <span>Completed Orders</span>
+                <span>დასრულებული შეკვეთები</span>
                 <strong id="detailCompletedOrders">{listing.ordersCount}</strong>
-                <small>real orders</small>
+                <small>რეალური შეკვეთები</small>
               </div>
               <div className="detail-icon-score detail-response-score">
                 <img className="detail-score-icon" src="/assets/avg-response-time-icon.svg" alt="" aria-hidden="true" />
-                <span>Avg. Response Time</span>
-                <strong id="detailResponseTime">Not specified</strong>
-                <small>seller response</small>
+                <span>პასუხის საშ. დრო</span>
+                <strong id="detailResponseTime">—</strong>
+                <small>გამყიდველის პასუხი</small>
               </div>
             </div>
 
@@ -719,8 +719,8 @@ export default function ListingDetail() {
               {status.text}
             </p>
             <div className="detail-protection">
-              <strong>WaveHub Protection</strong>
-              <span>This order is protected by seller confirmation and WaveHub order history.</span>
+              <strong>WaveHub-ის დაცვა</strong>
+              <span>შეკვეთა დაცულია: თანხა გამყიდველს მხოლოდ თქვენი დადასტურების შემდეგ ერიცხება.</span>
             </div>
           </aside>
 

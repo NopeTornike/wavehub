@@ -63,6 +63,9 @@ export class CoachingSessionDisputesService {
       messages: rows.map((m) => ({
         id: m.id,
         senderUsername: m.isStaff ? 'WaveHub' : m.sender.username,
+        senderFirstName: m.isStaff ? '' : m.sender.firstName,
+        senderLastName: m.isStaff ? '' : m.sender.lastName,
+        senderAvatarUrl: m.isStaff ? null : (m.sender.avatarUrl ?? null),
         isStaff: m.isStaff,
         body: m.body,
         fileUrl: m.fileUrl,

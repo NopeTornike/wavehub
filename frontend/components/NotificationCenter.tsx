@@ -135,6 +135,7 @@ export default function NotificationCenter({
                   <small>{item.body}</small>
                   <time dateTime={item.createdAt}>{formatTime(item.createdAt)}</time>
                 </span>
+                <img className="notification-center-chevron" src="/assets/ui/chevron-right.png" alt="" aria-hidden="true" />
               </Link>
             )
           })

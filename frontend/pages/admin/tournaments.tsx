@@ -165,7 +165,7 @@ function TournamentFields({
         </div>
       </details>
       <details className="field" open>
-        <summary>ფორმატი, ინფორმაცია და წესები (ცარიელი ველი საჯაროდ ჩანს როგორც „To be announced“)</summary>
+        <summary>ფორმატი, ინფორმაცია და წესები (ცარიელი ველი საჯაროდ ჩანს როგორც „მალე გამოცხადდება“)</summary>
         <div className="stack-form-grid">
           {TOURNAMENT_DETAIL_KEYS.map(([key, label]) => (
             <label key={key} className="field" htmlFor={`${idPrefix}-d-${key}`}>

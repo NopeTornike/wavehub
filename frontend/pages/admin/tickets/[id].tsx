@@ -180,7 +180,11 @@ export default function AdminTicketDetail() {
                   key={message.id}
                   className={`chat-message${message.isInternalNote ? ' chat-message-system' : message.senderId === me?.id ? ' chat-message-mine' : ''}`}
                 >
-                  <strong>{message.isInternalNote ? '🔒 შიდა შენიშვნა — ' : ''}@{message.senderUsername}: </strong>
+                  <strong>
+                    {message.isInternalNote ? '🔒 შიდა შენიშვნა — ' : ''}
+                    {message.fromSupport ? 'Support — ' : ''}
+                    {[message.senderFirstName, message.senderLastName].filter(Boolean).join(' ') || message.senderUsername} (@{message.senderUsername}):{' '}
+                  </strong>
                   {message.body}
                 </div>
               ))}

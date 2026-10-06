@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { CoachingSessionStatus, type PublicCoachingSession, type PublicSessionDispute } from '@wavehub/shared-types'
 import { api, errorMessage } from '../lib/api'
+import Avatar, { displayName } from './Avatar'
 
 // Session dispute (backend/src/coaching/coaching-session-disputes.*): a participant opens one while
 // the session is in progress or awaiting confirmation; the money is frozen until WaveHub staff
@@ -121,7 +122,16 @@ export default function SessionDisputePanel({ session, onChanged }: { session: P
       <ol className="sd-messages">
         {dispute.messages.map((m) => (
           <li key={m.id} className={m.isStaff ? 'staff' : undefined}>
-            <strong>{m.isStaff ? 'WaveHub გუნდი' : `@${m.senderUsername}`}</strong>
+            <strong className="od-msg-sender">
+              {m.isStaff ? (
+                'WaveHubX Support'
+              ) : (
+                <>
+                  <Avatar name={displayName({ firstName: m.senderFirstName, lastName: m.senderLastName, username: m.senderUsername })} src={m.senderAvatarUrl} size={24} />
+                  {displayName({ firstName: m.senderFirstName, lastName: m.senderLastName, username: m.senderUsername })}
+                </>
+              )}
+            </strong>
             <time>{fmt(m.createdAt)}</time>
             {m.body && <p>{m.body}</p>}
             {m.fileUrl && (

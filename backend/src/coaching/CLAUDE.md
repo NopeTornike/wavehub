@@ -390,3 +390,6 @@ account stays. Audited (`coach.delete`, with username/status).
   `buyerAvatarUrl`, shown on `/coaching/[id]` instead of `@handle`.
 - The home coach carousel opens on the middle coach on phones.
 - Coach cards say "ვერიფიცირებული ქოუჩი" (it was English).
+
+- Session dispute messages carry the participant's name and photo. Staff stay anonymous (empty
+  names); the label is "WaveHubX Support" (was "WaveHub გუნდი").

@@ -31,7 +31,7 @@ const FACTS: Array<[key: string, icon: string]> = [
 ]
 const INFO_KEYS = ['teamSize', 'minimumRank', 'bracketType', 'matches', 'whoCanJoin', 'communication']
 const LABEL = Object.fromEntries(TOURNAMENT_DETAIL_KEYS.map(([k, l]) => [k, l]))
-const TBA = 'To be announced'
+const TBA = 'მალე გამოცხადდება'
 
 // "Title: description" per line (docs/design-mockups/13); a line without a colon is a description.
 function parseRules(text: string | null): Array<{ title: string; description: string }> {
@@ -512,7 +512,7 @@ export default function TournamentDetail() {
                     <p style={{ whiteSpace: 'pre-line' }}>{t.description}</p>
                     <div>
                       <small>ორგანიზატორი</small>
-                      <strong>{details.organizer || 'WaveHubX Official'}</strong>
+                      <strong>{details.organizer || 'WaveHubX (ოფიციალური)'}</strong>
                       <Link href={me ? '/support' : '/login?next=/support'}>ორგანიზატორთან დაკავშირება</Link>
                     </div>
                   </div>

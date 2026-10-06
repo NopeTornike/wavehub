@@ -216,7 +216,7 @@ export default function PublicProfile() {
             )}
           </div>
           <aside className="up-rank">
-            <small>WAVE RANK</small>
+            <small>WAVE რანკი</small>
             <div>
               <span className="up-rank-gem" aria-hidden="true">
                 <RankIcon name={p.waveRank.name} className="" />
@@ -249,7 +249,7 @@ export default function PublicProfile() {
             [
               ['users', String(p.followers), 'გამომწერი'],
               ['user', String(p.following), 'გამოწერილი'],
-              ['chart', String(Math.round(p.waveRank.score)), 'Wave Score'],
+              ['chart', String(Math.round(p.waveRank.score)), 'Wave ქულა'],
               ['star', rating === null ? '—' : rating.toFixed(1), 'რეიტინგი'],
             ] as const
           ).map(([icon, value, label]) => (

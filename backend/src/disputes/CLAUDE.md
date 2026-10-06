@@ -132,3 +132,7 @@ message-thread/evidence panel as before, **plus** a resolve form (three buttons,
 — that page's dispute-loading logic now falls back to the admin-only `GET disputes/:orderId` route
 when the participant-only `getDispute` 403s, so a Super Admin viewing an order they aren't the
 buyer/seller of can still see the thread. See `frontend/CLAUDE.md`.
+
+## 2026-10-07
+`PublicDisputeMessage` carries `senderFirstName`, `senderLastName`, `senderAvatarUrl`. The order
+page shows the other side by photo + name.

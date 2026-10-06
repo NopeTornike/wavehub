@@ -109,3 +109,14 @@ via `updateTicket`, not a dedicated route with its own semantics), and note-owne
 ## Subscription perk: priority support
 `createTicket` opens the ticket as `TicketPriority.High` when the requester has an active/past_due
 plan (either audience) with `perks.prioritySupport`; otherwise the entity default (Medium).
+
+## 2026-10-07 Sender identity in threads
+`PublicTicketMessage` carries `senderFirstName`, `senderLastName`, `senderAvatarUrl` and
+`fromSupport`.
+- `fromSupport` = the sender isn't the ticket's requester (only the requester and staff post). It is
+  derived, so no admin role is exposed.
+- `/support/[id]` shows each message by photo + full name with the @username small underneath.
+  Staff appear as "WaveHubX Support — First Last" (WHX logo when they have no photo, username
+  hidden).
+- Admin → Tickets shows "Name (@username)".
+- Covered in `test/support-notifications-settings.e2e-spec.ts`, including a privacy assertion.

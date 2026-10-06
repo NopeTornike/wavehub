@@ -85,6 +85,12 @@ describe('support, notifications and platform settings (e2e)', () => {
       const visible = await buyer.client.get(`/tickets/mine/${id}`);
       expect(JSON.stringify(visible.body)).toContain('We are looking into it.');
       expect(JSON.stringify(visible.body)).not.toContain('SECRET-INTERNAL-NOTE');
+      // Each message names its sender (client 2026-10-07): the requester by name, staff flagged as
+      // support — no role, email or balance is exposed.
+      const [first, staffReply] = visible.body.messages;
+      expect(first).toMatchObject({ senderFirstName: 'Test', senderLastName: 'User', fromSupport: false });
+      expect(staffReply).toMatchObject({ senderUsername: specialist.username, fromSupport: true });
+      expect(JSON.stringify(visible.body.messages)).not.toMatch(/adminRole|email|wavecoinBalance|passwordHash|support_specialist/);
       expect(JSON.stringify((await specialist.client.get(`/admin/tickets/${id}`)).body)).toContain('SECRET-INTERNAL-NOTE');
 
       // Close, then a requester reply reopens it.

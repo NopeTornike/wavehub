@@ -115,7 +115,7 @@ export default function SteamGameDetail({
   const trailer = text('trailerUrl')
   const trailerOk = trailer && TRAILER_URL.test(trailer) ? trailer : null
   const inCart = cart.has(listing.id)
-  const NS = 'Not specified'
+  const NS = 'არ არის მითითებული'
 
   const facts: Array<[icon: string, label: string, value: ReactNode, tone?: string]> = [
     ['steam', 'პლატფორმა', 'Steam'],
@@ -198,7 +198,7 @@ export default function SteamGameDetail({
           <article className="sd-buy">
             <div className="sd-badges">
               <span>
-                <img src="/assets/steam-logo.png" alt="" /> STEAM KEY
+                <img src="/assets/steam-logo.png" alt="" /> STEAM გასაღები
               </span>
               <span className={inStock ? 'green' : 'red'}>
                 <i aria-hidden="true"></i>

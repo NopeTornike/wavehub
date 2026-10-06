@@ -1,4 +1,5 @@
 import { TicketCategory, TicketStatus } from '@wavehub/shared-types'
+import { kaDateTime } from './dates'
 
 // Labels + icons shared by the user-facing support pages (pages/support/*).
 
@@ -39,6 +40,7 @@ export function CategoryIcon({ category }: { category: TicketCategory }) {
   )
 }
 
+// Georgian by hand (lib/dates.ts) — browsers without ka-GE locale data printed English.
 export function formatTicketDate(iso: string): string {
-  return new Date(iso).toLocaleString('ka-GE', { dateStyle: 'medium', timeStyle: 'short' })
+  return kaDateTime(iso)
 }

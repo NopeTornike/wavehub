@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -282,7 +283,8 @@ export default function Messages() {
                 onKeyDown={onDraftKeyDown}
               />
               <button type="submit" disabled={!selected || sending || !draft.trim()}>
-                {sending ? 'იგზავნება…' : 'გაგზავნა'} <span aria-hidden="true">→</span>
+                <img className="dm-send-icon" src="/assets/ui/send-pink.png" alt="" aria-hidden="true" />
+                {sending ? 'იგზავნება…' : 'გაგზავნა'}
               </button>
             </form>
 

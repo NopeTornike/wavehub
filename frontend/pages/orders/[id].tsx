@@ -538,7 +538,10 @@ export default function OrderDetail() {
               </li>
             ))}
           </ol>
-          {order.deliveryDueAt && !order.completedAt && !order.cancelledAt && <p className="od-note">მიწოდების ვადა: {formatWhen(order.deliveryDueAt)}</p>}
+          {order.deliveryDueAt && !order.completedAt && !order.cancelledAt && <p className="od-note">
+              <img src="/assets/ui/info-pink.png" alt="" aria-hidden="true" />
+              მიწოდების ვადა: {formatWhen(order.deliveryDueAt)}
+            </p>}
           {order.cancellationReason && <p className="od-note">გაუქმების მიზეზი: {order.cancellationReason}</p>}
           {order.revisionReason && <p className="od-note">გადასამუშავებელი შენიშვნა: {order.revisionReason}</p>}
         </section>
@@ -548,11 +551,13 @@ export default function OrderDetail() {
           <section className="od-actions">
             {isSeller && order.status === OrderStatus.Paid && (
               <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.startOrder(order.id))}>
+                <img className="od-icon-invert" src="/assets/ui/check-solid.png" alt="" aria-hidden="true" />
                 სამუშაოს დაწყება
               </button>
             )}
             {isSeller && order.status === OrderStatus.InProgress && (
               <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.deliverOrder(order.id))}>
+                <img className="od-icon-invert" src="/assets/ui/check-solid.png" alt="" aria-hidden="true" />
                 მიწოდებულად მონიშვნა
               </button>
             )}
@@ -578,6 +583,7 @@ export default function OrderDetail() {
             )}
             {isBuyer && order.status === OrderStatus.Paid && (
               <button type="button" className="od-btn" disabled={busy} onClick={() => runAction(() => api.cancelOrderAsBuyer(order.id))}>
+                <img src="/assets/ui/x-circle.png" alt="" aria-hidden="true" />
                 შეკვეთის გაუქმება
               </button>
             )}
@@ -591,6 +597,7 @@ export default function OrderDetail() {
               >
                 <input placeholder="გაუქმების მიზეზი" aria-label="გაუქმების მიზეზი" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} required />
                 <button className="od-btn" type="submit" disabled={busy}>
+                  <img src="/assets/ui/x-circle.png" alt="" aria-hidden="true" />
                   გაუქმება
                 </button>
               </form>
@@ -664,7 +671,10 @@ export default function OrderDetail() {
 
         {!isKey && (
           <section className="od-section">
-            <h2>მიწოდებული ფაილები</h2>
+            <h2 className="od-files-title">
+              <img src="/assets/ui/paperclip.png" alt="" aria-hidden="true" />
+              მიწოდებული ფაილები
+            </h2>
             {order.deliveryFiles.length === 0 ? (
               <p className="od-empty-line">
                 <img src="/assets/ui/file-light.png" alt="" aria-hidden="true" />
@@ -858,7 +868,16 @@ export default function OrderDetail() {
                   ) : (
                     dispute.messages.map((message) => (
                       <div key={message.id} className={`od-msg${message.senderId === me?.id ? ' mine' : ''}`}>
-                        {message.senderId !== me?.id && <strong>{message.senderUsername}</strong>}
+                        {message.senderId !== me?.id && (
+                          <strong className="od-msg-sender">
+                            <Avatar
+                              name={displayName({ firstName: message.senderFirstName, lastName: message.senderLastName, username: message.senderUsername })}
+                              src={message.senderAvatarUrl}
+                              size={24}
+                            />
+                            {displayName({ firstName: message.senderFirstName, lastName: message.senderLastName, username: message.senderUsername })}
+                          </strong>
+                        )}
                         <p>{message.body}</p>
                       </div>
                     ))

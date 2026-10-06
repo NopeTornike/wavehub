@@ -188,6 +188,7 @@ export default function Orders() {
           })}
         </div>
         <div className="orders-empty" id="ordersEmpty" hidden={rows === null || shown.length > 0}>
+          <img className="orders-empty-icon" src="/assets/ui/bag-light.png" alt="" aria-hidden="true" />
           <strong>შეკვეთები ვერ მოიძებნა</strong>
           <p>თქვენი შესაბამისი შეკვეთები აქ გამოჩნდება.</p>
         </div>

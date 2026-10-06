@@ -1007,3 +1007,31 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   coaching and tournaments.
 - **Admin**: banner placements; subscription plan edit form.
 - **Reviews** on `/u/[username]` and `/coaching/[id]` show the reviewer's photo + full name.
+
+## 2026-10-07 Final sweep (visual + icons)
+- **Site icon**: the owner's WHX logo, served as `public/favicon.ico` (48px) and
+  `public/assets/whx-icon-{32,48,180,192,512}.png`, linked in `_document.tsx` (`?v=5` busts caches).
+  `whx-icon-48.png` is also the support avatar fallback.
+- **Owner icon audit**: every provided icon is in `public/assets/ui/`. Deliberately not used: a mask
+  icon, a plain black star, and plain black dots (status dots are CSS). The last unused ones are now
+  placed:
+  - x-circle — cancel buttons;
+  - check-solid — the seller's start / deliver buttons;
+  - chevron-right — notification rows;
+  - send-pink — the DM send button;
+  - paperclip — delivered files;
+  - info-pink — order deadline notes;
+  - bag-light — empty orders.
+- **Automated sweep** (iframe checker at 360 / 375 / 391 / 1280px over ~40 pages). It flags
+  horizontal overflow, children spilling out of cards, clipped text, broken images, non-round
+  avatars and English text nodes. Fixed:
+  - Escrow explainer steps spilling: the box is a size container, and below 620px the tiles wrap
+    3 + 2;
+  - `/profile` grid 12px too wide;
+  - support-thread avatar stretched (`> span` rules must use `:not(.wh-avatar)`);
+  - English UI labels on the listing detail, Steam, tournament facts (`TOURNAMENT_DETAIL_KEYS`
+    labels are Georgian now), Wave Score / rank labels and `/about`.
+  - User-entered text (titles, names, CMS policy copy) stays as written.
+- Support / dispute threads: photo + full name (see `backend/src/support/CLAUDE.md`).
+- `lib/support.tsx#formatTicketDate` and message bubbles use the manual Georgian date helpers.
+

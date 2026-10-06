@@ -21476,3 +21476,46 @@ body.modal-open { overflow: hidden; }
 /* Admin → Banners grouped by placement (2026-10-07). */
 .ab-group { display: grid; gap: 12px; margin-top: 18px; }
 .ab-group > h2 { margin: 0; color: #f3eff8; font-size: 16px; }
+
+/* Support thread: each message names its sender by photo + full name (client 2026-10-07). */
+.sp-sender { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sp-sender > span:not(.wh-avatar) { display: grid; min-width: 0; flex: 1; }
+.sp-sender strong { overflow: hidden; color: #fff; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.sp-sender small { color: #9aa1b3; font-size: 12px; }
+.sp-sender time { flex: 0 0 auto; color: #9aa1b3; font-size: 12px; }
+.sp-sender-logo { width: 36px; height: 36px; flex: 0 0 auto; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px rgba(255, 79, 171, .6); }
+.sp-messages li:not(.mine) .sp-sender strong { color: #ff8cc4; }
+@media (max-width: 480px) { .sp-sender { flex-wrap: wrap; } .sp-sender time { width: 100%; padding-left: 46px; } }
+
+.od-msg-sender { display: inline-flex; align-items: center; gap: 8px; }
+
+/* The owner's remaining icons in place (2026-10-07 icon audit). */
+.od-icon-invert { filter: invert(1); }
+.od-note { display: flex; align-items: center; gap: 8px; }
+.od-note img { width: 18px; height: 18px; flex: 0 0 auto; }
+.od-files-title { display: flex; align-items: center; gap: 10px; }
+.od-files-title img { width: 24px; height: 24px; }
+.ss-link { display: inline-flex; align-items: center; gap: 8px; }
+.ss-link-icon { width: 18px; height: 18px; }
+.notification-center-item { grid-template-columns: 38px minmax(0, 1fr) 16px; }
+.notification-center-chevron { width: 16px; height: 16px; opacity: .8; }
+.dm-send-icon { width: 18px; height: 18px; }
+.direct-message-form button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.orders-empty-icon { display: block; width: 56px; height: 56px; margin: 0 auto 10px; opacity: .9; }
+@media (max-width: 600px) { .notification-center-item { grid-template-columns: 34px minmax(0, 1fr) 14px; } .notification-center-chevron { width: 14px; height: 14px; } }
+
+/* Escrow explainer steps (listing page): five columns can't hold the longer Georgian words once
+   the box is narrow — the text spilled out of its tile (2026-10-07 sweep, phone and desktop
+   sidebar alike). Sized by the box itself: below ~620px the tiles wrap 3 + 2, words stay whole. */
+.ex-box { container-type: inline-size; }
+.ex-steps li > span { min-width: 0; max-width: 100%; }
+@container (max-width: 620px) {
+  .ex-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px 12px; }
+  .ex-steps li { flex: 0 1 calc((100% - 24px) / 3); overflow-wrap: normal; word-break: normal; font-size: 12px; }
+  .ex-steps li:nth-child(3)::after { content: none; }
+}
+
+/* Settings (/profile): the grid's implicit column took its content's min width (383px) inside a
+   371px phone column and ran 12px past the edge (2026-10-07 sweep). */
+.profile-control-layout { grid-template-columns: minmax(0, 1fr); }
+.profile-control-layout > * { min-width: 0; }

@@ -330,6 +330,7 @@ export default function CoachingSessionDetail() {
             <div className="ss-secondary-row">
               {action.secondary && (
                 <button type="button" className="ss-link" disabled={busy} onClick={action.secondary.run}>
+                  {action.secondary.label.includes('გაუქმება') && <img className="ss-link-icon" src="/assets/ui/x-circle.png" alt="" aria-hidden="true" />}
                   {action.secondary.label}
                 </button>
               )}

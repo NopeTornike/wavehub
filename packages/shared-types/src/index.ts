@@ -545,6 +545,10 @@ export interface PublicDisputeMessage {
   id: string;
   senderId: string;
   senderUsername: string;
+  // Shown by name + photo like every other conversation (client 2026-10-07).
+  senderFirstName: string;
+  senderLastName: string;
+  senderAvatarUrl: string | null;
   body: string;
   createdAt: string;
 }
@@ -892,6 +896,12 @@ export interface PublicTicketMessage {
   id: string;
   senderId: string;
   senderUsername: string;
+  // The sender by name + photo (client 2026-10-07). `fromSupport` = written by staff (anyone but the
+  // ticket's requester) — shown as "WaveHubX Support — First Last"; no role is exposed.
+  senderFirstName: string;
+  senderLastName: string;
+  senderAvatarUrl: string | null;
+  fromSupport: boolean;
   body: string;
   // Internal notes are staff-only — never present in a response returned to the ticket's
   // requester (see SupportService#getMine, which filters these out server-side rather than
@@ -1203,6 +1213,10 @@ export type SessionDisputeResolution = 'refund_student' | 'pay_coach';
 export interface PublicSessionDisputeMessage {
   id: string;
   senderUsername: string;
+  // Participants by name + photo; staff stay anonymous ("WaveHubX Support", empty names).
+  senderFirstName: string;
+  senderLastName: string;
+  senderAvatarUrl: string | null;
   isStaff: boolean;
   body: string | null;
   fileUrl: string | null;
@@ -1473,25 +1487,26 @@ export const STEAM_GENRES: ReadonlyArray<readonly [key: string, label: string]> 
   ['indie', 'Indie'],
 ];
 
-// The facts the prototype's tournament page shows, in its order, with its labels.
+// The facts the prototype's tournament page shows, in its order, with Georgian labels (EN mode
+// translates them through frontend/lib/i18n-ka-en.app.json).
 export const TOURNAMENT_DETAIL_KEYS: ReadonlyArray<readonly [key: string, label: string]> = [
-  ['format', 'Format'],
-  ['mode', 'Mode'],
-  ['region', 'Region / Server'],
+  ['format', 'ფორმატი'],
+  ['mode', 'რეჟიმი'],
+  ['region', 'რეგიონი / სერვერი'],
   ['platform', 'პლატფორმა'],
-  ['checkInTime', 'Check-in Time'],
-  ['startTime', 'Start Time'],
-  ['endDate', 'End Date (YYYY-MM-DD)'],
-  ['registrationDeadline', 'Registration Deadline'],
+  ['checkInTime', 'Check-in დრო'],
+  ['startTime', 'დაწყების დრო'],
+  ['endDate', 'დასრულების თარიღი (YYYY-MM-DD)'],
+  ['registrationDeadline', 'რეგისტრაციის ბოლო ვადა'],
   ['entryFee', 'შესვლის საფასური'],
-  ['teamSize', 'Team Size'],
-  ['minimumRank', 'Minimum Rank'],
-  ['bracketType', 'Bracket Type'],
-  ['matches', 'Matches'],
-  ['whoCanJoin', 'Who Can Join'],
-  ['communication', 'Communication'],
-  ['organizer', 'Organizer'],
-  ['slogan', 'Hero slogan'],
+  ['teamSize', 'გუნდის ზომა'],
+  ['minimumRank', 'მინიმალური რანკი'],
+  ['bracketType', 'ბრეკეტის ტიპი'],
+  ['matches', 'მატჩები'],
+  ['whoCanJoin', 'ვის შეუძლია მონაწილეობა'],
+  ['communication', 'კომუნიკაცია'],
+  ['organizer', 'ორგანიზატორი'],
+  ['slogan', 'სლოგანი'],
 ];
 
 export type PublicTournamentDetail = PublicTournamentSummary;

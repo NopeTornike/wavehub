@@ -198,7 +198,7 @@ export default function CoachProfile() {
 
             <div className="coach-score-panels">
               <article className="coach-score-card">
-                <span>Wave Score</span>
+                <span>Wave ქულა</span>
                 <strong>
                   {coach.waveScore.score}
                   <small>/100</small>

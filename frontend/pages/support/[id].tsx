@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -6,6 +7,7 @@ import { TicketStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import Avatar, { displayName } from '../../components/Avatar'
 import { CategoryIcon, TICKET_CATEGORY_LABELS, TICKET_STATUS_LABELS, formatTicketDate } from '../../lib/support'
 
 export default function SupportTicketDetail() {
@@ -96,9 +98,22 @@ export default function SupportTicketDetail() {
                   const mine = message.senderId === me?.id
                   return (
                     <li key={message.id} className={mine ? 'mine' : undefined}>
-                      <small>
-                        {mine ? <span>თქვენ</span> : <b>WaveHub · @{message.senderUsername}</b>} · {formatTicketDate(message.createdAt)}
-                      </small>
+                      {/* Who wrote it by photo + full name, the username small underneath (client
+                          2026-10-07); staff as "WaveHubX Support — Name", WHX logo without a photo. */}
+                      <header className="sp-sender">
+                        {message.fromSupport && !message.senderAvatarUrl ? (
+                          <img className="sp-sender-logo" src="/assets/whx-icon-48.png" alt="" aria-hidden="true" />
+                        ) : (
+                          <Avatar name={senderName(message)} src={message.senderAvatarUrl} size={36} />
+                        )}
+                        <span>
+                          <strong>
+                            {message.fromSupport ? `WaveHubX Support — ${senderName(message)}` : mine ? `${senderName(message)} (თქვენ)` : senderName(message)}
+                          </strong>
+                          {!message.fromSupport && <small>@{message.senderUsername}</small>}
+                        </span>
+                        <time dateTime={message.createdAt}>{formatTicketDate(message.createdAt)}</time>
+                      </header>
                       <p>{message.body}</p>
                     </li>
                   )
@@ -122,4 +137,8 @@ export default function SupportTicketDetail() {
       </div>
     </Layout>
   )
+}
+
+function senderName(m: { senderFirstName: string; senderLastName: string; senderUsername: string }): string {
+  return displayName({ firstName: m.senderFirstName, lastName: m.senderLastName, username: m.senderUsername })
 }
