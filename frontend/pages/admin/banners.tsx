@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { AdminBanner } from '@wavehub/shared-types'
+import { BANNER_PLACEMENT_LABELS, BannerPlacement } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 
-// Admin → Banners (Super Admin + Main Administrator): the homepage banner strip. A banner needs an
+// Admin → Banners (Super Admin + Main Administrator): every banner on the site (owner 2026-10-07),
+// each at a placement — the home page's top hero and middle strip, and the top of Marketplace,
+// Services, Steam games, Coaching and Tournaments. A banner needs an
 // image (byte-checked by the server) before it can be published; links are a site path (/coaching)
 // or an https:// address. Optional start/end dates. Audit-logged.
 const localInput = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() + 4 * 3600_000).toISOString().slice(0, 16) : '')
@@ -11,6 +14,7 @@ const fromLocal = (value: string) => (value ? new Date(`${value}:00+04:00`).toIS
 
 function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onChange: (b: AdminBanner) => void; onDelete: () => void }) {
   const [draft, setDraft] = useState({
+    placement: banner.placement,
     title: banner.title,
     subtitle: banner.subtitle ?? '',
     linkUrl: banner.linkUrl ?? '',
@@ -39,6 +43,7 @@ function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onC
     run(
       () =>
         api.adminUpdateBanner(banner.id, {
+          placement: draft.placement,
           title: draft.title.trim(),
           subtitle: draft.subtitle.trim() || null,
           linkUrl: draft.linkUrl.trim() || null,
@@ -70,6 +75,16 @@ function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onC
         </label>
       </div>
       <div className="ab-fields">
+        <label className="field">
+          სად ჩანს
+          <select value={draft.placement} onChange={(e) => setDraft({ ...draft, placement: e.target.value as BannerPlacement })}>
+            {Object.values(BannerPlacement).map((p) => (
+              <option key={p} value={p}>
+                {BANNER_PLACEMENT_LABELS[p]}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="field">
           სათაური
           <input maxLength={80} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
@@ -134,6 +149,7 @@ function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onC
 export default function AdminBanners() {
   const [items, setItems] = useState<AdminBanner[] | null>(null)
   const [title, setTitle] = useState('')
+  const [placement, setPlacement] = useState<BannerPlacement>(BannerPlacement.HomeHero)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -150,7 +166,7 @@ export default function AdminBanners() {
     if (title.trim().length < 2) return setError('სათაური მინ. 2 სიმბოლო.')
     setError('')
     try {
-      const b = await api.adminCreateBanner({ title: title.trim(), sortOrder: items?.length ?? 0 })
+      const b = await api.adminCreateBanner({ placement, title: title.trim(), sortOrder: items?.filter((x) => x.placement === placement).length ?? 0 })
       setItems((list) => [...(list ?? []), b])
       setTitle('')
     } catch (err) {
@@ -170,8 +186,19 @@ export default function AdminBanners() {
   return (
     <AdminLayout title="ბანერები">
       <h1 className="page-title">ბანერები</h1>
-      <p className="page-subtitle">მთავარი გვერდის ბანერები. ჯერ ატვირთე სურათი, მერე გამოაქვეყნე — საიტზე მაშინვე ჩანს.</p>
+      <p className="page-subtitle">
+        საიტის ყველა ბანერი: მთავარი გვერდის ზედა და შუა ბანერები და მარკეტის, სერვისების, Steam თამაშების, ქოუჩინგის და ტურნირების
+        გვერდების ზედა ბანერები. ჯერ ატვირთე სურათი, მერე გამოაქვეყნე — საიტზე მაშინვე ჩანს. მთავარ ზედა ბანერს თუ არ გამოაქვეყნებ, რჩება
+        ჩაშენებული სურათი.
+      </p>
       <div className="admin-search-bar">
+        <select value={placement} onChange={(e) => setPlacement(e.target.value as BannerPlacement)} aria-label="სად ჩანს">
+          {Object.values(BannerPlacement).map((p) => (
+            <option key={p} value={p}>
+              {BANNER_PLACEMENT_LABELS[p]}
+            </option>
+          ))}
+        </select>
         <input value={title} maxLength={80} placeholder="ახალი ბანერის სათაური" onChange={(e) => setTitle(e.target.value)} />
         <button type="button" className="button" onClick={() => void create()}>
           ბანერის დამატება
@@ -187,7 +214,19 @@ export default function AdminBanners() {
       ) : items.length === 0 ? (
         <div className="empty-state">ბანერები ჯერ არ არის.</div>
       ) : (
-        items.map((b) => <BannerEditor key={b.id} banner={b} onChange={(next) => setItems((list) => list?.map((x) => (x.id === next.id ? next : x)) ?? null)} onDelete={() => void remove(b.id)} />)
+        // Grouped by placement, in the order they appear on the site.
+        Object.values(BannerPlacement)
+          .filter((p) => items.some((b) => b.placement === p))
+          .map((p) => (
+            <section key={p} className="ab-group">
+              <h2>{BANNER_PLACEMENT_LABELS[p]}</h2>
+              {items
+                .filter((b) => b.placement === p)
+                .map((b) => (
+                  <BannerEditor key={b.id} banner={b} onChange={(next) => setItems((list) => list?.map((x) => (x.id === next.id ? next : x)) ?? null)} onDelete={() => void remove(b.id)} />
+                ))}
+            </section>
+          ))
       )}
     </AdminLayout>
   )

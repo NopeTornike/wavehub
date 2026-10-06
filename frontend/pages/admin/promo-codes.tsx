@@ -82,7 +82,7 @@ export default function AdminPromoCodes() {
   return (
     <AdminLayout title="პრომო კოდები">
       <h1 className="page-title">პრომო კოდები</h1>
-      <p className="page-subtitle">კოდი ბალანსს ამატებს WaveCoin-ს — ერთხელ თითო ანგარიშზე, მხოლოდ დადასტურებული ელფოსტით. ბონუსი იხარჯება, მაგრამ არ გაიტანება.</p>
+      <p className="page-subtitle">კოდი ბალანსს ამატებს თანხას (GEL) — ერთხელ თითო ანგარიშზე, მხოლოდ დადასტურებული ელფოსტით. ბონუსი იხარჯება, მაგრამ არ გაიტანება.</p>
 
       <form className="stack-form apc-form" onSubmit={create}>
         <h2>ახალი კოდი</h2>
@@ -92,7 +92,7 @@ export default function AdminPromoCodes() {
             <input value={form.code} maxLength={30} placeholder="WELCOME5" onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} />
           </label>
           <label className="field">
-            თანხა (WC)
+            თანხა (GEL)
             <input type="number" min={1} max={1000} value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
           </label>
           <label className="field">
@@ -135,7 +135,7 @@ export default function AdminPromoCodes() {
                   {c.code} <span className={`arv-status ${c.active ? '' : 'hidden'}`}>{c.active ? 'აქტიური' : 'გამორთული'}</span>
                 </strong>
                 <span className="note">
-                  +{c.amountWaveCoin} WC · გამოყენებულია {c.redeemedCount}/{c.maxRedemptions} · {fmt(c.startsAt)} → {fmt(c.expiresAt)}
+                  +{c.amountWaveCoin} GEL · გამოყენებულია {c.redeemedCount}/{c.maxRedemptions} · {fmt(c.startsAt)} → {fmt(c.expiresAt)}
                   {c.note ? ` · ${c.note}` : ''}
                 </span>
               </div>

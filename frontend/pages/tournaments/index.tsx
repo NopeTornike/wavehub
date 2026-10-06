@@ -5,6 +5,8 @@ import Layout from '../../components/Layout'
 import TournamentBoard from '../../components/TournamentBoard'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { BannerPlacement } from '@wavehub/shared-types'
+import HomeBanners from '../../components/HomeBanners'
 
 // Every tournament, in the docs/design-mockups/02 board layout. Signed-in users get shortcuts to
 // their own tournaments and the hub.
@@ -25,6 +27,7 @@ export default function Tournaments() {
 
   return (
     <Layout title="ტურნირები" description="WaveHubX-ის აქტიური და დასრულებული ტურნირები — დარეგისტრირდი და იასპარეზე პრიზებისთვის.">
+      <HomeBanners placement={BannerPlacement.TournamentsTop} />
       {error && (
         <p className="seller-status error" role="alert">
           {error}

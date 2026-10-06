@@ -42,3 +42,18 @@ export const SESSION_STATUS_LABELS: Record<CoachingSessionStatus, string> = {
   [CoachingSessionStatus.Cancelled]: 'გაუქმებულია',
   [CoachingSessionStatus.Disputed]: 'დავა განიხილება',
 }
+
+// The seller form stores the account delivery time as these values (English, kept as stored so old
+// listings still match); shown in Georgian everywhere (client 2026-10-07: "Delivery — Within 24
+// hours" stayed English on Georgian pages). Unknown values are shown as entered.
+const DELIVERY_TIME_LABELS: Record<string, string> = {
+  Instant: 'მყისიერი',
+  'Within 1 hour': '1 საათში',
+  'Within 6 hours': '6 საათში',
+  'Within 24 hours': '24 საათში',
+  '1–3 days': '1–3 დღეში',
+}
+export const DELIVERY_TIME_OPTIONS = ['მყისიერი', 'Within 1 hour', 'Within 6 hours', 'Within 24 hours', '1–3 days']
+export function deliveryTimeLabel(value: string): string {
+  return DELIVERY_TIME_LABELS[value] ?? value
+}

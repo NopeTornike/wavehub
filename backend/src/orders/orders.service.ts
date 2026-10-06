@@ -28,7 +28,9 @@ import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { withTransactionRetry } from '../wallet/transaction-retry.util';
 import { BadgesService } from '../badges/badges.service';
 
-const AUTO_COMPLETE_HOURS = 72;
+// Client decision 2026-10-07: a delivered order completes itself after 24h unless the buyer
+// confirms or opens a dispute first (the buyer is warned on the order page and in the notification).
+const AUTO_COMPLETE_HOURS = 24;
 const ALLOWED_DELIVERY_MIME_TYPES = [
   'image/jpeg',
   'image/png',
@@ -336,7 +338,7 @@ export class OrdersService {
       saved.buyerId,
       NotificationType.OrderDelivered,
       'შეკვეთა მიწოდებულია',
-      `თქვენი შეკვეთა #${saved.orderNumber} მიწოდებულია — გადახედეთ და დაადასტურეთ მიღება.`,
+      `თქვენი შეკვეთა #${saved.orderNumber} მიწოდებულია — გადახედეთ და დაადასტურეთ მიღება. თუ ${AUTO_COMPLETE_HOURS} საათის განმავლობაში არ დაადასტურებთ ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.`,
       saved.id,
     );
     return saved;
@@ -533,7 +535,7 @@ export class OrdersService {
     };
   }
 
-  // Runs hourly — a 72h auto-complete window doesn't need per-minute precision, and hourly keeps
+  // Runs hourly — a 24h auto-complete window doesn't need per-minute precision, and hourly keeps
   // this cheap. Not wired to anything user-facing; failures are logged and skipped per-order so one
   // bad row can't block the rest of the batch.
   @Cron('0 * * * *')

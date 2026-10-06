@@ -279,7 +279,16 @@ export class CoachesService {
   async listReviews(coachId: string): Promise<PublicCoachReview[]> {
     await this.findPublicById(coachId);
     const rows = await this.reviews.find({ where: { coachId }, relations: { buyer: true }, order: { createdAt: 'DESC' }, take: 50 });
-    return rows.map((r) => ({ id: r.id, rating: r.rating, body: r.body, buyerUsername: r.buyer.username, createdAt: r.createdAt.toISOString() }));
+    return rows.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      body: r.body,
+      buyerUsername: r.buyer.username,
+      buyerFirstName: r.buyer.firstName,
+      buyerLastName: r.buyer.lastName,
+      buyerAvatarUrl: r.buyer.avatarUrl ?? null,
+      createdAt: r.createdAt.toISOString(),
+    }));
   }
 
   // --- The coach's own profile ---

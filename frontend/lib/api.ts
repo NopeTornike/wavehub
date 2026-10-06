@@ -50,6 +50,7 @@ import type {
   AdminPromoCode,
   PromoRedemptionResult,
   PublicBanner,
+  BannerPlacement,
   AdminBanner,
   PublicSessionDispute,
   AdminSessionDisputeSummary,
@@ -201,8 +202,8 @@ const KNOWN_MESSAGES: Record<string, string> = {
   "You can't buy your own listing": 'საკუთარი განცხადების ყიდვა შეუძლებელია.',
   'A listing can have at most 6 images': 'განცხადებას მაქსიმუმ 6 სურათი შეიძლება ჰქონდეს.',
   'item listings require priceWaveCoin': 'მიუთითეთ ფასი.',
-  'Insufficient WaveCoin balance for this purchase': 'WaveCoin-ის ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
-  'Insufficient WaveCoin balance for this session': 'WaveCoin-ის ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
+  'Insufficient WaveCoin balance for this purchase': 'ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
+  'Insufficient WaveCoin balance for this session': 'ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
   'This item is out of stock': 'ეს ნივთი ამოიწურა.',
   'This key listing is out of stock': 'ამ განცხადების გასაღებები ამოიწურა.',
   'You can only cancel before the seller starts work': 'გაუქმება შესაძლებელია მხოლოდ გამყიდველის მიერ მუშაობის დაწყებამდე.',
@@ -251,7 +252,7 @@ function translateKnown(message: string): string {
   const exact = KNOWN_MESSAGES[message]
   if (exact) return exact
   const minWithdrawal = /^Minimum withdrawal is (\d+(?:\.\d+)?) WaveCoin/.exec(message)
-  if (minWithdrawal) return `გატანის მინიმალური თანხაა ${minWithdrawal[1]} WaveCoin.`
+  if (minWithdrawal) return `გატანის მინიმალური თანხაა ${minWithdrawal[1]} GEL.`
   return message
 }
 
@@ -1023,14 +1024,14 @@ export const api = {
   adminUpdatePromoCode: (id: string, payload: Partial<{ amountWaveCoin: number; maxRedemptions: number; startsAt: string | null; expiresAt: string | null; active: boolean; note: string | null }>) =>
     request<AdminPromoCode>(`/admin/promo-codes/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
-  listBanners: () => request<PublicBanner[]>('/banners'),
+  listBanners: (placement?: BannerPlacement) => request<PublicBanner[]>(placement ? `/banners?placement=${placement}` : '/banners'),
 
   adminListBanners: () => request<AdminBanner[]>('/admin/banners'),
 
-  adminCreateBanner: (payload: { title: string; subtitle?: string | null; linkUrl?: string | null; buttonLabel?: string | null; sortOrder?: number }) =>
+  adminCreateBanner: (payload: { placement?: BannerPlacement; title: string; subtitle?: string | null; linkUrl?: string | null; buttonLabel?: string | null; sortOrder?: number }) =>
     request<AdminBanner>('/admin/banners', { method: 'POST', body: JSON.stringify(payload) }),
 
-  adminUpdateBanner: (id: string, payload: Partial<{ title: string; subtitle: string | null; linkUrl: string | null; buttonLabel: string | null; active: boolean; startsAt: string | null; endsAt: string | null; sortOrder: number }>) =>
+  adminUpdateBanner: (id: string, payload: Partial<{ placement: BannerPlacement; title: string; subtitle: string | null; linkUrl: string | null; buttonLabel: string | null; active: boolean; startsAt: string | null; endsAt: string | null; sortOrder: number }>) =>
     request<AdminBanner>(`/admin/banners/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
   adminUploadBannerImage: (id: string, file: File) => upload<AdminBanner>(`/admin/banners/${id}/image`, file),

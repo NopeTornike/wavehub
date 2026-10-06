@@ -9,6 +9,7 @@ import { useShell } from '../lib/shell'
 import GAME_DETAILS from '../lib/game-details.json'
 import ImageLightbox from './ImageLightbox'
 import { PHOTO_SOURCE_MAX_BYTES } from '../lib/image-resize'
+import { DELIVERY_TIME_OPTIONS, deliveryTimeLabel } from '../lib/labels'
 
 // The prototype's "Become a seller" listing builder (marketplace.html #sellerModal +
 // marketplace.js), markup-for-markup — including the per-game "Add … Details" sub-forms, whose
@@ -560,11 +561,13 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
                 </select>
               </label>
               <label>
-                <span>Delivery time *</span>
+                <span>მიწოდების დრო *</span>
                 <select id="sellerDeliveryTime" required={isAccount} disabled={!isAccount} {...accessField('deliveryTime')}>
-                  <option value="">Select time</option>
-                  {['მყისიერი', 'Within 1 hour', 'Within 6 hours', 'Within 24 hours', '1–3 days'].map((o) => (
-                    <option key={o}>{o}</option>
+                  <option value="">აირჩიეთ დრო</option>
+                  {DELIVERY_TIME_OPTIONS.map((o) => (
+                    <option key={o} value={o}>
+                      {deliveryTimeLabel(o)}
+                    </option>
                   ))}
                 </select>
               </label>

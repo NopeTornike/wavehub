@@ -73,7 +73,7 @@ export default function AdminWithdrawals() {
           {items.map((item) => (
             <div key={item.id} className="admin-row">
               <div className="admin-row-main">
-                <strong>{item.amountWaveCoin} WC</strong>
+                <strong>{item.amountWaveCoin} GEL</strong>
                 <span className="note" style={{ margin: 0 }}>
                   @{item.sellerUsername} · {METHOD_LABELS[item.method]}
                 </span>

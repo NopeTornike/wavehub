@@ -18,7 +18,7 @@ export default function PromoCodeForm({ onRedeemed }: { onRedeemed?: () => void 
     setStatus({ kind: '', text: '' })
     try {
       const res = await api.redeemPromoCode(value)
-      setStatus({ kind: 'success', text: `+${res.amountWaveCoin} WaveCoin დაემატა ბალანსს.` })
+      setStatus({ kind: 'success', text: `+${res.amountWaveCoin} GEL დაემატა ბალანსს.` })
       setCode('')
       await refresh()
       onRedeemed?.()

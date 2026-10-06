@@ -323,7 +323,7 @@ export default function SteamGameDetail({
                   <h2>როგორ ხდება აქტივაცია</h2>
                   <ol className="sd-steps">
                     <li>
-                      <b>1</b> გადაიხადეთ WaveCoin-ით
+                      <b>1</b> გადაიხადეთ ბალანსით
                     </li>
                     <li>
                       <b>2</b> გასაღებს მაშინვე მიიღებთ შეკვეთის გვერდზე

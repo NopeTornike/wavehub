@@ -90,7 +90,7 @@ describe('marketing: promo codes + banners (e2e)', () => {
     expect((await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id)).toBeUndefined();
     await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { active: true });
     const pub = (await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id);
-    expect(pub).toEqual({ id: b.id, title: 'Coaching week', subtitle: 'Book a coach', imageUrl: withImage.body.imageUrl, linkUrl: '/coaching', buttonLabel: 'Book now' });
+    expect(pub).toEqual({ id: b.id, placement: 'home_strip', title: 'Coaching week', subtitle: 'Book a coach', imageUrl: withImage.body.imageUrl, linkUrl: '/coaching', buttonLabel: 'Book now' });
 
     await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { endsAt: new Date(Date.now() - 1000).toISOString(), startsAt: new Date(Date.now() - 86400_000).toISOString() });
     expect((await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id)).toBeUndefined();

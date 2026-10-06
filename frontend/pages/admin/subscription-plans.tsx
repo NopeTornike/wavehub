@@ -50,6 +50,8 @@ export default function AdminSubscriptionPlans() {
   const [form, setForm] = useState(emptyForm)
   const [formError, setFormError] = useState('')
   const [creating, setCreating] = useState(false)
+  // Set while an existing plan is loaded into the form ("რედაქტირება"); the form then saves it.
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [live, setLive] = useState<AdminUserSubscriptionSummary[]>([])
   const [userQuery, setUserQuery] = useState('')
   const [userResults, setUserResults] = useState<AdminUserSummary[]>([])
@@ -93,6 +95,22 @@ export default function AdminSubscriptionPlans() {
     if (!Number.isInteger(form.billingPeriodDays) || form.billingPeriodDays < 1) return setFormError('პერიოდი უნდა იყოს მთელი რიცხვი, მინიმუმ 1 დღე.')
     setCreating(true)
     try {
+      if (editingId) {
+        // Live subscriptions read the plan's perks at request time, so a badge / perk fix applies at once.
+        await api.adminUpdateSubscriptionPlan(editingId, {
+          tier,
+          name,
+          description,
+          priceGel: form.priceGel,
+          billingPeriodDays: form.billingPeriodDays,
+          sortOrder: Number(form.sortOrder) || 0,
+          perks: buildPerks(form),
+        })
+        setEditingId(null)
+        setForm(emptyForm)
+        await reload()
+        return
+      }
       await api.adminCreateSubscriptionPlan({
         audience: form.audience,
         tier,
@@ -106,7 +124,7 @@ export default function AdminSubscriptionPlans() {
       setForm(emptyForm)
       await reload()
     } catch (err) {
-      setFormError(errorMessage(err, 'შექმნა ვერ მოხერხდა.'))
+      setFormError(errorMessage(err, editingId ? 'შენახვა ვერ მოხერხდა.' : 'შექმნა ვერ მოხერხდა.'))
     } finally {
       setCreating(false)
     }
@@ -161,6 +179,31 @@ export default function AdminSubscriptionPlans() {
     }
   }
 
+  const startEdit = (plan: AdminSubscriptionPlanSummary) => {
+    setFormError('')
+    setEditingId(plan.id)
+    setForm({
+      audience: plan.audience,
+      tier: plan.tier,
+      name: plan.name,
+      description: plan.description,
+      priceGel: plan.priceGel,
+      billingPeriodDays: plan.billingPeriodDays,
+      sortOrder: plan.sortOrder,
+      feeDiscount: plan.perks.platformFeeDiscountPercent ? String(plan.perks.platformFeeDiscountPercent) : '',
+      featuredListings: !!plan.perks.featuredListings,
+      prioritySupport: !!plan.perks.prioritySupport,
+      profileBadge: plan.perks.profileBadge ?? '',
+    })
+    document.getElementById('planForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setForm(emptyForm)
+    setFormError('')
+  }
+
   const toggleActive = async (plan: AdminSubscriptionPlanSummary) => {
     setBusyId(plan.id)
     setError('')
@@ -184,8 +227,8 @@ export default function AdminSubscriptionPlans() {
         </div>
       )}
 
-      <form className="stack-form" onSubmit={create}>
-        <h2>ახალი გეგმა</h2>
+      <form className="stack-form" id="planForm" onSubmit={create}>
+        <h2>{editingId ? `გეგმის რედაქტირება — ${items.find((p) => p.id === editingId)?.name ?? ''}` : 'ახალი გეგმა'}</h2>
         {formError && (
           <div className="status-text status-error" role="alert">
             {formError}
@@ -194,7 +237,7 @@ export default function AdminSubscriptionPlans() {
         <div className="stack-form-grid">
           <label className="field">
             აუდიტორია
-            <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value as SubscriptionAudience })}>
+            <select value={form.audience} disabled={!!editingId} onChange={(e) => setForm({ ...form, audience: e.target.value as SubscriptionAudience })}>
               <option value={SubscriptionAudience.Buyer}>{AUDIENCE_LABELS[SubscriptionAudience.Buyer]}</option>
               <option value={SubscriptionAudience.SellerCoach}>{AUDIENCE_LABELS[SubscriptionAudience.SellerCoach]}</option>
             </select>
@@ -244,9 +287,16 @@ export default function AdminSubscriptionPlans() {
           <input type="checkbox" checked={form.prioritySupport} onChange={(e) => setForm({ ...form, prioritySupport: e.target.checked })} />
           პრიორიტეტული მხარდაჭერა
         </label>
-        <button type="submit" className="button" disabled={creating}>
-          {creating ? 'იქმნება…' : 'გეგმის შექმნა'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="submit" className="button" disabled={creating}>
+            {creating ? (editingId ? 'ინახება…' : 'იქმნება…') : editingId ? 'ცვლილებების შენახვა' : 'გეგმის შექმნა'}
+          </button>
+          {editingId && (
+            <button type="button" className="button" onClick={cancelEdit}>
+              გაუქმება
+            </button>
+          )}
+        </div>
       </form>
 
       <h2 style={{ fontSize: '1rem' }}>ყველა გეგმა</h2>
@@ -268,6 +318,9 @@ export default function AdminSubscriptionPlans() {
                 </div>
               </div>
               <div className="admin-row-actions">
+                <button type="button" className="button" disabled={busyId === p.id} onClick={() => startEdit(p)}>
+                  რედაქტირება
+                </button>
                 <button type="button" className="button" disabled={busyId === p.id} onClick={() => toggleActive(p)}>
                   {p.isActive ? 'გამორთვა' : 'ჩართვა'}
                 </button>

@@ -88,7 +88,7 @@ export class AdminUsersController {
         id,
         NotificationType.WalletAdjusted,
         added ? 'ბალანსს დაემატა თანხა' : 'ბალანსიდან ჩამოიჭრა თანხა',
-        `WaveHub-ის ადმინისტრაციამ ${added ? 'დაამატა' : 'ჩამოჭრა'} ${Math.abs(dto.amountWaveCoin)} WaveCoin. ახალი ბალანსი: ${entry.balanceAfter}.`,
+        `WaveHub-ის ადმინისტრაციამ ${added ? 'დაამატა' : 'ჩამოჭრა'} ${Math.abs(dto.amountWaveCoin)} GEL. ახალი ბალანსი: ${entry.balanceAfter} GEL.`,
         { link: '/wallet' },
       );
       return this.users.getAdminOne(id);

@@ -10,9 +10,11 @@ import { gameCover, gameDisplayName, gameTile } from '../lib/games'
 import { listingKind, normalizeAccountStatus } from '../components/ProductCard'
 import RankIcon from '../components/RankIcon'
 import { useCoachingFromPrice } from '../lib/coaching-price'
-import HomeBanners from '../components/HomeBanners'
+import HomeBanners, { useBanners } from '../components/HomeBanners'
 import { useFavorites } from '../lib/favorites'
 import { gel } from '../lib/money'
+import { kaDayMonth } from '../lib/dates'
+import { BannerPlacement } from '@wavehub/shared-types'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
 // the prototype's final DOM order (its script moves competition/steam/featured/how-it-works in
@@ -176,6 +178,15 @@ export default function Home() {
   const coachTrack = useRef<HTMLDivElement>(null)
   const [steamState, setSteamState] = useState({ atStart: true, atEnd: false, dot: 0 })
   const [coachDot, setCoachDot] = useState(0)
+  // Home top hero from the CMS; several published ones rotate every 7 seconds.
+  const heroBanners = useBanners(BannerPlacement.HomeHero)
+  const [heroIndex, setHeroIndex] = useState(0)
+  const hero = heroBanners.length ? heroBanners[heroIndex % heroBanners.length] : null
+  useEffect(() => {
+    if (heroBanners.length < 2) return
+    const timer = window.setInterval(() => setHeroIndex((i) => i + 1), 7000)
+    return () => window.clearInterval(timer)
+  }, [heroBanners.length])
   const touchStartX = useRef(0)
 
   const slugByName = useMemo(() => new Map(games.map((g) => [g.name, g.slug])), [games])
@@ -240,6 +251,21 @@ export default function Home() {
     const visible = step ? Math.max(1, Math.floor((track.clientWidth + gap) / step)) : 1
     track.scrollBy({ left: direction * step * visible, behavior: 'smooth' })
   }
+
+  // The phone carousel opens on the middle coach, with neighbours visible left and right and manual
+  // swiping either way (owner, 2026-10-07). No-op when every card fits (desktop grid).
+  useEffect(() => {
+    const track = coachTrack.current
+    if (!track || coaches.length < 2) return
+    const frame = requestAnimationFrame(() => {
+      if (track.scrollWidth <= track.clientWidth + 2) return
+      const middle = track.children[Math.floor(coaches.length / 2)] as HTMLElement | undefined
+      if (!middle) return
+      // Fires the track's onScroll, which moves the dot to the middle card too.
+      track.scrollLeft = middle.offsetLeft + middle.offsetWidth / 2 - track.clientWidth / 2
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [coaches])
 
   const scrollCoaches = (direction: number) => {
     const track = coachTrack.current
@@ -332,7 +358,7 @@ export default function Home() {
           <span>
             <small>ხელმისაწვდომი ბალანსი</small>
             <strong>
-              <span id="mobileWalletBalance">{gel(user?.wavecoinBalance)}</span> WC
+              <span id="mobileWalletBalance">{gel(user?.wavecoinBalance)}</span> GEL
             </strong>
           </span>
           <span className="mobile-shortcut-arrow" aria-hidden="true">
@@ -354,12 +380,23 @@ export default function Home() {
       <div className="home-dashboard-grid">
         <div className="home-dashboard-main">
           <section className="content-section home-marketplace-showcase" aria-labelledby="home-marketplace-title">
-            <Link className="home-marketplace-cover" href="/marketplace" aria-label="Explore the WaveHubX marketplace">
-              <img src="/assets/home-marketplace-cover.png" alt="WaveHubX neon gaming marketplace" />
-              <span className="mobile-cover-cta">
-                Explore Now <b aria-hidden="true">→</b>
-              </span>
-            </Link>
+            {/* The top hero is a CMS banner when one is published at "home_hero" (owner 2026-10-07:
+                every banner editable from Admin → Banners); the built-in marketplace cover otherwise. */}
+            {hero && hero.linkUrl && !hero.linkUrl.startsWith('/') ? (
+              <a className="home-marketplace-cover" href={hero.linkUrl} target="_blank" rel="noopener noreferrer" aria-label={hero.title}>
+                <img src={hero.imageUrl ?? ''} alt={hero.title} />
+                <span className="mobile-cover-cta">
+                  {hero.buttonLabel || 'ნახვა'} <b aria-hidden="true">↗</b>
+                </span>
+              </a>
+            ) : (
+              <Link className="home-marketplace-cover" href={hero?.linkUrl || '/marketplace'} aria-label={hero?.title ?? 'Explore the WaveHubX marketplace'}>
+                <img src={hero?.imageUrl ?? '/assets/home-marketplace-cover.png'} alt={hero?.title ?? 'WaveHubX neon gaming marketplace'} />
+                <span className="mobile-cover-cta">
+                  {hero ? hero.buttonLabel || 'ნახვა' : 'დაათვალიერე'} <b aria-hidden="true">→</b>
+                </span>
+              </Link>
+            )}
 
             <section className="home-explore" aria-labelledby="homeExploreTitle">
               <h2 id="homeExploreTitle">
@@ -665,10 +702,10 @@ export default function Home() {
                         <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="10" width="34" height="32" rx="4" /><path d="M15 6v8m18-8v8M7 19h34M15 26h3m6 0h3m6 0h3m-21 8h3m6 0h3m6 0h3" /></svg>
                         <span>თარიღი</span>
                       </dt>
-                      <dd>{new Date(tournament.startDate).toLocaleDateString('ka-GE', { month: 'short', day: 'numeric' })}</dd>
+                      <dd>{kaDayMonth(tournament.startDate)}</dd>
                     </div>
                   </dl>
-                  <Link className="competition-button" href={`/tournaments/${tournament.id}`}>
+                  <Link className="competition-button tour-register" href={`/tournaments/${tournament.id}`}>
                     დარეგისტრირდი <b aria-hidden="true">→</b>
                   </Link>
                 </div>

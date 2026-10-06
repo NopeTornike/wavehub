@@ -74,7 +74,7 @@ export default function CartPage() {
     }
     if (buyable.length === 0) return
     if (total > balance) {
-      setStatus({ kind: 'error', text: `ბალანსი არ არის საკმარისი: საჭიროა ${gel(total)} GEL, გაქვთ ${gel(balance)} WC.` })
+      setStatus({ kind: 'error', text: `ბალანსი არ არის საკმარისი: საჭიროა ${gel(total)} GEL, გაქვთ ${gel(balance)} GEL.` })
       return
     }
     setBusy(true)
@@ -222,7 +222,7 @@ export default function CartPage() {
           {user && (
             <div className="cart-summary-row">
               <span>ბალანსი</span>
-              <strong>{gel(balance)} WC</strong>
+              <strong>{gel(balance)} GEL</strong>
             </div>
           )}
           <div className="cart-summary-total">

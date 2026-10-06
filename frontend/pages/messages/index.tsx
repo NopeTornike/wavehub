@@ -8,6 +8,7 @@ import Avatar, { displayName } from '../../components/Avatar'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import ReportButton from '../../components/ReportButton'
+import { kaDayMonth, kaTime } from '../../lib/dates'
 
 const POLL_MS = 5000
 
@@ -258,7 +259,7 @@ export default function Messages() {
                       <article className={`direct-message-bubble ${mine ? 'mine' : 'theirs'}`}>
                         <div className="direct-message-meta">
                           <strong>{mine ? 'თქვენ' : senderName}</strong>
-                          <small>{new Date(m.createdAt).toLocaleString('ka-GE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small>
+                          <small>{`${kaDayMonth(m.createdAt)}, ${kaTime(m.createdAt)}`}</small>
                         </div>
                         <p>{m.body}</p>
                         {!mine && m.senderId && <ReportButton targetType="message" targetId={m.id} label="დაჩივრება" className="report-link report-inline" />}

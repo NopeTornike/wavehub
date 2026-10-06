@@ -90,7 +90,7 @@ export class Order {
   @Column({ type: 'timestamptz', nullable: true })
   deliveredAt: Date | null;
 
-  // deliveredAt + 72h — the auto-complete cron looks for rows where this has passed and status is
+  // deliveredAt + 24h (AUTO_COMPLETE_HOURS) — the auto-complete cron looks for rows where this has passed and status is
   // still Delivered. Cleared (set back to null) if the buyer requests a revision.
   @Column({ type: 'timestamptz', nullable: true })
   autoCompleteAt: Date | null;

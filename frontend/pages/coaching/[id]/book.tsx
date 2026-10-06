@@ -949,18 +949,18 @@ export default function CoachBooking() {
   } else if (step === 5) {
     body = (
       <>
-        {intro('ეტაპი 5 / 6', 'გადახდა', 'გადაიხადე WaveCoin ბალანსით და დაადასტურე ქოუჩინგ სესია.')}
+        {intro('ეტაპი 5 / 6', 'გადახდა', 'გადაიხადე ბალანსით და დაადასტურე ქოუჩინგ სესია.')}
         {coachCard}
         <section className="booking-payment-method">
           <h2>გადახდის მეთოდი</h2>
           <div className="booking-bank-option">
             <i></i>
-            <span className="bog-mini">WC</span>
+            <span className="bog-mini">₾</span>
             <div>
-              <strong>WaveCoin ბალანსი</strong>
-              <small>შენი ბალანსი: {gel(balance)} WC (1 WC = 1 GEL)</small>
+              <strong>ბალანსი</strong>
+              <small>შენი ბალანსი: {gel(balance)} GEL</small>
             </div>
-            <em>{shortBy > 0 ? `აკლია ${shortBy} WC` : 'საკმარისია'}</em>
+            <em>{shortBy > 0 ? `აკლია ${shortBy} GEL` : 'საკმარისია'}</em>
           </div>
           <p>
             <Icon name="lock" /> ბალანსის შევსება ხდება საქართველოს ბანკის უსაფრთხო გადახდით.
@@ -985,10 +985,10 @@ export default function CoachBooking() {
             </ol>
           </div>
           <div className="bog-brand">
-            <span>WC</span>
+            <span>₾</span>
             <strong>
-              WaveCoin
-              <small>WaveHub-ის ბალანსი</small>
+              ბალანსი
+              <small>WaveHub-ის ბალანსი (GEL)</small>
             </strong>
           </div>
         </section>

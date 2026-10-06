@@ -10,6 +10,8 @@ import RankIcon from '../../components/RankIcon'
 import ReportButton from '../../components/ReportButton'
 import ImageLightbox from '../../components/ImageLightbox'
 import { BadgeKey, badgeIcon } from '@wavehub/shared-types'
+import { kaDate } from '../../lib/dates'
+import Avatar, { displayName } from '../../components/Avatar'
 
 // docs/design-mockups/12-public-profile.jpg: hero (photo with real online dot, name, @handle,
 // WaveHubX ID with copy, role, location, join date, tagline, Message / Follow), the Wave Rank panel,
@@ -385,8 +387,16 @@ export default function PublicProfile() {
                 {p.reviews.latest[0] && (
                   <article className="up-review">
                     <header>
-                      <strong>@{p.reviews.latest[0].buyerUsername}</strong>
-                      <small>{new Date(p.reviews.latest[0].createdAt).toLocaleDateString('ka-GE')}</small>
+                      {/* The reviewer by photo + full name (client feedback #9), linking to their profile. */}
+                      <Link className="up-review-author" href={`/u/${encodeURIComponent(p.reviews.latest[0].buyerUsername)}`}>
+                        <Avatar
+                          name={displayName({ firstName: p.reviews.latest[0].buyerFirstName, lastName: p.reviews.latest[0].buyerLastName, username: p.reviews.latest[0].buyerUsername })}
+                          src={p.reviews.latest[0].buyerAvatarUrl}
+                          size={40}
+                        />
+                        <strong>{displayName({ firstName: p.reviews.latest[0].buyerFirstName, lastName: p.reviews.latest[0].buyerLastName, username: p.reviews.latest[0].buyerUsername })}</strong>
+                      </Link>
+                      <small>{kaDate(p.reviews.latest[0].createdAt)}</small>
                     </header>
                     <span className="gold">{'★'.repeat(p.reviews.latest[0].rating)}</span>
                     <p>{p.reviews.latest[0].body || 'კომენტარის გარეშე'}</p>

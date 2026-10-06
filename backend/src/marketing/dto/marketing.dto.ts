@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { BannerPlacement } from '@wavehub/shared-types';
+import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 const upper = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toUpperCase() : value);
 // An internal path ("/coaching") or an https URL — nothing else may become a banner link.
@@ -81,6 +82,10 @@ export class UpdatePromoCodeDto {
 
 export class BannerDto {
   @IsOptional()
+  @IsEnum(BannerPlacement)
+  placement?: BannerPlacement;
+
+  @IsOptional()
   @IsString()
   @Length(2, 80)
   title?: string;
@@ -123,6 +128,13 @@ export class BannerDto {
   @Min(0)
   @Max(1000)
   sortOrder?: number;
+}
+
+// GET banners?placement= — the public list for one spot on the site.
+export class PublicBannersQueryDto {
+  @IsOptional()
+  @IsEnum(BannerPlacement)
+  placement?: BannerPlacement;
 }
 
 export class CreateBannerDto extends BannerDto {

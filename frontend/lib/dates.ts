@@ -17,3 +17,10 @@ export function kaTime(value: string | Date): string {
   const d = new Date(value)
   return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
+
+// "1 დეკ." — day + short month for compact date cells. A date-only value ("2026-12-01") is read as
+// local midnight, not UTC (which shows the previous day west of Greenwich).
+export function kaDayMonth(value: string | Date): string {
+  const d = typeof value === 'string' && value.length === 10 ? new Date(`${value}T00:00:00`) : new Date(value)
+  return Number.isNaN(d.getTime()) ? '' : `${d.getDate()} ${MONTHS[d.getMonth()]}`
+}

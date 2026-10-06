@@ -18,6 +18,7 @@ import EscrowExplainer from '../../components/EscrowExplainer'
 import ReviewCard from '../../components/ReviewCard'
 import FeeBreakdown from '../../components/FeeBreakdown'
 import { gel } from '../../lib/money'
+import { deliveryTimeLabel } from '../../lib/labels'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
 // the game's title icon, About card, the game-specific details grid, Access & Delivery, Linked
@@ -49,7 +50,7 @@ const ACCESS_FIELDS: Array<{ key: string; label: string; format?: (v: unknown) =
     format: (v) => (v === 'enabled' ? 'Enabled' : v === 'disabled' ? 'Disabled' : v === 'removable' ? 'Enabled, removable' : String(v)),
   },
   { key: 'deliveryMethod', label: 'Delivery Method' },
-  { key: 'deliveryTime', label: 'Delivery Time' },
+  { key: 'deliveryTime', label: 'Delivery Time', format: (v) => deliveryTimeLabel(String(v)) },
 ]
 
 function initials(first?: string, last?: string) {
@@ -205,7 +206,7 @@ export default function ListingDetail() {
       : kind === 'key'
         ? 'მყისიერი'
         : attrs.deliveryTime
-          ? String(attrs.deliveryTime)
+          ? deliveryTimeLabel(String(attrs.deliveryTime))
           : 'მყისიერი'
   const inStock = kind === 'service' ? true : (listing.stockQuantity ?? 0) > 0
   const rating = listing.ratingAvg ? Number(listing.ratingAvg) : null
@@ -684,7 +685,7 @@ export default function ListingDetail() {
               <>
                 {notEnoughBalance && (
                   <p className="note">
-                    თქვენი ბალანსია {gel(me!.wavecoinBalance)} WC — ამ შეძენისთვის არ გყოფნით. <Link href="/wallet">შეავსეთ საფულე</Link>
+                    თქვენი ბალანსია {gel(me!.wavecoinBalance)} GEL — ამ შეძენისთვის არ გყოფნით. <Link href="/wallet">შეავსეთ საფულე</Link>
                   </p>
                 )}
                 <button

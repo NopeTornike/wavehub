@@ -1,5 +1,5 @@
 import { assertConserved, buyItem, completeSession } from './flows';
-import { createApp, credit, E2eApp, makeAdmin, openAllHours, registerUser, TestUser } from './helpers';
+import { Client, createApp, credit, E2eApp, makeAdmin, openAllHours, registerUser, TestUser } from './helpers';
 
 // Client feedback batch (2026-10-04): badges (auto, staff, coach-granted), review likes, follow
 // lists, featured coaches, separate coaching fee, staff Steam key stocking, tournament Discord,
@@ -212,5 +212,53 @@ describe('client feedback batch (e2e)', () => {
     const mine = (await buyer.client.get('/me/tournaments')).body as Array<{ tournament: { id: string }; team: { discord?: string } }>;
     expect(mine.find((e) => e.tournament.id === id)!.team.discord).toBe('wave_player');
     expect(JSON.stringify((await superAdmin.client.get(`/admin/tournaments/${id}/teams`)).body)).toContain('wave_player');
+  });
+
+  // --- Client round 2026-10-07 ---
+
+  it('a delivered order auto-completes 24h after delivery, and the buyer is told so', async () => {
+    const orderId = await buyItem(ctx, seller, buyer, superAdmin, 9, 'delivered');
+    const order = (await buyer.client.get(`/orders/${orderId}`)).body;
+    expect(new Date(order.autoCompleteAt).getTime() - new Date(order.deliveredAt).getTime()).toBe(24 * 3600_000);
+    const notes = (await buyer.client.get('/notifications')).body as Array<{ type: string; body: string; metadata?: { orderId?: string } }>;
+    const delivered = notes.find((n) => n.type === 'order_delivered' && n.metadata?.orderId === orderId);
+    expect(delivered?.body).toContain('24 საათის განმავლობაში');
+  });
+
+  it('banners carry a placement: validated, filtered publicly, audited', async () => {
+    expect((await superAdmin.client.post('/admin/banners', { placement: 'nowhere', title: 'Bad spot' })).status).toBe(400);
+    const b = (await superAdmin.client.post('/admin/banners', { placement: 'marketplace_top', title: 'Marketplace week' })).body;
+    expect(b.placement).toBe('marketplace_top');
+    expect((await superAdmin.client.upload(`/admin/banners/${b.id}/image`, PNG, 'b.png', 'image/png')).status).toBe(200);
+    expect((await superAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { active: true })).status).toBe(200);
+    const anon = new Client(ctx.baseUrl);
+    const ids = async (q: string) => ((await anon.get(`/banners${q}`)).body as Array<{ id: string }>).map((x) => x.id);
+    expect(await ids('?placement=marketplace_top')).toContain(b.id);
+    expect(await ids('?placement=home_strip')).not.toContain(b.id);
+    expect((await anon.get('/banners?placement=nowhere')).status).toBe(400);
+    const moved = await superAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { placement: 'home_hero' });
+    expect(moved.body.placement).toBe('home_hero');
+    expect(await ids('?placement=home_hero')).toContain(b.id);
+    expect((await superAdmin.client.request('DELETE', `/admin/banners/${b.id}`)).status).toBe(200);
+  });
+
+  it('profile and coach reviews name the reviewer (full name + photo), nothing private', async () => {
+    const pub = (await stranger.client.get(`/users/${seller.username}`)).body;
+    const latest = pub.reviews.latest[0];
+    expect(latest).toMatchObject({ buyerUsername: buyer.username, buyerFirstName: 'Test', buyerLastName: 'User' });
+    expect(latest).toHaveProperty('buyerAvatarUrl');
+    expect(JSON.stringify(pub.reviews)).not.toMatch(/email|passwordHash|wavecoinBalance/);
+  });
+
+  it('editing a plan badge text applies to live subscribers at once', async () => {
+    const plan = (await superAdmin.client.post('/admin/subscription-plans', {
+      audience: 'seller_coach', tier: 'cfedit', name: 'CF Editable', description: 'A plan whose badge gets corrected.', priceGel: 5, billingPeriodDays: 30, perks: { profileBadge: 'Typo' },
+    })).body;
+    const member = await registerUser(ctx, 'cfmember');
+    expect((await superAdmin.client.post('/admin/subscriptions/grant', { userId: member.id, planId: plan.id, reason: 'badge edit test' })).status).toBeLessThan(300);
+    expect((await stranger.client.get(`/users/${member.username}`)).body.profileBadge).toBe('Typo');
+    expect((await ops.client.post(`/admin/subscription-plans/${plan.id}`, { perks: { profileBadge: 'Pro' } })).status).toBe(403);
+    expect((await superAdmin.client.post(`/admin/subscription-plans/${plan.id}`, { perks: { profileBadge: 'Pro' } })).status).toBeLessThan(300);
+    expect((await stranger.client.get(`/users/${member.username}`)).body.profileBadge).toBe('Pro');
   });
 });

@@ -62,10 +62,10 @@ section wins.
   featured-tournament cover (the prototype hard-coded "WAVE CUP"). **Public profile (12)**:
   `pages/u/[username].tsx` (`up-` CSS), fields editable in Settings. A global `[hidden] { display:
   none !important }` now guarantees the hidden attribute wins over prototype `display` rules.
-- **Currency display (owner decision, 2026-09-26)**: product/service/order/session/cart prices and
-  coach rates show **GEL**; only wallet balances (topbar, wallet page, dashboard wallet card,
-  "your balance is …" notices, withdrawals) stay **WC** — exactly the prototype's split (its wallet
-  says "1 WaveCoin = 1 GEL", the backend's fixed top-up rate). Don't print both on one price.
+- **Currency display (owner decision, 2026-10-07 — supersedes 2026-09-26)**: everything a user
+  sees says **GEL**, wallet balances included (topbar, wallet, dashboard, cart/booking balance
+  notices, withdrawals, admin balance tools, promo codes). "WC"/"WaveCoin" confused people. Code
+  identifiers (`priceWaveCoin`, `wavecoinBalance`, …) and the ledger are unchanged; 1 WC = 1 GEL.
 - **English mode (`lib/i18n.tsx`)**: every Georgian string the app renders must have an entry in
   `lib/i18n-ka-en.app.json` or it stays Georgian in EN mode (the 2026-09-26 sweep added ~1,100
   that had been missed, incl. `.verify-banner` and `.home-cta`). Text built from a template string
@@ -984,3 +984,26 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   `lib/tournaments.tsx` and notification times use it too, because `ka-GE` locale data is missing
   in some browsers and printed English.
 - Georgian `toUpperCase()` turns text into Mtavruli; use `latinUpper` for upper-case labels.
+
+## 2026-10-07 Client round (screenshots + messages)
+- **Avatar fix (site-wide)**: `.wh-avatar > img` is absolutely pinned. As a centred grid item its
+  `height:100%` didn't resolve, so portrait photos kept their ratio and spilled out of the circle.
+- **Direct messages on phones**: `.direct-message-contacts` / `.direct-message-thread` get
+  `min-width: 0` and the shell `minmax(0, 1fr)` at ≤720px. With 2+ conversations the contact row
+  widened the column to ~650px and clipped the send button off-screen ("can't send on mobile").
+- **Order page**: amber 24h auto-complete warning under the chat (`.od-warn`); see
+  `backend/src/orders/CLAUDE.md`. The step guide hides on finished orders. Order-card dates wrap
+  under the status instead of overflowing.
+- **Product card**: eye/heart icons from the owner's set for the counters; Georgian rank, review and
+  delivery text. `lib/labels.ts#deliveryTimeLabel` maps stored English delivery values to Georgian
+  (also in the seller form options and the listing page).
+- **Home**:
+  - the top hero is a CMS banner when one is published (`home_hero`);
+  - the coach carousel opens on the middle coach;
+  - the featured tournament's "დარეგისტრირდი" uses the "Add listing" button's colours
+    (`.tour-register`) and sizes to its text (the fixed 184px clipped the Georgian label);
+  - `kaDayMonth` for its date.
+- **Banners everywhere**: `HomeBanners placement=…` at the top of marketplace, services, Steam,
+  coaching and tournaments.
+- **Admin**: banner placements; subscription plan edit form.
+- **Reviews** on `/u/[username]` and `/coaching/[id]` show the reviewer's photo + full name.

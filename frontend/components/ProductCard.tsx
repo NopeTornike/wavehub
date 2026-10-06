@@ -5,6 +5,7 @@ import { ListingType, type PublicListingSummary } from '@wavehub/shared-types'
 import { useCart } from '../lib/cart'
 import { useFavorites } from '../lib/favorites'
 import { gameCover } from '../lib/games'
+import { deliveryTimeLabel } from '../lib/labels'
 
 // The prototype's marketplace showcase card (marketplace.js#createProductShowcaseCard), used for
 // every listing type, on real listing data:
@@ -122,9 +123,9 @@ export default function ProductCard({ listing, sellerRank }: { listing: PublicLi
   const rating = listing.ratingAvg ? Number(listing.ratingAvg) : null
   const kindBadge =
     kind === 'account' ? accountStatusLabel(status) : kind === 'skin' ? 'სკინი' : kind === 'item' ? 'ნივთი' : kind === 'key' ? 'Steam გასაღები' : listing.category?.name ?? 'სერვისი'
-  const kindLine = level ? `✪ Level ${count(level)}` : kind === 'account' ? 'ანგარიში' : kind === 'skin' ? 'სკინი' : kind === 'item' ? 'ნივთი' : kind === 'key' ? 'ციფრული გასაღები' : 'სერვისი'
+  const kindLine = level ? `✪ ლეველი ${count(level)}` : kind === 'account' ? 'ანგარიში' : kind === 'skin' ? 'სკინი' : kind === 'item' ? 'ნივთი' : kind === 'key' ? 'ციფრული გასაღები' : 'სერვისი'
   // Keys are delivered on purchase; a service's delivery time depends on the package chosen.
-  const delivery = kind === 'service' ? 'პაკეტის მიხედვით' : kind === 'key' ? 'მყისიერი' : String(attrs.deliveryTime || 'მყისიერი')
+  const delivery = kind === 'service' ? 'პაკეტის მიხედვით' : kind === 'key' ? 'მყისიერი' : deliveryTimeLabel(String(attrs.deliveryTime || 'მყისიერი'))
   const openDetail = (event: MouseEvent) => {
     if ((event.target as HTMLElement).closest('a, button')) return
     router.push(href)
@@ -150,9 +151,9 @@ export default function ProductCard({ listing, sellerRank }: { listing: PublicLi
           <span className="product-showcase-avatar">{initials(sellerName)}</span>
           <span>
             <strong>{sellerName}</strong>
-            <small className="product-showcase-seller-rank">{sellerRank ? `Wave Rank #${sellerRank}` : 'Wave Rank: Unranked'}</small>
+            <small className="product-showcase-seller-rank">{sellerRank ? `Wave რანკი #${sellerRank}` : 'Wave რანკი: ჯერ არ აქვს'}</small>
             <small className="product-showcase-seller-rating">
-              {rating === null ? '★ No product reviews' : `★ ${rating.toFixed(1)} · ${count(listing.ratingCount)} reviews`}
+              {rating === null ? '★ შეფასებები ჯერ არ არის' : `★ ${rating.toFixed(1)} · ${count(listing.ratingCount)} შეფასება`}
             </small>
           </span>
         </Link>
@@ -164,10 +165,17 @@ export default function ProductCard({ listing, sellerRank }: { listing: PublicLi
           {count(price)} GEL
         </strong>
         <span className="product-showcase-social">
-          <span>◉ {count(listing.viewsCount)}</span>
-          <span>♡ {count(favoriteCount)}</span>
+          {/* The owner's icon set instead of the ◉ / ♡ glyphs (client 2026-10-07). */}
+          <span title="ნახვები">
+            <img src="/assets/ui/eye.png" alt="" aria-hidden="true" />
+            {count(listing.viewsCount)}
+          </span>
+          <span title="მოწონებები">
+            <img src="/assets/ui/heart.png" alt="" aria-hidden="true" />
+            {count(favoriteCount)}
+          </span>
         </span>
-        <span className="product-showcase-delivery">⚡ Delivery — {delivery}</span>
+        <span className="product-showcase-delivery">⚡ მიწოდება — {delivery}</span>
         <div className="product-showcase-icon-actions">
           <button
             className={`product-showcase-cart${inCart ? ' in-cart' : ''}`}

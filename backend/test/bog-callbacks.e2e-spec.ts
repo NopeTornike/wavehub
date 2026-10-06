@@ -136,7 +136,7 @@ describe('BOG callbacks with real RSA signatures (e2e)', () => {
       expect(results.every((r) => r.status === 200)).toBe(true); // a lost race must not surface as a 500 that BOG retries forever
       expect(await balanceOf(ctx, user)).toBe(before + 25);
       // …and the user is told exactly once.
-      const topups = (await user.client.get('/notifications?limit=50')).body.filter((n: { type: string; body: string }) => n.type === 'wallet_topup' && n.body.includes('25 WaveCoin'));
+      const topups = (await user.client.get('/notifications?limit=50')).body.filter((n: { type: string; body: string }) => n.type === 'wallet_topup' && n.body.includes('25 GEL'));
       expect(topups).toHaveLength(1);
       expect(topups[0].metadata).toEqual({ link: '/wallet' });
     });

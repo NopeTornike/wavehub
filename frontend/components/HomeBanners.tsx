@@ -1,21 +1,37 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { PublicBanner } from '@wavehub/shared-types'
+import { BannerPlacement } from '@wavehub/shared-types'
 import { api } from '../lib/api'
 
-// Admin-managed homepage banners (Admin → Banners, backend/src/marketing/). Renders nothing until
-// at least one banner is published, so there is never placeholder promo content (rule #6).
-// Several banners rotate every 7 seconds; dots switch manually.
-export default function HomeBanners() {
+// Live CMS banners for one placement (Admin → Banners, backend/src/marketing/) — only ones with an
+// image. Shared by the strips below and the home page's top hero.
+export function useBanners(placement: BannerPlacement): PublicBanner[] {
   const [banners, setBanners] = useState<PublicBanner[]>([])
-  const [index, setIndex] = useState(0)
-
   useEffect(() => {
+    let cancelled = false
     api
-      .listBanners()
-      .then((list) => setBanners(list.filter((b) => b.imageUrl)))
-      .catch(() => setBanners([]))
-  }, [])
+      .listBanners(placement)
+      .then((list) => {
+        if (!cancelled) setBanners(list.filter((b) => b.imageUrl))
+      })
+      .catch(() => {
+        if (!cancelled) setBanners([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [placement])
+  return banners
+}
+
+// Admin-managed banners at one placement: the homepage strip (default) or the top of a page
+// (`*_top`, owner 2026-10-07: every banner is editable from the CMS). Renders nothing until at
+// least one banner is published, so there is never placeholder promo content (rule #6).
+// Several banners rotate every 7 seconds; dots switch manually.
+export default function HomeBanners({ placement = BannerPlacement.HomeStrip }: { placement?: BannerPlacement }) {
+  const banners = useBanners(placement)
+  const [index, setIndex] = useState(0)
 
   useEffect(() => {
     if (banners.length < 2) return
@@ -29,7 +45,7 @@ export default function HomeBanners() {
   const cta = b.linkUrl && (b.buttonLabel || 'ნახვა')
 
   return (
-    <section className="home-banners" aria-label="აქციები და სიახლეები">
+    <section className={`home-banners${placement === BannerPlacement.HomeStrip ? '' : ' page-top-banners'}`} aria-label="აქციები და სიახლეები">
       <div className="home-banner" style={{ backgroundImage: `linear-gradient(90deg, rgba(5, 4, 15, .82), rgba(5, 4, 15, .2) 70%), url("${b.imageUrl}")` }}>
         <div className="home-banner-copy">
           <h2>{b.title}</h2>

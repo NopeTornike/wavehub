@@ -34,3 +34,22 @@ Promo codes and homepage banners (SPECIFICATION.md §5.13 "Marketing" + "Content
 `DELETE admin/promo-codes/:id` (Super Admin) removes a code **only while `redeemedCount = 0`** — the
 condition is inside the DELETE, so a racing redemption turns it into a 409, never a lost record.
 A used code is deactivated (`PATCH … {active:false}`) instead. Audited (`promo_code.delete`).
+
+## 2026-10-07 Banner placements ("every banner editable from the CMS")
+- `banners.placement` (migration `1784383000000-BannerPlacements`, CHECK-constrained, default
+  `home_strip` so existing banners kept showing). Values are `BannerPlacement` in shared-types, with
+  Georgian labels in `BANNER_PLACEMENT_LABELS`:
+  - `home_hero` — replaces the home page's top marketplace cover. The built-in image stays while
+    none is published; several rotate.
+  - `home_strip` — the rotating strip above Coaching & Tournaments.
+  - `marketplace_top`, `services_top`, `steam_top`, `coaching_top`, `tournaments_top` — a strip at
+    the top of that page, rendering nothing until one is published.
+- `GET banners?placement=` filters (validated enum; omitted = every placement). Create/update accept
+  `placement`.
+- Frontend:
+  - `components/HomeBanners.tsx` takes `placement` and exports `useBanners(placement)` (the home
+    hero uses it);
+  - Admin → Banners has a placement select on create and per banner, and lists banners grouped by
+    placement.
+- Game covers/tiles stay in Admin → Games (`backend/src/listings/` game catalogue).
+- Covered by `test/client-feedback.e2e-spec.ts` and `test/marketing.e2e-spec.ts`.

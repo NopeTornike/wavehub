@@ -109,7 +109,7 @@ describe('notification events (e2e)', () => {
     expect(res.status).toBe(200);
     const adjusted = await ofType(seller, 'wallet_adjusted');
     expect(adjusted).toHaveLength(1);
-    expect(adjusted[0].body).toContain('15 WaveCoin');
+    expect(adjusted[0].body).toContain('15 GEL');
     expect(JSON.stringify(adjusted)).not.toContain('internal-note-xyz');
   });
 

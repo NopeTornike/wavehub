@@ -80,3 +80,12 @@ Types: `subscription_granted`, `subscription_past_due` (only on the active -> pa
 hourly retry), `subscription_expiring` (3 days before the end of a NON-renewing sub — cancel-at-period-end or a
 grant — once per period via `expiryNoticeSentAt`, reset on a completed recharge), `subscription_cancelled`
 (period-end cancel or admin revoke), `subscription_expired` (grace ran out or a grant ended).
+
+## 2026-10-07 Admin plan edit
+- Admin → Subscription plans has a "რედაქტირება" button per plan. It loads the plan into the form;
+  the audience is fixed once created. Saving posts the full plan (tier, name, description, price,
+  period, order, perks) to the existing `POST admin/subscription-plans/:id` (Super Admin, audited
+  `subscription-plan.update`).
+- Perks are read from the plan at request time, so a corrected `profileBadge` shows on live
+  subscribers' profiles immediately. This came up when a mistyped badge text could not be fixed.
+- Covered by `test/client-feedback.e2e-spec.ts`.

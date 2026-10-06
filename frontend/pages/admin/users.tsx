@@ -55,9 +55,9 @@ function SuperAdminPanel({
     event.preventDefault()
     const value = Number(amount)
     if (!Number.isInteger(value) || value === 0 || Math.abs(value) > 100000) return setMessage({ kind: 'error', text: 'თანხა: მთელი რიცხვი, არა 0, მაქს. ±100000.' })
-    if (walletMax !== null && Math.abs(value) > walletMax) return setMessage({ kind: 'error', text: `შენი ლიმიტია ±${walletMax} WC ერთ ოპერაციაზე.` })
+    if (walletMax !== null && Math.abs(value) > walletMax) return setMessage({ kind: 'error', text: `შენი ლიმიტია ±${walletMax} GEL ერთ ოპერაციაზე.` })
     if (walletReason.trim().length < 5) return setMessage({ kind: 'error', text: 'მიზეზი: მინიმუმ 5 სიმბოლო.' })
-    if (!window.confirm(`${value > 0 ? 'დავამატოთ' : 'ჩამოვაჭრათ'} ${Math.abs(value)} WC მომხმარებელს @${item.username}?`)) return
+    if (!window.confirm(`${value > 0 ? 'დავამატოთ' : 'ჩამოვაჭრათ'} ${Math.abs(value)} GEL მომხმარებელს @${item.username}?`)) return
     void run('wallet', async () => {
       const updated = await api.adminAdjustWallet(item.id, value, walletReason.trim())
       setAmount('')
@@ -80,15 +80,15 @@ function SuperAdminPanel({
     <div className="au-panel">
       <form className="au-form" onSubmit={adjust}>
         <strong>
-          <span>ბალანსი:</span> {gel(item.wavecoinBalance)} WC
+          <span>ბალანსი:</span> {gel(item.wavecoinBalance)} GEL
         </strong>
-        <input type="number" step={1} placeholder="+100 ან -50" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="თანხა (WC)" />
+        <input type="number" step={1} placeholder="+100 ან -50" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="თანხა (GEL)" />
         <input maxLength={300} placeholder="მიზეზი (ჩანს აუდიტში)" value={walletReason} onChange={(e) => setWalletReason(e.target.value)} aria-label="მიზეზი" />
         <button type="submit" className="button" disabled={busy === 'wallet'}>
           ბალანსის შეცვლა
         </button>
       </form>
-      {walletMax !== null && <p className="au-note">შენი ლიმიტი: ±{walletMax} WC ერთ ოპერაციაზე (Super Admin-ის მიერ დადგენილი).</p>}
+      {walletMax !== null && <p className="au-note">შენი ლიმიტი: ±{walletMax} GEL ერთ ოპერაციაზე (Super Admin-ის მიერ დადგენილი).</p>}
       {canSetRole && (
       <form className="au-form" onSubmit={saveRole}>
         <strong>ადმინ როლი</strong>
@@ -111,7 +111,7 @@ function SuperAdminPanel({
           {message.text}
         </p>
       )}
-      <p className="au-note">WaveCoin-ის დამატება მყიდველს აძლევს დასახარჯ ბალანსს — ის არ ითვლება გასატან შემოსავლად.</p>
+      <p className="au-note">ბალანსის დამატება მყიდველს აძლევს დასახარჯ ბალანსს — ის არ ითვლება გასატან შემოსავლად.</p>
     </div>
   )
 }
@@ -268,7 +268,7 @@ export default function AdminUsers() {
                   {item.moderationReason ? ` — ${item.moderationReason}` : ''}
                 </span>
                 <span className="note" style={{ margin: 0 }}>
-                  {gel(item.wavecoinBalance)} WC{item.adminRole ? ` · ${ROLE_LABELS[item.adminRole]}` : ''}
+                  {gel(item.wavecoinBalance)} GEL{item.adminRole ? ` · ${ROLE_LABELS[item.adminRole]}` : ''}
                 </span>
               </div>
               <div className="admin-row-actions">

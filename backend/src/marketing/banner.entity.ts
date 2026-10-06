@@ -1,11 +1,16 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { BannerPlacement } from '@wavehub/shared-types';
 
-// A homepage banner (marketing/CLAUDE.md): image + title, optional subtitle and button link (an
+// A CMS banner (marketing/CLAUDE.md) shown at its `placement`: image + title, optional subtitle and button link (an
 // internal path or an https URL), shown while active and inside its optional date window.
 @Entity('banners')
 export class Banner {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  // Where it shows — migration 1784383000000-BannerPlacements (CHECK-constrained).
+  @Column({ type: 'varchar', length: 30, default: BannerPlacement.HomeStrip })
+  placement: BannerPlacement;
 
   @Column({ type: 'varchar', length: 80 })
   title: string;

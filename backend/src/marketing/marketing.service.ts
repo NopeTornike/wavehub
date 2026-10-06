@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, Repository } from 'typeorm';
 import type { AdminBanner, AdminPromoCode, PromoRedemptionResult, PublicBanner } from '@wavehub/shared-types';
+import { BannerPlacement } from '@wavehub/shared-types';
 import { PromoCode, PromoRedemption } from './promo-code.entity';
 import { Banner } from './banner.entity';
 import { BannerDto, CreateBannerDto, CreatePromoCodeDto, UpdatePromoCodeDto } from './dto/marketing.dto';
@@ -114,6 +115,7 @@ export class MarketingService {
   private toAdminBanner(b: Banner): AdminBanner {
     return {
       id: b.id,
+      placement: b.placement,
       title: b.title,
       subtitle: b.subtitle,
       imageUrl: b.imageUrl,
@@ -127,18 +129,19 @@ export class MarketingService {
     };
   }
 
-  async listPublicBanners(): Promise<PublicBanner[]> {
+  // Live banners for one placement (all placements when none is given), ≤10.
+  async listPublicBanners(placement?: BannerPlacement): Promise<PublicBanner[]> {
     const now = new Date();
-    const rows = await this.banners
-      .createQueryBuilder('b')
-      .where('b.active = true')
+    const query = this.banners.createQueryBuilder('b').where('b.active = true');
+    if (placement) query.andWhere('b.placement = :placement', { placement });
+    const rows = await query
       .andWhere(new Brackets((q) => q.where('b.startsAt IS NULL').orWhere('b.startsAt <= :now', { now })))
       .andWhere(new Brackets((q) => q.where('b.endsAt IS NULL').orWhere('b.endsAt > :now', { now })))
       .orderBy('b.sortOrder', 'ASC')
       .addOrderBy('b.createdAt', 'DESC')
       .take(10)
       .getMany();
-    return rows.map((b) => ({ id: b.id, title: b.title, subtitle: b.subtitle, imageUrl: b.imageUrl, linkUrl: b.linkUrl, buttonLabel: b.buttonLabel }));
+    return rows.map((b) => ({ id: b.id, placement: b.placement, title: b.title, subtitle: b.subtitle, imageUrl: b.imageUrl, linkUrl: b.linkUrl, buttonLabel: b.buttonLabel }));
   }
 
   async listBanners(): Promise<AdminBanner[]> {
@@ -147,6 +150,7 @@ export class MarketingService {
 
   private bannerPatch(dto: BannerDto, current?: Banner): Partial<Banner> {
     const patch: Partial<Banner> = {};
+    if (dto.placement !== undefined) patch.placement = dto.placement;
     if (dto.title !== undefined) patch.title = dto.title.trim();
     if (dto.subtitle !== undefined) patch.subtitle = dto.subtitle?.trim() || null;
     if (dto.linkUrl !== undefined) patch.linkUrl = dto.linkUrl?.trim() || null;

@@ -10,6 +10,8 @@ import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
 import { gel } from '../lib/money'
 import StepsGuide from '../components/StepsGuide'
+import HomeBanners from '../components/HomeBanners'
+import { BannerPlacement } from '@wavehub/shared-types'
 
 // The prototype's marketplace.html, section for section: head + product count, the three filter
 // selects (product / game / sort), the listing grid, the floating cart footer, and the
@@ -195,6 +197,7 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
         )
       }
     >
+      <HomeBanners placement={servicesOnly ? BannerPlacement.ServicesTop : BannerPlacement.MarketplaceTop} />
       <StepsGuide id="escrowStepsTitle" title="როგორ მუშაობს" accent="Escrow" steps={steps} />
 
       <section className="marketplace-head" aria-labelledby="marketplaceTitle">

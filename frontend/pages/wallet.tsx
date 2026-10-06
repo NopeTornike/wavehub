@@ -36,7 +36,7 @@ const WITHDRAW_STATUS: Record<WithdrawStatus, [string, string]> = {
 }
 
 const TX_LABELS: Record<WalletLedgerType, string> = {
-  [WalletLedgerType.Topup]: 'WaveCoin-ის შევსება',
+  [WalletLedgerType.Topup]: 'ბალანსის შევსება',
   [WalletLedgerType.OrderEscrowHold]: 'შესყიდვა',
   [WalletLedgerType.OrderRelease]: 'შეკვეთის შემოსავალი',
   [WalletLedgerType.OrderRefund]: 'შეკვეთის თანხის დაბრუნება',
@@ -155,7 +155,7 @@ export default function Wallet() {
     }
     setTopupStatus({ kind: '', text: '' })
     if (!Number.isInteger(amount) || amount < 1) {
-      setTopupStatus({ kind: 'error', text: 'თანხა უნდა იყოს მთელი რიცხვი, მინიმუმ 1 WC.' })
+      setTopupStatus({ kind: 'error', text: 'თანხა უნდა იყოს მთელი რიცხვი, მინიმუმ 1 GEL.' })
       return
     }
     setSubmitting(true)
@@ -230,7 +230,7 @@ export default function Wallet() {
     ['available', '▣', 'ხელმისაწვდომი ბალანსი', walletBalance, 'მზადაა დასახარჯად'],
     ['escrow', '◇', 'ესქროუში', escrow, 'დაცული გადახდები'],
     ['pending', '◷', 'მოსალოდნელი გაცემები', pendingPayouts, 'დასრულების მოლოდინში'],
-    ['purchased', '↥', 'სულ შეძენილი', purchased, 'BOG-ით შეძენილი WaveCoin'],
+    ['purchased', '↥', 'სულ შეძენილი', purchased, 'BOG-ით შევსებული თანხა'],
   ]
 
   return (
@@ -242,7 +242,7 @@ export default function Wallet() {
     >
       <section className="wallet-page-head" aria-labelledby="walletTitle">
         <h1 id="walletTitle">ჩემი საფულე</h1>
-        <p>მართე ბალანსი, ტრანზაქციები და WaveCoin-ის შევსება.</p>
+        <p>მართე ბალანსი, ტრანზაქციები და ბალანსის შევსება.</p>
       </section>
 
       {router.query.topup === 'success' && (
@@ -260,9 +260,8 @@ export default function Wallet() {
         <div className="wallet-hero-balance">
           <span>საერთო ბალანსი</span>
           <h2 id="walletBalanceTitle">
-            <strong id="walletBalanceLarge">{gel(walletBalance)} WC</strong>
+            <strong id="walletBalanceLarge">{gel(walletBalance)} GEL</strong>
           </h2>
-          <small>1 WaveCoin = 1 GEL</small>
         </div>
         <div className="wallet-hero-art" aria-hidden="true">
           <span className="wallet-hero-coin">W</span>
@@ -275,7 +274,7 @@ export default function Wallet() {
                 <i className={key === 'purchased' ? 'withdrawn' : key}></i>
                 {label}
               </dt>
-              <dd>{gel(value)} WC</dd>
+              <dd>{gel(value)} GEL</dd>
             </div>
           ))}
         </dl>
@@ -287,7 +286,7 @@ export default function Wallet() {
             <i>{icon}</i>
             <div>
               <span>{label}</span>
-              <strong>{gel(value)} WC</strong>
+              <strong>{gel(value)} GEL</strong>
               <small>{note}</small>
             </div>
           </article>
@@ -308,7 +307,7 @@ export default function Wallet() {
             </div>
           </div>
           <label>
-            <span>WaveCoin-ის რაოდენობა</span>
+            <span>თანხა (GEL)</span>
             <span className="wallet-amount-stepper">
               <button type="button" aria-label="შემცირება" onClick={() => setAmount((value) => Math.max(1, value - 1))}>
                 −
@@ -322,7 +321,7 @@ export default function Wallet() {
           <div className="wallet-quick-actions" aria-label="სწრაფი თანხები">
             {TOPUP_AMOUNTS.map((value) => (
               <button key={value} type="button" onClick={() => setAmount(value)}>
-                {value} WC
+                {value} GEL
               </button>
             ))}
           </div>
@@ -350,7 +349,7 @@ export default function Wallet() {
               </div>
             </div>
             <label>
-              <span>თანხა (WC)</span>
+              <span>თანხა (GEL)</span>
               <input id="withdrawAmount" type="number" min={1} step={1} required value={withdrawAmount} onChange={(event) => setWithdrawAmount(Math.floor(Number(event.target.value)))} />
             </label>
             <label>
@@ -388,7 +387,7 @@ export default function Wallet() {
             </button>
             <p className={`seller-status${withdrawStatus.kind ? ` ${withdrawStatus.kind}` : ''}`} aria-live="polite">
               {withdrawStatus.text ||
-                `გასატანად ხელმისაწვდომია ${balance?.availableToWithdraw ?? 0} WC. გამომუშავებული თანხა ხელმისაწვდომი ხდება 7 დღის შემდეგ; მოთხოვნას ამუშავებს ადმინისტრაცია.`}
+                `გასატანად ხელმისაწვდომია ${balance?.availableToWithdraw ?? 0} GEL. გამომუშავებული თანხა ხელმისაწვდომი ხდება 7 დღის შემდეგ; მოთხოვნას ამუშავებს ადმინისტრაცია.`}
             </p>
           </form>
         )}
@@ -432,7 +431,7 @@ export default function Wallet() {
                   <time className="wallet-transaction-date" dateTime={request.createdAt}>
                     {formatDateTime(request.createdAt)}
                   </time>
-                  <strong className="wallet-transaction-amount">-{request.amountWaveCoin} WC</strong>
+                  <strong className="wallet-transaction-amount">-{request.amountWaveCoin} GEL</strong>
                   <span className={`wallet-transaction-status ${tone}`}>{label}</span>
                 </article>
               )
@@ -505,7 +504,7 @@ export default function Wallet() {
                 </time>
                 <strong className="wallet-transaction-amount">
                   {credit ? '+' : ''}
-                  {gel(tx.amountWaveCoin)} WC
+                  {gel(tx.amountWaveCoin)} GEL
                 </strong>
                 <span className={`wallet-transaction-status ${tone}`}>{label}</span>
               </article>

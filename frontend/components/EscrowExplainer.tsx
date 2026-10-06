@@ -83,7 +83,7 @@ export default function EscrowExplainer({ kind }: { kind: Kind }) {
           <img src="/assets/ui/shield-check.png" alt="" aria-hidden="true" />
           <span>
             <strong>თუ მიღებას არ ადასტურებთ</strong>
-            <small>შეკვეთა არ ითვლება დასრულებულად, სანამ თქვენ მიღებას არ დაადასტურებთ.</small>
+            <small>თუ 24 საათის განმავლობაში არ დაადასტურებთ შეკვეთას ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.</small>
           </span>
           <i aria-hidden="true">›</i>
         </Link>

@@ -174,7 +174,7 @@ export class BogPaymentsController {
             intent.userId,
             NotificationType.WalletTopup,
             'ბალანსი შეივსო',
-            `შენს ბალანსს დაემატა ${intent.wavecoins} WaveCoin. შეგიძლია გამოიყენო შესყიდვებისთვის და ქოუჩინგისთვის.`,
+            `შენს ბალანსს დაემატა ${intent.wavecoins} GEL. შეგიძლია გამოიყენო შესყიდვებისთვის და ქოუჩინგისთვის.`,
             { link: '/wallet' },
           );
         }

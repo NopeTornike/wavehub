@@ -539,7 +539,6 @@ export default function OrderDetail() {
             ))}
           </ol>
           {order.deliveryDueAt && !order.completedAt && !order.cancelledAt && <p className="od-note">მიწოდების ვადა: {formatWhen(order.deliveryDueAt)}</p>}
-          {order.autoCompleteAt && order.status === OrderStatus.Delivered && <p className="od-note">ავტომატურად დასრულდება: {formatWhen(order.autoCompleteAt)}</p>}
           {order.cancellationReason && <p className="od-note">გაუქმების მიზეზი: {order.cancellationReason}</p>}
           {order.revisionReason && <p className="od-note">გადასამუშავებელი შენიშვნა: {order.revisionReason}</p>}
         </section>
@@ -791,6 +790,21 @@ export default function OrderDetail() {
                 <img src="/assets/ui/shield-check.png" alt="" aria-hidden="true" />
               </span>
               {isBuyer ? 'დაადასტურეთ შეკვეთა მხოლოდ მონაცემების სრულად შემოწმების შემდეგ.' : 'თანხა ჩაგერიცხებათ მყიდველის მიერ მიღების დადასტურების შემდეგ.'}
+            </p>
+          )}
+          {/* Client decision 2026-10-07: delivered orders complete themselves after 24h (backend
+              AUTO_COMPLETE_HOURS) — the buyer is told up front, with the exact time once delivered. */}
+          {(isBuyer || isSeller) && [OrderStatus.Paid, OrderStatus.InProgress, OrderStatus.Delivered].includes(order.status) && (
+            <p className="od-safety od-warn" role="note">
+              <span>
+                <img src="/assets/ui/warning.png" alt="" aria-hidden="true" />
+              </span>
+              <span className="od-warn-text">
+                {isBuyer
+                  ? 'თუ 24 საათის განმავლობაში არ დაადასტურებთ შეკვეთას ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.'
+                  : 'მიწოდებიდან 24 საათში, თუ მყიდველი არ დაადასტურებს შეკვეთას ან არ გახსნის დავას, შეკვეთა ავტომატურად დასრულდება და თანხა ჩაგერიცხებათ.'}
+                {order.status === OrderStatus.Delivered && order.autoCompleteAt && <strong>{`ავტომატური დასრულება: ${formatWhen(order.autoCompleteAt)}`}</strong>}
+              </span>
             </p>
           )}
         </section>

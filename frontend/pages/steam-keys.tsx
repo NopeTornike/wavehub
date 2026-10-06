@@ -9,6 +9,8 @@ import { useAuth } from '../lib/auth'
 import { gameCover } from '../lib/games'
 import { canPublishSteam } from '../lib/roles'
 import { TIcon } from '../lib/tournaments'
+import { BannerPlacement } from '@wavehub/shared-types'
+import HomeBanners from '../components/HomeBanners'
 
 // docs/design-mockups/04-steam-games-list.jpg: title, search, sort (no genre filter — owner decision 2026-09-26), a row of large
 // cards then a row of compact ones, and pagination — over the platform's real digital-key
@@ -101,6 +103,7 @@ export default function SteamGames() {
 
   return (
     <Layout title="Steam თამაშები" description="Steam-ის აქტივაციის გასაღებები WaveHubX-ზე — მყისიერი მიწოდება, ესქროუ დაცვა.">
+      <HomeBanners placement={BannerPlacement.SteamTop} />
       <section className="sg-page">
         <div className="sg-top">
           <button

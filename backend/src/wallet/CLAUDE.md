@@ -85,7 +85,7 @@ both.
   Order data once Orders exist (build-plan Phase 11, Revenue Dashboard). Don't invent a fake user
   row just to hang a ledger entry off of.
 - **No cron marks `pending` entries `available` yet**, even though `@nestjs/schedule` is now
-  installed (Phase 4, for Orders' unrelated 72h auto-complete job) — nothing has wired an
+  installed (Phase 4, for Orders' unrelated auto-complete job (24h)) — nothing has wired an
   equivalent job for wallet entries. `getBalanceSummary` doesn't need one either: it compares
   `availableAt` to `now()` at query time rather than trusting `status`, so the missing cron doesn't
   block correctness, only means `status` itself stays a slightly stale label.

@@ -320,7 +320,7 @@ export default function Dashboard() {
             <div className="db-wallet">
               <div>
                 <small>საფულის ბალანსი</small>
-                <strong>{gel(user.wavecoinBalance)} WC</strong>
+                <strong>{gel(user.wavecoinBalance)} GEL</strong>
                 <Link className="db-primary sm" href="/wallet">
                   შევსება
                 </Link>

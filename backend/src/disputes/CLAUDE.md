@@ -83,7 +83,7 @@ CASCADE` from `disputes`.
   anywhere else.
 - **A dispute being opened is what "freezes" the order for free** — once `order.status` flips to
   `Disputed`, `OrdersService.autoCompleteDueOrders`'s query (`WHERE status = 'delivered'`) simply no
-  longer matches it, so the 72h auto-complete cron can't fire on a disputed order. No extra flag or
+  longer matches it, so the auto-complete cron (24h since 2026-10-07) can't fire on a disputed order. No extra flag or
   lock was needed for this half of the "freeze" the build plan calls for. The other half — "blocks
   withdrawal of tied funds" — now exists too: `backend/src/withdrawals/WithdrawalsService#request`
   queries `Dispute` directly (any non-terminal status blocks a *new* withdrawal request). This is a

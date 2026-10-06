@@ -8,6 +8,8 @@ import { gameIcon } from '../../lib/games'
 import { useShell } from '../../lib/shell'
 import { useCoachingFromPrice } from '../../lib/coaching-price'
 import StepsGuide from '../../components/StepsGuide'
+import { BannerPlacement } from '@wavehub/shared-types'
+import HomeBanners from '../../components/HomeBanners'
 
 /* eslint-disable @next/next/no-img-element */
 // The prototype's coaching.html (coaching.js), on real data: the filter panel (Game checkboxes with
@@ -137,6 +139,7 @@ export default function CoachingDirectory() {
       description="ვერიფიცირებული გეიმინგ ქოუჩები WaveHub-ზე — დაჯავშნეთ სესია PUBG Mobile, COD Mobile, Free Fire და სხვა თამაშებისთვის."
       pageSearch={{ value: query, onChange: setQuery, placeholder: 'მოძებნე ქოუჩები...', label: 'ქოუჩების ძიება' }}
     >
+      <HomeBanners placement={BannerPlacement.CoachingTop} />
       {/* Booking guide (client feedback #8 — same form as the marketplace's). */}
       <StepsGuide
         id="coachStepsTitle"
@@ -410,7 +413,7 @@ export default function CoachingDirectory() {
                           <path d="M12 3 4.5 6v6c0 4.5 3.2 7.6 7.5 9 4.3-1.4 7.5-4.5 7.5-9V6L12 3Z" />
                           <path d="m9 12 2.2 2.2L15.2 10" />
                         </svg>
-                        Verified Coach
+                        ვერიფიცირებული ქოუჩი
                       </span>
                       {coach.ratingAvg && Number(coach.ratingAvg) >= 4.8 && coach.ratingCount >= 5 && (
                         <span>

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
@@ -12,7 +12,7 @@ import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
 import { MarketingService } from './marketing.service';
-import { BannerDto, CreateBannerDto, CreatePromoCodeDto, RedeemPromoDto, UpdatePromoCodeDto } from './dto/marketing.dto';
+import { BannerDto, CreateBannerDto, CreatePromoCodeDto, PublicBannersQueryDto, RedeemPromoDto, UpdatePromoCodeDto } from './dto/marketing.dto';
 
 // Guessing codes is the abuse surface: 5 tries a minute per IP, verified accounts only.
 const REDEEM_THROTTLE = { default: { limit: 5, ttl: 60_000 } };
@@ -31,8 +31,8 @@ export class MarketingController {
   // --- Public / users ---
 
   @Get('banners')
-  publicBanners() {
-    return this.marketing.listPublicBanners();
+  publicBanners(@Query() query: PublicBannersQueryDto) {
+    return this.marketing.listPublicBanners(query.placement);
   }
 
   @Post('promo-codes/redeem')

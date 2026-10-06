@@ -50,7 +50,7 @@ export default function AdminSettings() {
     setError('')
     setSaved(false)
     if (!Number.isInteger(supportPerms.walletAdjustMax) || supportPerms.walletAdjustMax < 1 || supportPerms.walletAdjustMax > 100000) {
-      setError('Support-ის ლიმიტი: მთელი რიცხვი, 1–100000 WC.')
+      setError('Support-ის ლიმიტი: მთელი რიცხვი, 1–100000 GEL.')
       return
     }
     setSaving(true)
@@ -115,7 +115,7 @@ export default function AdminSettings() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="minWithdrawalWaveCoin">გატანის მინიმალური ოდენობა (WC)</label>
+            <label htmlFor="minWithdrawalWaveCoin">გატანის მინიმალური ოდენობა (GEL)</label>
             <input
               id="minWithdrawalWaveCoin"
               className="input"
@@ -154,10 +154,10 @@ export default function AdminSettings() {
                 onChange={(event) => setSupportPerms({ ...supportPerms, walletAdjust: event.target.checked })}
                 style={{ marginRight: 8 }}
               />
-              WaveCoin-ის დამატება / ჩამოჭრა
+              ბალანსის დამატება / ჩამოჭრა
             </label>
             <label htmlFor="supportWalletMax" className="sp-perms-sub">
-              მაქსიმუმი ერთ ოპერაციაზე (WC)
+              მაქსიმუმი ერთ ოპერაციაზე (GEL)
               <input
                 id="supportWalletMax"
                 className="input"

@@ -68,7 +68,7 @@ describe('coach profiles, reviews, favourites (e2e)', () => {
     expect(pub).toMatchObject({ ratingAvg: '4.00', ratingCount: 1, completedSessions: 1, stats: { students: 1, sessions: 1, successRate: 100 } });
     const reviews = (await stranger.client.get(`/coaches/${coachId}/reviews`)).body;
     expect(reviews).toHaveLength(1);
-    expect(reviews[0]).toMatchObject({ rating: 4, body: 'Great session, clear tips.', buyerUsername: buyer.username });
+    expect(reviews[0]).toMatchObject({ rating: 4, body: 'Great session, clear tips.', buyerUsername: buyer.username, buyerFirstName: 'Test', buyerLastName: 'User' });
     expect(JSON.stringify(reviews)).not.toMatch(/buyerId|email/);
   });
 

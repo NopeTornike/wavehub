@@ -384,3 +384,9 @@ account stays. Audited (`coach.delete`, with username/status).
   `onCoachUnverified`. Coaches grant student badges through `backend/src/badges/`.
 - **Names**: session shapes carry `coachAvatarUrl`, `coachVerified`, `buyerFirstName`,
   `buyerLastName`, `buyerAvatarUrl`. Notification texts use full names (`common/person-name.ts`).
+
+## 2026-10-07
+- `PublicCoachReview` (GET `coaches/:id/reviews`) carries `buyerFirstName`, `buyerLastName`,
+  `buyerAvatarUrl`, shown on `/coaching/[id]` instead of `@handle`.
+- The home coach carousel opens on the middle coach on phones.
+- Coach cards say "ვერიფიცირებული ქოუჩი" (it was English).

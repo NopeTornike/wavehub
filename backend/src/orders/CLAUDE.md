@@ -16,7 +16,7 @@ seller payouts (withdrawals, still a future phase) all hang off an Order existin
   submitted requirements-form answers against a service listing's required fields at purchase time
 - `orders.service.ts` — everything: `purchase`, `startOrder`, `deliverOrder`, `addDeliveryFile`,
   `requestRevision`, `acceptDelivery`, `cancelByBuyer`, `cancelBySeller`, `getRevealedKey`
-  (DigitalKey orders only — see the gotcha below), the 72h `autoCompleteDueOrders` cron, and
+  (DigitalKey orders only — see the gotcha below), the 24h (was 72h until 2026-10-07) `autoCompleteDueOrders` cron, and
   `listMessages`/`sendMessage` (thin ownership-checked wrappers around `backend/src/chat/`'s
   `ChatService` — see that module's doc for why chat's own routes live here instead of a separate
   controller)
@@ -134,7 +134,7 @@ gap-minimal, race-free numbering — not a UUID, not app-side counting.
 - **`listing.ordersCount` increments on order *completion*, not on purchase** — it's meant to reflect
   "orders completed" (what marketplace cards show per the spec), not "orders placed." Don't move this
   increment earlier.
-- **The 72h auto-complete cron (`@Cron('0 * * * *')`) runs hourly**, not continuously — a 72h window
+- **The auto-complete cron (`@Cron('0 * * * *')`) runs hourly**, not continuously — a 24h window
   doesn't need per-minute precision. It's a single in-process `@nestjs/schedule` job; if this backend
   ever runs as more than one instance, add a distributed lock before scaling out, or every instance
   will try to auto-complete the same due orders redundantly (harmless today since
@@ -246,9 +246,9 @@ three list/detail queries join `listing.game` + `listing.images`.
 Supersedes the gotchas above that describe key orders sitting at `Paid` and the seller clicking
 through Start/Deliver.
 - In `purchase()`, right after the key claim, a DigitalKey order is set to `Delivered` with
-  `deliveredAt = now` and `autoCompleteAt = now + 72h` (same transaction). The buyer reveals the
+  `deliveredAt = now` and `autoCompleteAt = now + AUTO_COMPLETE_HOURS` (same transaction). The buyer reveals the
   key, then confirms (`acceptDelivery` → `Completed`, seller payout, review) — or the hourly
-  auto-complete cron does it after 72h. Before this, nobody ever "started" a key order, so it could
+  auto-complete cron does it after the window (24h since 2026-10-07). Before this, nobody ever "started" a key order, so it could
   never complete, pay out or be reviewed.
 - Migration `DeliverKeyOrders1784364000000` moves existing key orders stuck at `paid`/`in_progress`
   to `delivered` with a fresh 72h window — **except orders that have a dispute row**. Not reversible.
@@ -271,3 +271,14 @@ through Start/Deliver.
   `BadgesService.verifiedSet`).
 - **Badges**: `completeOrder` and a dispute's ReleaseToSeller call `BadgesService.onOrdersCompleted`
   (first-order / orders-100).
+
+## 2026-10-07: 24h auto-complete (client decision)
+- `AUTO_COMPLETE_HOURS = 24` (was 72): a delivered order completes itself 24h after delivery unless
+  the buyer confirms or opens a dispute first.
+- Only new deliveries get 24h. Orders delivered before the deploy keep the deadline they were shown.
+- The buyer is told in advance in three places:
+  - the `order_delivered` notification (and its email copy) carries the warning;
+  - the listing page's Escrow explainer;
+  - the order page shows an amber warning under the chat for Paid / InProgress / Delivered orders,
+    with the exact time once delivered. The seller sees the mirror text.
+- Covered by `test/client-feedback.e2e-spec.ts` (delivered + 24h, notification text).

@@ -180,8 +180,11 @@ describe('coaching booking + lifecycle v2 (e2e)', () => {
     const hours = { weekly: [{ day: day.day, from: 18 * 60, to: 21 * 60 }, { day: offDay.day, from: 0, to: 1440 }], daysOff: [offDay.date], noticeHours: 2 };
     const saved = await set(hours);
     expect(saved.status).toBe(200);
-    expect(saved.body.availability).toEqual(hours);
-    expect((await buyer.client.get(`/coaches/${coachId}`)).body.availability).toEqual(hours);
+    // The server stores weekly ranges sorted by day — compare in that order (the test's two days
+    // come out Saturday-then-Sunday on some weekdays).
+    const stored = { ...hours, weekly: [...hours.weekly].sort((a, b) => a.day - b.day || a.from - b.from) };
+    expect(saved.body.availability).toEqual(stored);
+    expect((await buyer.client.get(`/coaches/${coachId}`)).body.availability).toEqual(stored);
 
     const slot = (date: string, minutes: number) => new Date(tbilisiInstant(date, minutes)).toISOString();
     const student = await registerUser(ctx, 'lchours'); // own throttle bucket

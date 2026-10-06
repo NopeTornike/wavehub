@@ -90,7 +90,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
     // bog-payments.controller.ts. Keying is by IP (ThrottlerGuard's default), which only reflects
     // the real client IP if TRUST_PROXY is configured correctly in a real deployment — see main.ts.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
-    // Powers OrdersService's 72h auto-complete cron (@Cron in orders.service.ts). A single
+    // Powers OrdersService's 24h auto-complete cron (@Cron in orders.service.ts). A single
     // in-process scheduler is fine at this scale — see orders/CLAUDE.md if this ever needs to run
     // across multiple instances (would need a distributed lock to avoid double-firing).
     ScheduleModule.forRoot(),

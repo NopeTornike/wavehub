@@ -299,7 +299,7 @@ export default function Topbar({
           </span>
         </button>
         <Link className="home-top-wallet" href={signedIn ? '/wallet' : loginHref} aria-label="Wallet balance">
-          <span id="homeTopWalletBalance">{gel(user?.wavecoinBalance)}</span> WC
+          <span id="homeTopWalletBalance">{gel(user?.wavecoinBalance)}</span> GEL
         </Link>
 
         {action}

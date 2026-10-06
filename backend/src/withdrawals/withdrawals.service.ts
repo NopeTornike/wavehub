@@ -143,7 +143,7 @@ export class WithdrawalsService {
         request.sellerId,
         NotificationType.WithdrawalStatusChanged,
         'გატანის მოთხოვნის სტატუსი შეიცვალა',
-        `თქვენი გატანის მოთხოვნა (${request.amountWaveCoin} WC) ${STATUS_LABELS_KA[status]}${note ? `: ${note}` : ''}`,
+        `თქვენი გატანის მოთხოვნა (${request.amountWaveCoin} GEL) ${STATUS_LABELS_KA[status]}${note ? `: ${note}` : ''}`,
         { withdrawRequestId: id },
       );
     } catch (err) {

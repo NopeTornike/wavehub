@@ -11,6 +11,8 @@ import { gameIcon } from '../../lib/games'
 import RankIcon from '../../components/RankIcon'
 import ReportButton from '../../components/ReportButton'
 import ImageLightbox from '../../components/ImageLightbox'
+import { kaDate } from '../../lib/dates'
+import Avatar, { displayName } from '../../components/Avatar'
 
 // docs/design-mockups/14-coach-profile.jpg on the prototype's coach-profile classes: portrait with
 // the real online pill, verified mark, badges (rank, plan badge, Fast Responder / Top Rated when
@@ -182,7 +184,7 @@ export default function CoachProfile() {
                 {coach.profileBadge && <span className="coach-profile-badge violet">{coach.profileBadge}</span>}
                 {topRated && <span className="coach-profile-badge">Top Rated</span>}
                 {fastResponder && <span className="coach-profile-badge green">Fast Responder</span>}
-                <span className="coach-profile-badge violet">Verified Coach</span>
+                <span className="coach-profile-badge violet">ვერიფიცირებული ქოუჩი</span>
                 {coach.languages.map((code) => (
                   <span key={code} className="coach-profile-badge">
                     {LANGUAGES[code]?.[1] && <img src={LANGUAGES[code][1]} alt="" width={16} height={16} />}
@@ -356,8 +358,10 @@ export default function CoachProfile() {
                   <article key={review.id}>
                     <strong>★ {review.rating.toFixed(1)}</strong>
                     {review.body && <p>{review.body}</p>}
-                    <span>
-                      @{review.buyerUsername} · {new Date(review.createdAt).toLocaleDateString('ka-GE')}
+                    {/* The student by photo + full name (client feedback #9). */}
+                    <span className="coach-review-author">
+                      <Avatar name={displayName({ firstName: review.buyerFirstName, lastName: review.buyerLastName, username: review.buyerUsername })} src={review.buyerAvatarUrl} size={32} />
+                      {displayName({ firstName: review.buyerFirstName, lastName: review.buyerLastName, username: review.buyerUsername })} · {kaDate(review.createdAt)}
                     </span>
                   </article>
                 ))

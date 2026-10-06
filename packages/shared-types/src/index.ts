@@ -763,6 +763,11 @@ export interface PublicCoachReview {
   rating: number;
   body: string | null;
   buyerUsername: string;
+  // The student by name + photo (client feedback #9), like product reviews. Optional so the
+  // session-review responses that only carry the username still fit this shape.
+  buyerFirstName?: string;
+  buyerLastName?: string;
+  buyerAvatarUrl?: string | null;
   createdAt: string;
 }
 
@@ -1147,7 +1152,7 @@ export interface PublicUserProfile {
     average: number | null;
     // Index 0 = 5 stars … index 4 = 1 star.
     distribution: [number, number, number, number, number];
-    latest: Array<{ rating: number; body: string | null; buyerUsername: string; createdAt: string }>;
+    latest: Array<{ rating: number; body: string | null; buyerUsername: string; buyerFirstName: string; buyerLastName: string; buyerAvatarUrl: string | null; createdAt: string }>;
   };
   // Earned achievements only — see backend/src/follows/CLAUDE.md for each rule.
   // The owner's badge set (BadgeKey — icon at badgeIcon(key)) plus tournament champion/finalist.
@@ -1718,8 +1723,33 @@ export interface PromoRedemptionResult {
 }
 
 // GET banners — what the homepage shows (active, inside their date window, in order).
+// Where a CMS banner shows (owner 2026-10-07: "every banner must be editable from the CMS").
+// home_hero replaces the home page's top marketplace cover; home_strip is the rotating strip above
+// Coaching & Tournaments; *_top banners appear at the top of that page. A placement with no live
+// banner keeps its built-in art (home_hero) or shows nothing.
+export enum BannerPlacement {
+  HomeHero = 'home_hero',
+  HomeStrip = 'home_strip',
+  MarketplaceTop = 'marketplace_top',
+  ServicesTop = 'services_top',
+  SteamTop = 'steam_top',
+  CoachingTop = 'coaching_top',
+  TournamentsTop = 'tournaments_top',
+}
+
+export const BANNER_PLACEMENT_LABELS: Record<BannerPlacement, string> = {
+  [BannerPlacement.HomeHero]: 'მთავარი — ზედა დიდი ბანერი',
+  [BannerPlacement.HomeStrip]: 'მთავარი — შუა ზოლი',
+  [BannerPlacement.MarketplaceTop]: 'მარკეტი — ზედა ბანერი',
+  [BannerPlacement.ServicesTop]: 'სერვისები — ზედა ბანერი',
+  [BannerPlacement.SteamTop]: 'Steam თამაშები — ზედა ბანერი',
+  [BannerPlacement.CoachingTop]: 'ქოუჩინგი — ზედა ბანერი',
+  [BannerPlacement.TournamentsTop]: 'ტურნირები — ზედა ბანერი',
+};
+
 export interface PublicBanner {
   id: string;
+  placement: BannerPlacement;
   title: string;
   subtitle: string | null;
   imageUrl: string | null;

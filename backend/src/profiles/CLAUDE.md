@@ -42,3 +42,7 @@ Self-entered profile fields live on `users` (migration `1784356000000-ProfilesAn
 - The frontend shows them in `components/FollowLists.tsx` on `/profile`, with unfollow.
 - A new follower still gets one `new_follower` notification, now naming the follower by full name
   (`common/person-name.ts`).
+
+## 2026-10-07
+`reviews.latest[]` also carries `buyerFirstName`, `buyerLastName`, `buyerAvatarUrl`.
+`/u/[username]` shows the reviewer by photo + full name (client #9; it still showed `@handle`).

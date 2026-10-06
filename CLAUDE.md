@@ -141,7 +141,7 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
 - `.github/workflows/ci.yml` has an `audit` job running `npm audit --omit=dev` on every PR — a
   vulnerable production dependency fails CI, it doesn't rely on someone remembering to check.
 - **`sharp`** (transitive, via `next`'s optional image-optimization dependency) is also pinned in
-  root `overrides` (`^0.35.3`) past a libvips CVE — same mechanism as `postcss`/`multer` above.
+  root `overrides` (`^0.35.5` since 2026-10-07, CVE-2026-96889 in librsvg; was `^0.35.3`) past libvips CVEs — same mechanism as `postcss`/`multer` above.
   Note: after editing `overrides`, a plain `npm install` alone did **not** pick up the new pinned
   version for this transitive/optional dependency in practice (`npm ls sharp` kept showing the old
   version, annotated "overridden" but not actually reinstalled) — `npm update sharp` was needed to

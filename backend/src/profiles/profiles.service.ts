@@ -98,8 +98,9 @@ export class ProfilesService {
          )::int AS titles`,
       [userId],
     );
-    const reviewRows: Array<{ rating: number; body: string | null; buyerUsername: string; createdAt: Date }> = await this.db.query(
-      `SELECT r."rating", r."body", u."username" AS "buyerUsername", r."createdAt" FROM (
+    const reviewRows: Array<{ rating: number; body: string | null; buyerUsername: string; buyerFirstName: string; buyerLastName: string; buyerAvatarUrl: string | null; createdAt: Date }> = await this.db.query(
+      `SELECT r."rating", r."body", u."username" AS "buyerUsername", u."firstName" AS "buyerFirstName", u."lastName" AS "buyerLastName",
+              u."avatarUrl" AS "buyerAvatarUrl", r."createdAt" FROM (
          SELECT "rating", "body", "buyerId", "createdAt" FROM "reviews" WHERE "sellerId" = $1 AND "status" = 'published'
          UNION ALL
          SELECT "rating", "body", "buyerId", "createdAt" FROM "coaching_session_reviews"
@@ -140,7 +141,15 @@ export class ProfilesService {
         count,
         average,
         distribution,
-        latest: reviewRows.slice(0, 3).map((r) => ({ rating: Number(r.rating), body: r.body, buyerUsername: r.buyerUsername, createdAt: new Date(r.createdAt).toISOString() })),
+        latest: reviewRows.slice(0, 3).map((r) => ({
+          rating: Number(r.rating),
+          body: r.body,
+          buyerUsername: r.buyerUsername,
+          buyerFirstName: r.buyerFirstName,
+          buyerLastName: r.buyerLastName,
+          buyerAvatarUrl: r.buyerAvatarUrl,
+          createdAt: new Date(r.createdAt).toISOString(),
+        })),
       },
       badges,
     };
