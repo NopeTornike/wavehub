@@ -107,3 +107,16 @@ yet.
 - It is set through the same `POST admin/platform-settings` (Super Admin, audited).
 - `getCoachingFeePercent()` is what coaching session booking snapshots. `platformFeePercent` is
   now the **marketplace** fee only.
+
+## 2026-10-07 Auto-accept windows
+- `orderAutoCompleteHours` (default 24) and `sessionAutoConfirmHours` (default 48), integers 1–720.
+  They come from migration `1784384000000-AutoAcceptDurations`, with a CHECK. Edited in Admin →
+  Settings by Super Admin; audited with the other settings.
+- `getOrderAutoCompleteHours()` is read when an order is delivered (or a key order is bought);
+  `getSessionAutoConfirmHours()` when a coach marks a session done. Both store the resulting
+  deadline on the row (`orders.autoCompleteAt`, `coaching_sessions.autoConfirmAt`), so a change
+  only affects new deliveries / completions.
+- `GET platform/timings` (public, `PlatformTimingsController`) returns just these two numbers.
+  The frontend `lib/timings.ts#usePlatformTimings` uses them for the buyer-facing warnings (order
+  page, Escrow explainer, coach session text).
+- Covered by `test/client-feedback.e2e-spec.ts`.

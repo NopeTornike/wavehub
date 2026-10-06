@@ -25,6 +25,14 @@ export class PlatformSettings {
   @Column({ type: 'integer', default: 10 })
   coachingFeePercent: number;
 
+  // Auto-accept windows (hours, 1–720), owner 2026-10-07. Read when an order is delivered / a
+  // session is marked done and stored on that row, so a change never moves an existing deadline.
+  @Column({ type: 'integer', default: 24 })
+  orderAutoCompleteHours: number;
+
+  @Column({ type: 'integer', default: 48 })
+  sessionAutoConfirmHours: number;
+
   // Was MIN_WITHDRAWAL_WAVECOIN (hardcoded 20) in backend/src/withdrawals/withdrawals.service.ts.
   @Column({ type: 'integer', default: 20 })
   minWithdrawalWaveCoin: number;

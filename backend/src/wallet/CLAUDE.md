@@ -179,3 +179,14 @@ locks the user row, refuses a result below 0 (`INSUFFICIENT_BALANCE`), writes on
 the same transaction. Added credit is spendable balance, **not** withdrawable earnings (withdrawals
 only count cleared sales). `test/flows.ts#assertConserved` counts `admin_adjustment` rows as an
 inflow. Called only from `POST admin/users/:id/wallet-adjustment` (Super Admin).
+
+## Production data fix (2026-10-07)
+- `lifecycletest`, an early test account, had a balance of 85 against a −15 ledger: it was credited
+  100 directly on 2026-09-23 with no top-up row. Deleted at the owner's request in one checked
+  transaction (after a backup):
+  - its review, its DM thread and its one completed order were removed;
+  - both ledger rows of that order went too (buyer −15, `demoseller_nika` +14 release), and the
+    seller's balance was lowered by 14 to match;
+  - the listing's and the seller's cached counters were recomputed, and the seller's automatic
+    First Order badge (from that order only) was removed.
+- Afterwards no account's balance differs from its ledger.

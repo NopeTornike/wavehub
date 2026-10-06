@@ -393,3 +393,8 @@ account stays. Audited (`coach.delete`, with username/status).
 
 - Session dispute messages carry the participant's name and photo. Staff stay anonymous (empty
   names); the label is "WaveHubX Support" (was "WaveHub გუნდი").
+
+- `coaching_sessions.autoConfirmAt` (migration `1784384000000-AutoAcceptDurations`, backfilled
+  `coachCompletedAt + 48h`) is set when the coach marks the session done, from
+  `sessionAutoConfirmHours` (Admin → Settings). The sweep confirms sessions past it; rows without
+  one fall back to `AUTO_CONFIRM_HOURS` (48). Notification texts use the session's own window.

@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
+import { usePlatformTimings } from '../lib/timings'
 
 // "როგორ მუშაობს Escrow?" on the listing page (design 2026-10-04, screenshot "listing"): the five
 // money steps for this kind of product, then the three things a buyer should know.
@@ -37,6 +38,7 @@ function stepsFor(kind: Kind): Array<[string, string]> {
 }
 
 export default function EscrowExplainer({ kind }: { kind: Kind }) {
+  const timings = usePlatformTimings()
   return (
     <section className="ex-box" aria-labelledby="escrowExplainerTitle">
       <header className="ex-head">
@@ -83,7 +85,11 @@ export default function EscrowExplainer({ kind }: { kind: Kind }) {
           <img src="/assets/ui/shield-check.png" alt="" aria-hidden="true" />
           <span>
             <strong>თუ მიღებას არ ადასტურებთ</strong>
-            <small>თუ 24 საათის განმავლობაში არ დაადასტურებთ შეკვეთას ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.</small>
+            <small>
+              {timings
+                ? `თუ ${timings.orderAutoCompleteHours} საათის განმავლობაში არ დაადასტურებთ შეკვეთას ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.`
+                : 'თუ მიღებას არ დაადასტურებთ და არც დავას გახსნით, შეკვეთა გარკვეული დროის შემდეგ ავტომატურად დასრულდება.'}
+            </small>
           </span>
           <i aria-hidden="true">›</i>
         </Link>

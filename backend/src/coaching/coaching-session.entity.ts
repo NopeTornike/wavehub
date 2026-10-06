@@ -88,6 +88,11 @@ export class CoachingSession {
   @Column({ type: 'timestamptz', nullable: true })
   coachCompletedAt: Date | null;
 
+  // When a coach-marked-done session confirms itself: coachCompletedAt + the configured
+  // `sessionAutoConfirmHours` at that moment (migration 1784384000000-AutoAcceptDurations).
+  @Column({ type: 'timestamptz', nullable: true })
+  autoConfirmAt: Date | null;
+
   @Column({ type: 'timestamptz', nullable: true })
   completedAt: Date | null;
 

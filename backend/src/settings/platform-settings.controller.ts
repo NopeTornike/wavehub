@@ -55,3 +55,15 @@ export class PlatformSettingsController {
     return updated;
   }
 }
+
+// Public: the two auto-accept windows, so the site can tell buyers "if you don't confirm within N
+// hours…" before they pay (owner 2026-10-07). Only these numbers — nothing else from settings.
+@Controller('platform')
+export class PlatformTimingsController {
+  constructor(private readonly settings: PlatformSettingsService) {}
+
+  @Get('timings')
+  timings() {
+    return this.settings.getTimings();
+  }
+}

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { PlatformSettings, PLATFORM_SETTINGS_SINGLETON_ID } from './platform-settings.entity';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { AdminRole } from '@wavehub/shared-types';
-import type { StaffPermissions, SupportPermissions } from '@wavehub/shared-types';
+import type { PlatformTimings, StaffPermissions, SupportPermissions } from '@wavehub/shared-types';
 
 const NO_SUPPORT_PERMISSIONS: SupportPermissions = { walletAdjust: false, walletAdjustMax: 100, suspendUsers: false };
 
@@ -34,6 +34,21 @@ export class PlatformSettingsService {
   // Coaching sessions' fee — its own setting since 2026-10-04 (client feedback #16).
   async getCoachingFeePercent(): Promise<number> {
     return (await this.get()).coachingFeePercent;
+  }
+
+  // Auto-accept windows (Admin → Settings, owner 2026-10-07).
+  async getOrderAutoCompleteHours(): Promise<number> {
+    return (await this.get()).orderAutoCompleteHours;
+  }
+
+  async getSessionAutoConfirmHours(): Promise<number> {
+    return (await this.get()).sessionAutoConfirmHours;
+  }
+
+  // The public, non-sensitive slice the site shows buyers up front ("auto-completes after N hours").
+  async getTimings(): Promise<PlatformTimings> {
+    const s = await this.get();
+    return { orderAutoCompleteHours: s.orderAutoCompleteHours, sessionAutoConfirmHours: s.sessionAutoConfirmHours };
   }
 
   async getMinWithdrawalWaveCoin(): Promise<number> {

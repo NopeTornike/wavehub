@@ -14,6 +14,7 @@ import { kaDateTime, kaTime } from '../../lib/dates'
 import { LISTING_TYPE_LABELS } from '../../lib/labels'
 import Avatar, { displayName } from '../../components/Avatar'
 import VerifiedMark from '../../components/VerifiedMark'
+import { usePlatformTimings } from '../../lib/timings'
 
 const MESSAGE_POLL_MS = 5000
 
@@ -64,6 +65,7 @@ export default function OrderDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
   const { user: me, checked, refresh } = useAuth()
+  const timings = usePlatformTimings()
 
   const [order, setOrder] = useState<PublicOrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -374,6 +376,11 @@ export default function OrderDetail() {
   const otherParty = isBuyer ? order.seller : order.buyer
   const cover = order.listing.imageUrl ?? gameCover(order.listing.gameSlug)
   const isKey = order.listing.type === ListingType.DigitalKey
+  // The auto-complete window: a delivered order's own stored one, otherwise the current setting.
+  const autoHours =
+    order.deliveredAt && order.autoCompleteAt
+      ? Math.round((new Date(order.autoCompleteAt).getTime() - new Date(order.deliveredAt).getTime()) / 3_600_000)
+      : (timings?.orderAutoCompleteHours ?? null)
   const isService = order.listing.type === ListingType.Service
   const disputeOpen = !!dispute && dispute.status !== DisputeStatus.Resolved && dispute.status !== DisputeStatus.Closed
 
@@ -802,17 +809,17 @@ export default function OrderDetail() {
               {isBuyer ? 'დაადასტურეთ შეკვეთა მხოლოდ მონაცემების სრულად შემოწმების შემდეგ.' : 'თანხა ჩაგერიცხებათ მყიდველის მიერ მიღების დადასტურების შემდეგ.'}
             </p>
           )}
-          {/* Client decision 2026-10-07: delivered orders complete themselves after 24h (backend
-              AUTO_COMPLETE_HOURS) — the buyer is told up front, with the exact time once delivered. */}
-          {(isBuyer || isSeller) && [OrderStatus.Paid, OrderStatus.InProgress, OrderStatus.Delivered].includes(order.status) && (
+          {/* Delivered orders complete themselves after the staff-set window (Admin → Settings) — the
+              buyer is told up front, with the exact time once delivered. */}
+          {(isBuyer || isSeller) && autoHours !== null && [OrderStatus.Paid, OrderStatus.InProgress, OrderStatus.Delivered].includes(order.status) && (
             <p className="od-safety od-warn" role="note">
               <span>
                 <img src="/assets/ui/warning.png" alt="" aria-hidden="true" />
               </span>
               <span className="od-warn-text">
                 {isBuyer
-                  ? 'თუ 24 საათის განმავლობაში არ დაადასტურებთ შეკვეთას ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.'
-                  : 'მიწოდებიდან 24 საათში, თუ მყიდველი არ დაადასტურებს შეკვეთას ან არ გახსნის დავას, შეკვეთა ავტომატურად დასრულდება და თანხა ჩაგერიცხებათ.'}
+                  ? `თუ ${autoHours} საათის განმავლობაში არ დაადასტურებთ შეკვეთას ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.`
+                  : `მიწოდებიდან ${autoHours} საათში, თუ მყიდველი არ დაადასტურებს შეკვეთას ან არ გახსნის დავას, შეკვეთა ავტომატურად დასრულდება და თანხა ჩაგერიცხებათ.`}
                 {order.status === OrderStatus.Delivered && order.autoCompleteAt && <strong>{`ავტომატური დასრულება: ${formatWhen(order.autoCompleteAt)}`}</strong>}
               </span>
             </p>

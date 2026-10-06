@@ -1,4 +1,4 @@
-import { assertConserved, buyItem, completeSession } from './flows';
+import { assertConserved, buyItem, completeSession, startSession } from './flows';
 import { Client, createApp, credit, E2eApp, makeAdmin, openAllHours, registerUser, TestUser } from './helpers';
 
 // Client feedback batch (2026-10-04): badges (auto, staff, coach-granted), review likes, follow
@@ -260,5 +260,40 @@ describe('client feedback batch (e2e)', () => {
     expect((await ops.client.post(`/admin/subscription-plans/${plan.id}`, { perks: { profileBadge: 'Pro' } })).status).toBe(403);
     expect((await superAdmin.client.post(`/admin/subscription-plans/${plan.id}`, { perks: { profileBadge: 'Pro' } })).status).toBeLessThan(300);
     expect((await stranger.client.get(`/users/${member.username}`)).body.profileBadge).toBe('Pro');
+  });
+
+  it('auto-accept windows are staff-set: public timings, validation, and new deadlines follow them', async () => {
+    const anon = new Client(ctx.baseUrl);
+    expect((await anon.get('/platform/timings')).body).toEqual({ orderAutoCompleteHours: 24, sessionAutoConfirmHours: 48 });
+
+    const set = (who: TestUser, body: Record<string, number>) => who.client.post('/admin/platform-settings', body);
+    expect((await set(ops, { orderAutoCompleteHours: 6 })).status).toBe(403);
+    expect((await set(superAdmin, { orderAutoCompleteHours: 0 })).status).toBe(400);
+    expect((await set(superAdmin, { sessionAutoConfirmHours: 721 })).status).toBe(400);
+    expect((await set(superAdmin, { orderAutoCompleteHours: 6, sessionAutoConfirmHours: 12 })).status).toBe(200);
+    expect((await anon.get('/platform/timings')).body).toEqual({ orderAutoCompleteHours: 6, sessionAutoConfirmHours: 12 });
+
+    // An order delivered now gets the 6h window and the buyer is told so.
+    const orderId = await buyItem(ctx, seller, buyer, superAdmin, 7, 'delivered');
+    const order = (await buyer.client.get(`/orders/${orderId}`)).body;
+    expect(new Date(order.autoCompleteAt).getTime() - new Date(order.deliveredAt).getTime()).toBe(6 * 3600_000);
+    const notes = (await buyer.client.get('/notifications')).body as Array<{ type: string; body: string; metadata?: { orderId?: string } }>;
+    expect(notes.find((n) => n.type === 'order_delivered' && n.metadata?.orderId === orderId)?.body).toContain('6 საათის');
+
+    // A session the coach marks done now gets the 12h window, stored on the session.
+    const coachUser = await registerUser(ctx, 'cftimer');
+    const coachId = (await coachUser.client.post('/coaches/apply', { specialty: 'Timing', bio: 'Ten years of competitive experience across several titles.', hourlyRateWaveCoin: 60 })).body.id;
+    await openAllHours(ctx, coachId);
+    await superAdmin.client.post(`/coaches/${coachId}/approve`);
+    const sess = (await buyer.client.post(`/coaches/${coachId}/sessions`, { scheduledAt: new Date(Date.now() + 40 * 3600_000).toISOString(), durationMinutes: 60 })).body;
+    await startSession(ctx, coachUser, buyer, sess.id);
+    const done = (await coachUser.client.post(`/coaching-sessions/${sess.id}/complete`)).body;
+    expect(new Date(done.autoConfirmAt).getTime() - new Date(done.coachCompletedAt).getTime()).toBe(12 * 3600_000);
+
+    // Changing the setting doesn't move deadlines already set.
+    expect((await set(superAdmin, { orderAutoCompleteHours: 24, sessionAutoConfirmHours: 48 })).status).toBe(200);
+    expect((await buyer.client.get(`/orders/${orderId}`)).body.autoCompleteAt).toBe(order.autoCompleteAt);
+    expect((await buyer.client.get(`/coaching-sessions/${sess.id}`)).body.autoConfirmAt).toBe(done.autoConfirmAt);
+    await buyer.client.post(`/coaching-sessions/${sess.id}/confirm-complete`);
   });
 });

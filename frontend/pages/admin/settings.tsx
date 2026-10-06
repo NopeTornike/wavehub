@@ -14,6 +14,8 @@ export default function AdminSettings() {
 
   const [platformFeePercent, setPlatformFeePercent] = useState(10)
   const [coachingFeePercent, setCoachingFeePercent] = useState(10)
+  const [orderAutoCompleteHours, setOrderAutoCompleteHours] = useState(24)
+  const [sessionAutoConfirmHours, setSessionAutoConfirmHours] = useState(48)
   const [minWithdrawalWaveCoin, setMinWithdrawalWaveCoin] = useState(20)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   // What the Support Specialist role may do beyond its defaults (both off by default).
@@ -30,6 +32,8 @@ export default function AdminSettings() {
         setSettings(data)
         setPlatformFeePercent(data.platformFeePercent)
         setCoachingFeePercent(data.coachingFeePercent)
+        setOrderAutoCompleteHours(data.orderAutoCompleteHours)
+        setSessionAutoConfirmHours(data.sessionAutoConfirmHours)
         setMinWithdrawalWaveCoin(data.minWithdrawalWaveCoin)
         setMaintenanceMode(data.maintenanceMode)
         if (data.supportPermissions) setSupportPerms(data.supportPermissions)
@@ -53,11 +57,19 @@ export default function AdminSettings() {
       setError('Support-ის ლიმიტი: მთელი რიცხვი, 1–100000 GEL.')
       return
     }
+    for (const hours of [orderAutoCompleteHours, sessionAutoConfirmHours]) {
+      if (!Number.isInteger(hours) || hours < 1 || hours > 720) {
+        setError('ავტომატური დადასტურების ვადა: მთელი რიცხვი, 1–720 საათი.')
+        return
+      }
+    }
     setSaving(true)
     try {
       const updated = await api.adminUpdatePlatformSettings({
         platformFeePercent,
         coachingFeePercent,
+        orderAutoCompleteHours,
+        sessionAutoConfirmHours,
         minWithdrawalWaveCoin,
         maintenanceMode,
         supportPermissions: supportPerms,
@@ -112,6 +124,36 @@ export default function AdminSettings() {
               onChange={(event) => setCoachingFeePercent(Number(event.target.value))}
             />
             <p className="note">ეხება მხოლოდ ახალ ჯავშნებს — დაჯავშნილი სესიები ინახავენ დაჯავშნის დროის განაკვეთს.</p>
+          </div>
+
+          {/* Auto-accept windows (owner 2026-10-07). Each order/session stores its own deadline when
+              it's delivered / marked done, so a change applies to new ones only. */}
+          <div className="form-group">
+            <label htmlFor="orderAutoCompleteHours">შეკვეთის ავტომატური დასრულება (საათი)</label>
+            <input
+              id="orderAutoCompleteHours"
+              className="input"
+              type="number"
+              min={1}
+              max={720}
+              value={orderAutoCompleteHours}
+              onChange={(event) => setOrderAutoCompleteHours(Number(event.target.value))}
+            />
+            <p className="note">მიწოდებიდან ამდენ საათში შეკვეთა ავტომატურად დასრულდება, თუ მყიდველი არ დაადასტურებს ან არ გახსნის დავას. ეხება ახლად მიწოდებულ შეკვეთებს.</p>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="sessionAutoConfirmHours">ქოუჩინგ სესიის ავტომატური დადასტურება (საათი)</label>
+            <input
+              id="sessionAutoConfirmHours"
+              className="input"
+              type="number"
+              min={1}
+              max={720}
+              value={sessionAutoConfirmHours}
+              onChange={(event) => setSessionAutoConfirmHours(Number(event.target.value))}
+            />
+            <p className="note">ქოუჩის მიერ დასრულებულად მონიშნული სესია ამდენ საათში ავტომატურად დადასტურდება, თუ სტუდენტი არ უპასუხებს. ეხება ახლად დასრულებულ სესიებს.</p>
           </div>
 
           <div className="form-group">

@@ -1054,9 +1054,18 @@ export interface PublicPlatformSettings {
   // Coaching sessions' fee (from the coach), separate from the marketplace fee since 2026-10-04.
   coachingFeePercent: number;
   minWithdrawalWaveCoin: number;
+  // Auto-accept windows in hours (owner 2026-10-07): delivered orders / coach-marked-done sessions.
+  orderAutoCompleteHours: number;
+  sessionAutoConfirmHours: number;
   maintenanceMode: boolean;
   supportPermissions: SupportPermissions;
   updatedAt: string;
+}
+
+// GET platform/timings (public) — what the site tells buyers before they pay.
+export interface PlatformTimings {
+  orderAutoCompleteHours: number;
+  sessionAutoConfirmHours: number;
 }
 
 // Powers SPECIFICATION.md §5.13.6 withholds from Support by default, switchable by Super Admin

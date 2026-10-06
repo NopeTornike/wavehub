@@ -34,6 +34,19 @@ export class UpdatePlatformSettingsDto {
   @Min(1)
   minWithdrawalWaveCoin?: number;
 
+  // Auto-accept windows in hours (1 hour – 30 days).
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(720)
+  orderAutoCompleteHours?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(720)
+  sessionAutoConfirmHours?: number;
+
   @IsOptional()
   @IsBoolean()
   maintenanceMode?: boolean;

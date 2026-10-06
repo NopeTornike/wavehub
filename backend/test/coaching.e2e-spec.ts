@@ -149,7 +149,7 @@ describe('coaching sessions (e2e)', () => {
     const sess = (await book(buyer)).body;
     await startSession(ctx, coachUser, buyer, sess.id);
     expect((await coachUser.client.post(`/coaching-sessions/${sess.id}/complete`)).status).toBe(200);
-    await ctx.dataSource.query(`UPDATE coaching_sessions SET "coachCompletedAt" = now() - interval '49 hours' WHERE id = $1`, [sess.id]);
+    await ctx.dataSource.query(`UPDATE coaching_sessions SET "coachCompletedAt" = now() - interval '49 hours', "autoConfirmAt" = now() - interval '1 hour' WHERE id = $1`, [sess.id]);
     const sessionsService = ctx.app.get(CoachingSessionsService);
     await Promise.all([buyer.client.post(`/coaching-sessions/${sess.id}/confirm-complete`), sessionsService.sweep()]);
     expect((await sessionRow(sess.id)).status).toBe('completed');

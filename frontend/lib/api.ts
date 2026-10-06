@@ -50,6 +50,7 @@ import type {
   AdminPromoCode,
   PromoRedemptionResult,
   PublicBanner,
+  PlatformTimings,
   BannerPlacement,
   AdminBanner,
   PublicSessionDispute,
@@ -823,6 +824,9 @@ export const api = {
 
   adminGetPlatformSettings: () => request<PublicPlatformSettings>('/admin/platform-settings'),
 
+  // Public: the auto-accept windows in hours (Admin → Settings).
+  getPlatformTimings: () => request<PlatformTimings>('/platform/timings'),
+
   // The caller's Super-Admin-controlled powers (WaveCoin adjust + cap, suspend/restore).
   adminMyPermissions: () => request<StaffPermissions>('/admin/platform-settings/my-permissions'),
 
@@ -830,6 +834,8 @@ export const api = {
     platformFeePercent?: number
     coachingFeePercent?: number
     minWithdrawalWaveCoin?: number
+    orderAutoCompleteHours?: number
+    sessionAutoConfirmHours?: number
     maintenanceMode?: boolean
     supportPermissions?: SupportPermissions
   }) =>

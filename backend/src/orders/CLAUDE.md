@@ -273,8 +273,9 @@ through Start/Deliver.
   (first-order / orders-100).
 
 ## 2026-10-07: 24h auto-complete (client decision)
-- `AUTO_COMPLETE_HOURS = 24` (was 72): a delivered order completes itself 24h after delivery unless
-  the buyer confirms or opens a dispute first.
+- The window is `orderAutoCompleteHours` in Admin → Settings (default 24; was the constant 72, then
+  24): a delivered order completes itself that many hours after delivery unless the buyer confirms
+  or opens a dispute first. `autoCompleteAt` is stored at delivery, so later changes don't move it.
 - Only new deliveries get 24h. Orders delivered before the deploy keep the deadline they were shown.
 - The buyer is told in advance in three places:
   - the `order_delivered` notification (and its email copy) carries the warning;

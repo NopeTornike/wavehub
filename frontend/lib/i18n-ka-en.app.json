@@ -2482,5 +2482,16 @@
   "WaveHubX Support": "WaveHubX Support",
   "ფორმატი, ინფორმაცია და წესები (ცარიელი ველი საჯაროდ ჩანს როგორც „მალე გამოცხადდება“)": "Format, info and rules (an empty field shows publicly as “To be announced”)",
   "{0} (თქვენ)": "{0} (you)",
-  "WaveHubX Support — {0}": "WaveHubX Support — {0}"
+  "WaveHubX Support — {0}": "WaveHubX Support — {0}",
+  "თუ {0} საათის განმავლობაში არ დაადასტურებთ შეკვეთას ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.": "If you don't confirm the order or open a dispute within {0} hours, the order is automatically treated as completed.",
+  "მიწოდებიდან {0} საათში, თუ მყიდველი არ დაადასტურებს შეკვეთას ან არ გახსნის დავას, შეკვეთა ავტომატურად დასრულდება და თანხა ჩაგერიცხებათ.": "{0} hours after delivery, if the buyer neither confirms nor opens a dispute, the order completes automatically and the money is credited to you.",
+  "თუ მიღებას არ დაადასტურებთ და არც დავას გახსნით, შეკვეთა გარკვეული დროის შემდეგ ავტომატურად დასრულდება.": "If you neither confirm receipt nor open a dispute, the order completes automatically after a set time.",
+  "როცა სესია დასრულდება, მონიშნე დასრულებულად. თანხა ჩაგერიცხება სტუდენტის დადასტურების შემდეგ (ან ავტომატურად {0} საათში).": "When the session ends, mark it done. You're paid once the student confirms (or automatically within {0} hours).",
+  "როცა სესია დასრულდება, მონიშნე დასრულებულად. თანხა ჩაგერიცხება სტუდენტის დადასტურების შემდეგ.": "When the session ends, mark it done. You're paid once the student confirms.",
+  "შეკვეთის ავტომატური დასრულება (საათი)": "Order auto-complete (hours)",
+  "ქოუჩინგ სესიის ავტომატური დადასტურება (საათი)": "Coaching session auto-confirm (hours)",
+  "მიწოდებიდან ამდენ საათში შეკვეთა ავტომატურად დასრულდება, თუ მყიდველი არ დაადასტურებს ან არ გახსნის დავას. ეხება ახლად მიწოდებულ შეკვეთებს.": "A delivered order completes automatically after this many hours unless the buyer confirms or opens a dispute. Applies to newly delivered orders.",
+  "ქოუჩის მიერ დასრულებულად მონიშნული სესია ამდენ საათში ავტომატურად დადასტურდება, თუ სტუდენტი არ უპასუხებს. ეხება ახლად დასრულებულ სესიებს.": "A session the coach marked done confirms automatically after this many hours unless the student responds. Applies to newly completed sessions.",
+  "ავტომატური დადასტურების ვადა: მთელი რიცხვი, 1–720 საათი.": "Auto-accept window: a whole number, 1–720 hours.",
+  "დაადასტურე, რომ სესია შედგა — თუ {0} საათში არ უპასუხებ, ავტომატურად დადასტურდება.": "Confirm the session took place — if you don't respond within {0} hours, it's confirmed automatically."
 }

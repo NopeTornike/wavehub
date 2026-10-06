@@ -36,7 +36,7 @@ describe('OrdersService.purchase (validation guard clauses)', () => {
     // directly.
     const chat = { ensureConversation: jest.fn(), postSystemMessage: jest.fn() } as any;
     const notifications = { emit: jest.fn() } as any;
-    const platformSettings = { getPlatformFeePercent: jest.fn(async () => 10) } as any;
+    const platformSettings = { getPlatformFeePercent: jest.fn(async () => 10), getOrderAutoCompleteHours: jest.fn(async () => 24) } as any;
     const keyInventory = { findOne: jest.fn(), count: jest.fn() } as any;
 
     const service = new OrdersService(

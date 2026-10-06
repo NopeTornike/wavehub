@@ -3,7 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
-import { DataSource, EntityManager, In, Repository } from 'typeorm';
+import { Brackets, DataSource, EntityManager, In, Repository } from 'typeorm';
 import { CoachStatus, CoachingSessionStatus, DEFAULT_COACH_AVAILABILITY, NotificationType, VerificationStatus, coachAvailabilityProblem } from '@wavehub/shared-types';
 import type { PublicCoachReview, PublicCoachingSession } from '@wavehub/shared-types';
 import { CoachingSession } from './coaching-session.entity';
@@ -28,7 +28,9 @@ const DEFAULT_HOLD_DAYS = 7;
 export const START_EARLY_MINUTES = 15; // the start can be confirmed this early
 export const START_GRACE_MINUTES = 60; // …and until this long after the scheduled time
 export const REMINDER_EVERY_MINUTES = 10;
-export const AUTO_CONFIRM_HOURS = 48; // "coach marked done" auto-confirms after this
+// Fallback window for sessions marked done before autoConfirmAt was stored; the live value is
+// `sessionAutoConfirmHours` in Admin → Settings.
+export const AUTO_CONFIRM_HOURS = 48;
 // An in-progress session is marked done automatically this long after its booked end time (client,
 // 2026-10-02: "when the time is over the end isn't confirmed").
 export const END_GRACE_MINUTES = 15;
@@ -112,7 +114,11 @@ export class CoachingSessionsService {
       coachCompletedAt: iso(session.coachCompletedAt),
       completedAt: iso(session.completedAt),
       startDeadline: startDeadline(session).toISOString(),
-      autoConfirmAt: session.coachCompletedAt ? new Date(session.coachCompletedAt.getTime() + AUTO_CONFIRM_HOURS * 3600_000).toISOString() : null,
+      autoConfirmAt: session.autoConfirmAt
+        ? session.autoConfirmAt.toISOString()
+        : session.coachCompletedAt
+          ? new Date(session.coachCompletedAt.getTime() + AUTO_CONFIRM_HOURS * 3600_000).toISOString()
+          : null,
       platformFeePercent: session.platformFeePercentSnapshot,
       platformFeeWaveCoin: session.platformFeeWaveCoin,
       coachPayoutWaveCoin: session.coachPayoutWaveCoin,
@@ -431,7 +437,7 @@ export class CoachingSessionsService {
   }
 
   // Coach-only, InProgress only: marks the session done. The coach is paid when the student
-  // confirms (or after AUTO_CONFIRM_HOURS) — never on the coach's word alone.
+  // confirms (or after the session's autoConfirmAt) — never on the coach's word alone.
   async complete(sessionId: string, callerUserId: string): Promise<PublicCoachingSession> {
     const session = await this.getJoinedOrThrow(sessionId);
     if (session.coach.userId !== callerUserId) {
@@ -447,23 +453,30 @@ export class CoachingSessionsService {
 
   // InProgress → AwaitingConfirmation, by the coach or (auto) by the sweep after the booked end.
   private async markDone(sessionId: string, auto: boolean): Promise<void> {
+    // The window is fixed for this session now; a later settings change doesn't move it.
+    const hours = await this.platformSettings.getSessionAutoConfirmHours();
     await this.dataSource.transaction(async (manager) => {
       await this.lockAndRevalidate(manager, sessionId, CoachingSessionStatus.AwaitingConfirmation);
-      await manager.update(CoachingSession, sessionId, { status: CoachingSessionStatus.AwaitingConfirmation, coachCompletedAt: new Date() });
+      const now = new Date();
+      await manager.update(CoachingSession, sessionId, {
+        status: CoachingSessionStatus.AwaitingConfirmation,
+        coachCompletedAt: now,
+        autoConfirmAt: new Date(now.getTime() + hours * 3600_000),
+      });
     });
     const full = await this.getJoinedOrThrow(sessionId);
     await this.notify(
       full.buyerId,
       NotificationType.SessionAwaitingConfirmation,
       'დაადასტურე სესიის დასრულება',
-      `${auto ? 'სესიის დრო დასრულდა.' : `ქოუჩმა ${personName(full.coach.user)}-მა სესია დასრულებულად მონიშნა.`} დაადასტურე, რომ სესია შედგა — თუ ${AUTO_CONFIRM_HOURS} საათში არ უპასუხებ, ავტომატურად დადასტურდება.`,
+      `${auto ? 'სესიის დრო დასრულდა.' : `ქოუჩმა ${personName(full.coach.user)}-მა სესია დასრულებულად მონიშნა.`} დაადასტურე, რომ სესია შედგა — თუ ${hours} საათში არ უპასუხებ, ავტომატურად დადასტურდება.`,
       full.id,
     );
     await this.notify(
       full.coach.userId,
       NotificationType.SessionAwaitingConfirmation,
       auto ? 'სესიის დრო დასრულდა' : 'სესია დასრულებულად მოინიშნა',
-      `ველოდებით ${personName(full.buyer)}-ის დადასტურებას. ${full.coachPayoutWaveCoin} GEL ჩაგერიცხება დადასტურებისთანავე (არაუგვიანეს ${AUTO_CONFIRM_HOURS} საათისა).`,
+      `ველოდებით ${personName(full.buyer)}-ის დადასტურებას. ${full.coachPayoutWaveCoin} GEL ჩაგერიცხება დადასტურებისთანავე (არაუგვიანეს ${hours} საათისა).`,
       full.id,
     );
   }
@@ -628,7 +641,13 @@ export class CoachingSessionsService {
       .createQueryBuilder('s')
       .select(['s.id'])
       .where('s.status = :awaiting', { awaiting: CoachingSessionStatus.AwaitingConfirmation })
-      .andWhere('s.coachCompletedAt <= :cutoff', { cutoff: new Date(t - AUTO_CONFIRM_HOURS * 3600_000) })
+      .andWhere(
+        new Brackets((q) =>
+          q
+            .where('s.autoConfirmAt <= :now', { now: new Date(t) })
+            .orWhere('s.autoConfirmAt IS NULL AND s.coachCompletedAt <= :cutoff', { cutoff: new Date(t - AUTO_CONFIRM_HOURS * 3600_000) }),
+        ),
+      )
       .getMany();
     for (const s of overdue) {
       try {

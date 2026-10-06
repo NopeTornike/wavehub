@@ -12,6 +12,7 @@ import SessionReview from '../../components/SessionReview'
 import SessionDisputePanel from '../../components/SessionDisputePanel'
 import Avatar from '../../components/Avatar'
 import VerifiedMark from '../../components/VerifiedMark'
+import { usePlatformTimings } from '../../lib/timings'
 
 // One coaching session, lifecycle v2 (backend/src/coaching/CLAUDE.md "Lifecycle v2"):
 //   booked → both confirm the start (from 15 min before until 60 min after; reminders every 10 min,
@@ -55,6 +56,7 @@ export default function CoachingSessionDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
   const { user: me, checked, refresh } = useAuth()
+  const timings = usePlatformTimings()
 
   const [session, setSession] = useState<PublicCoachingSession | null>(null)
   const [loading, setLoading] = useState(true)
@@ -215,7 +217,9 @@ export default function CoachingSessionDetail() {
       action = isCoach
         ? {
             title: 'სესია მიმდინარეობს',
-            text: 'როცა სესია დასრულდება, მონიშნე დასრულებულად. თანხა ჩაგერიცხება სტუდენტის დადასტურების შემდეგ (ან ავტომატურად 48 საათში).',
+            text: timings
+              ? `როცა სესია დასრულდება, მონიშნე დასრულებულად. თანხა ჩაგერიცხება სტუდენტის დადასტურების შემდეგ (ან ავტომატურად ${timings.sessionAutoConfirmHours} საათში).`
+              : 'როცა სესია დასრულდება, მონიშნე დასრულებულად. თანხა ჩაგერიცხება სტუდენტის დადასტურების შემდეგ.',
             button: { label: 'სესია დასრულდა', primary: true, run: () => void act(() => api.completeCoachingSession(session.id), 'სესია დასრულდა? სტუდენტს გაეგზავნება დადასტურების მოთხოვნა.') },
             secondary: { label: 'სესიის გაუქმება (თანხის დაბრუნება)', run: () => void act(() => api.cancelCoachingSession(session.id), 'სესიის გაუქმებისას სტუდენტს თანხა სრულად უბრუნდება. გავაუქმოთ?') },
           }

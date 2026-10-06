@@ -28,9 +28,10 @@ import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { withTransactionRetry } from '../wallet/transaction-retry.util';
 import { BadgesService } from '../badges/badges.service';
 
-// Client decision 2026-10-07: a delivered order completes itself after 24h unless the buyer
-// confirms or opens a dispute first (the buyer is warned on the order page and in the notification).
-const AUTO_COMPLETE_HOURS = 24;
+// A delivered order completes itself after `orderAutoCompleteHours` (Admin → Settings, default 24)
+// unless the buyer confirms or opens a dispute first; the deadline is stored on the order
+// (`autoCompleteAt`) when it's delivered, so changing the setting never moves an existing one.
+const HOUR_MS = 60 * 60 * 1000;
 const ALLOWED_DELIVERY_MIME_TYPES = [
   'image/jpeg',
   'image/png',
@@ -170,6 +171,8 @@ export class OrdersService {
     );
     // The buyer pays the fee on top; the seller receives the full price (owner decision 2026-10-03).
     const { feeWaveCoin, buyerTotalWaveCoin } = calculateBuyerFee(priceWaveCoin, platformFeePercent);
+    // Key orders start out delivered (below), so they need the window up front.
+    const autoCompleteHours = await this.platformSettings.getOrderAutoCompleteHours();
 
     // Retried on Postgres deadlock/serialization aborts (see wallet/transaction-retry.util.ts) —
     // safe because everything in here is DB-only; chat/notifications run after it commits.
@@ -238,12 +241,12 @@ export class OrdersService {
         }
         // The key is delivered the moment it's claimed (the buyer can reveal it right away), so the
         // order starts at Delivered: the buyer confirms (→ Completed, review, seller payout) or it
-        // auto-completes after AUTO_COMPLETE_HOURS like any delivered order; a dispute stays open
+        // auto-completes after the configured window like any delivered order; a dispute stays open
         // until then. Before 2026-10-02 key orders sat at Paid forever (nobody "starts" a key), so
         // they could never be reviewed or paid out.
         saved.status = OrderStatus.Delivered;
         saved.deliveredAt = new Date();
-        saved.autoCompleteAt = new Date(Date.now() + AUTO_COMPLETE_HOURS * 60 * 60 * 1000);
+        saved.autoCompleteAt = new Date(saved.deliveredAt.getTime() + autoCompleteHours * HOUR_MS);
         await manager.update(Order, saved.id, { status: saved.status, deliveredAt: saved.deliveredAt, autoCompleteAt: saved.autoCompleteAt });
       }
 
@@ -330,15 +333,16 @@ export class OrdersService {
     const order = await this.getOrderAsSeller(sellerId, orderId);
     assertValidTransition(order.status, OrderStatus.Delivered);
     order.status = OrderStatus.Delivered;
+    const autoCompleteHours = await this.platformSettings.getOrderAutoCompleteHours();
     order.deliveredAt = new Date();
-    order.autoCompleteAt = new Date(Date.now() + AUTO_COMPLETE_HOURS * 60 * 60 * 1000);
+    order.autoCompleteAt = new Date(order.deliveredAt.getTime() + autoCompleteHours * HOUR_MS);
     const saved = await this.orders.save(order);
     await this.postSystemMessage(orderId, 'შეკვეთა მიწოდებულია.');
     await this.notify(
       saved.buyerId,
       NotificationType.OrderDelivered,
       'შეკვეთა მიწოდებულია',
-      `თქვენი შეკვეთა #${saved.orderNumber} მიწოდებულია — გადახედეთ და დაადასტურეთ მიღება. თუ ${AUTO_COMPLETE_HOURS} საათის განმავლობაში არ დაადასტურებთ ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.`,
+      `თქვენი შეკვეთა #${saved.orderNumber} მიწოდებულია — გადახედეთ და დაადასტურეთ მიღება. თუ ${autoCompleteHours} საათის განმავლობაში არ დაადასტურებთ ან არ გახსნით დავას, შეკვეთა ავტომატურად ჩაითვლება დასრულებულად.`,
       saved.id,
     );
     return saved;
