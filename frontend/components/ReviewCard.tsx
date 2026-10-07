@@ -17,6 +17,7 @@ export default function ReviewCard({
   liked,
   replyLiked,
   onChange,
+  readOnly = false,
 }: {
   review: PublicReview
   viewerId: string | null
@@ -24,6 +25,8 @@ export default function ReviewCard({
   liked: boolean
   replyLiked: boolean
   onChange: (next: Partial<PublicReview> & { liked?: boolean; replyLiked?: boolean }) => void
+  // Coaching-session reviews on a profile: shown the same way, but they have no likes or replies.
+  readOnly?: boolean
 }) {
   const router = useRouter()
   const [replying, setReplying] = useState(false)
@@ -86,7 +89,7 @@ export default function ReviewCard({
             {buyerName}
           </Link>
           <time dateTime={review.createdAt}>{kaDate(review.createdAt)}</time>
-          {viewerId && viewerId !== review.buyer.id && (
+          {!readOnly && viewerId && viewerId !== review.buyer.id && (
             <details className="rv-more">
               <summary aria-label="მეტი">
                 <span aria-hidden="true">⋮</span>
@@ -117,6 +120,7 @@ export default function ReviewCard({
             ))}
           </div>
         )}
+        {!readOnly && (
         <div className="rv-actions">
           <button type="button" className={`rv-like${liked ? ' on' : ''}`} aria-pressed={liked} onClick={() => void like('review')}>
             <span aria-hidden="true">👍</span>
@@ -128,6 +132,7 @@ export default function ReviewCard({
             </button>
           )}
         </div>
+        )}
         {replying && (
           <div className="rv-reply-form">
             <textarea maxLength={1000} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="დაწერე პასუხი მყიდველს…" aria-label="პასუხი შეფასებაზე" />

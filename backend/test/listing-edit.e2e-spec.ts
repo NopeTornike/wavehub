@@ -25,7 +25,7 @@ describe('item listing edits (e2e)', () => {
   });
   afterAll(async () => ctx.close());
 
-  async function draft(title = 'Edit test account') {
+  async function draft(title = `Edit test account ${Math.random().toString(36).slice(2, 8)}`) {
     const res = await seller.client.post('/listings', {
       type: 'item', categoryId, gameId, title, description: DESCRIPTION, priceWaveCoin: 20,
       attributes: { kind: 'account', platform: 'Android', accountLevel: 40 },

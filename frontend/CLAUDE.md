@@ -1044,3 +1044,58 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   lists to the latest 50, and reports the available count through `onChange` (pass a stable
   setter — it's an effect dependency). Backend: `backend/src/listings/CLAUDE.md`.
 
+
+## 2026-10-07 Client round 2 (10 screenshots + the corrected icon folders)
+- **Icons**: badges (`public/assets/badges/`, 192px) and `rank-9.png` were replaced from the owner's
+  corrected set. New product-card icons are `ui/cart-white.png`, `ui/level-bars.png` and
+  `ui/heart-circle.png`.
+- **Product card** (`components/ProductCard.tsx`, the `pc-` CSS block, the owner's target design
+  1:1):
+  - Cover with game / kind badges and the heart.
+  - Title, then the level, then the seller (photo, name, Wave tier from `GET stats/seller-tiers`,
+    passed in as `sellerTier`), then the rating ("ახალი" with no reviews).
+  - Delivery, then the price with view / like counts.
+  - A cart button and "დეტალების ნახვა →".
+  - Every `pc-` selector is scoped under `.marketplace-card.pc-card`, because legacy rules like
+    `.marketplace-card h3` otherwise win.
+  - Tapping the seller opens `SellerPreview`.
+- **`components/SellerPreview.tsx`** is Tornike's `seller-profile-preview.js` ported. It is a
+  portal card (a bottom sheet on phones) built from `GET users/:username`:
+  - photo, online dot, name / verified, bio, location, member since;
+  - Wave rank with a progress bar;
+  - rating, deals and followers;
+  - the latest reviews;
+  - "მიწერა" and "სრული პროფილი".
+  - It uses the existing `.seller-profile-*` CSS.
+- **Home**:
+  - **CMS hero** (`HeroBanner`): text sits on the left (title, then subtitle, then the button).
+    The button shows only when the banner has both a link and a button label. A banner with no
+    text is the photo only.
+  - **`HomeBanners`** follows the same rules.
+  - **Coach cards** (`fc-` CSS) use the photo as the card. If there's no photo, they fall back
+    to game art, then to initials.
+    - Top row: a pill for a real distinction only (popular / top rated / plan badge — no more
+      "new coach" pill), plus a "♛ ვერიფიცირებული" pill.
+    - Bottom: name, rating (hidden with 0 reviews), game, "🎓 ქოუჩი", price.
+    - Pills and the name row wrap on the ~180px desktop cards.
+- **Marketplace Back** (`lib/scroll-memory.ts`): leaving `/marketplace` snapshots the loaded list
+  (including "load more" pages). Coming back via Back within 10 minutes restores that list and the
+  scroll position, with no refetch.
+  - The `filters` memo depends on the category **id**, not on the categories array. The array
+    arriving used to refetch and wipe the restored list.
+- **Phone search** (`Topbar`): the magnifier opens a fixed full-width search field (≤620px). Enter
+  searches the marketplace; × or Escape closes it.
+- **`components/ChatThread.tsx`** is the DM chat look as a reusable thread: header with photo and
+  name, bubbles, and a composer (or a custom `composer`).
+  - **`/support/[id]`** uses it; staff appear as "Support — Name".
+  - **Admin → Tickets → ticket** uses it with the `atk-` header card and a reply / internal-note
+    composer.
+- **Profile reviews** (`/u/[username]`): `ReviewCard`s from `reviews.cards`, with `readOnly`
+  for coach reviews.
+- **Seller modal**: publishing is idempotent. See `backend/src/listings/CLAUDE.md`
+  ("Duplicate posts").
+- **Messages**:
+  - The "WaveHubX გუნდი — მიწერე" row (`.dm-team`) is shown to staff, coaches and sellers.
+  - A staff counterpart is labelled "WaveHubX გუნდი" with no profile link, since their username
+    isn't sent.
+  - See `backend/src/chat/CLAUDE.md`.

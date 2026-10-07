@@ -159,3 +159,24 @@ summaries carry `unreadCount`.
   full names and photos (#13).
 - `ChatService.postMessage` takes a `type` (Text / Image / File) for order-chat attachments (see
   `backend/src/orders/CLAUDE.md`).
+
+## 2026-10-07 Staff messaging
+- **Who can start a Direct conversation** (`mayStartDirect`; the "transacted users only" rule above
+  still holds for everyone else):
+  - WaveHub staff (any `adminRole`) can start one with anyone.
+  - A coach or seller can start one with staff. `isCoachOrSeller` means a verified, active coach,
+    or a seller with an `active`/`paused` listing. A bare draft doesn't count, since anyone can
+    create one.
+  - Anyone can start one with users they've transacted with.
+- **`GET /direct-messages/staff`** (`listStaffContacts`, `PublicStaffContact`): active staff for a
+  staff / coach / seller viewer, `[]` for anyone else. It returns id, first name, last name and
+  photo only — no role, and no username.
+- **Staff usernames are login names, so they are never sent to non-staff.** Applies to:
+  - `PublicConversationSummary.otherUser.username` is `''` for a staff counterpart, and
+    `otherUser.staff` is true. The inbox shows "WaveHubX გუნდი" with no profile link, which also
+    shows users that a message is official.
+  - `listDirectMessages` blanks staff `senderUsername` the same way.
+  - Staff viewers still see everything.
+- Frontend: `/messages` has a "WaveHubX გუნდი — მიწერე" row (`.dm-team`) for those viewers.
+  Staff get a "მიწერა" button on `/u/[username]`.
+- Covered by `test/client-round-2.e2e-spec.ts`.

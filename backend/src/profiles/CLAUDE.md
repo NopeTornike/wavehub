@@ -46,3 +46,11 @@ Self-entered profile fields live on `users` (migration `1784356000000-ProfilesAn
 ## 2026-10-07
 `reviews.latest[]` also carries `buyerFirstName`, `buyerLastName`, `buyerAvatarUrl`.
 `/u/[username]` shows the reviewer by photo + full name (client #9; it still showed `@handle`).
+
+- `reviews.cards`: the 3 newest reviews in the listing-review card shape (`PublicReview` plus
+  `kind: 'product' | 'coach'`).
+  - It is a UNION of product reviews (with seller reply and like counts) and coach reviews (no
+    reply, zero likes).
+  - It carries the reviewer's and the owner's Wave rank and online state.
+  - `/u/[username]` renders them with `ReviewCard`; coach reviews are `readOnly`.
+  - Privacy is asserted in `test/profiles.e2e-spec.ts`.

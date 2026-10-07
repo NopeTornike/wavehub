@@ -76,6 +76,18 @@ export class ListingsService {
       );
     }
     assertCompareAtPrice(dto.attributes, dto.priceWaveCoin ?? null);
+    // The same post twice within two minutes is a retry or a double tap, not a second listing (a
+    // seller once ended up with 10 copies of one post while photo uploads were failing).
+    const recentTwin = await this.listings
+      .createQueryBuilder('l')
+      .where('l.sellerId = :sellerId', { sellerId })
+      .andWhere('lower(trim(l.title)) = lower(trim(:title))', { title: dto.title })
+      .andWhere('l.type = :type', { type: dto.type })
+      .andWhere("l.createdAt > now() - interval '2 minutes'")
+      .getCount();
+    if (recentTwin > 0) {
+      throw new ConflictException('You just created this listing — open it from My Listings instead of creating it again');
+    }
     if (dto.type === ListingType.DigitalKey) {
       // Steam games are published by the administration only (owner decision 2026-10-01).
       const author = await this.listings.manager.getRepository(User).findOne({ where: { id: sellerId }, select: { id: true, adminRole: true } });

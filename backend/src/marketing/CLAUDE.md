@@ -53,3 +53,12 @@ A used code is deactivated (`PATCH … {active:false}`) instead. Audited (`promo
     placement.
 - Game covers/tiles stay in Admin → Games (`backend/src/listings/` game catalogue).
 - Covered by `test/client-feedback.e2e-spec.ts` and `test/marketing.e2e-spec.ts`.
+
+- **2026-10-07: banner text is optional.**
+  - `title` may be empty (`CreateBannerDto.title` is `@IsOptional`, stored as `''`), so a banner
+    can be a photo only.
+  - The frontend draws the CTA button only when both `linkUrl` and `buttonLabel` are set. With a
+    link and no button label, the whole banner is the link.
+  - The home hero (`HeroBanner` in `pages/index.tsx`) lays text out left: title, subtitle, then
+    the button.
+  - Covered by `test/client-round-2.e2e-spec.ts`.

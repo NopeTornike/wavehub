@@ -24,7 +24,7 @@ describe('public profiles + follows (e2e)', () => {
     const pub = (await fan.client.get(`/users/${seller.username}`)).body;
     expect(pub).toMatchObject({ location: 'Tbilisi, Georgia', tagline: 'Better players. Brighter stories.', role: 'player', followers: 0, completedDeals: 0 });
     expect(pub.shortId).toMatch(/^[0-9A-F]{8}$/);
-    expect(pub.reviews).toEqual({ count: 0, average: null, distribution: [0, 0, 0, 0, 0], latest: [] });
+    expect(pub.reviews).toEqual({ count: 0, average: null, distribution: [0, 0, 0, 0, 0], latest: [], cards: [] });
     // The Wave rank tier is its own field now; a fresh account has earned no badges yet.
     expect(pub.waveRank).toBeTruthy();
     expect(pub.badges).toEqual([]);
@@ -51,6 +51,9 @@ describe('public profiles + follows (e2e)', () => {
     expect(pub.completedDeals).toBe(1);
     expect(pub.reviews).toMatchObject({ count: 1, average: 4, distribution: [0, 1, 0, 0, 0] });
     expect(pub.reviews.latest[0]).toMatchObject({ rating: 4, body: 'Smooth and quick.', buyerUsername: fan.username });
+    // The profile's review cards (listing-review design): newest first, product kind, no private fields.
+    expect(pub.reviews.cards[0]).toMatchObject({ kind: 'product', rating: 4, body: 'Smooth and quick.', buyer: { username: fan.username }, seller: { username: seller.username } });
+    expect(JSON.stringify(pub.reviews.cards)).not.toMatch(/email|wavecoinBalance|passwordHash|adminRole/);
     expect(pub.badges.map((b: { key: string }) => b.key)).toContain('first-order');
   });
 });

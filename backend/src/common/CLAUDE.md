@@ -23,7 +23,7 @@ harness so tests run the same middleware/pipes/filters as production).
   timeout → `200 {status:'ok', db:'up', maintenance:boolean}` or `503 {status:'error', db:'down'}`.
   Used by the Docker healthchecks, Caddy's upstream check and external uptime monitors. Reveals
   nothing else (no versions/config/error text).
-- `throttle.ts` — `UPLOAD_THROTTLE` (20/min), `MESSAGE_THROTTLE` (40/min), `CREATE_THROTTLE` (15/min)
+- `throttle.ts` — `UPLOAD_THROTTLE` (20/min), `LISTING_PHOTO_THROTTLE` (60/min — listing photos only, so a 6-photo post is never cut off), `MESSAGE_THROTTLE` (40/min), `CREATE_THROTTLE` (15/min)
   per-IP overrides applied to abusable authenticated writes (uploads, chat/DM/dispute/ticket
   messages, order/ticket/review/coach/withdrawal/subscription creation). Credential endpoints keep
   their own 5/min limits (`auth.controller.ts`).

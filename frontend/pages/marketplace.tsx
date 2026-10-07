@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ListingType, type PublicCategory, type PublicListingSummary, type PublicUserSearchResult, type SellerRanks } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import ProductCard from '../components/ProductCard'
@@ -12,6 +12,7 @@ import { gel } from '../lib/money'
 import StepsGuide from '../components/StepsGuide'
 import HomeBanners from '../components/HomeBanners'
 import { BannerPlacement } from '@wavehub/shared-types'
+import { restoreScroll, saveSnapshot, takeSnapshot } from '../lib/scroll-memory'
 
 // The prototype's marketplace.html, section for section: head + product count, the three filter
 // selects (product / game / sort), the listing grid, the floating cart footer, and the
@@ -52,10 +53,22 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
   const [categories, setCategories] = useState<PublicCategory[]>([])
   const [items, setItems] = useState<PublicListingSummary[]>([])
   const [total, setTotal] = useState(0)
+  // Back from a product returns to the same spot with the same loaded pages (lib/scroll-memory).
+  const listRef = useRef({ items, total })
+  useEffect(() => {
+    listRef.current = { items, total }
+  }, [items, total])
+  useEffect(() => {
+    const key = router.asPath
+    const onLeave = () => saveSnapshot(key, listRef.current)
+    router.events.on('routeChangeStart', onLeave)
+    return () => router.events.off('routeChangeStart', onLeave)
+  }, [router.asPath, router.events])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [ranks, setRanks] = useState<SellerRanks>({})
+  const [tiers, setTiers] = useState<Record<string, string>>({})
   const [sellerOpen, setSellerOpen] = useState(false)
   // "Add a listing" elsewhere (My Listings) links to /marketplace?sell=1 — open the seller form.
   const sellParam = queryString(router.query.sell)
@@ -95,24 +108,34 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
   useEffect(() => {
     api.listCategories().then(setCategories).catch(() => undefined)
     api.getSellerRanks().then(setRanks).catch(() => undefined)
+    api.getSellerTiers().then(setTiers).catch(() => undefined)
   }, [])
 
+  // The category id as a plain value, so the filters (and the fetch) don't change identity when the
+  // categories list arrives — that refetch used to wipe a Back-restored list (lib/scroll-memory).
+  const categoryId =
+    product === 'account' || product === 'skin' || product === 'item'
+      ? categories.find((c) => c.slug === (product === 'account' ? 'accounts' : product === 'skin' ? 'skins' : 'items'))?.id
+      : undefined
   const filters = useMemo(() => {
-    const byType =
-      product === 'service' ? { type: ListingType.Service } : {}
-    const categoryId =
-      product === 'account' || product === 'skin' || product === 'item'
-        ? categories.find((c) => c.slug === (product === 'account' ? 'accounts' : product === 'skin' ? 'skins' : 'items'))?.id
-        : undefined
+    const byType = product === 'service' ? { type: ListingType.Service } : {}
     return { ...byType, categoryId, game: game || undefined, sort, q: q || undefined }
-  }, [product, categories, game, sort, q])
+  }, [product, categoryId, game, sort, q])
 
   const waitingForCategory = (product === 'account' || product === 'skin' || product === 'item') && !filters.categoryId
 
   useEffect(() => {
     if (!router.isReady || waitingForCategory) return
+    const snap = takeSnapshot<{ items: PublicListingSummary[]; total: number }>(router.asPath)
+    if (snap) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setItems(snap.data.items)
+      setTotal(snap.data.total)
+      setLoading(false)
+      restoreScroll(snap.scrollY)
+      return
+    }
     let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setError('')
     api
@@ -134,7 +157,7 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
     return () => {
       cancelled = true
     }
-  }, [filters, router.isReady, waitingForCategory])
+  }, [filters, router.isReady, router.asPath, waitingForCategory])
 
   const loadMore = async () => {
     setLoadingMore(true)
@@ -300,7 +323,7 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
         )}
 
         <div className="marketplace-grid" id="marketplaceGrid" aria-busy={loading}>
-          {!loading && items.map((listing) => <ProductCard key={listing.id} listing={listing} sellerRank={ranks[listing.seller.username]} />)}
+          {!loading && items.map((listing) => <ProductCard key={listing.id} listing={listing} sellerRank={ranks[listing.seller.username]} sellerTier={tiers[listing.seller.username]} />)}
         </div>
         <div className="marketplace-empty" id="marketplaceEmpty" hidden={loading ? false : items.length > 0}>
           {loading ? 'იტვირთება…' : 'განცხადებები ჯერ არ არის.'}

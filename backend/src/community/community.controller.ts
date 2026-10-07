@@ -21,6 +21,12 @@ export class CommunityController {
     return this.community.gameListingCounts();
   }
 
+  // Public: username → Wave rank tier name, for sellers with live listings (marketplace cards).
+  @Get('stats/seller-tiers')
+  sellerTiers(): Promise<Record<string, string>> {
+    return this.community.sellerTiers();
+  }
+
   @Get('stats/seller-ranks')
   sellerRanks(): Promise<SellerRanks> {
     return this.community.sellerRanks();

@@ -53,3 +53,7 @@ are recent events. `CommunityService` is exported (coach profiles show the coach
 
 - 2026-10-02: tier names are the owner's list (Starter → WaveHub Apex), same thresholds; each tier has
   an icon (`waveRankIcon` in shared-types, `/assets/rank-icons/rank-N.png`).
+
+- 2026-10-07: **`GET stats/seller-tiers`** (public) → `{ [username]: tierName }` for active sellers
+  with an active listing. Only the Wave rank name, same computation as `waveRank`, cached for 60s.
+  Product cards show it under the seller's name. Covered by `test/client-round-2.e2e-spec.ts`.

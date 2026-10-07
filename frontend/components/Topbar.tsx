@@ -82,6 +82,9 @@ export default function Topbar({
   const [profileOpen, setProfileOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [search, setSearch] = useState('')
+  // Phones (home page): the search box is a 40px icon; tapping it opens a full-width search field.
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchInput = useRef<HTMLInputElement>(null)
   // Live user suggestions under the search box (GET users/search, debounced; ≥2 characters).
   const [userHits, setUserHits] = useState<PublicUserSearchResult[]>([])
   const [suggestOpen, setSuggestOpen] = useState(false)
@@ -219,11 +222,36 @@ export default function Topbar({
           />
         </form>
       ) : (
-        <form className={`search-box${suggestOpen && search.trim().length >= 2 ? ' is-suggesting' : ''}`} role="search" aria-label="ძიება" onSubmit={submitSearch} ref={searchRef}>
+        <form
+          className={`search-box${suggestOpen && search.trim().length >= 2 ? ' is-suggesting' : ''}${searchOpen ? ' is-open' : ''}`}
+          role="search"
+          aria-label="ძიება"
+          onSubmit={(event) => {
+            setSearchOpen(false)
+            submitSearch(event)
+          }}
+          ref={searchRef}
+        >
           <span className="search-icon" aria-hidden="true">
             /
           </span>
+          {/* Only shown while the box is collapsed to an icon (phones): opens the search field. */}
+          <button
+            type="button"
+            className="search-open-btn"
+            aria-label="ძიების გახსნა"
+            onClick={() => {
+              setSearchOpen(true)
+              window.setTimeout(() => searchInput.current?.focus(), 0)
+            }}
+          />
+          {searchOpen && (
+            <button type="button" className="search-close-btn" aria-label="ძიების დახურვა" onClick={() => setSearchOpen(false)}>
+              ×
+            </button>
+          )}
           <input
+            ref={searchInput}
             id="marketSearch"
             type="search"
             placeholder="მოძებნე თამაშები, სერვისები ან მოთამაშეები..."
@@ -236,7 +264,10 @@ export default function Topbar({
             aria-expanded={suggestOpen && search.trim().length >= 2}
             onFocus={() => setSuggestOpen(true)}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') setSuggestOpen(false)
+              if (event.key === 'Escape') {
+                setSuggestOpen(false)
+                setSearchOpen(false)
+              }
             }}
             onChange={(event) => {
               setSearch(event.target.value)

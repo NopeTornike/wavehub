@@ -86,7 +86,7 @@ function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onC
           </select>
         </label>
         <label className="field">
-          სათაური
+          სათაური <small>არასავალდებულო — სათაურის, ქვესათაურის და ღილაკის გარეშე ჩანს მხოლოდ ფოტო</small>
           <input maxLength={80} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
         </label>
         <label className="field">
@@ -99,7 +99,7 @@ function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onC
             <input maxLength={300} value={draft.linkUrl} onChange={(e) => setDraft({ ...draft, linkUrl: e.target.value })} />
           </label>
           <label className="field">
-            ღილაკის ტექსტი
+            ღილაკის ტექსტი <small>ცარიელი = ღილაკის გარეშე</small>
             <input maxLength={30} value={draft.buttonLabel} onChange={(e) => setDraft({ ...draft, buttonLabel: e.target.value })} />
           </label>
         </div>
@@ -163,7 +163,6 @@ export default function AdminBanners() {
   }, [])
 
   const create = async () => {
-    if (title.trim().length < 2) return setError('სათაური მინ. 2 სიმბოლო.')
     setError('')
     try {
       const b = await api.adminCreateBanner({ placement, title: title.trim(), sortOrder: items?.filter((x) => x.placement === placement).length ?? 0 })
@@ -199,7 +198,7 @@ export default function AdminBanners() {
             </option>
           ))}
         </select>
-        <input value={title} maxLength={80} placeholder="ახალი ბანერის სათაური" onChange={(e) => setTitle(e.target.value)} />
+        <input value={title} maxLength={80} placeholder="სათაური (არასავალდებულო)" onChange={(e) => setTitle(e.target.value)} />
         <button type="button" className="button" onClick={() => void create()}>
           ბანერის დამატება
         </button>

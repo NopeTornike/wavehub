@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { ListingStatus, ListingType } from '@wavehub/shared-types';
 import { ListingsService } from './listings.service';
 
@@ -43,6 +43,10 @@ describe('ListingsService.createDraft', () => {
     categories.rows.set('cat-steam', { id: 'cat-steam', slug: 'steam-games', type: 'item', isActive: true });
     // Steam games are staff-published: the author lookup goes through the listings repo's manager.
     (listings as any).manager = { getRepository: () => ({ findOne: async () => ({ id: 'seller-1', adminRole: 'super_admin' }) }) };
+    // The duplicate-post guard counts the seller's same-title listings from the last 2 minutes.
+    const twin = { count: 0 };
+    const qb: any = { where: () => qb, andWhere: () => qb, getCount: async () => twin.count };
+    (listings as any).createQueryBuilder = jest.fn(() => qb);
     const games = createFakeRepo();
     const storage = { save: jest.fn() };
 
@@ -60,10 +64,18 @@ describe('ListingsService.createDraft', () => {
       { tryEmit: jest.fn(async () => undefined) } as any,
     );
 
-    return { service, listings, serviceDetails, itemDetails, keyInventory };
+    return { service, listings, serviceDetails, itemDetails, keyInventory, twin };
   }
 
   const sellerId = 'seller-1';
+
+  it('refuses the same post again within two minutes (retry / double tap)', async () => {
+    const { service, twin } = build();
+    twin.count = 1;
+    await expect(
+      service.createDraft(sellerId, { type: ListingType.Service, categoryId: 'cat-1', title: 'A valid title here', description: 'A'.repeat(60) } as any),
+    ).rejects.toThrow(ConflictException);
+  });
 
   it('rejects an item listing with no priceWaveCoin', async () => {
     const { service } = build();

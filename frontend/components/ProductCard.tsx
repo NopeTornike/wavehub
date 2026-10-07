@@ -6,6 +6,7 @@ import { useCart } from '../lib/cart'
 import { useFavorites } from '../lib/favorites'
 import { gameCover } from '../lib/games'
 import { deliveryTimeLabel } from '../lib/labels'
+import SellerPreview from './SellerPreview'
 
 // The prototype's marketplace showcase card (marketplace.js#createProductShowcaseCard), used for
 // every listing type, on real listing data:
@@ -84,7 +85,7 @@ function SaveButton({ listing, className, onCount }: { listing: PublicListingSum
   )
 }
 
-export default function ProductCard({ listing, sellerRank }: { listing: PublicListingSummary; sellerRank?: number }) {
+export default function ProductCard({ listing, sellerRank, sellerTier }: { listing: PublicListingSummary; sellerRank?: number; sellerTier?: string }) {
   const router = useRouter()
   const cart = useCart()
   const [favoriteCount, setFavoriteCount] = useState(listing.favoriteCount)
@@ -130,70 +131,89 @@ export default function ProductCard({ listing, sellerRank }: { listing: PublicLi
     if ((event.target as HTMLElement).closest('a, button')) return
     router.push(href)
   }
+  // Design 2026-10-07 (client "secondproblemfix", 1:1): photo on top with the game + rarity badges
+  // and the heart; below it the title, level, the seller (photo, name, Wave tier · rating),
+  // delivery, price with views / likes, and the cart + "View details" buttons.
+  const [preview, setPreview] = useState(false)
   return (
-    <article className={`marketplace-card product-showcase-card ${kind === 'item' ? 'skin' : kind}-showcase-card${kind === 'account' ? ` account-status-${status}` : ''}`} data-listing-id={listing.id}>
-      <div className={`product-showcase-cover${image ? ' has-image' : ''}`} data-game={initials(gameName)} style={image ? { backgroundImage: `url("${image}")` } : undefined} onClick={openDetail}>
-        <div className="product-showcase-badges">
-          <span className="showcase-badge showcase-game-badge">{gameName}</span>
-          <span className="showcase-badge showcase-badge-gold">{kindBadge}</span>
+    <article className={`marketplace-card pc-card pc-${kind}${kind === 'account' ? ` pc-rarity-${status}` : ''}`} data-listing-id={listing.id}>
+      <div className={`pc-cover${image ? '' : ' is-empty'}`} style={image ? { backgroundImage: `url("${image}")` } : undefined} onClick={openDetail} data-game={initials(gameName)}>
+        <div className="pc-badges">
+          <span className="pc-badge pc-game">{gameName}</span>
+          <span className="pc-badge pc-kind">
+            {kind === 'account' && status === 'premium' && <span aria-hidden="true">♛</span>}
+            {kindBadge}
+          </span>
         </div>
-        <SaveButton listing={listing} className="save-button product-showcase-save" onCount={setFavoriteCount} />
-        <div className="product-showcase-cover-info">
-          <h3>
-            <Link href={href}>{listing.title}</Link>
-          </h3>
-          <span className="product-showcase-level">{kindLine}</span>
-        </div>
+        <SaveButton listing={listing} className="pc-heart" onCount={setFavoriteCount} />
       </div>
 
-      <div className="product-showcase-body">
-        <Link className="product-showcase-seller" href={`/u/${listing.seller.username}`} aria-label={`${sellerName} — public profile`}>
-          <span className="product-showcase-avatar">{initials(sellerName)}</span>
-          <span>
-            <strong>{sellerName}</strong>
-            <small className="product-showcase-seller-rank">{sellerRank ? `Wave რანკი #${sellerRank}` : 'Wave რანკი: ჯერ არ აქვს'}</small>
-            <small className="product-showcase-seller-rating">
-              {rating === null ? '★ შეფასებები ჯერ არ არის' : `★ ${rating.toFixed(1)} · ${count(listing.ratingCount)} შეფასება`}
-            </small>
-          </span>
-        </Link>
-      </div>
-
-      <div className="product-showcase-footer">
-        <strong className="product-showcase-price">
-          {kind === 'service' && <small>დან </small>}
-          {count(price)} GEL
-        </strong>
-        <span className="product-showcase-social">
-          {/* The owner's icon set instead of the ◉ / ♡ glyphs (client 2026-10-07). */}
-          <span title="ნახვები">
-            <img src="/assets/ui/eye.png" alt="" aria-hidden="true" />
-            {count(listing.viewsCount)}
-          </span>
-          <span title="მოწონებები">
-            <img src="/assets/ui/heart.png" alt="" aria-hidden="true" />
-            {count(favoriteCount)}
-          </span>
+      <div className="pc-body">
+        <h3 className="pc-title">
+          <Link href={href}>{listing.title}</Link>
+        </h3>
+        <span className="pc-level">
+          <img src="/assets/ui/level-bars.png" alt="" aria-hidden="true" />
+          {kindLine.replace('✪ ', '')}
         </span>
-        <span className="product-showcase-delivery">⚡ მიწოდება — {delivery}</span>
-        <div className="product-showcase-icon-actions">
+
+        <div className="pc-seller">
+          <button type="button" className="pc-seller-person" onClick={() => setPreview(true)} aria-label={`${sellerName} — პროფილის ნახვა`}>
+            <span className="pc-avatar" style={listing.seller.avatarUrl ? { backgroundImage: `url("${listing.seller.avatarUrl}")` } : undefined}>
+              {listing.seller.avatarUrl ? '' : initials(sellerName)}
+            </span>
+            <span className="pc-seller-copy">
+              <strong>{sellerName}</strong>
+              <small>{sellerTier ?? (sellerRank ? `Wave რანკი #${sellerRank}` : 'Wave რანკი: ჯერ არ აქვს')}</small>
+            </span>
+          </button>
+          <span className="pc-rating">
+            <b aria-hidden="true">★</b>
+            {rating === null ? 'ახალი' : `${rating.toFixed(1)} · ${count(listing.ratingCount)} შეფასება`}
+          </span>
+        </div>
+
+        <span className="pc-delivery">
+          <b aria-hidden="true">⚡</b> მიწოდება — {delivery}
+        </span>
+
+        <div className="pc-price-row">
+          <strong className="pc-price">
+            {kind === 'service' && <small>დან </small>}
+            {count(price)} GEL
+          </strong>
+          <span className="pc-social">
+            <span title="ნახვები">
+              <img src="/assets/ui/eye.png" alt="" aria-hidden="true" />
+              {count(listing.viewsCount)}
+            </span>
+            <i aria-hidden="true" />
+            <span title="მოწონებები" className="pc-likes">
+              <img src="/assets/ui/heart.png" alt="" aria-hidden="true" />
+              {count(favoriteCount)}
+            </span>
+          </span>
+        </div>
+
+        <div className="pc-actions">
           <button
-            className={`product-showcase-cart${inCart ? ' in-cart' : ''}`}
+            className={`pc-cart${inCart ? ' in-cart' : ''}`}
             type="button"
-            aria-label={canCart ? 'Add product to cart' : 'Choose a package'}
+            aria-label={canCart ? 'კალათაში დამატება' : 'პაკეტის არჩევა'}
             aria-pressed={canCart ? inCart : undefined}
             onClick={(event) => {
               event.preventDefault()
               addToCart()
             }}
           >
-            <img className="cart-icon-image" src="/assets/cart-icon.png" alt="" aria-hidden="true" />
+            <img src="/assets/ui/cart-white.png" alt="" aria-hidden="true" />
           </button>
+          <Link className="pc-details" href={href}>
+            დეტალების ნახვა <span aria-hidden="true">→</span>
+          </Link>
         </div>
-        <button className="product-showcase-details" type="button" onClick={() => router.push(href)}>
-          დეტალების ნახვა
-        </button>
       </div>
+      {preview && <SellerPreview username={listing.seller.username} onClose={() => setPreview(false)} />}
     </article>
   )
 }

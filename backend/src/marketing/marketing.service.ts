@@ -164,7 +164,7 @@ export class MarketingService {
   }
 
   async createBanner(dto: CreateBannerDto): Promise<AdminBanner> {
-    const saved = await this.banners.save(this.banners.create({ ...this.bannerPatch(dto), active: dto.active ?? false }));
+    const saved = await this.banners.save(this.banners.create({ title: '', ...this.bannerPatch(dto), active: dto.active ?? false }));
     return this.toAdminBanner(saved);
   }
 

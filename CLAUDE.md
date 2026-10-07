@@ -319,7 +319,7 @@ complete/cancel, fee snapshot), `reviews` (completed-buyer-only, one per order, 
 moderation), `admin-auth` (22-route role-guard matrix over all 6 staff roles, password reset,
 suspended/banned session + login rejection), `bog-callbacks` (topup + subscription callbacks with
 genuinely RSA-signed payloads), `order-races` (concurrent accept/cancel/dispute), and
-`support-notifications-settings`, plus `security` (response-privacy sweep across the API, malformed-id
+`support-notifications-settings`, `client-round-2` (duplicate-post guard, listing photo throttle, staff messaging + username masking, seller tiers, photo-only banners), plus `security` (response-privacy sweep across the API, malformed-id
 handling, stranger-vs-order authorization) and `hardening` (upload validation + served headers,
 CORS/error hygiene, helmet, `/health`, Maintenance Mode, authz spot checks).
 

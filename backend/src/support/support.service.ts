@@ -198,7 +198,8 @@ export class SupportService {
     return {
       id: message.id,
       senderId: message.senderId,
-      senderUsername: message.sender.username,
+      // Support staff are shown as "Support — Name"; their username is a login name, never sent.
+      senderUsername: message.senderId !== requesterId ? '' : message.sender.username,
       senderFirstName: message.sender.firstName,
       senderLastName: message.sender.lastName,
       senderAvatarUrl: message.sender.avatarUrl ?? null,

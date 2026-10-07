@@ -82,6 +82,11 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
   // line sits at the bottom of a very long form, so a seller never saw it and re-submitted).
   const [published, setPublished] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // A publish that failed part-way (e.g. a photo upload refused) leaves its draft here, so pressing
+  // Publish again continues that listing instead of creating another copy — a seller once ended up
+  // with the same post 10 times this way (2026-10-07). `uploaded` remembers which photos made it.
+  const pendingDraft = useRef<{ id: string; uploaded: WeakSet<File> } | null>(null)
+  const publishing = useRef(false)
   const [zoom, setZoom] = useState<number | null>(null)
   const [draftRestored, setDraftRestored] = useState(false)
   const firstField = useRef<HTMLSelectElement>(null)
@@ -212,6 +217,7 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
   }
 
   const reset = () => {
+    pendingDraft.current = null
     setKind('account')
     setGameSlug('')
     setTitle('')
@@ -272,29 +278,50 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
       })
     }
 
+    // A double tap must not start a second publish while the first is still running.
+    if (publishing.current) return
+    publishing.current = true
     setSubmitting(true)
     setStatus({ kind: 'pending', text: 'განცხადება იქმნება…' })
     try {
-      const listing = await api.createItemListing({
-        categoryId: category.id,
-        gameId: game.gameId,
-        title: title.trim(),
-        description: description.trim(),
-        priceWaveCoin: priceValue,
-        attributes,
-      })
+      let draft = pendingDraft.current
+      if (draft) {
+        // Retrying: bring the existing draft up to date instead of creating a new listing.
+        await api.updateListing(draft.id, { title: title.trim(), description: description.trim(), priceWaveCoin: priceValue, attributes })
+      } else {
+        const created = await api.createItemListing({
+          categoryId: category.id,
+          gameId: game.gameId,
+          title: title.trim(),
+          description: description.trim(),
+          priceWaveCoin: priceValue,
+          attributes,
+        })
+        draft = { id: created.id, uploaded: new WeakSet<File>() }
+        pendingDraft.current = draft
+      }
+      const listing = { id: draft.id, title: title.trim() }
       for (const [index, file] of files.entries()) {
+        if (draft.uploaded.has(file)) continue
         setStatus({ kind: 'pending', text: `სურათების ატვირთვა… ${index + 1} / ${files.length}` })
         await api.uploadListingImage(listing.id, file)
+        draft.uploaded.add(file)
       }
       await api.submitListingForReview(listing.id)
+      pendingDraft.current = null
       reset()
       setStatus({ kind: 'success', text: 'განცხადება გაიგზავნა შესამოწმებლად — დამტკიცების შემდეგ გამოჩნდება მარკეტში.' })
       setPublished(listing.title)
       document.querySelector('.listing-builder-panel')?.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
-      setStatus({ kind: 'error', text: errorMessage(err, 'განცხადების შექმნა ვერ მოხერხდა.') })
+      setStatus({
+        kind: 'error',
+        text: pendingDraft.current
+          ? `${errorMessage(err, 'განცხადების შექმნა ვერ მოხერხდა.')} განცხადება შენახულია — ხელახლა დააჭირე „გამოქვეყნებას“, ახალი არ შეიქმნება.`
+          : errorMessage(err, 'განცხადების შექმნა ვერ მოხერხდა.'),
+      })
     } finally {
+      publishing.current = false
       setSubmitting(false)
     }
   }

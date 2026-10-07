@@ -109,6 +109,52 @@ export class ProfilesService {
        ORDER BY r."createdAt" DESC`,
       [userId],
     );
+    // The latest three as full review cards (same look as the listing page's reviews).
+    const cardRows: Array<Record<string, unknown>> = await this.db.query(
+      `SELECT r.*, u."username", u."firstName", u."lastName", u."avatarUrl", u."lastSeenAt" FROM (
+         SELECT 'product' AS kind, rv."id", rv."rating", rv."body", rv."buyerId", rv."createdAt", rv."sellerReply", rv."sellerRepliedAt",
+                (SELECT count(*) FROM "review_likes" l WHERE l."reviewId" = rv."id" AND l."target" = 'review')::int AS "likeCount",
+                (SELECT count(*) FROM "review_likes" l WHERE l."reviewId" = rv."id" AND l."target" = 'reply')::int AS "replyLikeCount"
+           FROM "reviews" rv WHERE rv."sellerId" = $1 AND rv."status" = 'published'
+         UNION ALL
+         SELECT 'coach', cr."id", cr."rating", cr."body", cr."buyerId", cr."createdAt", NULL, NULL, 0, 0
+           FROM "coaching_session_reviews" cr WHERE cr."coachId" IN (SELECT "id" FROM "coaches" WHERE "userId" = $1)
+       ) r JOIN "users" u ON u."id" = r."buyerId"
+       ORDER BY r."createdAt" DESC LIMIT 3`,
+      [userId],
+    );
+    const owner: Array<{ username: string; firstName: string; lastName: string; avatarUrl: string | null }> = await this.db.query(
+      `SELECT "username", "firstName", "lastName", "avatarUrl" FROM "users" WHERE "id" = $1`,
+      [userId],
+    );
+    const ownerRank = (await this.community.waveRank(userId)).name;
+    const cards = await Promise.all(
+      cardRows.map(async (r) => {
+        const seen = r.lastSeenAt ? new Date(r.lastSeenAt as string) : null;
+        return {
+          kind: r.kind as 'product' | 'coach',
+          id: String(r.id),
+          rating: Number(r.rating),
+          body: (r.body as string | null) ?? null,
+          tags: [] as string[],
+          sellerReply: (r.sellerReply as string | null) ?? null,
+          sellerRepliedAt: r.sellerRepliedAt ? new Date(r.sellerRepliedAt as string).toISOString() : null,
+          createdAt: new Date(r.createdAt as string).toISOString(),
+          buyer: {
+            id: String(r.buyerId),
+            username: String(r.username),
+            firstName: String(r.firstName ?? ''),
+            lastName: String(r.lastName ?? ''),
+            avatarUrl: (r.avatarUrl as string | null) ?? null,
+            online: !!seen && Date.now() - seen.getTime() < ONLINE_WINDOW_MINUTES * 60_000,
+          },
+          buyerRank: (await this.community.waveRank(String(r.buyerId))).name,
+          seller: { id: userId, username: owner[0]?.username ?? '', firstName: owner[0]?.firstName ?? '', lastName: owner[0]?.lastName ?? '', avatarUrl: owner[0]?.avatarUrl ?? null, rank: ownerRank },
+          likeCount: Number(r.likeCount),
+          replyLikeCount: Number(r.replyLikeCount),
+        };
+      }),
+    );
     const distribution: [number, number, number, number, number] = [0, 0, 0, 0, 0];
     for (const r of reviewRows) distribution[5 - Math.min(5, Math.max(1, Number(r.rating)))] += 1;
     const count = reviewRows.length;
@@ -141,6 +187,7 @@ export class ProfilesService {
         count,
         average,
         distribution,
+        cards,
         latest: reviewRows.slice(0, 3).map((r) => ({
           rating: Number(r.rating),
           body: r.body,

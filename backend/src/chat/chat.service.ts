@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundEx
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConversationType, MessageStatus, MessageType, NotificationType } from '@wavehub/shared-types';
-import type { PublicConversationSummary, PublicMessage } from '@wavehub/shared-types';
+import type { PublicConversationSummary, PublicMessage, PublicStaffContact } from '@wavehub/shared-types';
 import { Conversation } from './conversation.entity';
 import { Message } from './message.entity';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -103,6 +103,43 @@ export class ChatService {
   // server-side, not just hidden in the UI. True if the two users share a real Order (either
   // direction — either could be buyer) or a real CoachingSession (joined through Coach to compare
   // against the coach's userId, since CoachingSession.coachId is a Coach profile id, not a user id).
+  // Who may open a Direct conversation (owner 2026-10-07): anyone with users they've transacted
+  // with; WaveHub staff with anyone (support / moderation); coaches and sellers with staff.
+  private async mayStartDirect(initiatorId: string, recipientId: string): Promise<boolean> {
+    const [initiator, recipient] = await Promise.all([
+      this.users.findOne({ where: { id: initiatorId }, select: ['id', 'adminRole', 'status'] }),
+      this.users.findOne({ where: { id: recipientId }, select: ['id', 'adminRole', 'status'] }),
+    ]);
+    if (initiator?.adminRole) return true;
+    if (recipient?.adminRole && (await this.isCoachOrSeller(initiatorId))) return true;
+    return this.haveTransactedTogether(initiatorId, recipientId);
+  }
+
+  // A verified, active coach, or a seller with a listing that passed review (a bare draft doesn't
+  // count — anyone can create one).
+  async isCoachOrSeller(userId: string): Promise<boolean> {
+    const [row] = await this.users.query(
+      `SELECT EXISTS (SELECT 1 FROM "coaches" WHERE "userId" = $1 AND "verificationStatus" = 'verified' AND "status" = 'active')
+           OR EXISTS (SELECT 1 FROM "listings" WHERE "sellerId" = $1 AND "status" IN ('active', 'paused')) AS ok`,
+      [userId],
+    );
+    return row?.ok === true;
+  }
+
+  // The WaveHub team a coach / seller / staff member can write to: names and photos only — no role
+  // and no username (staff usernames are login names).
+  async listStaffContacts(viewerId: string): Promise<PublicStaffContact[]> {
+    const viewer = await this.users.findOne({ where: { id: viewerId }, select: ['id', 'adminRole'] });
+    if (!viewer?.adminRole && !(await this.isCoachOrSeller(viewerId))) return [];
+    const rows: Array<{ id: string; firstName: string; lastName: string; avatarUrl: string | null }> = await this.users.query(
+      `SELECT "id", "firstName", "lastName", "avatarUrl" FROM "users"
+        WHERE "adminRole" IS NOT NULL AND "status" = 'active' AND "id" <> $1
+        ORDER BY "firstName" ASC, "lastName" ASC LIMIT 50`,
+      [viewerId],
+    );
+    return rows.map((r) => ({ id: r.id, firstName: r.firstName, lastName: r.lastName, avatarUrl: r.avatarUrl ?? null }));
+  }
+
   private async haveTransactedTogether(userA: string, userB: string): Promise<boolean> {
     const orderCount = await this.orders.count({
       where: [
@@ -140,7 +177,7 @@ export class ChatService {
     if (existing) {
       return existing;
     }
-    if (!(await this.haveTransactedTogether(initiatorId, recipientId))) {
+    if (!(await this.mayStartDirect(initiatorId, recipientId))) {
       throw new ForbiddenException('You can only message users you have an order or coaching session with');
     }
     try {
@@ -195,12 +232,12 @@ export class ChatService {
       .andWhere('senderId IS NOT NULL AND senderId != :userId', { userId })
       .andWhere('status != :seen', { seen: MessageStatus.Seen })
       .execute();
-    const rows = await this.messages.find({
-      where: { conversationId: conversation.id },
-      relations: ['sender'],
-      order: { createdAt: 'ASC' },
-    });
-    return rows.map((message) => this.toPublicMessage(message));
+    const [rows, viewer] = await Promise.all([
+      this.messages.find({ where: { conversationId: conversation.id }, relations: ['sender'], order: { createdAt: 'ASC' } }),
+      this.users.findOne({ where: { id: userId }, select: ['id', 'adminRole'] }),
+    ]);
+    // A staff member's username is their login name — hidden from non-staff (see toConversationSummary).
+    return rows.map((message) => this.toPublicMessage(message, !viewer?.adminRole));
   }
 
   async postDirectMessage(conversationId: string, senderId: string, body: string): Promise<PublicMessage> {
@@ -232,8 +269,9 @@ export class ChatService {
 
   private async toConversationSummary(conversation: Conversation, viewerId: string): Promise<PublicConversationSummary> {
     const otherUserId = conversation.buyerId === viewerId ? conversation.sellerId : conversation.buyerId;
-    const [otherUser, lastMessage, unreadCount] = await Promise.all([
-      this.users.findOne({ where: { id: otherUserId }, select: ['id', 'username', 'firstName', 'lastName', 'avatarUrl'] }),
+    const [otherUser, viewer, lastMessage, unreadCount] = await Promise.all([
+      this.users.findOne({ where: { id: otherUserId }, select: ['id', 'username', 'firstName', 'lastName', 'avatarUrl', 'adminRole'] }),
+      this.users.findOne({ where: { id: viewerId }, select: ['id', 'adminRole'] }),
       this.messages.findOne({ where: { conversationId: conversation.id }, order: { createdAt: 'DESC' } }),
       this.messages
         .createQueryBuilder('m')
@@ -246,7 +284,9 @@ export class ChatService {
       id: conversation.id,
       otherUser: {
         id: otherUserId,
-        username: otherUser?.username ?? 'deleted-user',
+        // A staff member's username is their login name — not shown to non-staff.
+        username: otherUser?.adminRole && !viewer?.adminRole ? '' : (otherUser?.username ?? 'deleted-user'),
+        staff: !!otherUser?.adminRole,
         firstName: otherUser?.firstName ?? '',
         lastName: otherUser?.lastName ?? '',
         avatarUrl: otherUser?.avatarUrl ?? null,
@@ -259,14 +299,14 @@ export class ChatService {
     };
   }
 
-  private toPublicMessage(message: Message): PublicMessage {
+  private toPublicMessage(message: Message, hideStaffUsername = false): PublicMessage {
     return {
       id: message.id,
       type: message.type,
       body: message.body,
       status: message.status,
       senderId: message.senderId,
-      senderUsername: message.sender?.username ?? null,
+      senderUsername: hideStaffUsername && message.sender?.adminRole ? '' : (message.sender?.username ?? null),
       createdAt: message.createdAt.toISOString(),
     };
   }

@@ -167,7 +167,7 @@ describe('client feedback batch (e2e)', () => {
     expect(conv.status).toBeLessThan(300);
     const mine = (await buyer.client.get('/direct-messages')).body as Array<{ otherUser: Record<string, unknown> }>;
     const other = mine.find((c) => c.otherUser.id === seller.id)!.otherUser;
-    expect(other).toMatchObject({ username: seller.username, firstName: 'Test', lastName: 'User' });
+    expect(other).toMatchObject({ username: seller.username, firstName: 'Test', lastName: 'User', staff: false });
     expect(Object.keys(other)).not.toEqual(expect.arrayContaining(['email']));
   });
 

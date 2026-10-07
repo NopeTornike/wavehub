@@ -42,13 +42,27 @@ export default function HomeBanners({ placement = BannerPlacement.HomeStrip }: {
   if (banners.length === 0) return null
   const b = banners[Math.min(index, banners.length - 1)]
   const internal = b.linkUrl?.startsWith('/')
-  const cta = b.linkUrl && (b.buttonLabel || 'ნახვა')
+  // A button only when button text was entered; a link without one makes the whole banner a link.
+  const cta = b.linkUrl && b.buttonLabel?.trim()
+  const wholeLink = b.linkUrl && !cta ? b.linkUrl : null
+  const hasText = !!(b.title?.trim() || b.subtitle?.trim() || cta)
 
   return (
     <section className={`home-banners${placement === BannerPlacement.HomeStrip ? '' : ' page-top-banners'}`} aria-label="აქციები და სიახლეები">
-      <div className="home-banner" style={{ backgroundImage: `linear-gradient(90deg, rgba(5, 4, 15, .82), rgba(5, 4, 15, .2) 70%), url("${b.imageUrl}")` }}>
+      <div
+        className="home-banner"
+        style={{
+          backgroundImage: hasText ? `linear-gradient(90deg, rgba(5, 4, 15, .82), rgba(5, 4, 15, .2) 70%), url("${b.imageUrl}")` : `url("${b.imageUrl}")`,
+        }}
+      >
+        {wholeLink &&
+          (internal ? (
+            <Link className="home-banner-link" href={wholeLink} aria-label={b.title || 'ბანერი'} />
+          ) : (
+            <a className="home-banner-link" href={wholeLink} target="_blank" rel="noopener noreferrer" aria-label={b.title || 'ბანერი'} />
+          ))}
         <div className="home-banner-copy">
-          <h2>{b.title}</h2>
+          {b.title?.trim() && <h2>{b.title}</h2>}
           {b.subtitle && <p>{b.subtitle}</p>}
           {cta &&
             (internal ? (

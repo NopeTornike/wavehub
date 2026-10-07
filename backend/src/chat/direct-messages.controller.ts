@@ -25,6 +25,12 @@ export class DirectMessagesController {
     return this.chat.getOrCreateDirectConversation(userId, dto.recipientUserId);
   }
 
+  // The team members a coach / seller / staff member may start a chat with (empty for others).
+  @Get('staff')
+  staff(@CurrentUserId() userId: string) {
+    return this.chat.listStaffContacts(userId);
+  }
+
   @Get()
   listMine(@CurrentUserId() userId: string) {
     return this.chat.listMyDirectConversations(userId);

@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
 import { BannerPlacement } from '@wavehub/shared-types';
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 const upper = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toUpperCase() : value);
 // An internal path ("/coaching") or an https URL — nothing else may become a banner link.
@@ -85,9 +85,10 @@ export class BannerDto {
   @IsEnum(BannerPlacement)
   placement?: BannerPlacement;
 
+  // Optional since 2026-10-07: an empty title (with no subtitle / button text) shows the photo alone.
   @IsOptional()
   @IsString()
-  @Length(2, 80)
+  @MaxLength(80)
   title?: string;
 
   @IsOptional()
@@ -137,8 +138,4 @@ export class PublicBannersQueryDto {
   placement?: BannerPlacement;
 }
 
-export class CreateBannerDto extends BannerDto {
-  @IsString()
-  @Length(2, 80)
-  declare title: string;
-}
+export class CreateBannerDto extends BannerDto {}

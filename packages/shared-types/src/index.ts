@@ -527,10 +527,21 @@ export interface PublicMessage {
 // conversation the caller is part of. `otherUser` is always the *other* participant, resolved
 // relative to whoever is asking, never a fixed buyer/seller role (a Direct conversation's
 // buyerId/sellerId columns just record who happened to start it — see conversation.entity.ts).
+// A WaveHubX team member a coach / seller / staff member can message (GET direct-messages/staff):
+// names and photo only — no username (a staff login name) and no role.
+export interface PublicStaffContact {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+}
+
 export interface PublicConversationSummary {
   id: string;
   // Client feedback #13: the other person by name + photo, not just @username.
-  otherUser: { id: string; username: string; firstName: string; lastName: string; avatarUrl: string | null };
+  // `staff`: the other side is a WaveHubX team member (shown as such — users can trust it's
+  // official). A staff member's username is their login name, so it is '' for non-staff viewers.
+  otherUser: { id: string; username: string; firstName: string; lastName: string; avatarUrl: string | null; staff: boolean };
   lastMessage: { body: string; createdAt: string; senderId: string | null } | null;
   createdAt: string;
   // Messages the other participant sent that the viewer hasn't opened yet (status != 'seen').
@@ -1188,6 +1199,9 @@ export interface PublicUserProfile {
     // Index 0 = 5 stars … index 4 = 1 star.
     distribution: [number, number, number, number, number];
     latest: Array<{ rating: number; body: string | null; buyerUsername: string; buyerFirstName: string; buyerLastName: string; buyerAvatarUrl: string | null; createdAt: string }>;
+    // The latest 3 as full review cards (design 2026-10-07: the profile shows reviews exactly like the
+    // listing page). `kind: 'coach'` = a coaching-session review (no likes / reply).
+    cards: Array<PublicReview & { kind: 'product' | 'coach' }>;
   };
   // Earned achievements only — see backend/src/follows/CLAUDE.md for each rule.
   // The owner's badge set (BadgeKey — icon at badgeIcon(key)) plus tournament champion/finalist.

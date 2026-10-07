@@ -48,6 +48,8 @@ const SELLER_RANK_TTL_MS = 60_000;
 export class CommunityService {
   private sellerRankCache: { at: number; value: SellerRanks } | null = null;
 
+  private sellerTierCache?: { at: number; value: Record<string, string> };
+
   constructor(private readonly db: DataSource) {}
 
   // The prototype's getMarketplaceSellerWaveRank ordering: completed sales, then published reviews
@@ -76,6 +78,39 @@ export class CommunityService {
       value[row.username] = index + 1;
     });
     this.sellerRankCache = { at: Date.now(), value };
+    return value;
+  }
+
+  // Each seller's Wave rank tier name (same formula as waveRank, batched) for the marketplace cards
+  // (client 2026-10-07 design: "Avtandil Merabishvili · WaveHubX Apex"). Sellers with an active
+  // listing only; cached like sellerRanks.
+  async sellerTiers(): Promise<Record<string, string>> {
+    if (this.sellerTierCache && Date.now() - this.sellerTierCache.at < SELLER_RANK_TTL_MS) {
+      return this.sellerTierCache.value;
+    }
+    const rows: Array<{ username: string; listings: number; sold: number; bought: number; reviews: number; recentEvents: number }> = await this.db.query(`
+      WITH sellers AS (
+        SELECT DISTINCT u."id", u."username" FROM "users" u
+        JOIN "listings" l ON l."sellerId" = u."id" AND l."status" = 'active'
+        WHERE u."status" = 'active'
+      ), coach AS (SELECT c."id", c."userId" FROM "coaches" c WHERE c."userId" IN (SELECT "id" FROM sellers))
+      SELECT s."username",
+        (SELECT count(*) FROM "listings" WHERE "sellerId" = s."id" AND "status" IN ('active', 'paused'))::int AS listings,
+        ((SELECT count(*) FROM "orders" WHERE "sellerId" = s."id" AND "status" = 'completed')
+          + (SELECT count(*) FROM "coaching_sessions" cs WHERE cs."coachId" IN (SELECT "id" FROM coach WHERE "userId" = s."id") AND cs."status" = 'completed'))::int AS sold,
+        ((SELECT count(*) FROM "orders" WHERE "buyerId" = s."id" AND "status" = 'completed')
+          + (SELECT count(*) FROM "coaching_sessions" WHERE "buyerId" = s."id" AND "status" = 'completed'))::int AS bought,
+        ((SELECT count(*) FROM "reviews" WHERE "sellerId" = s."id" AND "status" = 'published')
+          + (SELECT count(*) FROM "coaching_session_reviews" r WHERE r."coachId" IN (SELECT "id" FROM coach WHERE "userId" = s."id")))::int AS reviews,
+        ((SELECT count(*) FROM "listings" WHERE "sellerId" = s."id" AND "createdAt" > now() - interval '30 days')
+          + (SELECT count(*) FROM "orders" WHERE ("sellerId" = s."id" OR "buyerId" = s."id") AND "status" = 'completed' AND "completedAt" > now() - interval '30 days')
+          + (SELECT count(*) FROM "reviews" WHERE "sellerId" = s."id" AND "status" = 'published' AND "createdAt" > now() - interval '30 days')
+          + (SELECT count(*) FROM "coaching_sessions" WHERE ("buyerId" = s."id" OR "coachId" IN (SELECT "id" FROM coach WHERE "userId" = s."id")) AND "status" = 'completed' AND "updatedAt" > now() - interval '30 days'))::int AS "recentEvents"
+      FROM sellers s
+    `);
+    const value: Record<string, string> = {};
+    for (const row of rows) value[row.username] = computeWaveRank(row).name;
+    this.sellerTierCache = { at: Date.now(), value };
     return value;
   }
 

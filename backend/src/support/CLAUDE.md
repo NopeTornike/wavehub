@@ -120,3 +120,14 @@ plan (either audience) with `perks.prioritySupport`; otherwise the entity defaul
   hidden).
 - Admin → Tickets shows "Name (@username)".
 - Covered in `test/support-notifications-settings.e2e-spec.ts`, including a privacy assertion.
+
+- **Staff usernames are never sent** (2026-10-07 hardening): a support message's `senderUsername`
+  is `''` whenever the sender isn't the requester, in both the user and the admin views. Staff
+  usernames are login names. The requester's own username is unchanged. Asserted in
+  `test/support-notifications-settings.e2e-spec.ts`.
+- **Admin → Tickets → ticket** (`pages/admin/tickets/[id].tsx`, `atk-` CSS):
+  - a header card: category icon, subject, opened date, assignment, status/priority chips and
+    controls;
+  - the DM-look `ChatThread`;
+  - one composer switching between "reply to user" and "🔒 internal note" (amber), with the
+    saved replies beside it.

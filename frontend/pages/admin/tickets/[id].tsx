@@ -1,17 +1,13 @@
 import { useRouter } from 'next/router'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { PublicSavedReply, PublicTicket } from '@wavehub/shared-types'
 import { TicketPriority, TicketStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../../components/AdminLayout'
+import ChatThread from '../../../components/ChatThread'
+import { displayName } from '../../../components/Avatar'
 import { api, errorMessage } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
-
-const STATUS_LABELS: Record<TicketStatus, string> = {
-  [TicketStatus.Open]: 'ღიაა',
-  [TicketStatus.InProgress]: 'მუშავდება',
-  [TicketStatus.Escalated]: 'ესკალირებულია',
-  [TicketStatus.Closed]: 'დახურულია',
-}
+import { CategoryIcon, TICKET_CATEGORY_LABELS, TICKET_STATUS_LABELS, formatTicketDate } from '../../../lib/support'
 
 const PRIORITY_LABELS: Record<TicketPriority, string> = {
   [TicketPriority.Low]: 'დაბალი',
@@ -31,8 +27,8 @@ export default function AdminTicketDetail() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const [replyDraft, setReplyDraft] = useState('')
-  const [noteDraft, setNoteDraft] = useState('')
+  const [draft, setDraft] = useState('')
+  const [mode, setMode] = useState<'reply' | 'note'>('reply')
 
   useEffect(() => {
     if (!id) return
@@ -68,38 +64,6 @@ export default function AdminTicketDetail() {
       cancelled = true
     }
   }, [])
-
-  const sendReply = async (event: FormEvent) => {
-    event.preventDefault()
-    if (!id || !replyDraft.trim()) return
-    setBusy(true)
-    setError('')
-    try {
-      const updated = await api.adminReplyTicket(id, replyDraft.trim())
-      setTicket(updated)
-      setReplyDraft('')
-    } catch (err) {
-      setError(errorMessage(err, 'პასუხის გაგზავნა ვერ მოხერხდა.'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const sendNote = async (event: FormEvent) => {
-    event.preventDefault()
-    if (!id || !noteDraft.trim()) return
-    setBusy(true)
-    setError('')
-    try {
-      const updated = await api.adminAddTicketInternalNote(id, noteDraft.trim())
-      setTicket(updated)
-      setNoteDraft('')
-    } catch (err) {
-      setError(errorMessage(err, 'შენიშვნის დამატება ვერ მოხერხდა.'))
-    } finally {
-      setBusy(false)
-    }
-  }
 
   const changeStatus = async (status: TicketStatus) => {
     if (!id) return
@@ -140,6 +104,89 @@ export default function AdminTicketDetail() {
     }
   }
 
+  // The requester, from their own messages (the thread header).
+  const requesterMsg = ticket?.messages.find((m) => !m.fromSupport) ?? null
+  const requester = requesterMsg
+    ? { username: requesterMsg.senderUsername, firstName: requesterMsg.senderFirstName, lastName: requesterMsg.senderLastName, avatarUrl: requesterMsg.senderAvatarUrl }
+    : null
+
+  const sendComposer = async () => {
+    if (!id || !draft.trim() || busy) return
+    setBusy(true)
+    setError('')
+    try {
+      const updated = mode === 'note' ? await api.adminAddTicketInternalNote(id, draft.trim()) : await api.adminReplyTicket(id, draft.trim())
+      setTicket(updated)
+      setDraft('')
+    } catch (err) {
+      setError(errorMessage(err, mode === 'note' ? 'შენიშვნის დამატება ვერ მოხერხდა.' : 'პასუხის გაგზავნა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const submitComposer = (event: FormEvent) => {
+    event.preventDefault()
+    void sendComposer()
+  }
+  const composerKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      void sendComposer()
+    }
+  }
+
+  // Staff composer (owner 2026-10-07: "too basic"): one box inside the chat, switched between a
+  // reply the user sees and an internal note only staff see, with the saved replies beside it.
+  const composer = ticket && (
+    <form className={`atk-composer${mode === 'note' ? ' is-note' : ''}`} onSubmit={submitComposer}>
+      <div className="atk-composer-bar">
+        <div className="atk-mode" role="tablist" aria-label="შეტყობინების ტიპი">
+          <button type="button" role="tab" aria-selected={mode === 'reply'} className={mode === 'reply' ? 'active' : undefined} onClick={() => setMode('reply')}>
+            პასუხი მომხმარებელს
+          </button>
+          <button type="button" role="tab" aria-selected={mode === 'note'} className={mode === 'note' ? 'active' : undefined} onClick={() => setMode('note')}>
+            🔒 შიდა შენიშვნა
+          </button>
+        </div>
+        {mode === 'reply' && savedReplies.length > 0 && (
+          <select
+            className="atk-saved"
+            aria-label="მზა პასუხი"
+            value=""
+            onChange={(e) => {
+              const reply = savedReplies.find((r) => r.id === e.target.value)
+              if (reply) setDraft(reply.body)
+            }}
+          >
+            <option value="">მზა პასუხი…</option>
+            {savedReplies.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.title}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      {mode === 'note' && <p className="atk-note-hint">შიდა შენიშვნას მომხმარებელი ვერ ხედავს — მხოლოდ პერსონალისთვისაა.</p>}
+      <div className="direct-message-form atk-form">
+        <textarea
+          maxLength={5000}
+          placeholder={mode === 'note' ? 'დაწერეთ შიდა შენიშვნა...' : 'დაწერეთ პასუხი...'}
+          aria-label={mode === 'note' ? 'შიდა შენიშვნა' : 'პასუხი მომხმარებელს'}
+          disabled={busy}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={composerKey}
+        />
+        <button type="submit" disabled={busy || !draft.trim()}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="dm-send-icon" src="/assets/ui/send-pink.png" alt="" aria-hidden="true" />
+          {busy ? 'იგზავნება…' : mode === 'note' ? 'დამატება' : 'გაგზავნა'}
+        </button>
+      </div>
+    </form>
+  )
+
   return (
     <AdminLayout title="ბილეთი">
       {loading ? (
@@ -148,90 +195,81 @@ export default function AdminTicketDetail() {
         <div className="status-text status-error" role="alert">{error}</div>
       ) : ticket ? (
         <>
-          <h1 className="page-title">{ticket.subject}</h1>
-          {error && <div className="status-text status-error" role="alert">{error}</div>}
-
-          <div className="admin-row-actions" style={{ marginBottom: 20 }}>
-            <select value={ticket.status} disabled={busy} onChange={(e) => changeStatus(e.target.value as TicketStatus)}>
-              {Object.values(TicketStatus).map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABELS[s]}
-                </option>
-              ))}
-            </select>
-            <select value={ticket.priority} disabled={busy} onChange={(e) => changePriority(e.target.value as TicketPriority)}>
-              {Object.values(TicketPriority).map((p) => (
-                <option key={p} value={p}>
-                  {PRIORITY_LABELS[p]}
-                </option>
-              ))}
-            </select>
-            {ticket.assignedToId !== me?.id && (
-              <button type="button" className="button" disabled={busy} onClick={assignToMe}>
-                ჩემზე აღება
-              </button>
-            )}
-          </div>
-
-          <div className="chat-panel">
-            <div className="chat-messages">
-              {ticket.messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`chat-message${message.isInternalNote ? ' chat-message-system' : message.senderId === me?.id ? ' chat-message-mine' : ''}`}
-                >
-                  <strong>
-                    {message.isInternalNote ? '🔒 შიდა შენიშვნა — ' : ''}
-                    {message.fromSupport ? 'Support — ' : ''}
-                    {[message.senderFirstName, message.senderLastName].filter(Boolean).join(' ') || message.senderUsername} (@{message.senderUsername}):{' '}
-                  </strong>
-                  {message.body}
-                </div>
-              ))}
+          <header className="atk-head">
+            <span className="atk-icon">
+              <CategoryIcon category={ticket.category} />
+            </span>
+            <div className="atk-title">
+              <h1>{ticket.subject}</h1>
+              <p>
+                <span>{TICKET_CATEGORY_LABELS[ticket.category]}</span>
+                <span>{`გახსნილია ${formatTicketDate(ticket.createdAt)}`}</span>
+                <span>{ticket.assignedToId ? (ticket.assignedToId === me?.id ? 'შენზეა მინიჭებული' : 'მინიჭებულია') : 'არავისზეა მინიჭებული'}</span>
+              </p>
             </div>
-          </div>
-
-          {savedReplies.length > 0 && (
-            <div className="form-group" style={{ marginTop: 16 }}>
-              <label htmlFor="savedReply">მზა პასუხი</label>
-              <select
-                id="savedReply"
-                className="input"
-                value=""
-                onChange={(e) => {
-                  const reply = savedReplies.find((r) => r.id === e.target.value)
-                  if (reply) setReplyDraft(reply.body)
-                }}
-              >
-                <option value="">— აირჩიეთ —</option>
-                {savedReplies.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.title}
-                  </option>
-                ))}
-              </select>
+            <div className="atk-chips">
+              <em className={`sp-status ${ticket.status}`}>{TICKET_STATUS_LABELS[ticket.status]}</em>
+              <em className={`atk-priority ${ticket.priority}`}>{PRIORITY_LABELS[ticket.priority]}</em>
+            </div>
+            <div className="atk-controls">
+              <label>
+                <span>სტატუსი</span>
+                <select value={ticket.status} disabled={busy} onChange={(e) => changeStatus(e.target.value as TicketStatus)}>
+                  {Object.values(TicketStatus).map((s) => (
+                    <option key={s} value={s}>
+                      {TICKET_STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>პრიორიტეტი</span>
+                <select value={ticket.priority} disabled={busy} onChange={(e) => changePriority(e.target.value as TicketPriority)}>
+                  {Object.values(TicketPriority).map((p) => (
+                    <option key={p} value={p}>
+                      {PRIORITY_LABELS[p]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {ticket.assignedToId !== me?.id && (
+                <button type="button" className="button atk-assign" disabled={busy} onClick={assignToMe}>
+                  ჩემზე აღება
+                </button>
+              )}
+            </div>
+          </header>
+          {error && (
+            <div className="status-text status-error" role="alert">
+              {error}
             </div>
           )}
 
-          <form onSubmit={sendReply} style={{ marginTop: 12 }}>
-            <div className="form-group">
-              <label htmlFor="replyDraft">პასუხი მომხმარებელს</label>
-              <textarea id="replyDraft" className="input" value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} />
-            </div>
-            <button type="submit" className="button glow-on-hover" disabled={busy || !replyDraft.trim()}>
-              პასუხის გაგზავნა
-            </button>
-          </form>
-
-          <form onSubmit={sendNote} style={{ marginTop: 20 }}>
-            <div className="form-group">
-              <label htmlFor="noteDraft">შიდა შენიშვნა (მხოლოდ პერსონალისთვის)</label>
-              <textarea id="noteDraft" className="input" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} />
-            </div>
-            <button type="submit" className="button" disabled={busy || !noteDraft.trim()}>
-              შენიშვნის დამატება
-            </button>
-          </form>
+          {/* The site's message-chat look (owner 2026-10-07): the requester in the header, support
+              replies on the right, internal notes marked. */}
+          <ChatThread
+            title={requester ? displayName(requester) : 'მომხმარებელი'}
+            subtitle={requester ? `@${requester.username}` : undefined}
+            headAvatarUrl={requester?.avatarUrl ?? null}
+            headHref={requester ? `/u/${requester.username}` : undefined}
+            messages={ticket.messages.map((m) => {
+              const name = displayName({ firstName: m.senderFirstName, lastName: m.senderLastName, username: m.senderUsername })
+              return {
+                id: m.id,
+                mine: m.fromSupport,
+                name: m.isInternalNote ? `🔒 შიდა შენიშვნა — ${name}` : m.fromSupport ? `Support — ${name}` : name,
+                avatarUrl: m.senderAvatarUrl,
+                avatarFallback: m.fromSupport ? '/assets/whx-icon-192.png' : undefined,
+                body: m.body,
+                createdAt: m.createdAt,
+                note: m.isInternalNote,
+              }
+            })}
+            draft={draft}
+            onDraft={setDraft}
+            onSend={() => void sendComposer()}
+            composer={composer}
+          />
         </>
       ) : null}
     </AdminLayout>

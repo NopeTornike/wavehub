@@ -32,7 +32,7 @@ describe('production hardening (e2e)', () => {
       const cats = await seller.client.get('/categories');
       const games = await seller.client.get('/games');
       const created = await seller.client.post('/listings', {
-        type: 'item', categoryId: cats.body[0].id, gameId: games.body[0].id, title: 'Upload test item',
+        type: 'item', categoryId: cats.body[0].id, gameId: games.body[0].id, title: `Upload test item ${Math.random().toString(36).slice(2, 8)}`,
         description: 'A draft listing used to test image uploads, long enough for validation.', priceWaveCoin: 10, stockQuantity: 1, isUnique: true,
       });
       return created.body.id;

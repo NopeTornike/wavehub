@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ListingType, TournamentStatus } from '@wavehub/shared-types'
-import type { PublicCoachSummary, PublicListingSummary, PublicTournamentSummary } from '@wavehub/shared-types'
+import type { PublicBanner, PublicCoachSummary, PublicListingSummary, PublicTournamentSummary } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -124,22 +124,16 @@ function typeLabel(listing: PublicListingSummary) {
 
 // Earned labels only (docs/design-mockups/15): the most-booked coach among those shown, a plan
 // badge, top rated, or new.
-function coachBadge(coach: PublicCoachSummary, mostBookedId: string | null) {
+// Only a real distinction gets a pill (client 2026-10-07: a "new coach" pill on every card looked
+// accidental, and "verified" already has its own pill).
+function coachBadge(coach: PublicCoachSummary, mostBookedId: string | null): string | null {
   if (coach.id === mostBookedId) return '🔥 ყველაზე მოთხოვნადი'
   if (coach.profileBadge) return `♛ ${coach.profileBadge}`
   const rating = coach.ratingAvg ? Number(coach.ratingAvg) : null
   if (rating !== null && rating >= 4.5 && coach.ratingCount > 0) return '✪ ტოპ რეიტინგი'
-  if (coach.ratingCount === 0) return '✦ ახალი ქოუჩი'
-  return '✓ გადამოწმებული'
+  return null
 }
 
-function specialtyTags(specialty: string) {
-  return specialty
-    .split(/\s*(?:,|&|\/|\+| and )\s*/i)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .slice(0, 3)
-}
 
 // The ♡ on a featured card: a real favourite toggle (Tornike's 2026-10-03 fix — it used to be a
 // decorative glyph inside the card link). Signed-out clicks go to login via the favourites context.
@@ -382,18 +376,13 @@ export default function Home() {
           <section className="content-section home-marketplace-showcase" aria-labelledby="home-marketplace-title">
             {/* The top hero is a CMS banner when one is published at "home_hero" (owner 2026-10-07:
                 every banner editable from Admin → Banners); the built-in marketplace cover otherwise. */}
-            {hero && hero.linkUrl && !hero.linkUrl.startsWith('/') ? (
-              <a className="home-marketplace-cover" href={hero.linkUrl} target="_blank" rel="noopener noreferrer" aria-label={hero.title}>
-                <img src={hero.imageUrl ?? ''} alt={hero.title} />
-                <span className="mobile-cover-cta">
-                  {hero.buttonLabel || 'ნახვა'} <b aria-hidden="true">↗</b>
-                </span>
-              </a>
+            {hero ? (
+              <HeroBanner banner={hero} />
             ) : (
-              <Link className="home-marketplace-cover" href={hero?.linkUrl || '/marketplace'} aria-label={hero?.title ?? 'Explore the WaveHubX marketplace'}>
-                <img src={hero?.imageUrl ?? '/assets/home-marketplace-cover.png'} alt={hero?.title ?? 'WaveHubX neon gaming marketplace'} />
+              <Link className="home-marketplace-cover" href="/marketplace" aria-label="Explore the WaveHubX marketplace">
+                <img src="/assets/home-marketplace-cover.png" alt="WaveHubX neon gaming marketplace" />
                 <span className="mobile-cover-cta">
-                  {hero ? hero.buttonLabel || 'ნახვა' : 'დაათვალიერე'} <b aria-hidden="true">→</b>
+                  დაათვალიერე <b aria-hidden="true">→</b>
                 </span>
               </Link>
             )}
@@ -539,51 +528,65 @@ export default function Home() {
                   const cover = coach.avatarUrl ?? gameCover(slug)
                   const mostBookedId = coaches.reduce<PublicCoachSummary | null>((best, c) => (c.completedSessions > (best?.completedSessions ?? 0) ? c : best), null)?.id ?? null
                   const rating = coach.ratingAvg ? Number(coach.ratingAvg).toFixed(1) : null
+                  const badge = coachBadge(coach, mostBookedId)
                   return (
-                    <Link key={coach.id} className={`featured-coach${index === coachDot ? ' is-active' : ''}`} href={`/coaching/${coach.id}`} aria-label={`${coach.firstName} ${coach.lastName}`}>
-                      <div
-                        className="featured-coach-photo"
-                        style={cover ? { backgroundImage: `linear-gradient(rgba(76, 13, 119, .2), rgba(10, 1, 20, .36)), url("${cover}")`, backgroundPosition: '15% center' } : undefined}
-                      >
-                        <span>{coachBadge(coach, mostBookedId)}</span>
-                        {coach.online && (
-                          <em className="featured-coach-online">
-                            <i aria-hidden="true"></i>ონლაინ
-                          </em>
-                        )}
-                      </div>
-                      <div className="featured-coach-copy">
-                        <div className="featured-coach-name">
-                          <h4>{coach.firstName}</h4>
-                          <b aria-label="Verified coach">✓</b>
-                          <span>
-                            <i>★</i> {rating ?? '—'}
-                            <small>
-                              ({coach.ratingCount} შეფასება)
-                            </small>
+                    // Design 2026-10-07 ("thirdproblemfix", 1:1): the coach's photo fills the card;
+                    // the badge and "Verified" pills sit on top, name / game / rating / tag / price at
+                    // the bottom over a dark fade.
+                    <Link
+                      key={coach.id}
+                      className={`featured-coach fc-card${index === coachDot ? ' is-active' : ''}${cover ? '' : ' no-photo'}`}
+                      href={`/coaching/${coach.id}`}
+                      aria-label={`${coach.firstName} ${coach.lastName}`}
+                      style={cover ? { backgroundImage: `url("${cover}")` } : undefined}
+                    >
+                      <span className="fc-top">
+                        {badge && <span className="fc-pill">{badge.replace(/^[^\p{L}]+/u, '').replace('ყველაზე მოთხოვნადი', 'პოპულარული')}</span>}
+                        <span className="fc-pill fc-verified">
+                          <b aria-hidden="true">♛</b> ვერიფიცირებული
+                        </span>
+                      </span>
+                      {!cover && (
+                        <span className="fc-initials" aria-hidden="true">
+                          {`${coach.firstName.charAt(0)}${coach.lastName.charAt(0)}`.toUpperCase()}
+                        </span>
+                      )}
+                      {coach.online && (
+                        <em className="fc-online">
+                          <i aria-hidden="true"></i>ონლაინ
+                        </em>
+                      )}
+                      <span className="fc-bottom">
+                        <span className="fc-name-row">
+                          <span className="fc-name">
+                            <strong>{coach.firstName}</strong>
+                            <b className="fc-check" aria-label="ვერიფიცირებული ქოუჩი">✓</b>
                           </span>
-                        </div>
-                        <p>{coach.gameName ?? '—'}</p>
-                        <ul>
-                          {specialtyTags(coach.specialty).map((tag) => (
-                            <li key={tag}>{tag}</li>
-                          ))}
-                        </ul>
-                        <footer>
-                          <strong>
-                            {fromPrice !== null ? (
-                              <>
-                                {fromPrice}₾ <small>-დან</small>
-                              </>
-                            ) : (
-                              <>
-                                {coach.hourlyRateWaveCoin} GEL <small>/ საათი</small>
-                              </>
-                            )}
-                          </strong>
-                          <span>სესიის დაჯავშნა →</span>
-                        </footer>
-                      </div>
+                          {coach.ratingCount > 0 && rating && (
+                            <span className="fc-rating">
+                              <b aria-hidden="true">★</b>
+                              {rating}
+                              <small>{`(${coach.ratingCount} შეფასება)`}</small>
+                            </span>
+                          )}
+                        </span>
+                        {coach.gameName && <span className="fc-game">{coach.gameName}</span>}
+                        <span className="fc-tag">
+                          <span aria-hidden="true">🎓</span>
+                          ქოუჩი
+                        </span>
+                        <span className="fc-price">
+                          {fromPrice !== null ? (
+                            <>
+                              {fromPrice}₾ <small>-დან</small>
+                            </>
+                          ) : (
+                            <>
+                              {coach.hourlyRateWaveCoin} GEL <small>/ საათი</small>
+                            </>
+                          )}
+                        </span>
+                      </span>
                     </Link>
                   )
                 })
@@ -961,3 +964,52 @@ export default function Home() {
     </Layout>
   )
 }
+
+// The home top banner from the CMS (owner 2026-10-07): the photo alone unless text was entered —
+// then a big title, the smaller subtitle and (only when button text is set) the button, on the
+// left like the previous banner. Without a button the whole banner is the link.
+function HeroBanner({ banner }: { banner: PublicBanner }) {
+  const title = banner.title?.trim()
+  const subtitle = banner.subtitle?.trim()
+  const link = banner.linkUrl
+  const external = !!link && !link.startsWith('/')
+  const button = link && banner.buttonLabel?.trim()
+  const copy =
+    title || subtitle || button ? (
+      <span className="hero-banner-copy">
+        {title && <strong>{title}</strong>}
+        {subtitle && <small>{subtitle}</small>}
+        {button &&
+          (external ? (
+            <a className="hero-banner-cta" href={link} target="_blank" rel="noopener noreferrer">
+              {button} <b aria-hidden="true">↗</b>
+            </a>
+          ) : (
+            <Link className="hero-banner-cta" href={link}>
+              {button} <b aria-hidden="true">→</b>
+            </Link>
+          ))}
+      </span>
+    ) : null
+  const image = <img src={banner.imageUrl ?? ''} alt={title || 'WaveHubX'} />
+  if (link && !button) {
+    return external ? (
+      <a className="home-marketplace-cover hero-banner" href={link} target="_blank" rel="noopener noreferrer">
+        {image}
+        {copy}
+      </a>
+    ) : (
+      <Link className="home-marketplace-cover hero-banner" href={link}>
+        {image}
+        {copy}
+      </Link>
+    )
+  }
+  return (
+    <div className="home-marketplace-cover hero-banner">
+      {image}
+      {copy}
+    </div>
+  )
+}
+

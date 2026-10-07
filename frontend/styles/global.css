@@ -21594,3 +21594,221 @@ body.modal-open { overflow: hidden; }
 .admin-key-inventory .admin-key-list li { grid-template-columns: auto minmax(0, 1fr) auto; }
 .admin-key-inventory .admin-key-list li small { white-space: normal; }
 .aki-upload .button { min-width: 180px; }
+
+/* Phone search (home page): the box is collapsed to a 40px icon there, and tapping it did nothing
+   (client 2026-10-07). The invisible button over the icon opens a full-width field over the header. */
+.search-open-btn, .search-close-btn { display: none; }
+@media (max-width: 620px) {
+  .home-page .search-box { position: relative; }
+  .home-page .search-box:not(.is-open) .search-open-btn { display: block; position: absolute; inset: 0; z-index: 2; border: 0; background: transparent; cursor: pointer; }
+  .home-page .search-box.is-open { position: fixed; z-index: 80; top: 12px; left: 10px; right: 10px; width: auto; height: 48px; display: flex; align-items: center; border-color: rgba(255, 79, 171, .55); background: #0b0a16; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
+  .home-page .search-box.is-open .search-icon { flex: 0 0 auto; }
+  .home-page .search-box.is-open input { display: block; flex: 1; min-width: 0; height: 100%; padding-right: 8px; font-size: 16px; }
+  .home-page .search-box.is-open .search-close-btn { display: block; order: 3; flex: 0 0 auto; width: 40px; height: 40px; border: 0; color: #c9c4d6; background: transparent; font-size: 24px; cursor: pointer; }
+}
+
+/* Home top banner from the CMS (owner 2026-10-07): the photo alone, or — when text was entered —
+   big title, smaller subtitle and the button on the left (no button without button text). */
+.hero-banner-copy { position: absolute; z-index: 2; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 8px; width: min(60%, 520px); padding: 0 32px; background: linear-gradient(90deg, rgba(5, 4, 15, .8), rgba(5, 4, 15, .45) 70%, transparent); color: #fff; }
+.hero-banner-copy strong { font-size: clamp(22px, 3.2vw, 40px); font-weight: 900; line-height: 1.05; text-shadow: 0 3px 14px rgba(0, 0, 0, .5); }
+.hero-banner-copy small { max-width: 40ch; color: #e7e2ef; text-shadow: 0 1px 8px rgba(0, 0, 0, .85); font-size: clamp(13px, 1.4vw, 17px); line-height: 1.4; }
+.hero-banner-cta { margin-top: 6px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255, 140, 200, .7); border-radius: 10px; color: #fff; background: linear-gradient(90deg, #ff2f8f, #7b3df5); padding: 10px 18px; font-weight: 800; text-decoration: none; box-shadow: 0 8px 22px rgba(255, 47, 143, .3); }
+.hero-banner-cta b { font-weight: 400; }
+@media (max-width: 620px) {
+  .hero-banner-copy { width: 78%; gap: 5px; padding: 0 14px; background: linear-gradient(90deg, rgba(5, 4, 15, .9), rgba(5, 4, 15, .7) 65%, transparent); }
+  .hero-banner-copy strong { font-size: 19px; }
+  .hero-banner-copy small { font-size: 11.5px; }
+  .hero-banner-cta { margin-top: 4px; padding: 7px 12px; font-size: 12px; border-radius: 8px; }
+}
+
+.home-banner { position: relative; }
+.home-banner-link { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.home-banner-copy { position: relative; z-index: 2; }
+
+/* ---------- Marketplace product card (client design 2026-10-07, "secondproblemfix", 1:1) ---------- */
+.marketplace-card.pc-card { --pc-rim: rgba(110, 140, 220, .45); --pc-rim-glow: rgba(90, 120, 220, .16); display: flex; flex-direction: column; gap: 0; min-height: 0; padding: 0; overflow: hidden; border: 1px solid var(--pc-rim); border-radius: 18px; background: linear-gradient(180deg, #0b0f1c, #070912); box-shadow: 0 0 0 1px rgba(255, 255, 255, .02), 0 0 26px var(--pc-rim-glow); transition: transform .18s ease, box-shadow .18s ease; }
+.marketplace-card.pc-card:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(255, 255, 255, .04), 0 0 34px var(--pc-rim-glow); }
+.marketplace-card.pc-card.pc-rarity-premium { --pc-rim: rgba(226, 178, 64, .75); --pc-rim-glow: rgba(226, 178, 64, .2); }
+.marketplace-card.pc-card.pc-rarity-ranked { --pc-rim: rgba(84, 156, 255, .7); --pc-rim-glow: rgba(84, 156, 255, .2); }
+.marketplace-card.pc-card.pc-rarity-og { --pc-rim: rgba(255, 92, 92, .7); --pc-rim-glow: rgba(255, 92, 92, .18); }
+.marketplace-card.pc-card.pc-rarity-rare { --pc-rim: rgba(176, 102, 255, .75); --pc-rim-glow: rgba(176, 102, 255, .2); }
+.marketplace-card.pc-card.pc-rarity-full-collection { --pc-rim: rgba(255, 79, 171, .75); --pc-rim-glow: rgba(255, 79, 171, .2); }
+.marketplace-card.pc-card.pc-service, .marketplace-card.pc-card.pc-key { --pc-rim: rgba(255, 79, 171, .5); --pc-rim-glow: rgba(255, 79, 171, .14); }
+.marketplace-card.pc-card .pc-cover { position: relative; aspect-ratio: 16 / 9.4; background: #11162a center / cover no-repeat; cursor: pointer; }
+.marketplace-card.pc-card .pc-cover.is-empty::after { content: attr(data-game); position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255, 255, 255, .25); font-size: 42px; font-weight: 900; }
+.marketplace-card.pc-card .pc-badges { position: absolute; z-index: 1; top: 14px; left: 14px; right: 74px; display: flex; flex-wrap: wrap; gap: 8px; }
+.marketplace-card.pc-card .pc-badge { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; overflow: hidden; border-radius: 12px; padding: 7px 12px; font-size: 13px; font-weight: 800; line-height: 1.1; white-space: nowrap; text-overflow: ellipsis; backdrop-filter: blur(6px); }
+.marketplace-card.pc-card .pc-game { border: 1.5px solid rgba(96, 165, 250, .7); color: #fff; background: rgba(6, 10, 22, .85); text-transform: uppercase; letter-spacing: .02em; }
+.marketplace-card.pc-card .pc-kind { border: 1.5px solid rgba(214, 211, 230, .45); color: #e8e4f2; background: rgba(6, 10, 22, .78); }
+.marketplace-card.pc-card.pc-rarity-premium .pc-kind { border-color: rgba(240, 190, 70, .85); color: #f5d27a; background: rgba(40, 28, 6, .78); }
+.marketplace-card.pc-card.pc-rarity-premium .pc-kind span { color: #f5c044; font-size: 15px; }
+.marketplace-card.pc-card.pc-rarity-ranked .pc-kind { border-color: rgba(84, 156, 255, .8); color: #b9d6ff; }
+.marketplace-card.pc-card.pc-rarity-rare .pc-kind { border-color: rgba(176, 102, 255, .8); color: #dcc4ff; }
+.marketplace-card.pc-card .pc-heart { position: absolute; z-index: 1; top: 12px; right: 12px; width: 52px; height: 52px; border: 0; border-radius: 50%; background: rgba(6, 8, 18, .72) url('/assets/ui/heart-circle.png') center / 100% no-repeat; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.marketplace-card.pc-card .pc-heart:hover { transform: scale(1.06); }
+.marketplace-card.pc-card .pc-heart.saved { box-shadow: 0 0 0 3px rgba(255, 47, 143, .35), 0 0 18px rgba(255, 47, 143, .55); background-color: rgba(255, 47, 143, .35); }
+.marketplace-card.pc-card .pc-body { display: flex; flex-direction: column; gap: 12px; padding: 18px 18px 18px; }
+.marketplace-card.pc-card .pc-title { margin: 0; font-size: 22px; font-weight: 800; line-height: 1.2; }
+.marketplace-card.pc-card .pc-title a { color: #fff; text-decoration: none; overflow-wrap: anywhere; }
+.marketplace-card.pc-card .pc-level { display: inline-flex; align-items: center; gap: 8px; margin-top: -6px; color: #cfcbe0; font-size: 15px; font-weight: 600; }
+.marketplace-card.pc-card .pc-level img { width: 18px; height: 18px; filter: brightness(0) saturate(100%) invert(76%) sepia(18%) saturate(900%) hue-rotate(205deg); }
+.marketplace-card.pc-card .pc-seller { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.marketplace-card.pc-card .pc-seller-person { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; padding: 0; color: inherit; background: none; font: inherit; text-align: left; cursor: pointer; }
+.marketplace-card.pc-card .pc-avatar { flex: 0 0 auto; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #e5157f, #6c2bd9) center / cover no-repeat; box-shadow: 0 0 0 2px #8b5cf6, 0 0 12px rgba(139, 92, 246, .45); font-size: 16px; font-weight: 800; }
+.marketplace-card.pc-card .pc-seller-copy { display: grid; gap: 2px; min-width: 0; }
+.marketplace-card.pc-card .pc-seller-copy strong { overflow: hidden; color: #fff; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.marketplace-card.pc-card .pc-seller-copy small { overflow: hidden; color: #b8a8f5; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.marketplace-card.pc-card .pc-seller-person:hover strong { color: #ff8cc4; }
+.marketplace-card.pc-card .pc-rating { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, .14); color: #f5c044; font-size: 13.5px; font-weight: 700; }
+.marketplace-card.pc-card .pc-rating b { font-size: 18px; }
+.marketplace-card.pc-card .pc-delivery { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid rgba(240, 190, 70, .75); border-radius: 12px; color: #fff; background: rgba(40, 28, 6, .35); padding: 8px 14px; font-size: 14.5px; font-weight: 700; }
+.marketplace-card.pc-card .pc-delivery b { color: #f5c044; font-size: 17px; }
+.marketplace-card.pc-card .pc-price-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.marketplace-card.pc-card .pc-price { color: #ff2f8f; font-size: 34px; font-weight: 900; line-height: 1; letter-spacing: -.01em; }
+.marketplace-card.pc-card .pc-price small { font-size: 14px; font-weight: 700; }
+.marketplace-card.pc-card .pc-social { display: inline-flex; align-items: center; gap: 12px; color: #fff; font-size: 16px; font-weight: 700; }
+.marketplace-card.pc-card .pc-social > span { display: inline-flex; align-items: center; gap: 7px; }
+.marketplace-card.pc-card .pc-social img { width: 22px; height: 22px; object-fit: contain; }
+.marketplace-card.pc-card .pc-social > span:first-child img { filter: brightness(0) saturate(100%) invert(80%) sepia(10%) saturate(700%) hue-rotate(205deg); }
+.marketplace-card.pc-card .pc-likes img { filter: brightness(0) saturate(100%) invert(38%) sepia(94%) saturate(4300%) hue-rotate(310deg); }
+.marketplace-card.pc-card .pc-social > i { width: 1px; height: 22px; background: rgba(255, 255, 255, .2); }
+.marketplace-card.pc-card .pc-actions { display: flex; gap: 12px; }
+.marketplace-card.pc-card .pc-cart { flex: 0 0 64px; height: 56px; display: grid; place-items: center; border: 1.5px solid rgba(255, 47, 143, .75); border-radius: 12px; background: rgba(40, 6, 26, .5); cursor: pointer; }
+.marketplace-card.pc-card .pc-cart img { width: 28px; height: 28px; }
+.marketplace-card.pc-card .pc-cart.in-cart { background: rgba(255, 47, 143, .3); box-shadow: 0 0 14px rgba(255, 47, 143, .35); }
+.marketplace-card.pc-card .pc-details { flex: 1; min-height: 56px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 1.5px solid rgba(255, 79, 200, .85); border-radius: 12px; color: #fff; background: linear-gradient(90deg, #8d0f63, #6d18b7); box-shadow: 0 0 18px rgba(214, 41, 180, .35), inset 0 0 14px rgba(255, 79, 200, .2); font-size: 16px; font-weight: 800; text-decoration: none; }
+.marketplace-card.pc-card .pc-details span { font-size: 20px; font-weight: 400; }
+.marketplace-card.pc-card .pc-details:hover { filter: brightness(1.12); }
+@media (max-width: 760px) {
+  .marketplace-card.pc-card .pc-title { font-size: 20px; }
+  .marketplace-card.pc-card .pc-price { font-size: 30px; }
+  .marketplace-card.pc-card .pc-seller { flex-wrap: wrap; row-gap: 8px; }
+}
+@media (max-width: 420px) {
+  .marketplace-card.pc-card .pc-body { padding: 16px 14px; gap: 11px; }
+  .marketplace-card.pc-card .pc-avatar { width: 44px; height: 44px; }
+  .marketplace-card.pc-card .pc-seller-copy strong { font-size: 15px; }
+  .marketplace-card.pc-card .pc-seller-copy small { font-size: 13px; }
+  .marketplace-card.pc-card .pc-rating { font-size: 12.5px; padding-left: 10px; }
+  .marketplace-card.pc-card .pc-delivery { font-size: 13.5px; }
+  .marketplace-card.pc-card .pc-cart { flex-basis: 58px; height: 52px; }
+  .marketplace-card.pc-card .pc-details { min-height: 52px; font-size: 15px; }
+}
+
+/* ---------- Home coach card (client design 2026-10-07, "thirdproblemfix", 1:1) ----------
+   The photo fills the card; pills on top, the facts at the bottom over a dark fade; neon frame.
+   The older .featured-coach-* rules (photo strip + copy block) no longer apply to this markup. */
+.featured-coach.fc-card { position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 340px; overflow: hidden; padding: 0; border: 1.5px solid rgba(255, 47, 154, .45); border-radius: 22px; color: #fff; background: #0c0a18 center top / cover no-repeat; text-decoration: none; box-shadow: 0 0 22px rgba(255, 47, 154, .14); }
+.featured-coach.fc-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 6, 22, .15) 0%, rgba(10, 6, 22, 0) 30%, rgba(10, 6, 22, .55) 58%, rgba(8, 6, 18, .96) 100%); pointer-events: none; }
+.featured-coach.fc-card.no-photo { background: radial-gradient(circle at 50% 38%, rgba(168, 85, 247, .45), rgba(255, 47, 154, .12) 45%, #0c0a18 75%); }
+/* No photo and no game art: the coach's initials stand in for the photo (no stock portrait — rule #6). */
+.fc-initials { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%); width: 84px; height: 84px; display: grid; place-items: center; border: 2px solid rgba(255, 47, 154, .6); border-radius: 50%; color: #fff; background: rgba(40, 14, 70, .75); font-size: 30px; font-weight: 900; box-shadow: 0 0 24px rgba(255, 47, 154, .35); }
+.fc-top { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px; padding: 12px 12px 0; }
+.fc-pill { display: inline-flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 6px; max-width: 100%; overflow: hidden; border: 1.5px solid rgba(168, 85, 247, .85); border-radius: 999px; color: #fff; background: rgba(40, 14, 70, .72); padding: 5px 11px; font-size: 12px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; backdrop-filter: blur(6px); box-shadow: 0 0 12px rgba(168, 85, 247, .35); }
+.fc-verified { flex: 0 0 auto; max-width: none; margin-left: auto; border-color: rgba(168, 85, 247, .9); background: rgba(60, 20, 110, .75); }
+.fc-verified b { color: #d8b4fe; font-size: 13px; }
+.fc-online { position: absolute; z-index: 1; top: 50px; right: 12px; display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; color: #e6fff2; background: rgba(6, 20, 14, .7); padding: 3px 9px; font-size: 11px; font-style: normal; font-weight: 700; }
+.fc-online i { width: 7px; height: 7px; border-radius: 50%; background: #2ee59d; box-shadow: 0 0 8px #2ee59d; }
+.fc-bottom { position: relative; z-index: 1; display: grid; gap: 6px; padding: 0 16px 16px; }
+.fc-name-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 4px 8px; }
+.fc-name { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.fc-name strong { overflow: hidden; font-size: 28px; font-weight: 900; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 10px rgba(0, 0, 0, .6); }
+.fc-check { flex: 0 0 auto; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #3b82f6; font-size: 12px; box-shadow: 0 0 10px rgba(59, 130, 246, .6); }
+.fc-rating { margin-left: auto; display: grid; justify-items: end; color: #fff; font-size: 14px; font-weight: 800; line-height: 1.15; }
+.fc-rating b { color: #f5c044; font-size: 20px; }
+.fc-rating small { color: #c9c4d6; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.fc-game { color: #d6d1e2; font-size: 16px; font-weight: 600; }
+.fc-tag { justify-self: start; display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid rgba(168, 85, 247, .7); border-radius: 10px; color: #fff; background: rgba(30, 12, 52, .7); padding: 5px 12px; font-size: 14px; font-weight: 700; }
+.fc-tag span { font-size: 14px; }
+.fc-price { color: #ff2f9a; font-size: 28px; font-weight: 900; line-height: 1.1; }
+.fc-price small { color: #d6d1e2; font-size: 15px; font-weight: 600; }
+@media (min-width: 561px) { .fc-pill { gap: 4px; padding: 4px 8px; font-size: 10.5px; } .fc-name strong { font-size: 24px; } }
+.featured-coach.fc-card.is-active { border-color: #ff2f9a; box-shadow: 0 0 0 1px rgba(255, 47, 154, .5), 0 0 30px rgba(255, 47, 154, .45), inset 0 0 22px rgba(255, 47, 154, .12); }
+@media (max-width: 560px) {
+  .home-page .featured-coaches { padding: 4px calc((100% - min(62vw, 260px)) / 2) 6px; gap: 12px; scroll-padding-inline: calc((100% - min(62vw, 260px)) / 2); }
+  .home-page .featured-coach.fc-card { flex: 0 0 min(62vw, 260px); min-width: min(62vw, 260px); min-height: min(64vw, 270px); display: flex; border-radius: 20px; background-color: #0c0a18; background-size: cover; background-position: center top; }
+  .home-page .featured-coach.fc-card.is-active { border-color: #ff2f9a; }
+  .fc-top { gap: 4px; padding: 10px 8px 0; }
+  .fc-pill { gap: 4px; padding: 4px 8px; font-size: 10px; }
+  .fc-initials { width: 64px; height: 64px; font-size: 23px; }
+  .fc-bottom { gap: 5px; padding: 0 12px 12px; }
+  .fc-name strong { font-size: 22px; }
+  .fc-check { width: 18px; height: 18px; font-size: 10px; }
+  .fc-game { font-size: 13px; }
+  .fc-tag { padding: 4px 9px; font-size: 12px; }
+  .fc-price { font-size: 22px; }
+  .fc-price small { font-size: 12.5px; }
+  .fc-rating { font-size: 12px; }
+  .fc-rating b { font-size: 16px; }
+  .fc-rating small { font-size: 10px; }
+}
+/* Profile: the latest reviews as full review cards, full width under the rating breakdown. */
+.up-review-list { grid-column: 1 / -1; margin-top: 14px; }
+
+/* Support tickets in the site's message-chat look (components/ChatThread, owner 2026-10-07). On the
+   messages page the shell frames the thread; elsewhere it carries its own card. */
+.chat-thread { display: grid; grid-template-rows: auto minmax(260px, auto) auto auto; overflow: hidden; border: 1px solid rgba(139, 155, 190, .17); border-radius: 16px; background: linear-gradient(180deg, rgba(14, 12, 28, .96), rgba(8, 8, 18, .98)); }
+.chat-thread .direct-message-history { max-height: 62vh; overflow-y: auto; }
+.chat-thread > header { padding: 14px 16px; }
+.chat-head-logo { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px rgba(255, 79, 171, .75), 0 0 14px rgba(229, 21, 127, .35); }
+.chat-logo-avatar { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1.5px rgba(255, 79, 171, .6); }
+.direct-message-bubble.chat-note { border: 1px dashed rgba(245, 192, 68, .65); background: rgba(245, 192, 68, .09); }
+.direct-message-bubble.chat-note .direct-message-meta strong { color: #f5c044; }
+.chat-thread .sp-error, .chat-thread .sp-empty { margin: 0; padding: 0 16px 14px; }
+
+/* Messages: the WaveHub team block for coaches / sellers / staff (owner 2026-10-07). */
+/* Also a direct div child of .direct-message-contacts — undo that list's phone carousel rules. */
+.direct-message-contacts > .dm-team { display: grid; grid-auto-flow: row; grid-auto-columns: auto; gap: 8px; overflow: visible; padding: 4px 14px 12px; border-bottom: 1px solid rgba(139, 155, 190, .14); }
+.dm-team > div::-webkit-scrollbar { display: none; }
+.dm-team > small { color: #b59cff; font-size: 11.5px; font-weight: 700; }
+.dm-team > div { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+.dm-team button { flex: 0 0 auto; display: grid; justify-items: center; gap: 4px; width: 68px; border: 0; padding: 4px 0; color: #e7e2ef; background: none; font: inherit; cursor: pointer; }
+.dm-team button span { max-width: 68px; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.dm-team button:disabled { opacity: .5; }
+/* Quick seller profile (components/SellerPreview): keep the rank emblem inside its column. */
+.seller-profile-modal .seller-rank-emblem { width: 64px; height: 70px; overflow: hidden; }
+@media (max-width: 700px) { .seller-profile-modal .seller-rank-card { grid-template-columns: 56px 1fr; } .seller-profile-modal .seller-rank-emblem { width: 52px; height: 58px; } }
+
+/* Admin → Support ticket (owner 2026-10-07: "too basic"). A header card (category icon, subject,
+   facts, status / priority chips, controls) and the chat with one staff composer that switches
+   between a user-visible reply and a staff-only internal note. */
+.adm-main .atk-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px 16px; margin-bottom: 16px; border: 1px solid rgba(168, 85, 247, .28); border-radius: 18px; background: linear-gradient(135deg, rgba(60, 20, 110, .35), rgba(14, 10, 30, .9) 60%); padding: 18px 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, .25); }
+.adm-main .atk-icon { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid rgba(255, 47, 154, .45); border-radius: 14px; background: rgba(255, 47, 154, .1); }
+.adm-main .atk-icon svg { width: 24px; height: 24px; fill: none; stroke: #ff5fae; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.adm-main .atk-title { min-width: 0; }
+.adm-main .atk-title h1 { margin: 0 0 6px; overflow-wrap: anywhere; color: #fff; font-size: 21px; font-weight: 800; line-height: 1.25; }
+.adm-main .atk-title p { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; color: #a9a3bd; font-size: 12.5px; }
+.adm-main .atk-title p span + span::before { content: '•'; margin-right: 14px; color: #5d5675; }
+.adm-main .atk-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.adm-main .atk-priority { border-radius: 6px; background: rgba(255, 255, 255, .08); color: #c9c4d6; padding: 4px 10px; font-size: 12px; font-style: normal; font-weight: 800; white-space: nowrap; }
+.adm-main .atk-priority.medium { background: rgba(80, 140, 255, .16); color: #8fb6ff; }
+.adm-main .atk-priority.high { background: rgba(255, 150, 40, .16); color: #ffb35c; }
+.adm-main .atk-priority.urgent { background: rgba(255, 60, 90, .18); color: #ff6b85; }
+.adm-main .atk-controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; border-top: 1px solid rgba(255, 255, 255, .07); padding-top: 14px; }
+.adm-main .atk-controls label { display: grid; gap: 5px; color: #8f88a6; font-size: 11.5px; font-weight: 700; }
+.adm-main .atk-controls select { min-width: 160px; height: 38px; border: 1px solid rgba(168, 85, 247, .35); border-radius: 10px; color: #fff; background: #120d24; padding: 0 12px; font: inherit; font-size: 13.5px; }
+.adm-main .atk-controls .button.atk-assign { flex: 0 0 auto; width: auto; height: 38px; margin-left: auto; border: 1px solid rgba(255, 47, 154, .55); border-radius: 10px; color: #fff; background: linear-gradient(90deg, rgba(255, 47, 143, .85), rgba(123, 61, 245, .85)); padding: 0 16px; font-weight: 800; }
+.adm-main .chat-thread { margin-top: 0; }
+.atk-composer { display: grid; gap: 8px; border-top: 1px solid rgba(255, 255, 255, .08); padding: 12px 14px 14px; }
+.atk-composer-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.atk-mode { display: inline-flex; gap: 4px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 12px; background: rgba(255, 255, 255, .03); padding: 3px; }
+.atk-mode button { border: 0; border-radius: 9px; color: #a9a3bd; background: none; padding: 7px 12px; font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+.atk-mode button.active { color: #fff; background: linear-gradient(90deg, #ff2f8f, #7b3df5); box-shadow: 0 4px 14px rgba(255, 47, 143, .3); }
+.atk-composer.is-note .atk-mode button.active { color: #1b1300; background: linear-gradient(90deg, #ffd166, #f5a524); box-shadow: 0 4px 14px rgba(245, 165, 36, .3); }
+.atk-saved { height: 34px; max-width: 220px; border: 1px solid rgba(168, 85, 247, .35); border-radius: 10px; color: #e9e4f5; background: #120d24; padding: 0 10px; font: inherit; font-size: 12.5px; }
+.atk-note-hint { margin: 0; color: #f5c56b; font-size: 12px; }
+.atk-composer .atk-form { margin: 0; padding: 0; border: 0; }
+.atk-composer.is-note .atk-form textarea { border-color: rgba(245, 165, 36, .55); background: rgba(245, 165, 36, .06); }
+@media (max-width: 700px) {
+  .adm-main .atk-head { grid-template-columns: auto minmax(0, 1fr); padding: 14px; }
+  .adm-main .atk-chips { grid-column: 1 / -1; justify-content: flex-start; }
+  .adm-main .atk-title h1 { font-size: 17px; }
+  .adm-main .atk-controls select { min-width: 0; width: 100%; }
+  .adm-main .atk-controls label { flex: 1 1 140px; }
+  .adm-main .atk-controls .button.atk-assign { width: 100%; margin-left: 0; }
+  .atk-mode { width: 100%; }
+  .atk-mode button { flex: 1; }
+  .atk-saved { max-width: none; width: 100%; }
+}
+/* A WaveHubX team member in direct messages (their username isn't sent to non-staff). */
+.dm-handle.dm-staff, .dm-head-person small.dm-staff { color: #ff6fb5; font-style: normal; font-weight: 800; }

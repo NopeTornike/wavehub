@@ -55,6 +55,7 @@ import type {
   BannerPlacement,
   AdminBanner,
   PublicSessionDispute,
+  PublicStaffContact,
   AdminSessionDisputeSummary,
   SessionDisputeResolution,
   ReportTargetType,
@@ -204,6 +205,7 @@ const KNOWN_MESSAGES: Record<string, string> = {
   "You can't buy your own listing": 'საკუთარი განცხადების ყიდვა შეუძლებელია.',
   'A listing can have at most 6 images': 'განცხადებას მაქსიმუმ 6 სურათი შეიძლება ჰქონდეს.',
   'item listings require priceWaveCoin': 'მიუთითეთ ფასი.',
+  'You just created this listing — open it from My Listings instead of creating it again': 'ეს განცხადება ახლახან შექმენი — გახსენი „ჩემი განცხადებებიდან“, ხელახლა შექმნა არ არის საჭირო.',
   'Insufficient WaveCoin balance for this purchase': 'ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
   'Insufficient WaveCoin balance for this session': 'ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
   'This item is out of stock': 'ეს ნივთი ამოიწურა.',
@@ -671,6 +673,9 @@ export const api = {
 
   listDirectConversations: () => request<PublicConversationSummary[]>('/direct-messages'),
 
+  // The WaveHub team a coach / seller / staff member can write to (empty for everyone else).
+  listStaffContacts: () => request<PublicStaffContact[]>('/direct-messages/staff'),
+
   getUnreadDirectMessageCount: () => request<{ count: number }>('/direct-messages/unread-count'),
 
   listDirectMessages: (conversationId: string) => request<PublicMessage[]>(`/direct-messages/${conversationId}/messages`),
@@ -746,6 +751,9 @@ export const api = {
   getGameListingCounts: () => request<GameListingCount[]>('/stats/games'),
 
   getMyWaveRank: () => request<WaveRank>('/me/wave-rank'),
+
+  // username → Wave rank tier name for sellers with live listings (marketplace cards).
+  getSellerTiers: () => request<Record<string, string>>('/stats/seller-tiers'),
 
   getSellerRanks: () => request<SellerRanks>('/stats/seller-ranks'),
 

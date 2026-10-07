@@ -11,7 +11,7 @@ import ReportButton from '../../components/ReportButton'
 import ImageLightbox from '../../components/ImageLightbox'
 import { BadgeKey, badgeIcon } from '@wavehub/shared-types'
 import { kaDate } from '../../lib/dates'
-import Avatar, { displayName } from '../../components/Avatar'
+import ReviewCard from '../../components/ReviewCard'
 
 // docs/design-mockups/12-public-profile.jpg: hero (photo with real online dot, name, @handle,
 // WaveHubX ID with copy, role, location, join date, tagline, Message / Follow), the Wave Rank panel,
@@ -200,6 +200,24 @@ export default function PublicProfile() {
                   <button type="button" className={`up-btn${following ? ' on' : ''}`} aria-pressed={following} onClick={() => void toggleFollow()}>
                     {following ? 'გამოწერილია ✓' : '+ გამოწერა'}
                   </button>
+                  {me?.adminRole && (
+                    // Staff can open a chat with anyone (owner 2026-10-07).
+                    <button
+                      type="button"
+                      className="up-btn"
+                      onClick={async () => {
+                        try {
+                          const conversation = await api.startDirectConversation(p.userId)
+                          void router.push(`/messages?conversation=${conversation.id}`)
+                        } catch {
+                          // The backend explains (e.g. unverified email) via the messages page.
+                          void router.push('/messages')
+                        }
+                      }}
+                    >
+                      მიწერა
+                    </button>
+                  )}
                   <ReportButton targetType="user" targetId={p.userId} className="up-btn" />
                 </>
               )}
@@ -384,24 +402,8 @@ export default function PublicProfile() {
                     )
                   })}
                 </ul>
-                {p.reviews.latest[0] && (
-                  <article className="up-review">
-                    <header>
-                      {/* The reviewer by photo + full name (client feedback #9), linking to their profile. */}
-                      <Link className="up-review-author" href={`/u/${encodeURIComponent(p.reviews.latest[0].buyerUsername)}`}>
-                        <Avatar
-                          name={displayName({ firstName: p.reviews.latest[0].buyerFirstName, lastName: p.reviews.latest[0].buyerLastName, username: p.reviews.latest[0].buyerUsername })}
-                          src={p.reviews.latest[0].buyerAvatarUrl}
-                          size={40}
-                        />
-                        <strong>{displayName({ firstName: p.reviews.latest[0].buyerFirstName, lastName: p.reviews.latest[0].buyerLastName, username: p.reviews.latest[0].buyerUsername })}</strong>
-                      </Link>
-                      <small>{kaDate(p.reviews.latest[0].createdAt)}</small>
-                    </header>
-                    <span className="gold">{'★'.repeat(p.reviews.latest[0].rating)}</span>
-                    <p>{p.reviews.latest[0].body || 'კომენტარის გარეშე'}</p>
-                  </article>
-                )}
+                {/* The latest reviews exactly like the listing page's (design 2026-10-07). */}
+                {p.reviews.cards.length > 0 && <ProfileReviews cards={p.reviews.cards} viewerId={me?.id ?? null} ownerId={p.userId} />}
               </div>
             )}
           </section>
@@ -416,3 +418,24 @@ export default function PublicProfile() {
     </Layout>
   )
 }
+
+function ProfileReviews({ cards, viewerId, ownerId }: { cards: PublicUserProfile['reviews']['cards']; viewerId: string | null; ownerId: string }) {
+  const [items, setItems] = useState(cards.map((c) => ({ ...c, liked: false, replyLiked: false })))
+  return (
+    <div className="rv-list up-review-list">
+      {items.map((r) => (
+        <ReviewCard
+          key={r.id}
+          review={r}
+          viewerId={viewerId}
+          isSeller={viewerId === ownerId && r.kind === 'product'}
+          liked={r.liked}
+          replyLiked={r.replyLiked}
+          readOnly={r.kind === 'coach'}
+          onChange={(next) => setItems((list) => list.map((x) => (x.id === r.id ? { ...x, ...next } : x)))}
+        />
+      ))}
+    </div>
+  )
+}
+

@@ -3,7 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import type { PublicConversationSummary, PublicMessage } from '@wavehub/shared-types'
+import type { PublicConversationSummary, PublicMessage, PublicStaffContact } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import Avatar, { displayName } from '../../components/Avatar'
 import { api, errorMessage } from '../../lib/api'
@@ -63,6 +63,28 @@ export default function Messages() {
     if (!router.isReady || !meId) return
     void loadConversations()
   }, [router.isReady, meId, loadConversations])
+
+  // The team block: staff a coach / seller / staff member may write to.
+  const [team, setTeam] = useState<PublicStaffContact[]>([])
+  const [startingTeam, setStartingTeam] = useState<string | null>(null)
+  useEffect(() => {
+    if (!meId) return
+    api
+      .listStaffContacts()
+      .then(setTeam)
+      .catch(() => setTeam([]))
+  }, [meId])
+  const startTeamChat = async (userId: string) => {
+    setStartingTeam(userId)
+    try {
+      const conversation = await api.startDirectConversation(userId)
+      await loadConversations(conversation.id)
+    } catch (err) {
+      setError(errorMessage(err, 'საუბრის დაწყება ვერ მოხერხდა.'))
+    } finally {
+      setStartingTeam(null)
+    }
+  }
 
   useEffect(() => {
     if (!selectedId) return
@@ -164,7 +186,7 @@ export default function Messages() {
               <p className="section-kicker">თქვენი საუბრები</p>
               <h1 id="messagesTitle">შეტყობინებები</h1>
               <p className="messages-hero-description">
-                მიმოწერა მხოლოდ იმ მომხმარებლებთან, ვისთანაც უკვე გქონდათ შეკვეთა ან სესია.
+                მიმოწერა იმ მომხმარებლებთან, ვისთანაც უკვე გქონდათ შეკვეთა ან სესია, და WaveHubX-ის გუნდთან.
               </p>
             </div>
           </div>
@@ -186,6 +208,20 @@ export default function Messages() {
               <p className="section-kicker">შემოსული</p>
               <h2>საუბრები</h2>
             </header>
+            {team.length > 0 && (
+              // Coaches, sellers and staff can write to the WaveHub team (owner 2026-10-07).
+              <div className="dm-team" aria-label="WaveHubX გუნდი">
+                <small>WaveHubX გუნდი — მიწერე</small>
+                <div>
+                  {team.map((t) => (
+                    <button key={t.id} type="button" disabled={startingTeam === t.id} onClick={() => void startTeamChat(t.id)} title={displayName({ ...t, username: '' })}>
+                      <Avatar name={displayName({ ...t, username: '' })} src={t.avatarUrl} size={40} />
+                      <span>{displayName({ ...t, username: '' })}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               {loadingList ? (
                 <p className="direct-message-empty">იტვირთება…</p>
@@ -209,7 +245,7 @@ export default function Messages() {
                     <Avatar name={displayName(c.otherUser)} src={c.otherUser.avatarUrl} size={44} />
                     <span>
                       <strong>{displayName(c.otherUser)}</strong>
-                      <em className="dm-handle">@{c.otherUser.username}</em>
+                      {c.otherUser.staff ? <em className="dm-handle dm-staff">WaveHubX გუნდი</em> : <em className="dm-handle">@{c.otherUser.username}</em>}
                       <small>{c.lastMessage?.body || 'დაიწყეთ საუბარი'}</small>
                     </span>
                     {c.unreadCount > 0 && <b className="dm-unread">{c.unreadCount}</b>}
@@ -222,13 +258,24 @@ export default function Messages() {
           <section className="direct-message-thread" aria-labelledby="directMessageTitle">
             <header>
               {selected ? (
-                <Link href={`/u/${selected.otherUser.username}`} className="dm-head-person">
-                  <Avatar name={displayName(selected.otherUser)} src={selected.otherUser.avatarUrl} size={46} />
-                  <div>
-                    <h2 id="directMessageTitle">{displayName(selected.otherUser)}</h2>
-                    <small>@{selected.otherUser.username}</small>
+                selected.otherUser.username ? (
+                  <Link href={`/u/${selected.otherUser.username}`} className="dm-head-person">
+                    <Avatar name={displayName(selected.otherUser)} src={selected.otherUser.avatarUrl} size={46} />
+                    <div>
+                      <h2 id="directMessageTitle">{displayName(selected.otherUser)}</h2>
+                      <small>{selected.otherUser.staff ? 'WaveHubX გუნდი' : `@${selected.otherUser.username}`}</small>
+                    </div>
+                  </Link>
+                ) : (
+                  // A staff member, seen by a non-staff user: no profile link (their username isn't sent).
+                  <div className="dm-head-person">
+                    <Avatar name={displayName(selected.otherUser)} src={selected.otherUser.avatarUrl} size={46} />
+                    <div>
+                      <h2 id="directMessageTitle">{displayName(selected.otherUser)}</h2>
+                      <small className="dm-staff">WaveHubX გუნდი</small>
+                    </div>
                   </div>
-                </Link>
+                )
               ) : (
                 <>
                   <span className="message-avatar" aria-hidden="true">

@@ -1,13 +1,13 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import type { PublicTicket } from '@wavehub/shared-types'
 import { TicketStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
-import Avatar, { displayName } from '../../components/Avatar'
+import { displayName } from '../../components/Avatar'
+import ChatThread from '../../components/ChatThread'
 import { CategoryIcon, TICKET_CATEGORY_LABELS, TICKET_STATUS_LABELS, formatTicketDate } from '../../lib/support'
 
 export default function SupportTicketDetail() {
@@ -49,8 +49,7 @@ export default function SupportTicketDetail() {
     }
   }, [id])
 
-  const reply = async (event: FormEvent) => {
-    event.preventDefault()
+  const sendReply = async () => {
     if (!id || !draft.trim()) return
     setSending(true)
     setError('')
@@ -66,6 +65,8 @@ export default function SupportTicketDetail() {
   }
 
   const closed = ticket?.status === TicketStatus.Closed
+  // The header shows whoever from support answered last.
+  const lastStaff = ticket ? [...ticket.messages].reverse().find((m) => m.fromSupport) ?? null : null
 
   return (
     <Layout title="მხარდაჭერის ბილეთი" noIndex>
@@ -92,46 +93,38 @@ export default function SupportTicketDetail() {
               <em className={`sp-status ${ticket.status}`}>{TICKET_STATUS_LABELS[ticket.status]}</em>
             </header>
 
-            <section className="sp-card sp-thread">
-              <ol className="sp-messages">
-                {ticket.messages.map((message) => {
-                  const mine = message.senderId === me?.id
-                  return (
-                    <li key={message.id} className={mine ? 'mine' : undefined}>
-                      {/* Who wrote it by photo + full name, the username small underneath (client
-                          2026-10-07); staff as "WaveHubX Support — Name", WHX logo without a photo. */}
-                      <header className="sp-sender">
-                        {message.fromSupport && !message.senderAvatarUrl ? (
-                          <img className="sp-sender-logo" src="/assets/whx-icon-48.png" alt="" aria-hidden="true" />
-                        ) : (
-                          <Avatar name={senderName(message)} src={message.senderAvatarUrl} size={36} />
-                        )}
-                        <span>
-                          <strong>
-                            {message.fromSupport ? `WaveHubX Support — ${senderName(message)}` : mine ? `${senderName(message)} (თქვენ)` : senderName(message)}
-                          </strong>
-                          {!message.fromSupport && <small>@{message.senderUsername}</small>}
-                        </span>
-                        <time dateTime={message.createdAt}>{formatTicketDate(message.createdAt)}</time>
-                      </header>
-                      <p>{message.body}</p>
-                    </li>
-                  )
-                })}
-              </ol>
-              {error && (
-                <p className="sp-error" role="alert">
-                  {error}
-                </p>
-              )}
-              {closed && <p className="sp-empty">ბილეთი დახურულია — პასუხი მას ხელახლა გახსნის.</p>}
-              <form className="sp-reply" onSubmit={reply}>
-                <input placeholder="დაწერეთ პასუხი…" maxLength={5000} value={draft} onChange={(event) => setDraft(event.target.value)} disabled={sending} />
-                <button className="sp-primary" type="submit" disabled={sending || !draft.trim()}>
-                  გაგზავნა
-                </button>
-              </form>
-            </section>
+            {/* The site's message-chat look (client 2026-10-07): support as "Support — Name (XY)"
+                with their photo (WHX logo without one). */}
+            <ChatThread
+              title={lastStaff ? supportLabel(lastStaff) : 'WaveHubX Support'}
+              subtitle={TICKET_STATUS_LABELS[ticket.status]}
+              headAvatarUrl={lastStaff?.senderAvatarUrl ?? null}
+              headAvatarFallback="/assets/whx-icon-192.png"
+              messages={ticket.messages.map((m) => ({
+                id: m.id,
+                mine: m.senderId === me?.id,
+                name: m.senderId === me?.id ? 'თქვენ' : m.fromSupport ? supportLabel(m) : senderName(m),
+                avatarUrl: m.senderAvatarUrl,
+                avatarFallback: m.fromSupport ? '/assets/whx-icon-192.png' : undefined,
+                body: m.body,
+                createdAt: m.createdAt,
+              }))}
+              draft={draft}
+              onDraft={setDraft}
+              onSend={() => void sendReply()}
+              sending={sending}
+              placeholder="დაწერეთ პასუხი…"
+              footer={
+                <>
+                  {error && (
+                    <p className="sp-error" role="alert">
+                      {error}
+                    </p>
+                  )}
+                  {closed && <p className="sp-empty">ბილეთი დახურულია — პასუხი მას ხელახლა გახსნის.</p>}
+                </>
+              }
+            />
           </>
         ) : null}
       </div>
@@ -142,3 +135,11 @@ export default function SupportTicketDetail() {
 function senderName(m: { senderFirstName: string; senderLastName: string; senderUsername: string }): string {
   return displayName({ firstName: m.senderFirstName, lastName: m.senderLastName, username: m.senderUsername })
 }
+
+// "Support — Nini Gagua (NG)": the staff member's name and initials (owner 2026-10-07).
+function supportLabel(m: { senderFirstName: string; senderLastName: string; senderUsername: string }): string {
+  const name = senderName(m)
+  const initials = [m.senderFirstName, m.senderLastName].filter(Boolean).map((part) => part[0]?.toUpperCase()).join('')
+  return `Support — ${name}${initials ? ` (${initials})` : ''}`
+}
+

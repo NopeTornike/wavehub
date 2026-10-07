@@ -18,6 +18,7 @@ export default function Favorites() {
   const { ids } = useFavorites()
   const [items, setItems] = useState<PublicListingSummary[] | null>(null)
   const [ranks, setRanks] = useState<SellerRanks>({})
+  const [tiers, setTiers] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const userId = user?.id
 
@@ -35,6 +36,7 @@ export default function Favorites() {
         setError(errorMessage(err, 'რჩეულების ჩატვირთვა ვერ მოხერხდა.'))
       })
     api.getSellerRanks().then(setRanks).catch(() => undefined)
+    api.getSellerTiers().then(setTiers).catch(() => undefined)
   }, [userId])
 
   const visible = (items ?? []).filter((listing) => ids.has(listing.id))
@@ -66,7 +68,7 @@ export default function Favorites() {
         )}
         <div className="marketplace-grid" id="marketplaceGrid">
           {visible.map((listing) => (
-            <ProductCard key={listing.id} listing={listing} sellerRank={ranks[listing.seller.username]} />
+            <ProductCard key={listing.id} listing={listing} sellerRank={ranks[listing.seller.username]} sellerTier={tiers[listing.seller.username]} />
           ))}
         </div>
         <div className="marketplace-empty" id="marketplaceEmpty" hidden={items !== null && visible.length > 0}>

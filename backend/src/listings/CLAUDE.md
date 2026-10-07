@@ -366,3 +366,16 @@ change otherwise; the marketplace filters by category id. Listing photos are cap
   opens it) and `/admin/steam/[id]` (hero with publish / pause, `AdminKeyInventory`, photos,
   details). `/sell/digital-keys[/id]` redirect there for staff.
 - Covered by `test/client-feedback.e2e-spec.ts`.
+
+## 2026-10-07 Duplicate posts ("the same post uploaded 6 times")
+- Cause: listing photos shared the 20/min upload throttle, so a 6-photo post could get 429s
+  part-way. The seller pressed Publish again, and every retry created a **new** listing. One seller
+  on prod ended up with 10 copies of one post, with 0–6 photos each.
+- `createDraft` refuses the same seller + same title (`lower(trim())`) + same type within 2 minutes
+  with a 409 ("You just created this listing…", Georgian in the frontend's `KNOWN_MESSAGES`). An
+  older twin is allowed: a real second listing with the same title is fine.
+- `POST listings/:id/images` has its own `LISTING_PHOTO_THROTTLE` (60/min, `common/throttle.ts`).
+- The seller modal is idempotent: a failed publish keeps the draft id and the files already
+  uploaded, and a retry updates that draft (`PATCH`) and uploads only the missing photos.
+- Covered by `test/client-round-2.e2e-spec.ts` (409 rules, 24 photo uploads in a minute) and
+  `listings.service.spec.ts`. E2E specs must give drafts unique titles.

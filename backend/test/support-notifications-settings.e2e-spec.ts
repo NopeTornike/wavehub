@@ -89,7 +89,9 @@ describe('support, notifications and platform settings (e2e)', () => {
       // support — no role, email or balance is exposed.
       const [first, staffReply] = visible.body.messages;
       expect(first).toMatchObject({ senderFirstName: 'Test', senderLastName: 'User', fromSupport: false });
-      expect(staffReply).toMatchObject({ senderUsername: specialist.username, fromSupport: true });
+      // A staff member's username is their login name — never sent to the requester.
+      expect(staffReply).toMatchObject({ senderUsername: '', fromSupport: true });
+      expect(JSON.stringify(visible.body)).not.toContain(specialist.username);
       expect(JSON.stringify(visible.body.messages)).not.toMatch(/adminRole|email|wavecoinBalance|passwordHash|support_specialist/);
       expect(JSON.stringify((await specialist.client.get(`/admin/tickets/${id}`)).body)).toContain('SECRET-INTERNAL-NOTE');
 
