@@ -247,6 +247,8 @@
 
   function standardizeSidebars() {
     const sidebar = document.getElementById('sidebar');
+    // Navigation stays in English regardless of the page language selection.
+    sidebar?.setAttribute('data-i18n-keep', '');
     const navigation = sidebar?.querySelector('.side-nav');
     if (!navigation) return;
 
@@ -401,6 +403,8 @@
         profileMenu.className = 'profile-menu';
       }
       profileMenu.id = 'profileMenu';
+      // The account menu is intentionally shared in English in both locales.
+      profileMenu.setAttribute('data-i18n-keep', '');
       profileMenu.innerHTML = getProfileMenuMarkup();
       const contextualAction = actions.querySelector('#sellerButton');
       actions.querySelectorAll('.seller-button:not(#sellerButton)').forEach((button) => button.remove());

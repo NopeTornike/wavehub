@@ -16890,6 +16890,32 @@ body.seller-profile-open { overflow: hidden; }
   .featured-coach-carousel { display: none; }
 }
 
+/* On narrow screens the localized coach badges can be wider than the card.
+   Stack the status badge beneath the popularity badge instead of letting them overlap. */
+@media (max-width: 560px) {
+  .home-page .featured-coach-photo > span {
+    top: 9px;
+    left: 9px;
+    max-width: calc(100% - 18px);
+    font-size: 8px;
+    line-height: 1.15;
+  }
+
+  .home-page .featured-coach-photo .featured-coach-online {
+    top: 39px;
+    right: auto;
+    left: 9px;
+    max-width: calc(100% - 18px);
+    min-height: 20px;
+    border-radius: 999px;
+    background: rgba(74, 23, 114, 0.84);
+    padding: 4px 8px;
+    font-size: 8px;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+}
+
 /* Narrow phones: keep the home showcase inside the visual viewport. */
 @media (max-width: 430px) {
   .home-page .home-competition-section,

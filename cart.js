@@ -201,7 +201,7 @@ function renderOnlineCount() {
     return;
   }
 
-  const onlineLabel = localStorage.getItem('wavehub.language') === 'en' ? 'online' : 'ონლაინ';
+  const onlineLabel = 'Online';
   onlineCount.textContent = `${Math.floor(Math.random() * (23 - 2 + 1)) + 2} ${onlineLabel}`;
 }
 

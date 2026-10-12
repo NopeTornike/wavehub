@@ -87,6 +87,33 @@
     'No refunds after a key is revealed or activated.': 'გასაღების გამჟღავნების ან აქტივაციის შემდეგ თანხა არ ბრუნდება.',
     'Delivery is managed from your WaveHubX order page.': 'მიწოდება იმართება თქვენი WaveHubX შეკვეთების გვერდიდან.'
   };
+  const protectedTerms = new Set([
+    'rank', 'level', 'xp', 'achievement', 'badge', 'leaderboard', 'stats', 'mvp', 'season', 'skin',
+    'marketplace', 'seller', 'verified seller', 'listing', 'steam key', 'gift card', 'bundle', 'escrow',
+    'featured', 'premium', 'subscription', 'wavehubx plus',
+    'dashboard', 'profile', 'username', 'avatar', 'online', 'offline', 'verified', 'follow', 'review',
+    'rating', 'support', 'wallet'
+  ]);
+  const isProtectedTerm = text => protectedTerms.has(String(text).trim().toLowerCase());
+  const glossaryRules = [
+    [/\branks?\b/i, /(?:რეიტინგ|რანგ)[ა-ჰ]*/g, 'Rank'], [/\blevels?\b/i, /დონ[ა-ჰ]*/g, 'Level'],
+    [/\bxp\b/i, /ქულ[ა-ჰ]*/g, 'XP'], [/\bachievements?\b/i, /მიღწევ[ა-ჰ]*/g, 'Achievement'],
+    [/\bbadges?\b/i, /ბეიჯ[ა-ჰ]*/g, 'Badge'], [/\bskins?\b/i, /სკინ[ა-ჰ]*/g, 'Skin'],
+    [/\bmarketplace\b/i, /მარკეტ(?:ფლეის)?[ა-ჰ]*/g, 'Marketplace'], [/\bsellers?\b/i, /გამყიდველ[ა-ჰ]*/g, 'Seller'],
+    [/\blistings?\b/i, /განცხადებ[ა-ჰ]*/g, 'Listing'], [/\bsteam keys?\b/i, /Steam\s+გასაღებ[ა-ჰ]*/g, 'Steam Key'],
+    [/\bgift cards?\b/i, /სასაჩუქრე\s+ბარათ[ა-ჰ]*/g, 'Gift Card'], [/\bescrow\b/i, /ესქრო(?:ში)?/g, 'Escrow'],
+    [/\bfeatured\b/i, /რჩეულ[ა-ჰ]*/g, 'Featured'], [/\bpremium\b/i, /პრემიუმ/g, 'Premium'], [/\bbundle\b/i, /პაკეტ[ა-ჰ]*/g, 'Bundle'],
+    [/\bprofile\b/i, /პროფილ[ა-ჰ]*/g, 'Profile'], [/\bverified\b/i, /ვერიფიცირებულ[ა-ჰ]*/g, 'Verified'],
+    [/\breviews?\b/i, /შეფასებ[ა-ჰ]*/g, 'Review'], [/\brating\b/i, /შეფასებ[ა-ჰ]*/g, 'Rating'],
+    [/\bsupport\b/i, /(?:მხარდაჭერ|საფორთ)[ა-ჰ]*/g, 'Support'], [/\bwallet\b/i, /საფულ[ა-ჰ]*/g, 'Wallet'],
+    [/\bdashboard\b/i, /დეშბორდ[ა-ჰ]*/g, 'Dashboard'], [/\busername\b/i, /მომხმარებლის\s+სახელი/g, 'Username'],
+    [/\bavatar\b/i, /ავატარ[ა-ჰ]*/g, 'Avatar'], [/\bonline\b/i, /ონლაინ/g, 'Online'], [/\boffline\b/i, /ოფლაინ/g, 'Offline'],
+    [/\bfollow\b/i, /გამოწერ[ა-ჰ]*/g, 'Follow'], [/\bsubscription\b/i, /გამოწერ[ა-ჰ]*/g, 'Subscription']
+  ];
+  const preserveGlossaryTerms = (source, translation) => glossaryRules.reduce(
+    (result, [sourcePattern, translatedPattern, term]) => sourcePattern.test(source) ? result.replace(translatedPattern, term) : result,
+    translation
+  );
   const originalText = new WeakMap();
   const translatableAttributes = ['aria-label', 'title', 'placeholder'];
   const originalDocumentTitle = document.title;
@@ -164,19 +191,23 @@
       if (!originalText.has(node)) originalText.set(node, node.nodeValue);
       const original = originalText.get(node);
       const trimmed = original.trim();
+      if (isProtectedTerm(trimmed)) { node.nodeValue = original; return; }
       if (!trimmed || !translations[trimmed]) { node.nodeValue = selectedLanguage === 'en' ? original : node.nodeValue; return; }
       const leading = original.match(/^\s*/)?.[0] || '';
       const trailing = original.match(/\s*$/)?.[0] || '';
-      node.nodeValue = selectedLanguage === 'ka' ? `${leading}${translations[trimmed]}${trailing}` : original;
+      const translated = preserveGlossaryTerms(trimmed, translations[trimmed]);
+      node.nodeValue = selectedLanguage === 'ka' ? `${leading}${translated}${trailing}` : original;
     });
 
     document.querySelectorAll('*').forEach(element => translatableAttributes.forEach(attribute => {
+      if (element.closest('[data-i18n-keep]')) return;
       const value = element.getAttribute(attribute);
       const key = `data-i18n-original-${attribute}`;
       const original = element.getAttribute(key) || value;
+      if (isProtectedTerm(original)) return;
       if (!original || !translations[original]) return;
       if (!element.hasAttribute(key)) element.setAttribute(key, original);
-      element.setAttribute(attribute, selectedLanguage === 'ka' ? translations[original] : original);
+      element.setAttribute(attribute, selectedLanguage === 'ka' ? preserveGlossaryTerms(original, translations[original]) : original);
     }));
   };
 
@@ -263,7 +294,9 @@
     </div>`;
 
   document.body.appendChild(footer);
-  window.wavehubTranslate = text => (localStorage.getItem(languageKey) || 'ka') === 'ka' ? translations[text] || text : text;
+  window.wavehubTranslate = text => (localStorage.getItem(languageKey) || 'ka') === 'ka'
+    ? preserveGlossaryTerms(text, translations[text] || text)
+    : text;
   footer.querySelector('[data-language-select]')?.addEventListener('change', event => setLanguage(event.target.value));
   addHeaderLanguageSwitcher();
   setLanguage(localStorage.getItem(languageKey) || 'ka');
@@ -273,7 +306,8 @@
     if (!originalText.has(node)) originalText.set(node, node.nodeValue);
     const original = originalText.get(node);
     const trimmed = original.trim();
-    const translated = translations[trimmed];
+    if (isProtectedTerm(trimmed)) { node.nodeValue = original; return; }
+    const translated = translations[trimmed] && preserveGlossaryTerms(trimmed, translations[trimmed]);
     if (!translated) return;
     const leading = original.match(/^\s*/)?.[0] || '';
     const trailing = original.match(/\s*$/)?.[0] || '';
