@@ -1,35 +1,193 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
+import { UsersModule } from './users/users.module';
+import { WalletModule } from './wallet/wallet.module';
 import { User } from './users/user.entity';
-import { MessagesModule } from './messages/messages.module';
-import { DirectMessage } from './messages/direct-message.entity';
-import { StateModule } from './state/state.module';
-import { UserState } from './state/user-state.entity';
+import { EmailVerificationToken } from './auth/email-verification-token.entity';
+import { PasswordResetToken } from './auth/password-reset-token.entity';
+import { WalletLedgerEntry } from './wallet/wallet-ledger-entry.entity';
+import { BogTopupIntent } from './payments/bog-topup-intent.entity';
+import { ListingsModule } from './listings/listings.module';
+import { Listing } from './listings/listing.entity';
+import { ListingImage } from './listings/listing-image.entity';
+import { ServiceDetails } from './listings/service-details.entity';
+import { ItemDetails } from './listings/item-details.entity';
+import { ListingFavorite } from './listings/listing-favorite.entity';
+import { ListingKeyInventory } from './listings/listing-key-inventory.entity';
+import { Package } from './listings/package.entity';
+import { Category } from './listings/category.entity';
+import { Game } from './listings/game.entity';
+import { OrdersModule } from './orders/orders.module';
+import { Order } from './orders/order.entity';
+import { OrderDeliveryFile } from './orders/order-delivery-file.entity';
+import { ReviewsModule } from './reviews/reviews.module';
+import { Review } from './reviews/review.entity';
+import { ReviewReport } from './reviews/review-report.entity';
+import { ChatModule } from './chat/chat.module';
+import { Conversation } from './chat/conversation.entity';
+import { Message } from './chat/message.entity';
+import { DisputesModule } from './disputes/disputes.module';
+import { Dispute } from './disputes/dispute.entity';
+import { DisputeMessage } from './disputes/dispute-message.entity';
+import { DisputeEvidence } from './disputes/dispute-evidence.entity';
+import { AdminModule } from './admin/admin.module';
+import { AuditLog } from './admin/audit-log.entity';
+import { WithdrawalsModule } from './withdrawals/withdrawals.module';
+import { WithdrawRequest } from './withdrawals/withdraw-request.entity';
+import { NotificationsModule } from './notifications/notifications.module';
+import { Notification } from './notifications/notification.entity';
+import { SettingsModule } from './settings/settings.module';
+import { PlatformSettings } from './settings/platform-settings.entity';
+import { SupportModule } from './support/support.module';
+import { Ticket } from './support/ticket.entity';
+import { TicketMessage } from './support/ticket-message.entity';
+import { SavedReply } from './support/saved-reply.entity';
+import { CoachingModule } from './coaching/coaching.module';
+import { Coach } from './coaching/coach.entity';
+import { CoachingSession } from './coaching/coaching-session.entity';
+import { CoachingSessionReview } from './coaching/coaching-session-review.entity';
+import { CoachFavorite } from './coaching/coach-favorite.entity';
+import { CoachingPackage } from './coaching/coaching-package.entity';
+import { PromoCode, PromoRedemption } from './marketing/promo-code.entity';
+import { Banner } from './marketing/banner.entity';
+import { MarketingModule } from './marketing/marketing.module';
+import { TrustModule } from './trust/trust.module';
+import { LoginEvent, UserReport, UserStaffNote } from './trust/trust.entities';
+import { CoachingSessionDispute, CoachingSessionDisputeMessage } from './coaching/coaching-session-dispute.entity';
+import { ContentModule } from './content/content.module';
+import { ContentPage } from './content/content-page.entity';
+import { TournamentsModule } from './tournaments/tournaments.module';
+import { ProfilesModule } from './profiles/profiles.module';
+import { BadgesModule } from './badges/badges.module';
+import { UserFollow } from './profiles/user-follow.entity';
+import { UserBadge } from './badges/user-badge.entity';
+import { ReviewLike } from './reviews/review-like.entity';
+import { Tournament } from './tournaments/tournament.entity';
+import { TournamentRegistration } from './tournaments/tournament-registration.entity';
+import { TournamentTeam } from './tournaments/tournament-team.entity';
+import { TournamentTeamMember } from './tournaments/tournament-team-member.entity';
+import { TournamentMatch } from './tournaments/tournament-match.entity';
+import { CommonModule } from './common/common.module';
+import { CommunityModule } from './community/community.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { SubscriptionPlan } from './subscriptions/subscription-plan.entity';
+import { UserSubscription } from './subscriptions/user-subscription.entity';
+import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-attempt.entity';
 
-const useDatabase = Boolean(process.env.DATABASE_HOST) && process.env.USE_FILE_STORE !== 'true';
-
+// Postgres is mandatory from Phase 1 onward — the JSON-file fallback that used to make this
+// conditional (USE_FILE_STORE) was removed along with AuthService's dual-mode logic. See
+// backend/src/auth/CLAUDE.md for why.
 @Module({
   imports: [
-    ...(useDatabase
-      ? [
-          TypeOrmModule.forRoot({
-            type: 'postgres',
-            host: process.env.DATABASE_HOST,
-            port: Number(process.env.DATABASE_PORT) || 5432,
-            username: process.env.DATABASE_USER || 'wavehub',
-            password: process.env.DATABASE_PASSWORD || 'wavehubpass',
-            database: process.env.DATABASE_NAME || 'wavehubdb',
-            entities: [User, DirectMessage, UserState],
-            synchronize: process.env.TYPEORM_SYNC === 'true',
-          }),
-        ]
-      : []),
+    // Global default: 100 requests / 60s per IP. Individual auth-sensitive endpoints override this
+    // with a much stricter limit via @Throttle() — see auth.controller.ts and
+    // bog-payments.controller.ts. Keying is by IP (ThrottlerGuard's default), which only reflects
+    // the real client IP if TRUST_PROXY is configured correctly in a real deployment — see main.ts.
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
+    // Powers OrdersService's 24h auto-complete cron (@Cron in orders.service.ts). A single
+    // in-process scheduler is fine at this scale — see orders/CLAUDE.md if this ever needs to run
+    // across multiple instances (would need a distributed lock to avoid double-firing).
+    ScheduleModule.forRoot(),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DATABASE_HOST,
+      port: Number(process.env.DATABASE_PORT) || 5432,
+      username: process.env.DATABASE_USER || 'wavehub',
+      password: process.env.DATABASE_PASSWORD || 'wavehubpass',
+      database: process.env.DATABASE_NAME || 'wavehubdb',
+      entities: [
+        User,
+        EmailVerificationToken,
+        PasswordResetToken,
+        WalletLedgerEntry,
+        BogTopupIntent,
+        Listing,
+        ListingImage,
+        ServiceDetails,
+        ItemDetails,
+        ListingFavorite,
+        ListingKeyInventory,
+        Package,
+        Category,
+        Game,
+        Order,
+        OrderDeliveryFile,
+        Review,
+        ReviewReport,
+        Conversation,
+        Message,
+        Dispute,
+        DisputeMessage,
+        DisputeEvidence,
+        AuditLog,
+        WithdrawRequest,
+        Notification,
+        PlatformSettings,
+        Ticket,
+        TicketMessage,
+        SavedReply,
+        Coach,
+        CoachingSession,
+        CoachingSessionReview,
+        CoachFavorite,
+        CoachingPackage,
+        PromoCode,
+        PromoRedemption,
+        Banner,
+        UserReport,
+        UserStaffNote,
+        LoginEvent,
+        CoachingSessionDispute,
+        CoachingSessionDisputeMessage,
+        ContentPage,
+        Tournament,
+        TournamentRegistration,
+        TournamentTeam,
+        TournamentTeamMember,
+        TournamentMatch,
+        UserFollow,
+        UserBadge,
+        ReviewLike,
+        SubscriptionPlan,
+        UserSubscription,
+        SubscriptionChargeAttempt,
+      ],
+      synchronize: process.env.TYPEORM_SYNC === 'true',
+    }),
+    UsersModule,
     AuthModule,
+    WalletModule,
     PaymentsModule,
-    MessagesModule,
-    StateModule,
+    ListingsModule,
+    OrdersModule,
+    ReviewsModule,
+    ChatModule,
+    DisputesModule,
+    AdminModule,
+    WithdrawalsModule,
+    NotificationsModule,
+    SettingsModule,
+    SupportModule,
+    CoachingModule,
+    ContentModule,
+    MarketingModule,
+    TrustModule,
+    TournamentsModule,
+    ProfilesModule,
+    BadgesModule,
+    SubscriptionsModule,
+    CommonModule,
+    CommunityModule,
+    AnalyticsModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

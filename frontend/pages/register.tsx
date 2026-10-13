@@ -1,56 +1,23 @@
+import Link from 'next/link'
+import { useRouter } from 'next/router'
+import { UserStatus } from '@wavehub/shared-types'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { api, errorMessage } from '../lib/api'
+import AuthCardTop from '../components/AuthCardTop'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import PageHead from '../components/PageHead'
+import { useAuth } from '../lib/auth'
+import EmailCodeForm from '../components/EmailCodeForm'
 
-const apiUrls = [
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
-  'http://127.0.0.1:4000',
-]
-
-type RegistrationPayload = {
-  username: string
-  firstName: string
-  lastName: string
-  password: string
-}
-
-async function fetchWithTimeout(url: string, options: RequestInit) {
-  const controller = new AbortController()
-  const timeoutId = window.setTimeout(() => controller.abort(), 2500)
-
-  try {
-    return await fetch(url, { ...options, signal: controller.signal })
-  } finally {
-    window.clearTimeout(timeoutId)
-  }
-}
-
-async function registerOnServer(payload: RegistrationPayload) {
-  for (const apiUrl of Array.from(new Set(apiUrls))) {
-    try {
-      const res = await fetchWithTimeout(`${apiUrl}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      })
-      const data = await res.json().catch(() => ({}))
-
-      if (!res.ok) {
-        const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
-        return { ok: false, error: data?.error || message || 'შეცდომა სერვერზე' }
-      }
-
-      return { ok: true, local: false }
-    } catch (err) {
-      console.warn('Registration API is unavailable:', err)
-    }
-  }
-
-  return { ok: false, offline: true }
-}
+const USERNAME_PATTERN = /^[a-z0-9_-]+$/
+// Mirrors backend/src/auth/password-policy.ts — keep these in sync if that changes.
+const PASSWORD_MIN_LENGTH = 8
+const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).+$/
 
 export default function Register() {
   const [form, setForm] = useState({
     username: '',
+    email: '',
     firstName: '',
     lastName: '',
     password: '',
@@ -58,13 +25,16 @@ export default function Register() {
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const { user, refresh } = useAuth()
+  const router = useRouter()
+  const [submitting, setSubmitting] = useState(false)
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [checkingUsername, setCheckingUsername] = useState(false)
   const [usernameError, setUsernameError] = useState('')
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latestUsername = useRef('')
 
-  const isValidUsername = (username: string) => /^[a-z0-9_-]+$/.test(username)
+  const isValidUsername = (username: string) => USERNAME_PATTERN.test(username)
 
   const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name } = event.target
@@ -103,28 +73,16 @@ export default function Register() {
 
     setCheckingUsername(true)
     try {
-      const res = await fetchWithTimeout(
-        `${apiUrls[0]}/auth/check-username?username=${encodeURIComponent(username)}`,
-        {},
-      )
-      const data = await res.json()
-
+      const data = await api.checkUsername(username)
       if (latestUsername.current !== username) {
         return
       }
-
-      if (data?.available !== undefined) {
-        setUsernameAvailable(data.available)
-        setUsernameError(data.available ? '' : 'Username უკვე გამოყენებულია')
-      } else {
-        setUsernameAvailable(null)
-        setUsernameError('')
-      }
-    } catch (err) {
-      console.warn('Username API is unavailable:', err)
+      setUsernameAvailable(data.available)
+      setUsernameError(data.available ? '' : 'Username უკვე გამოყენებულია')
+    } catch {
       if (latestUsername.current === username) {
         setUsernameAvailable(null)
-        setUsernameError('Username-ის შემოწმების სერვერი მიუწვდომელია')
+        setUsernameError('')
       }
     } finally {
       if (latestUsername.current === username) {
@@ -161,7 +119,7 @@ export default function Register() {
       return
     }
 
-    if (!form.firstName || !form.lastName || !form.password || !form.confirmPassword) {
+    if (!form.email || !form.firstName || !form.lastName || !form.password || !form.confirmPassword) {
       setError('გთხოვთ შეავსოთ ყველა ველი.')
       return
     }
@@ -171,130 +129,155 @@ export default function Register() {
       return
     }
 
-    if (form.password.length < 6) {
-      setError('პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო.')
+    if (form.password.length < PASSWORD_MIN_LENGTH || !PASSWORD_PATTERN.test(form.password)) {
+      setError(`პაროლი უნდა იყოს მინიმუმ ${PASSWORD_MIN_LENGTH} სიმბოლო და შეიცავდეს ასოსა და ციფრს.`)
       return
     }
 
-    const payload = {
-      username: form.username,
-      firstName: form.firstName,
-      lastName: form.lastName,
-      password: form.password,
+    setSubmitting(true)
+    try {
+      await api.register({
+        username: form.username,
+        email: form.email,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        password: form.password,
+      })
+      setSuccess(
+        'რეგისტრაცია წარმატებით დასრულდა! ელფოსტაზე გამოგიგზავნეთ წერილი 6-ციფრიანი კოდით — შეიყვანეთ ის ქვემოთ (ან დააჭირეთ წერილში ღილაკს). თუ წერილი სპამში მოხვდა, კოდი მაინც მუშაობს.',
+      )
+      // Registration also logs the new account in (session cookie) — sync the shared auth state so
+      // the topbar and the verify-your-email banner show up without a reload.
+      await refresh()
+      setForm({ username: '', email: '', firstName: '', lastName: '', password: '', confirmPassword: '' })
+      setUsernameAvailable(null)
+      setUsernameError('')
+      latestUsername.current = ''
+    } catch (err) {
+      setError(errorMessage(err, 'სერვერთან დაკავშირება ვერ მოხერხდა.'))
+    } finally {
+      setSubmitting(false)
     }
-    const serverResult = await registerOnServer(payload)
-    const result = serverResult
-
-    if (!result.ok) {
-      setError(result.offline ? 'რეგისტრაციის სერვერი მიუწვდომელია. სცადეთ მოგვიანებით.' : result.error || 'შეცდომა რეგისტრაციისას')
-      return
-    }
-
-    setSuccess('რეგისტრაცია წარმატებით დასრულდა')
-    setForm({ username: '', firstName: '', lastName: '', password: '', confirmPassword: '' })
-    setUsernameAvailable(null)
-    setUsernameError('')
-    latestUsername.current = ''
   }
 
   return (
-    <div className="container">
-      <div className="card">
-        <h1>WaveHub - რეგისტრაცია</h1>
-        <p className="note">პლატფორმა თამაშებისა და ექაუნთების ყიდვა/გაყიდვისთვის</p>
-        <form className="register-form" onSubmit={submit}>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
+    <main className="auth-page-shell">
+      <LanguageSwitcher floating />
+      <PageHead title="რეგისტრაცია" description="შექმენით WaveHub ანგარიში და დაიწყეთ გაყიდვა ან შეძენა." noIndex />
+      <section className="auth-card" aria-labelledby="authTitle">
+        <AuthCardTop />
+
+        <div className="auth-card-head">
+          <p className="section-kicker">WaveHub ანგარიში</p>
+          <h1 id="authTitle">შედით ან შექმენით ანგარიში</h1>
+        </div>
+
+        <div className="auth-tabs" role="tablist" aria-label="ავტორიზაცია">
+          <Link className="auth-tab" href="/login" role="tab" aria-selected="false">
+            შესვლა
+          </Link>
+          <button className="auth-tab active" type="button" role="tab" aria-selected="true">
+            რეგისტრაცია
+          </button>
+        </div>
+
+        <form className="auth-form" onSubmit={submit}>
+          <label>
+            <span>მომხმარებლის სახელი</span>
             <input
-              id="username"
               autoComplete="username"
-              className="input"
               name="username"
-              placeholder="შეიყვანეთ უნიკალური username"
+              placeholder="choose_username"
               required
               value={form.username}
               onChange={onChange}
             />
-            {usernameError && <div className="status-text status-error">{usernameError}</div>}
-            {form.username && isValidUsername(form.username) && checkingUsername && (
-              <div className="status-text status-info">შემოწმება...</div>
-            )}
-            {form.username && isValidUsername(form.username) && usernameAvailable === true && (
-              <div className="status-text status-success">Username თავისუფალია</div>
-            )}
+          </label>
+          {usernameError && (
+            <p className="auth-status" style={{ color: 'var(--red)' }}>
+              {usernameError}
+            </p>
+          )}
+          {form.username && isValidUsername(form.username) && checkingUsername && <p className="auth-status">შემოწმება...</p>}
+          {form.username && isValidUsername(form.username) && usernameAvailable === true && (
+            <p className="auth-status" style={{ color: 'var(--green)' }}>
+              Username თავისუფალია
+            </p>
+          )}
+          {/* auth.html's own register form has no email field — added here because email
+              verification is a non-negotiable rule (root CLAUDE.md §"Non-negotiable rules") the
+              backend actually enforces; the static prototype never had a real backend behind it. */}
+          <label>
+            <span>ელფოსტა</span>
+            <input autoComplete="email" name="email" type="email" placeholder="you@example.com" required value={form.email} onChange={onChange} />
+          </label>
+          <div className="auth-split">
+            <label>
+              <span>სახელი</span>
+              <input autoComplete="given-name" name="firstName" placeholder="სახელი" required value={form.firstName} onChange={onChange} />
+            </label>
+            <label>
+              <span>გვარი</span>
+              <input autoComplete="family-name" name="lastName" placeholder="გვარი" required value={form.lastName} onChange={onChange} />
+            </label>
           </div>
-          <div className="row-two">
-            <div className="form-group">
-              <label htmlFor="firstName">სახელი</label>
-              <input
-                id="firstName"
-                autoComplete="given-name"
-                className="input"
-                name="firstName"
-                placeholder="სახელი"
-                required
-                value={form.firstName}
-                onChange={onChange}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="lastName">გვარი</label>
-              <input
-                id="lastName"
-                autoComplete="family-name"
-                className="input"
-                name="lastName"
-                placeholder="გვარი"
-                required
-                value={form.lastName}
-                onChange={onChange}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">პაროლი</label>
+          <label>
+            <span>პაროლი</span>
             <input
-              id="password"
               autoComplete="new-password"
-              className="input"
               name="password"
               type="password"
-              minLength={6}
-              placeholder="პაროლი"
+              minLength={PASSWORD_MIN_LENGTH}
+              placeholder="მინიმუმ 8 სიმბოლო"
               required
               value={form.password}
               onChange={onChange}
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="confirmPassword">პაროლის გამეორება</label>
+          </label>
+          <label>
+            <span>პაროლის დადასტურება</span>
             <input
-              id="confirmPassword"
               autoComplete="new-password"
-              className="input"
               name="confirmPassword"
               type="password"
-              minLength={6}
-              placeholder="პაროლის გამეორება"
+              minLength={PASSWORD_MIN_LENGTH}
+              placeholder="გაიმეორეთ პაროლი"
               required
               value={form.confirmPassword}
               onChange={onChange}
             />
-          </div>
+          </label>
 
-          {error && <div className="status-text status-error">{error}</div>}
-          {success && <div className="status-text status-success">{success}</div>}
+          {error && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
+              {error}
+            </p>
+          )}
+          {success && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--green)' }}>
+              {success}
+            </p>
+          )}
+          {success && user?.status === UserStatus.PendingVerification && <EmailCodeForm onVerified={() => void router.push('/')} />}
+          {success && user && user.status !== UserStatus.PendingVerification && (
+            <p className="auth-status" style={{ color: 'var(--green)' }}>
+              ელფოსტა დადასტურებულია — ანგარიში აქტიურია.
+            </p>
+          )}
 
           <button
-            className="glow-on-hover button"
+            className="auth-submit-button"
             type="submit"
-            disabled={Boolean(usernameError) || checkingUsername || !form.username}
+            disabled={Boolean(usernameError) || checkingUsername || !form.username || submitting}
           >
-            Sign up
+            ანგარიშის შექმნა
           </button>
-          <div className="note">მომავალში Gmail-ით რეგისტრაცია დაემატება</div>
         </form>
-      </div>
-    </div>
+
+        <Link className="auth-back-link" href="/marketplace">
+          მარკეტფლეისზე დაბრუნება
+        </Link>
+      </section>
+    </main>
   )
 }

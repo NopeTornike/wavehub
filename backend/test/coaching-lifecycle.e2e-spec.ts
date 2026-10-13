@@ -1,0 +1,215 @@
+import { assertConserved, startSession } from './flows';
+import { balanceOf, createApp, credit, E2eApp, makeAdmin, registerUser, TestUser, openAllHours } from './helpers';
+import { CoachingSessionsService } from '../src/coaching/coaching-sessions.service';
+import { tbilisiInstant, tbilisiLocal } from '@wavehub/shared-types';
+
+// The 6-step booking flow + coaching lifecycle v2 (client feedback 2026-10-02): booking
+// notifications, start confirmation with 10-minute reminders and auto-cancel + refund, coach "done"
+// → student confirms (or 48h auto-confirm) → coach paid, review request, fee visibility, welcome.
+describe('coaching booking + lifecycle v2 (e2e)', () => {
+  let ctx: E2eApp;
+  let coachUser: TestUser;
+  let buyer: TestUser;
+  let coachId: string;
+  let sweep: CoachingSessionsService['sweep'];
+  const at = (hours: number) => new Date(Date.now() + hours * 3600_000).toISOString();
+  const row = async (id: string) => (await ctx.dataSource.query(`SELECT * FROM coaching_sessions WHERE id = $1`, [id]))[0];
+  const notes = async (u: TestUser) => (await u.client.get('/notifications')).body as Array<{ type: string; title: string; body: string }>;
+  const step3 = { goal: 'Reach Conqueror and fix my close-range fights.', discord: 'gio.wavehub' };
+
+  beforeAll(async () => {
+    ctx = await createApp();
+    const service = ctx.app.get(CoachingSessionsService);
+    sweep = service.sweep.bind(service);
+    const ops = await registerUser(ctx, 'lcops');
+    await makeAdmin(ctx, ops, 'marketplace_coaching_ops_manager');
+    coachUser = await registerUser(ctx, 'lccoach');
+    buyer = await registerUser(ctx, 'lcbuyer');
+    await credit(ctx, buyer, 1000);
+    const created = await ops.client.post('/admin/coaches', {
+      username: coachUser.username, specialty: 'Rank pushing', bio: 'Ten years of competitive experience across several titles.', hourlyRateWaveCoin: 40,
+    });
+    coachId = created.body.id;
+    await openAllHours(ctx, coachId);
+    await ctx.dataSource.query(`UPDATE platform_settings SET "platformFeePercent" = 10, "coachingFeePercent" = 10`);
+  });
+  afterAll(async () => {
+    await assertConserved(ctx);
+    await ctx.close();
+  });
+
+  it('a new account gets a welcome notification', async () => {
+    const fresh = await registerUser(ctx, 'lcwelcome');
+    expect((await notes(fresh)).map((n) => n.type)).toContain('welcome');
+  });
+
+  it('6-step booking: a 3-session package books three sessions with one total price, goal and Discord, and notifies both sides', async () => {
+    // The platform's Growth package: 3 × 50 min for 39 GEL.
+    const growth = (await buyer.client.get('/coaching-packages')).body.find((p: { key: string }) => p.key === 'growth');
+    expect(growth).toMatchObject({ sessionsCount: 3, durationMinutes: 50, priceWaveCoin: 39 });
+    const pkgId = growth.id;
+    const before = await balanceOf(ctx, buyer);
+
+    // Wrong slot count, overlapping slots, missing goal/Discord.
+    const book = (body: Record<string, unknown>) => buyer.client.post(`/coaches/${coachId}/bookings`, body);
+    expect((await book({ packageId: pkgId, slots: [at(30), at(31)], ...step3 })).status).toBe(400);
+    expect((await book({ packageId: pkgId, slots: [at(30), at(30.5), at(33)], ...step3 })).status).toBe(400);
+    expect((await book({ packageId: pkgId, slots: [at(30), at(32), at(34)], discord: 'gio' })).status).toBe(400);
+    expect((await book({ packageId: pkgId, slots: [at(30), at(32), at(34)], goal: step3.goal })).status).toBe(400);
+
+    const res = await book({ packageId: pkgId, slots: [at(34), at(30), at(32)], ...step3, challenges: 'Panic in final circles' });
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveLength(3);
+    expect(res.body.map((s: { priceWaveCoin: number }) => s.priceWaveCoin)).toEqual([13, 13, 13]); // 39 split over 3 (any remainder goes on the first)
+    expect(new Set(res.body.map((s: { bookingGroupId: string }) => s.bookingGroupId)).size).toBe(1);
+    expect(res.body[0]).toMatchObject({ packageName: 'GROWTH', goal: step3.goal, discord: 'gio.wavehub', challenges: 'Panic in final circles', status: 'scheduled' });
+    expect(res.body[0]).toMatchObject({ platformFeePercent: 10, platformFeeWaveCoin: 1, coachPayoutWaveCoin: 12 });
+    expect(await balanceOf(ctx, buyer)).toBe(before - 39);
+
+    // Booked times are busy; booking over them is refused.
+    const busy = (await buyer.client.get(`/coaches/${coachId}/busy`)).body;
+    expect(busy.length).toBeGreaterThanOrEqual(3);
+    expect(Object.keys(busy[0]).sort()).toEqual(['end', 'start']);
+    const clash = await buyer.client.post(`/coaches/${coachId}/bookings`, { durationMinutes: 60, slots: [new Date(new Date(res.body[0].scheduledAt).getTime() + 30 * 60_000).toISOString()], ...step3 });
+    expect(clash.status).toBe(409);
+
+    expect((await notes(buyer)).find((n) => n.title === 'სესია წარმატებით დაიჯავშნა')?.body).toContain('39 GEL');
+    expect((await notes(coachUser)).map((n) => n.title)).toContain('ახალი ჯავშანი');
+    // Discord/goal stay private: not in the coach's public profile.
+    expect(JSON.stringify((await buyer.client.get(`/coaches/${coachId}`)).body)).not.toContain('gio.wavehub');
+  });
+
+  it('start: reminders every 10 minutes to whoever has not confirmed, then auto-cancel with a full refund', async () => {
+    const before = await balanceOf(ctx, buyer);
+    const s = (await buyer.client.post(`/coaches/${coachId}/bookings`, { durationMinutes: 60, slots: [at(50)], ...step3 })).body[0];
+    expect(await balanceOf(ctx, buyer)).toBe(before - 40);
+    const scheduled = new Date(Date.now() + 10 * 60_000);
+    await ctx.dataSource.query(`UPDATE coaching_sessions SET "scheduledAt" = $2 WHERE id = $1`, [s.id, scheduled]);
+
+    // Too early to confirm yet? 10 minutes before is inside the 15-minute window.
+    expect((await coachUser.client.post(`/coaching-sessions/${s.id}/confirm-start`)).status).toBe(200);
+    const t0 = new Date();
+    let r = await sweep(t0); // "starting soon" — only the student still needs to confirm
+    expect(r.reminded).toBeGreaterThanOrEqual(1);
+    expect((await row(s.id)).remindersSent).toBe(1);
+    r = await sweep(new Date(t0.getTime() + 5 * 60_000)); // < 10 minutes later: nothing
+    expect((await row(s.id)).remindersSent).toBe(1);
+    await sweep(new Date(scheduled.getTime() + 60_000)); // at start: reminder
+    await sweep(new Date(scheduled.getTime() + 12 * 60_000)); // 10+ minutes later: another
+    expect((await row(s.id)).remindersSent).toBe(3);
+    const buyerNotes = (await notes(buyer)).filter((n) => n.type === 'session_starting');
+    expect(buyerNotes.length).toBeGreaterThanOrEqual(3);
+    expect((await notes(coachUser)).filter((n) => n.type === 'session_starting' && n.title !== 'დაადასტურე სესიის დაწყება').length).toBe(0); // the coach already confirmed
+
+    // The coach can't complete (and take the money) without a started session.
+    expect((await coachUser.client.post(`/coaching-sessions/${s.id}/complete`)).status).toBe(409);
+
+    // Window over → cancelled, refunded, both told.
+    r = await sweep(new Date(scheduled.getTime() + 61 * 60_000));
+    expect(r.cancelled).toBeGreaterThanOrEqual(1);
+    expect((await row(s.id)).status).toBe('cancelled');
+    expect(await balanceOf(ctx, buyer)).toBe(before);
+    expect((await notes(coachUser)).some((n) => n.title === 'სესია გაუქმდა' && n.body.includes('ვერ დაადასტურა'))).toBe(true);
+    expect((await buyer.client.post(`/coaching-sessions/${s.id}/confirm-start`)).status).toBe(409);
+  });
+
+  it('finish: coach marks done → student confirms → coach paid with the fee shown → review requested and accepted', async () => {
+    const coachBefore = await balanceOf(ctx, coachUser);
+    const s = (await buyer.client.post(`/coaches/${coachId}/bookings`, { durationMinutes: 60, slots: [at(70)], ...step3 })).body[0];
+    const started = await startSession(ctx, coachUser, buyer, s.id);
+    expect(started.status).toBe('in_progress');
+    expect((await notes(buyer)).some((n) => n.type === 'session_started')).toBe(true);
+    expect((await buyer.client.post(`/coaching-sessions/${s.id}/cancel`)).status).toBe(409); // student can't cancel after start
+
+    const done = await coachUser.client.post(`/coaching-sessions/${s.id}/complete`);
+    expect(done.body).toMatchObject({ status: 'awaiting_confirmation' });
+    expect(done.body.autoConfirmAt).toBeTruthy();
+    expect(await balanceOf(ctx, coachUser)).toBe(coachBefore);
+    expect((await notes(buyer)).some((n) => n.type === 'session_awaiting_confirmation')).toBe(true);
+
+    const confirmed = await buyer.client.post(`/coaching-sessions/${s.id}/confirm-complete`);
+    expect(confirmed.body).toMatchObject({ status: 'completed', coachPayoutWaveCoin: 36, platformFeeWaveCoin: 4 });
+    expect(await balanceOf(ctx, coachUser)).toBe(coachBefore + 36);
+    const coachNote = (await notes(coachUser)).find((n) => n.type === 'session_completed');
+    expect(coachNote?.body).toContain('36 GEL');
+    expect(coachNote?.body).toContain('10%');
+    expect((await notes(buyer)).some((n) => n.type === 'session_review_request')).toBe(true);
+
+    // Review: GET answers {review: null} first (an empty body used to hide the form), then the review.
+    expect((await buyer.client.get(`/coaching-sessions/${s.id}/review`)).body).toEqual({ review: null });
+    expect((await buyer.client.post(`/coaching-sessions/${s.id}/review`, { rating: 5, body: 'Super helpful.' })).status).toBe(201);
+    expect((await buyer.client.get(`/coaching-sessions/${s.id}/review`)).body.review.rating).toBe(5);
+  });
+
+  it('the session time ending marks it done automatically; the student confirms; responses carry the server clock', async () => {
+    const s = (await buyer.client.post(`/coaches/${coachId}/bookings`, { durationMinutes: 60, slots: [at(110)], ...step3 })).body[0];
+    expect(Math.abs(new Date(s.serverNow).getTime() - Date.now())).toBeLessThan(60_000);
+    const started = await startSession(ctx, coachUser, buyer, s.id); // scheduledAt = now - 2 min
+    expect(started.status).toBe('in_progress');
+    const end = Date.now() - 2 * 60_000 + 60 * 60_000;
+    expect((await sweep(new Date(end + 10 * 60_000))).autoEnded).toBe(0); // still inside the grace
+    expect((await sweep(new Date(end + 16 * 60_000))).autoEnded).toBeGreaterThanOrEqual(1);
+    expect((await row(s.id)).status).toBe('awaiting_confirmation');
+    expect((await notes(buyer)).some((n) => n.type === 'session_awaiting_confirmation' && n.body.startsWith('სესიის დრო დასრულდა'))).toBe(true);
+    expect((await buyer.client.post(`/coaching-sessions/${s.id}/confirm-complete`)).body.status).toBe('completed');
+  });
+
+  it('an unanswered "done" auto-confirms after 48 hours', async () => {
+    const coachBefore = await balanceOf(ctx, coachUser);
+    const s = (await buyer.client.post(`/coaches/${coachId}/bookings`, { durationMinutes: 60, slots: [at(90)], ...step3 })).body[0];
+    await startSession(ctx, coachUser, buyer, s.id);
+    await coachUser.client.post(`/coaching-sessions/${s.id}/complete`);
+    expect((await sweep(new Date(Date.now() + 47 * 3600_000))).autoCompleted).toBe(0);
+    expect((await sweep(new Date(Date.now() + 49 * 3600_000))).autoCompleted).toBeGreaterThanOrEqual(1);
+    expect((await row(s.id)).status).toBe('completed');
+    expect(await balanceOf(ctx, coachUser)).toBe(coachBefore + 36);
+  });
+
+  it('working hours: the coach sets weekly hours, days off and notice; bookings outside them are refused', async () => {
+    const day = tbilisiLocal(Date.now() + 3 * 86400_000); // a Tbilisi date three days ahead
+    const offDay = tbilisiLocal(Date.now() + 4 * 86400_000);
+    const set = (availability: unknown) => coachUser.client.request('PATCH', '/coaches/mine/profile', { availability });
+    // Validation: overlap, a 15-minute step, a reversed range, a fake date, notice out of range.
+    expect((await set({ weekly: [{ day: 1, from: 600, to: 900 }, { day: 1, from: 840, to: 1000 }], daysOff: [], noticeHours: 1 })).status).toBe(400);
+    expect((await set({ weekly: [{ day: 1, from: 615, to: 900 }], daysOff: [], noticeHours: 1 })).status).toBe(400);
+    expect((await set({ weekly: [{ day: 1, from: 900, to: 600 }], daysOff: [], noticeHours: 1 })).status).toBe(400);
+    expect((await set({ weekly: [], daysOff: ['2026-02-30'], noticeHours: 1 })).status).toBe(400);
+    expect((await set({ weekly: [], daysOff: [], noticeHours: 100 })).status).toBe(400);
+    expect((await set({ weekly: [{ day: 7, from: 0, to: 60 }], daysOff: [], noticeHours: 1 })).status).toBe(400);
+
+    const hours = { weekly: [{ day: day.day, from: 18 * 60, to: 21 * 60 }, { day: offDay.day, from: 0, to: 1440 }], daysOff: [offDay.date], noticeHours: 2 };
+    const saved = await set(hours);
+    expect(saved.status).toBe(200);
+    // The server stores weekly ranges sorted by day — compare in that order (the test's two days
+    // come out Saturday-then-Sunday on some weekdays).
+    const stored = { ...hours, weekly: [...hours.weekly].sort((a, b) => a.day - b.day || a.from - b.from) };
+    expect(saved.body.availability).toEqual(stored);
+    expect((await buyer.client.get(`/coaches/${coachId}`)).body.availability).toEqual(stored);
+
+    const slot = (date: string, minutes: number) => new Date(tbilisiInstant(date, minutes)).toISOString();
+    const student = await registerUser(ctx, 'lchours'); // own throttle bucket
+    await credit(ctx, student, 500);
+    const book = (iso: string, durationMinutes = 60) => student.client.post(`/coaches/${coachId}/bookings`, { durationMinutes, slots: [iso], ...step3 });
+    expect((await book(slot(day.date, 17 * 60))).status).toBe(400); // before the range
+    expect((await book(slot(day.date, 20 * 60 + 30))).status).toBe(400); // runs past 21:00
+    expect((await book(slot(day.date, 20 * 60), 90)).status).toBe(400); // 90 min doesn't fit
+    expect((await book(slot(offDay.date, 12 * 60))).status).toBe(400); // day off
+    expect((await book(new Date(Date.now() + 3600_000).toISOString())).status).toBe(400); // under 2h notice
+    expect((await book(new Date(Date.now() + 61 * 86400_000).toISOString())).status).toBe(400); // past the horizon
+    const ok = await book(slot(day.date, 19 * 60));
+    expect(ok.status).toBe(201);
+    expect(ok.body[0].scheduledAt).toBe(slot(day.date, 19 * 60));
+
+    // A late range continued by the next day's 00:00 range lets a session run past midnight.
+    const late = tbilisiLocal(Date.now() + 5 * 86400_000);
+    const next = tbilisiLocal(Date.now() + 6 * 86400_000);
+    expect((await set({ weekly: [{ day: late.day, from: 22 * 60, to: 1440 }, { day: next.day, from: 0, to: 60 }], daysOff: [], noticeHours: 0 })).status).toBe(200);
+    expect((await book(slot(late.date, 23 * 60 + 30), 120)).status).toBe(400); // would end 01:30
+    expect((await book(slot(late.date, 23 * 60), 120)).status).toBe(201); // 23:00–01:00
+    // Staff edit the same hours; null resets to the default.
+    expect((await set(null)).body.availability).toBeNull();
+    expect((await buyer.client.get(`/coaches/${coachId}`)).body.availability.weekly).toHaveLength(7);
+    await openAllHours(ctx, coachId);
+  });
+});
+

@@ -1,0 +1,1101 @@
+# frontend
+
+## Current state (2026-09-24 — read this first; it supersedes older notes below)
+The app is now a **1:1 port of Tornike's current `main` design** (`b300d78`, 2026-09-22) on real
+data. Where the narrative further down contradicts this section (e.g. "no cart page", "no seller
+create flow", `NotificationBell`, the Rules tab being static copy, `.detail-*` policy pages), this
+section wins.
+- **Design source of truth**: `styles/global.css` = the prototype's `styles.css` (3-way merged, asset
+  URLs made absolute) + this app's additions appended at the end, each with a comment saying why;
+  `public/assets/` mirrors the prototype's `assets/`. Compare against the live
+  `nopetornike.github.io/wavehub/*.html` pages at the same viewport, not just the source.
+- **Shell**: `Layout` → `Sidebar` (with real online count), `Topbar` (language switcher, messages/
+  cart/notification badges, Wave-rank profile menu, avatar photo), `Footer`, `MobileBottomNav`,
+  `NotificationCenter`. Shared state: `lib/shell.tsx` (`useShell`: unread counts, online count,
+  Wave rank, games), `lib/cart.tsx` (browser-local cart), `lib/favorites.tsx` (server favourites),
+  `lib/i18n.tsx` (EN↔KA DOM translator using the prototype's own dictionary + `i18n-ka-en.app.json`).
+  `Layout` props: `bodyClass` (the prototype's `<body class>` — e.g. `wallet-page`,
+  `policy-page-body`, `steam-detail-page`; many rules are scoped to it), `mainClass`, `topbarAction`,
+  and `pageSearch` (the topbar box filters the current page instead of searching the marketplace,
+  as on the prototype's orders/wallet/coaching pages).
+- **Ported pages** (prototype file → route): `index.html` → `/`; `marketplace.html` →
+  `/marketplace` (+ seller modal `components/SellerModal.tsx`); `detail.html` → `/listings/[id]`
+  (digital keys render `steam-game-detail.html`'s layout instead); `cart.html` → `/cart` (one real
+  order per unit, live re-pricing); favourites → `/favorites`; `steam-keys.html` → `/steam-keys`;
+  `about.html` → `/about`; `profile.html` → `/profile` (Settings) and `/u/[username]` (public);
+  `orders.html` → `/orders` (both sides' summary, cards, "My Listings" panel); `wallet.html` →
+  `/wallet` (summary cards, category tabs that really filter, plus a withdrawal bar/list the
+  prototype lacks); `messages.html` → `/messages`; `tournaments.html` / `tournament-detail.html` →
+  `/tournaments`, `/tournaments/[id]` (pre-join layout); `coaching.html` → `/coaching` (filter panel,
+  sort, grid/list, pagination — server-side); `coach-book-session.html` → `/coaching/[id]`;
+  `auth.html` → the 5 auth pages (`components/AuthCardTop.tsx`); the 10 policy pages →
+  `/pages/[slug]` (parses the CMS text into the policy layout — format in
+  `backend/src/content/CLAUDE.md`).
+- **Shared pieces**: `components/ProductCard.tsx` (showcase/plain cards, `listingKind`,
+  `listingPrice`), `components/MyListings.tsx` (seller listing panel + edit modal, used by
+  `/profile` and `/orders`), `components/RecordCard.tsx`, `lib/games.ts` (`gameCover`/`gameTile`/
+  `gameIcon` by slug), `lib/game-details.json` (per-game detail-form fields), `lib/labels.ts`
+  (`LISTING_TYPE_LABELS`, order/session/listing status labels).
+- **Tournaments v2 (docs/design-mockups 01–03, 07, 08, 10, 11, 13)**: `components/TournamentBoard.tsx`
+  (list + "My Tournaments"), `pages/tournaments/{index,mine,hub,[id]}.tsx`,
+  `pages/tournaments/[id]/matches/{index,[matchId]}.tsx`, shared helpers/icons in
+  `lib/tournaments.tsx`, admin `components/admin/TournamentOps.tsx` (team verification, match entry;
+  player stats typed as `name | kills | K/D | damage | rating | assists | mvp`). New CSS is the
+  "Tournaments v2" block (`wt-` prefix) near the end of `global.css`; the detail tabs reuse the
+  prototype's `.prejoin-*`/`.prize-*`/`.team-*`/`.rule-*` rules. The prototype's team rows use a
+  stock portrait sprite for members — overridden to initials (rule #6).
+- **Steam games (docs/design-mockups 04/05)**: `pages/steam-keys.tsx` (search, sort — the genre
+  chip bar was removed at the owner's request 2026-09-26; genre stays a seller-entered fact on
+  the detail page; 5 large + 7 compact cards, pagination — all server-side) and `components/SteamGameDetail.tsx`
+  (rendered by `listings/[id].tsx` for digital keys: gallery with arrows/thumbs/trailer link, badges,
+  rating + sold, price with the seller's "was" price, facts grid, tabs, "You may also like"). CSS
+  blocks `sg-` and `sd-` at the end of `global.css`.
+- **Coaching (docs/design-mockups 06/14)**: `coaching/index.tsx` cards show the coach's rank,
+  measured response time and earned tags; `coaching/[id].tsx` is the mockup-14 profile (online pill,
+  badges, Wave Score + rating, four real metrics, Overview / Student Review tabs, intro video with its
+  YouTube thumbnail, quote, style, games, languages, Book / Message / Wishlist with the booking form);
+  `coaching/profile.tsx` is the coach's editor; `components/SessionReview.tsx` on
+  `coaching-sessions/[id]` lets the buyer review a completed session.
+- **Home (docs/design-mockups 15–18)** keeps Tornike's home and adds the desktop "Explore our
+  services" row, the "Ready to level up?" call-to-action, coach photos / real online pill / earned
+  badges on the coach cards, and real format/fee/team facts plus the tournament's own name on the
+  featured-tournament cover (the prototype hard-coded "WAVE CUP"). **Public profile (12)**:
+  `pages/u/[username].tsx` (`up-` CSS), fields editable in Settings. A global `[hidden] { display:
+  none !important }` now guarantees the hidden attribute wins over prototype `display` rules.
+- **Currency display (owner decision, 2026-10-07 — supersedes 2026-09-26)**: everything a user
+  sees says **GEL**, wallet balances included (topbar, wallet, dashboard, cart/booking balance
+  notices, withdrawals, admin balance tools, promo codes). "WC"/"WaveCoin" confused people. Code
+  identifiers (`priceWaveCoin`, `wavecoinBalance`, …) and the ledger are unchanged; 1 WC = 1 GEL.
+- **English mode (`lib/i18n.tsx`)**: every Georgian string the app renders must have an entry in
+  `lib/i18n-ka-en.app.json` or it stays Georgian in EN mode (the 2026-09-26 sweep added ~1,100
+  that had been missed, incl. `.verify-banner` and `.home-cta`). Text built from a template string
+  is one text node — add it as a pattern key with `{0}`, `{1}`… placeholders
+  (`"{0} აქტიური შეკვეთა": "{0} active orders"`). `ka-GE` dates are translated by a month/day-name
+  fallback. JSX text split around `{expr}` is several nodes — add each Georgian piece separately.
+- **Marketplace cards**: every listing type renders the prototype's showcase card
+  (`ProductCard`), so a mixed grid stays symmetrical (the plain card appeared only beside
+  showcase cards on the prototype's own account/skin-only mock data); hover/focus feedback and a
+  clickable cover are app additions at the end of `global.css`.
+- **Grid parity check (2026-09-26)**: with reference listings loaded into the prototype's
+  `wavehub.sellerListings`, the marketplace grid and every home grid measure identical to ours
+  at 1440/1180/1000/800/600/375 (columns, gaps, card/cover/footer heights, fonts). Differences
+  kept on purpose: rarity border colours follow each real listing; the prototype's home grid is
+  40px wider than its padded panel at ≤800px (it overflows; ours fits). Prototype layout bugs
+  fixed at the end of `global.css` (don't "restore" them): the home Coaching & Tournaments panels
+  at 921–1250px (the tournament panel fell into a hidden 150px bridge column; now stacked), the
+  footer's last column cut off at 1041–1400px, and the phone home topbar sized `100vw` inside an
+  8px-padded panel. Home featured items use the prototype's image order: own photo → account
+  rarity art (`<status>-account.png`) → game cover.
+- **Support (`pages/support/*`, `lib/support.tsx`, `sp-` CSS)**: no prototype page; dark cards,
+  category chip grid (no native `<select>`), ticket list, chat-style thread. A global rule now
+  gives native `<select>` option lists a dark background (they were white-on-white).
+- **Auth pages**: copy is Georgian source like every other page (it used to be the prototype's
+  English verbatim, so KA mode showed English) and they carry the floating EN/ქა switcher
+  (`<LanguageSwitcher floating />`), as the prototype's site-footer.js adds on auth.html.
+- **Selling services** (`pages/sell/services/*`, `components/ServiceEditors.tsx`, `sv-` CSS):
+  create a service (category, game, title, description, buyer questions, FAQ), then packages,
+  photos, submit; reachable from the profile menu ("ჩემი სერვისები"), the Become-a-seller modal and
+  the My Listings panel ("Manage"). Admin → Listings has a Details expander (`al-` CSS) showing the
+  full listing before approval. See `backend/src/listings/CLAUDE.md` for the rules.
+- **Tornike's main updates ported (2026-10-01, `eb4f6a3` + `ad1ecf8`)**: his `styles.css` diff applied
+  to `global.css` as a patch (clean); sidebar drops Orders/Settings (both in the profile menu) and
+  the Admin link moved into the profile menu (his CSS hides any sidebar link containing "admin");
+  coach-profile games card uses his Main-Game tile markup; featured-tournament cover lost the trophy
+  icon; direct messages render as rows with avatar + sender/time meta (his "Seen" marker omitted:
+  messages carry no read time); home `.top-actions.is-signed-in`; review cards show the reviewer's
+  real Wave rank (`PublicReview.buyerRank`).
+- **Admin → Statistics** (`pages/admin/analytics.tsx`, Super Admin only — the nav link is hidden for
+  other roles and the API refuses them): date presets + custom range scoping the whole page, KPI
+  tiles, a trend chart (`components/charts/TrendChart.tsx`: single series, crosshair tooltip,
+  keyboard ←/→) with a metric switch and a table view, sales by game (`components/charts/BarList.tsx`),
+  type/category tables, top listings/sellers, subscriptions by plan, coaching, money flow. Chart
+  colours (brand pink/violet) were run through the dataviz palette validator on the dark surface.
+- **Admin → Games** (`pages/admin/games.tsx`, `ag-` CSS): add/rename/hide/reorder games and
+  upload their home tile, cover and icon. `lib/games.ts` helpers (`gameCover`/`gameTile`/
+  `gameIcon`) prefer uploaded art (registered from `/stats/games` by `lib/shell.tsx`) over the
+  bundled `GAME_ART` — always go through the helpers, never index `GAME_ART` directly.
+- **Favicon**: the prototype's `public/assets/favicon.png` (`_document.tsx`).
+- **Dashboard (09)**: `pages/dashboard.tsx` (`db-` CSS), signed-in only, added to `Sidebar` after
+  Home only when logged in. Every number is the viewer's own data from existing endpoints: next
+  scheduled coaching session (countdown), session progress ring, open orders, active tournament
+  entries, latest order, wallet balance, Wave rank. Empty states instead of placeholders.
+- **Rule #6 decisions in the port** (each also commented in its page): no fake prize splits / demo
+  teams / anti-cheat claims on tournaments; no fake coach rank, response time, "Top 1%" tags or
+  always-on online dot (the dot is real presence now); Steam detail shows real rating/stock/seller
+  instead of "4.9 · Verified game key"; wallet "Total Purchased" = real BOG top-ups.
+- **Local verification**: dev-mode hydration stalls in the in-app browser pane after the first
+  navigation; use the `wavehub-frontend-prod` launch config (build + `next start`) and restart it to
+  pick up changes. Re-check pages at 1280px and ≤800px — several prototype rules are tuned to a
+  fixed child count (see the coach-profile note below) or fixed column minimums (the tournament
+  register bar overflowed below ~1450px on the prototype too; fixed at the end of `global.css`).
+
+## Purpose
+The Next.js app — **this is the one real frontend going forward** (confirmed decision, see root
+`CLAUDE.md`). The static HTML/JS prototype at the repo root is UI/UX reference only; port ideas from
+it into real components here, don't extend it further.
+
+**2026-07-22 design pivot**: the user asked for this app's UI to visually match the static
+prototype's actual design exactly, not just take loose inspiration from it — "UI should be a copy
+of Tornike's [main branch]." `frontend/styles/global.css` is now a direct copy of the repo-root
+`styles.css` (11,600+ lines — the prototype's real, actively-maintained design system: colors,
+the sidebar app-shell layout, every page-specific component class), not the smaller custom
+dark-purple theme this app used before. `frontend/public/assets/` is a copy of the repo-root
+`assets/` folder for the same reason. `components/Layout.tsx`/`Sidebar.tsx`/`Topbar.tsx` now
+implement the sidebar app-shell structure from `index.html` (`.app-shell` > `.sidebar` +
+`.main-panel` > `.topbar`), replacing the old top-nav `Header`/`Footer` pair (`Header.tsx` deleted
+— `Footer.tsx` still exists and is rendered inside `.main-panel`, but hasn't been restyled to
+match the prototype's own footer yet).
+**Still in progress, page by page** (see the build plan's progress log for the up-to-date list):
+most page *content* (coaching, admin, support, etc.) still uses this app's own older component
+classes (`.page`, `.card`, `.filter-bar`, `.admin-*`, etc.) rather than the prototype's exact
+per-page markup — those old classes were preserved verbatim at the bottom of `global.css` (see
+the "Legacy WaveHub-app component classes" comment block in that file) specifically so nothing
+visually broke while this migration happens incrementally, but they are **not** the prototype's
+real design, just a functional bridge. A page is only "done" for this pivot once its actual JSX
+uses the prototype's real class names/structure. Do not assume a page matches the static site
+just because it renders without errors — check it against the corresponding `.html` file at the
+repo root.
+**Done so far**: the app shell (`Sidebar`/`Topbar`/`Layout`), all 5 auth pages (`login`,
+`register`, `forgot-password`, `reset-password`, `verify-email` — now use `.auth-page-shell`/
+`.auth-card`/`.auth-tabs`/`.auth-form` from `auth.html`), and `marketplace.tsx`/
+`listings/[id].tsx` (now use `.marketplace-head`/`.marketplace-toolbar`/`.marketplace-grid`/
+`.marketplace-card` from `marketplace.html` and `.detail-page`/`.detail-layout`/
+`.detail-buy-panel`/`.detail-gallery-card`/`.detail-reviews-card`/`.public-review-card` from
+`detail.html`). Two deliberate deviations from the prototype worth knowing about if you touch
+these pages again:
+- **Card variant**: `marketplace.html`'s live cards are actually `.product-showcase-card`
+  (rarity-glow borders, Level/Views stat overlay, seller-avatar-with-photo) — but that markup
+  needs `accountStatus`/`views`/`likes`/`favoriteCount` fields the real `Listing`/`User` entities
+  don't have. Used the plainer `.marketplace-card` variant instead (still real, defined CSS in
+  `styles.css`, just the "dead code" branch on the static page since every static-prototype
+  listing happens to be an account/skin) — visually consistent with the design system, just a
+  simpler card shape. Revisit if/when the backend grows rarity/view-count fields.
+  - **Pagination**: `marketplace.html` has no pagination (it renders every localStorage listing at
+  once); the real backend paginates. Kept a plain prev/next `.button` pair below the grid — not
+  part of the prototype, added because the feature has to exist somewhere.
+`orders/index.tsx` (now uses `.orders-page-head`/`.orders-summary`/`.orders-tabs`/`.orders-list`/
+`.order-card`+`.order-thumb`+`.order-copy`+`.order-side` from `orders.html`) and `wallet.tsx`
+(now uses `.wallet-page-head`/`.wallet-dashboard-hero`/`.wallet-hero-breakdown`/`.wallet-layout`/
+`.wallet-buy-panel`/`.wallet-history-section`/`.wallet-transaction-card` from `wallet.html`) are
+also done. One class-collision fix this required: the real `orders.html` design defines its own
+`.order-card` (a 3-column grid: thumb/copy/side) — but `.order-card` was already in use elsewhere
+in this app (`wallet.tsx`'s withdrawal-request list, `support/index.tsx`, `admin/tickets.tsx`,
+`admin/disputes.tsx`) as a flat flex-row card from the *legacy* bridge section of `global.css`.
+Since both rules shared the same class name, cascade order meant the legacy one was silently
+winning everywhere, including on the real orders.html-style card once it got built. Fixed by
+renaming the legacy CSS rule to `.legacy-order-card` and updating its 4 other consumers to match
+— `orders/index.tsx` is now the only page using the real `.order-card`. If you port one of those
+4 remaining pages later, decide then whether it should adopt the real `.order-card` shape too (it
+needs a `.order-thumb` child) or keep `.legacy-order-card`.
+`wallet.tsx`'s withdrawal-request panel and orders/[id].tsx's delivery/chat/dispute panels have no
+equivalent in the static prototype at all (no seller-payout or order-detail page exists there) —
+left on legacy classes, not part of this pivot's scope.
+`coaching/index.tsx` (now uses `.coach-heading-row`/`.coach-game-tabs`/`.coach-result-row`/
+`.coach-grid`/`.coach-card` from `coaching.html`) and `coaching/[id].tsx` are also done.
+
+**`coaching/[id].tsx` was re-ported 2026-09-24 — the note that used to live here ("reuses the
+listing detail page's `.detail-*` classes, since no coach-profile page exists in the prototype at
+all") is now WRONG and was the exact drift this re-check was looking for.** `coach-book-session.html`
+has since grown into a real coach-profile page (`<title>WaveHub - Coach Profile</title>`, body class
+`coach-detail-body`, ~1230-line `coach-book-session.js` rendering a `.coach-profile-shell`), the
+same way `profile.html` had. The page now uses the prototype's own design system —
+`.coach-profile-shell`/`.coach-profile-back`/`.coach-profile-hero`/`.coach-profile-portrait`/
+`.coach-profile-title-row`/`.coach-verified-mark`/`.coach-profile-badges`/`.coach-score-panels
+.single`/`.coach-info-grid`+`.coach-games-card`+`.coach-languages-card`/`.coach-booking-panel`+
+`.coach-starting-price`+`.coach-book-primary` — all of which were already present in `global.css`
+from the original design-pivot copy. Things worth knowing if you touch it again:
+- **What was omitted and why** is written out as a long comment block at the top of the page's JSX
+  (rule #6 — online/availability pill, "Wave Score", the 4 `.coach-profile-metrics` tiles, intro
+  video, quote, coaching-style/expertise/achievements cards, the Overview/Reviews tabs and review
+  list, the availability calendar, "Message Coach", "Add to Wishlist", similar-coaches). Every one
+  needs a field `Coach`/`PublicCoachDetail` doesn't have. The live github.io reference already
+  hides several of them itself via `.coach-detail-body`.
+- **`.coach-detail-body` is deliberately NOT applied.** Every rule in it is either a `display:none`
+  for a section this page doesn't render anyway or a layout tweak the base rules already give — and
+  it additionally hides `.coach-starting-price`, which here carries the coach's real hourly rate.
+- Two new CSS variant classes were needed, both documented inline in `global.css` next to the rule:
+  `.coach-info-grid-auto` (the source sheet hard-codes three columns for a fixed five-card layout;
+  this page has two real cards) and a `.coach-booking-panel .stack-form` block (strips
+  `.stack-form`'s standalone-card chrome and lays the booking fields out as a row).
+- **A real bug this found, worth remembering as the pattern:** `@media (max-width: 1120px) {
+  .coach-info-card:first-child, .coach-info-card:nth-child(3) { grid-column: 1 / -1 } }` is written
+  for the prototype's five-card ORDER (card 1 = wide "About", card 3 = "Expertise"). With two cards
+  those positions are Games and Languages, so the Games card span-hijacked the entire row —
+  measured 825px vs the Languages card's 266px — across the whole 701–1120px band, while 1440px
+  looked perfect. It was invisible in the CSS source and only showed up in live computed styles at
+  900px. Re-measure at several widths, not just your default one, whenever a ported page renders a
+  different number of children than the prototype does.
+Two further things worth knowing about the coaching pages generally:
+- `coaching.html` itself lives outside `.app-shell` entirely — its own standalone
+  `.coach-page`/`.coach-topbar`/`.coach-shell` shell with no sidebar, and its `--coach-*` CSS
+  custom properties (colors, line colors) are scoped to a `.coaching-body` class the prototype
+  puts on `<body>`. Kept the shared `Sidebar`/`Topbar`/`Layout` for navigation consistency with
+  the rest of the app instead of adopting that alternate shell, and scoped `.coaching-body` (and
+  therefore its variables) onto a wrapper `<div>` around just this page's content instead of
+  `<body>` — safe because `.coach-*` classes don't otherwise depend on `.coach-shell`'s layout,
+  just the CSS variables.
+- `coaching.html`'s elaborate left-side filter panel (game checkboxes, service-type, price-range
+  slider, rank/availability/language selects) isn't backed by the real API at all — `browseCoaches`
+  only supports a `gameId` filter. Used `.coach-game-tabs` (a real prototype class, single-game
+  filter) instead of trying to fake the rest.
+`coaching/apply.tsx` (the coach-application form) was moved onto the coaching section's real design
+language 2026-09-24. There is still **no** coach-application page or "become a coach" CTA anywhere
+in the static prototype (re-checked against the current `main`: `coaching.html`,
+`coach-book-session.html`, `coach-standards.html`, `coaches-data.js` — none has one), so this is
+explicitly not a 1:1 port; it just stops using the legacy `.page`/`.page-inner`/`.page-title`
+bridge classes and adopts `.coaching-body` + `.coach-profile-shell` + `.coach-profile-back` +
+`.coach-heading-row` (the same page-head idiom as `coaching/index.tsx`) with the form inside a
+`.coach-info-card.coach-apply-card`, submit button `.coach-book-primary`. `.coach-apply-card` caps
+the form at 720px inside the 1180px shell; the `.stack-form` chrome-strip rule it relies on is
+shared with the booking panel (see `global.css`).
+`coaching/[id].tsx`'s "book a session" button is no longer a disabled placeholder (2026-09-16) —
+it's a real form (date/time/duration/optional message) wired to the new
+`backend/src/coaching/` session-booking endpoints, and `pages/coaching-sessions/{index,[id]}.tsx`
+(new) give buyers/coaches a real session list and detail page — same `.orders-page-head`/
+`.order-card` design as `orders/index.tsx`/`orders/[id].tsx`, since sessions have no
+static-prototype reference of their own either (`coach-book-session.html`'s 6-step wizard is UI
+inspiration for a future richer flow, not something ported directly — see
+`backend/src/coaching/CLAUDE.md` for the real scope shipped). Every action that moves WaveCoin
+(booking, complete, cancel) calls `useAuth()`'s `refresh()` before/after so the topbar balance
+doesn't go stale — a real bug was caught and fixed here during verification (the balance stayed
+wrong until a hard reload before this was added; see the git history for this file if you need the
+exact before/after).
+**Deliberately deferred**: `profile.html` (560 lines) is two different things bolted together —
+(a) an own-account dashboard with listing/coaching-session edit modals, which has no equivalent
+anywhere in the real app yet (there's no seller "my listings" management UI at all — a gap
+predating this pivot, see `backend/src/listings/CLAUDE.md`), so porting it isn't a visual-port
+task, it's new seller-dashboard feature work — still not built, no task tracks it yet; (b) the
+public seller-profile viewer half **is now built**: `pages/u/[username].tsx`, backed by the new
+`GET /users/:username` (`backend/src/users/users.controller.ts`, actually declared in
+`ListingsModule` — see that module's `CLAUDE.md`). Reuses `.public-profile-frame`/
+`.public-profile-hero`/`.public-profile-stats` from `profile.html` (2026-09 re-check against the
+current, much-grown `profile.html`, which has since gained an avatar ring, a rank-panel aside, an
+About/game-preference overview, an achievement badge grid, a rating-distribution "performance"
+section, full listings/reviews sub-sections, and a footer "Message" button — none of that is
+ported: no backing fields exist for the bio/game-preference/achievement/rating-distribution data,
+no public "list this seller's listings/reviews" endpoint exists without a backend change, the rank
+panel is the prototype's own client-computed score, not real data, and a generic "Message this
+seller" button would be misleading since Direct messaging is transacted-users-only per
+LAUNCH_PLAN.md §4 — root CLAUDE.md rule #6 governs all of these). Renders **4** (not the
+prototype's 5) stat tiles this app can back with real data — Rating, Public listings, Buyer
+reviews, Member since — via a `.public-profile-stats-4` CSS class applied alongside
+`.public-profile-stats` on the same element (only "Completed orders" has no backing field, so it's
+the one tile dropped). That class overrides just the 5-tile source rules' column count and the
+`:nth-child`/`:last-child` border/span logic that actually differs for 4 items — see the comment
+above `.public-profile-stats-4` in `global.css` for exactly which breakpoints needed real
+overrides (only one did) and why; verify any future tile-count change against live computed
+styles, not just by re-reading the CSS, per that comment. Wired from the two places a username was
+already shown as plain text: the listing-detail seller card and the coach-profile seller card (both now `Link`s to
+`/u/[username]`) — `orders/index.tsx`'s counterpart username and `listings/[id].tsx`'s review
+author aren't linked yet, low-value follow-ups if this page proves useful.
+`support/index.tsx` and `support/[id].tsx` (support ticketing) have no static-prototype reference
+at all — support ticketing was net-new backend+frontend work this project added, never part of
+Tornike's site — so they reuse the same `.detail-page`/`.detail-title-block`/`.detail-section`
+design language already established for coaching/[id].tsx and the new CMS page renderer, for
+visual consistency with the rest of the ported app rather than staying on the old `.page`/
+`.page-inner` wrapper. The `.chat-panel`/`.chat-message` classes inside stay as-is (custom-built
+for order chat, which still has no static-prototype reference of its own — `messages.html`'s real
+markup is for Direct/non-order messaging specifically, see below and `pages/messages/index.tsx`).
+**`messages.html` was ported for real (2026-09-16), revising the scope decision below** — direct
+messaging became a real, confirmed product decision (LAUNCH_PLAN.md §4), scoped down from
+`messages.html`'s original general-purpose/cold-messaging design to transacted-users-only
+coordination. See `pages/messages/index.tsx` in Key files below.
+
+**`cart.html` — still a deliberate scope decision, not a pending item**: doesn't map onto anything
+the real backend supports. It's a multi-item shopping cart; the real checkout flow
+(`backend/src/orders/`) is single-listing-per-purchase by design (matches the WaveCoin/escrow
+model — see the build plan's Phase 5 entry), not a batched multi-item checkout. Porting it would
+mean building a real multi-item checkout backend first, not restyling an existing one — out of
+scope for the UI pivot. Revisit only if bulk purchase becomes a real product decision.
+
+## Key files
+- `lib/auth.tsx` — `AuthProvider` + `useAuth()`. The single place that calls `api.me()` on load;
+  every page reads `{ user, checked, refresh, logout }` from `useAuth()` instead of calling
+  `api.me()` itself. `checked` distinguishes "haven't checked session yet" from "checked, logged
+  out" — needed by any page that redirects when logged out, so it doesn't bounce a still-loading
+  visitor. Call `refresh()` after anything that changes the session server-side without a full page
+  navigation (e.g. `login.tsx` calls it right after a successful login, before its `router.push`,
+  since Next keeps the same React tree across client-side navigation — without this the header
+  would keep showing "logged out" after login until a hard reload)
+- `pages/_app.tsx` — wraps every page in `AuthProvider`
+- `pages/index.tsx` — minimal home page, links into `/marketplace`
+- `pages/marketplace.tsx` — browse grid with category/game/type filters + pagination, wrapped in
+  `Layout`
+- `pages/listings/[id].tsx` — listing detail: gallery, description, requirements/FAQ (service),
+  package picker (service) or stock/price (item and digital key — a `typeLabel` three-way ternary
+  covers all three types' badges/section headings), reviews with sort. The "buy" button calls
+  `api.purchase()` for real (redirects to `/login?next=...` first if logged out), calls
+  `refresh()` (from `useAuth()`) before navigating to the new order so the topbar balance doesn't go
+  stale (a real bug found and fixed 2026-09-17 — this page was the original copy the coaching-
+  session booking form's own `refresh()` fix was modeled on, but the fix was never backported here
+  until Steam Keys verification caught it) and, for a service listing with a `requirementsSchema`,
+  renders a form for it before allowing purchase — the answers are sent as `requirementsAnswers`,
+  validated server-side by `backend/src/orders/requirements-validator.ts`. A digital-key listing
+  shows a "final sale, no cancellation" notice near the buy button, matching
+  `backend/src/orders/CLAUDE.md`'s cancellation-guard behavior for that type.
+- `pages/orders/index.tsx` — buyer/seller tab list of the viewer's orders (`api.listOrdersAsBuyer`/
+  `listOrdersAsSeller`)
+- `pages/orders/[id].tsx` — order detail: status, price/fee breakdown (fee only shown to the
+  seller), requirements answers, delivery files (+ upload widget for the seller while
+  `InProgress`/`Delivered`), a chat panel, and every status-gated action (start/deliver for the
+  seller; accept/request-revision/cancel for the buyer; cancel-with-reason for the seller) — the
+  viewer's role is inferred by comparing `useAuth()`'s user id against `order.buyer.id`/
+  `order.seller.id`, not a separate flag. A completed order shows a review form
+  (`api.createReview`) if the viewer is the buyer — the backend's `orderId` unique constraint is
+  the actual duplicate-review guard, this page doesn't try to pre-check that itself. The chat panel
+  polls `api.listMessages` every `MESSAGE_POLL_MS` (5s) rather than using WebSockets — matches the
+  build plan's explicit call for Order Chat (`backend/src/chat/CLAUDE.md`); a sent message is
+  appended to local state immediately on success rather than waiting for the next poll tick, so
+  sending feels instant even though received messages lag up to 5s behind. There's also a dispute
+  section: `api.getDispute` is fetched once on load (a 404 just means none exists yet, handled
+  silently, not shown as an error) — if none exists and the order's status is disputable
+  (`DISPUTABLE_STATUSES`, mirroring `backend/src/disputes/`'s `OPENABLE_STATUSES`), an "open a
+  dispute" form renders; once one exists, a dispute panel renders instead (status, reason,
+  resolution note once resolved, a message thread reusing the chat panel's CSS classes, and an
+  evidence file list + upload widget, both locked once the dispute is `Resolved`/`Closed`) — no
+  polling on this one, since `openDispute`/`sendDisputeMessage`/`uploadDisputeEvidence` each
+  refresh `dispute` from their own response instead of needing a separate re-fetch. The message-
+  send/evidence-upload forms are further gated to `isBuyer || isSeller` (a Super Admin viewing an
+  order they aren't a party to can read the thread but not post into it — those endpoints are
+  participant-only server-side and would 403). If a Super Admin and `dispute.status === 'open'`, a
+  resolve form also renders (a required note + one button per `DisputeResolution` — release to
+  seller / refund buyer / cancel order), calling `api.adminResolveDispute`. `reloadDispute` tries
+  the participant-only `api.getDispute` first and falls back to the admin-only
+  `api.adminGetDispute` (no participant check) on failure, so a non-participant Super Admin can
+  still see the thread instead of getting stuck on the resulting 403. For a digital-key order, also
+  renders a buyer-only "გასაღები" (Key) panel — a "Show the key" button that calls the separate
+  `api.getOrderKey(id)` pull (not part of the main order fetch, matching the backend's deliberate
+  separation — see `backend/src/orders/CLAUDE.md`) and displays the plaintext key in a monospace,
+  select-all span once revealed; gated on `order.listing.type === ListingType.DigitalKey`.
+- `pages/sell/digital-keys/index.tsx` (create-listing form + the seller's own list of digital-key
+  listings) and `pages/sell/digital-keys/[id].tsx` (key inventory management: paste-a-list bulk
+  upload, a status-labeled key list with remove, submit-for-review) — 2026-09-17, Steam Keys. There
+  is still no generic "create a listing" flow for Service/Item (a pre-existing, broader gap this
+  didn't attempt to close — see `backend/src/listings/CLAUDE.md`), so these two pages are
+  deliberately scoped to DigitalKey only, not a first slice of a general seller dashboard. Linked
+  from the marketplace page's header ("Steam-ის გასაღებების გაყიდვა"), not the `Sidebar` — matching
+  how "become a coach" is discoverable from the coaching directory rather than a permanent nav item.
+  `listMyListings`/`createDigitalKeyListing`/`submitListingForReview` in `lib/api.ts` are typed
+  `unknown` (raw TypeORM entity responses, same convention as the admin-mutation endpoints
+  documented below) rather than a `Public*` shape.
+  **Both pages moved off the legacy `.page`/`.page-inner`/`.page-title`/`.admin-row`/`.empty-state`
+  bridge classes 2026-09-24.** Steam Keys is net-new with no static-prototype page to port from, so
+  they now follow the design language already established for the app's other own-data pages —
+  `.detail-page` + `.detail-title-block` (+ `.section-kicker`) + `.detail-section` cards, with the
+  list rows using `.orders-list`/`.order-card`+`.order-thumb`/`.order-copy`/`.order-side` from
+  `orders/index.tsx`. On `[id].tsx` the `.order-card` is a plain `div`, not a `Link` (a key row has
+  a destructive action, not a detail page), and `.order-thumb` holds a glyph/initials since neither
+  a key nor a key listing has a cover image — the same fallback `coaching-sessions/index.tsx` uses.
+  The key inventory still never renders the key value itself (verified in the browser: the uploaded
+  key strings appear nowhere in the page text), matching `backend/src/listings/CLAUDE.md`.
+- `pages/wallet.tsx` — full wallet view: the derived balance breakdown (`api.getWalletBalance`
+  — available/pending-clearance/earned/withdrawn, see `backend/src/withdrawals/CLAUDE.md` for how
+  each number is computed), a WaveCoin top-up form (`api.createBogTopupOrder`, redirects the
+  browser to BOG's hosted checkout page — WaveCoin is credited later by the backend's
+  signature-verified callback, not by anything on this page; the `?topup=success|fail` query param
+  after BOG redirects back is just a banner, and also triggers a `refresh()` + balance re-fetch so
+  the new balance actually shows), a withdrawal request form (`api.requestWithdrawal` — method
+  select with method-specific payout-detail fields: bank transfer asks for account holder/IBAN/
+  SWIFT, PayPal and Wise both just ask for an email) with a list of the seller's own requests and a
+  cancel button on `Pending` ones (`api.cancelWithdrawal`), and a raw transaction history list
+  (`api.listWalletTransactions`)
+- `pages/login.tsx`, `pages/register.tsx` — auth forms. `styles/global.css`'s `.auth-page-shell`
+  deliberately anchors to a fixed top offset (`align-items: flex-start` + top padding) instead of
+  the static prototype's `place-items: center` — the prototype keeps login+register as one card
+  with JS show/hide (height never changes), but this app is two real routes, and Register's form
+  (6 fields) is visibly taller than Login's (2); with true centering, navigating between them
+  visibly moved the logo/title/tabs up and down. Found live on production, fixed 2026-09.
+  `login.tsx` supports a `?next=` query param
+  (validated with `safeNextPath` — must be a same-origin relative path starting with exactly one
+  `/`, never an absolute/protocol-relative URL, to avoid an open redirect) and pushes there on
+  successful login; other pages link to `/login?next=/wherever` when they need to force a login
+  first (see `wallet.tsx`, `listings/[id].tsx`)
+- `pages/forgot-password.tsx` — request a reset link by email
+- `pages/reset-password.tsx` — landing page for the reset link (`?token=`), sets a new password
+- `pages/verify-email.tsx` — landing page for the verification link (`?token=`), auto-verifies on
+  load; offers a "resend" button on failure (only works if the visitor still has a valid session —
+  see `api.resendVerification` in `lib/api.ts`)
+- `components/Layout.tsx`, `Sidebar.tsx`, `Topbar.tsx`, `Footer.tsx` — shared chrome (the old
+  `Header.tsx` no longer exists). `Layout` is applied per-page, not globally in `_app.tsx` — the auth
+  pages (`login`/`register`/etc.) intentionally render bare, without the shell. **Every page passes
+  `title` (and `description` where it's public, `noIndex` where it's private/transactional) to
+  `Layout`/`AdminLayout`** — they feed `components/PageHead.tsx` (`<title>` "X | WaveHub", meta
+  description, Open Graph, optional `noindex`); bare pages render `PageHead` directly. `Layout` also
+  renders a skip-to-content link, closes the mobile sidebar on Escape/route change, and mounts
+  `VerifyEmailBanner`.
+- `components/VerifyEmailBanner.tsx` — global banner (in `Layout`) for a logged-in account whose
+  `status === pending_verification`: explains what's locked, "resend verification" button
+  (`POST /auth/resend-verification`, 60s client cooldown to match the backend's 5/min throttle) and
+  an "I already verified" re-check (`refresh()`). Exists because the backend's `VerifiedEmailGuard`
+  answers 403 `Please verify your email address before doing this` on POST /orders, /listings,
+  coach-session booking, BOG top-up, tournament register, DM start, withdrawals and subscription
+  checkout — registration auto-logs the user in, so this is every new user's first-session state.
+  `register.tsx` calls `refresh()` after signup and `verify-email.tsx` after a successful verify, so
+  the banner appears/disappears without a reload.
+- `pages/_document.tsx` (`<html lang="ka">`, favicon `public/assets/favicon.png` — the prototype's own, theme color),
+  `pages/404.tsx` and `pages/_error.tsx` (Georgian, the latter deliberately doesn't use `Layout`),
+  `public/robots.txt` (disallows the private/transactional routes)
+- `components/NotificationBell.tsx` — bell icon with an unread-count badge (polls
+  `api.getUnreadNotificationCount` every 20s) that opens a dropdown panel on click (fetches
+  `api.listNotifications` fresh each time it opens, not cached). Clicking a notification marks it
+  read (`api.markNotificationRead`) then navigates via `targetForNotification` — a small function
+  that deep-links off `notification.metadata` (`orderId` → `/orders/:id`, `withdrawRequestId` →
+  `/wallet`, else falls back to `/orders`). Closes on outside-click via a `mousedown` listener on
+  `document`, matching no other existing pattern in this codebase (first dropdown-style UI) — see
+  `backend/src/notifications/CLAUDE.md` for the backend side
+- `components/AdminLayout.tsx` + `pages/admin/{index,listings,reviews,disputes,withdrawals,users}.tsx`
+  — the admin panel. `AdminLayout` wraps `Layout`, redirects a logged-out visitor to login, shows a
+  plain "access denied" state for a logged-in user with no `adminRole`, and otherwise renders a
+  section nav (all six links shown to any staff account — see the gotcha below on why this doesn't
+  mirror the backend's full per-role matrix). `admin/index.tsx` shows four stat tiles (pending
+  listings/reported reviews/open disputes/pending withdrawals counts, each fetched independently via
+  `Promise.allSettled` so one role-restricted section 403ing doesn't blank the whole dashboard).
+  `admin/listings.tsx`/`reviews.tsx`/`withdrawals.tsx`/`users.tsx` are each a fetch-a-queue +
+  act-on-a-row page (approve/reject, hide/remove/restore, process, suspend/restore/ban/unban) —
+  `users.tsx` additionally has a search/status-filter form. `admin/disputes.tsx` is list-only
+  (linking into `orders/[id].tsx`'s existing dispute panel, which has since gained a resolve form —
+  see that page's entry below) since resolving needs the full evidence/message thread this list
+  view intentionally doesn't duplicate. `admin/settings.tsx` is a simple view/edit form over
+  `backend/src/settings/`'s platform fee %, minimum withdrawal, and a maintenance-mode checkbox
+  that's stored but has no enforced effect yet (the form says so inline, matching that module's own
+  Status section). `admin/tickets.tsx` (status/priority-filtered queue) and
+  `admin/tickets/[id].tsx` (full thread, reply, internal-note form, a saved-reply picker that
+  fills the reply textarea, status/priority/assign controls, an "assign to me" shortcut) are the
+  staff side of `backend/src/support/`.
+- `pages/support/index.tsx`, `pages/support/[id].tsx` — the user-facing side of support ticketing:
+  open a new ticket (subject/category/description), list your own tickets, and a thread view that
+  reuses the same `.chat-panel` CSS as order chat/disputes. Linked from `Header` as "დახმარება" for
+  any logged-in user.
+- `pages/coaching/index.tsx` (verified-coach directory, `.coach-grid`/`.coach-card` from
+  `coaching.html` — see the design-pivot note above), `pages/coaching/[id].tsx` (profile detail +
+  a real session-booking form), `pages/coaching-sessions/{index,[id]}.tsx` (a buyer/coach's booked
+  sessions, complete/cancel actions), `pages/coaching/apply.tsx` (become-a-coach application form)
+  — linked from `Header` as "კოუჩინგი". `pages/admin/coaches.tsx` is the staff side: a
+  pending-verification queue (approve/reject) plus a full coach list with suspend/restore for
+  already-verified ones.
+- `pages/tournaments/index.tsx` (status-tab-filtered browse grid, `.tournaments-*`/
+  `.tournament-card*` from `tournaments.html`/`tournaments.js`), `pages/tournaments/[id].tsx`
+  (hero + summary stats + a 3-tab detail panel — General/Prize/Rules; the Rules tab is WaveHub-wide
+  conduct copy (the backend has no per-tournament rules field) and says so, and the prototype's "Top
+  Players" tab was deliberately dropped in the 2026-09 audit because there are no standings to show —
+  root rule #6 — plus the register button, which cross-references `api.listMyTournamentRegistrations()`
+  client-side to show a "REGISTERED ✓" state, see `backend/src/tournaments/CLAUDE.md`'s
+  "no `isRegistered` on the public shape" gotcha for why), `pages/admin/tournaments.tsx` (create
+  form + edit-in-place list with cover-image upload and delete, follows `admin/coaches.tsx`'s
+  fetch-a-queue + act-on-a-row shape) — linked from `Sidebar` as "Tournaments" (its own top-level
+  nav item, not nested under Coaching) and from `AdminLayout` as "ტურნირები".
+- `pages/messages/index.tsx` (2026-09-16) — Direct (non-order) messaging, a single two-pane inbox
+  page (contacts list + thread, real `messages.html` markup — `.direct-messages-shell`/
+  `.direct-message-contacts`/`.direct-message-thread`/`.direct-message-bubble`/etc., all already
+  present in `global.css` from the original design-pivot copy) rather than route-per-conversation,
+  matching the prototype's own single-page design. Polls `api.listDirectMessages` every 5s like
+  order chat. Accepts `?conversation=<id>` to preselect a thread (used when arriving from an order/
+  session "Message" button or a notification deep-link). Always shows a persistent notice linking
+  to `/support` — LAUNCH_PLAN.md §4's "coordination only, go through Support for anything
+  order/payment-related" rule, enforced as UI copy, not message-content filtering. There's no
+  "start a conversation with anyone" flow here — a thread only exists once the backend has actually
+  linked two transacted users (`backend/src/chat/CLAUDE.md`); the only entry points are a "Message
+  the buyer/seller" button on `orders/[id].tsx` and a "Message the buyer/coach" button on
+  `coaching-sessions/[id].tsx`, both calling `api.startDirectConversation` then routing to
+  `/messages?conversation=<id>`. Linked from `Sidebar` as "შეტყობინებები"
+  (`sidebar-message-icon.svg`, distinct from the `message-icon.svg` already used for Support).
+- `lib/api.ts` — the shared API client. **Every backend call goes through this**, not ad hoc
+  `fetch()` per page — it centralizes the base URL, `credentials: 'include'` (required for the
+  httpOnly session cookie to work cross-origin), and error unwrapping (`ApiError`). Both JSON
+  (`request`) and multipart (`upload`) calls share one `send()` so network failures become
+  `ApiError(status 0)`. **Error text**: Nest built-in exceptions put the human message in
+  `message` (and only the status name in `error`), the app's own `HttpException({ok:false,error})`
+  bodies have only `error` — `send()` prefers `message`, then `error` (reading `error` first, as this
+  file used to, turned every Nest error into a bare "Forbidden"/"Bad Request"). **Every page's catch
+  block must use `errorMessage(err, 'ქართული fallback')`**, not `err.message`: it maps the
+  unverified-email 403 (`isEmailNotVerifiedError`), 429, network failure, and the common English
+  backend strings (`KNOWN_MESSAGES`) to Georgian. Add a string there when you see a new user-facing
+  backend message leak through in English. `lib/labels.ts` holds Georgian labels for
+  `ListingStatus`/`KeyInventoryStatus` (never render a raw enum value). Note the
+  marketplace/order/review methods return the raw backend shape, unlike the auth methods which are
+  wrapped in `{ ok: true, ... }` — don't assume a uniform envelope. `addDeliveryFile` is the one
+  method that doesn't go through the shared `request()` helper — it needs `FormData`/multipart, not
+  a JSON body, so it does its own `fetch()` with the same `credentials: 'include'` + `ApiError`
+  handling duplicated inline (small enough not to warrant a second shared helper yet)
+- `styles/global.css` — CSS custom properties for a dark/purple gradient theme (`--bg`,
+  `--gradient-start/mid/end`, etc.), plus the marketplace/detail-page classes (`.listing-grid`,
+  `.listing-card`, `.filter-bar`, `.detail-layout`, `.package-list`, `.review-item`, etc.), the
+  order/wallet classes (`.order-tabs`, `.order-card`, `.order-status` + its per-status color
+  modifiers including `.order-status-disputed`, `.order-actions`, `.wallet-balance`,
+  `.delivery-file-list`, `.balance-grid`/`.balance-stat`, `.withdraw-status-*`,
+  `.transaction-list`/`.transaction-item`), and the chat classes (`.chat-panel`, `.chat-messages`,
+  `.chat-message` + `-mine`/`-system` modifiers, `.chat-form`) — the dispute panel reuses these
+  chat classes and `.delivery-file-list` rather than defining its own, since the shapes are
+  visually identical; the withdrawal-request list on `wallet.tsx` reuses `.order-card`/`.order-list`
+  for the same reason; and the notification classes (`.notification-bell`, `.notification-panel`,
+  `.notification-item` + `.unread` modifier), which are new — nothing existing fit a dropdown
+
+## Data model
+N/A on the frontend itself. Talks to the NestJS backend (`backend/`) over HTTP; shared request/response
+shapes and status enums come from `packages/shared-types` — `lib/api.ts` already imports `PublicUser`/
+`AuthMeResponse` from there. Add new types there first before defining a local one.
+
+## Conventions & gotchas
+- All backend calls go through `lib/api.ts`. If you need a new endpoint, add a method there rather
+  than calling `fetch()` directly in a page/component.
+- `credentials: 'include'` is required on every request (already set inside `lib/api.ts`) — the
+  session is an httpOnly cookie (see `backend/src/auth/CLAUDE.md`), not a token you can read/attach
+  yourself. There is nothing in `localStorage` for auth anymore — if you find yourself reaching for
+  `localStorage` to track "is the user logged in," call `api.me()` instead.
+- Non-negotiable: don't fabricate data as if real (see root `CLAUDE.md` rule #6) — the repo-root
+  static prototype has several `Math.random()` fake "online now" counters; do not port that pattern
+  here.
+- `next.config.js` sets `turbopack.root` to the **monorepo root** (`path.join(__dirname, '..')`),
+  not this directory — required because npm workspaces hoists `next` and other deps into the root
+  `node_modules`, and Turbopack needs its root scope to include wherever `next/package.json`
+  actually resolves. If you ever see "couldn't find the Next.js package" during a build, check this
+  first before touching dependencies.
+- Lint runs via `eslint .` (flat config at `eslint.config.mjs`), **not** `next lint` — that command
+  was removed in Next.js 16. Don't reintroduce it.
+- `register.tsx` mirrors the backend's password policy constants (min length, letter+digit pattern)
+  as local constants for instant client-side feedback — if `backend/src/auth/password-policy.ts`
+  changes, update the mirrored constants here too (a shared-types export would be cleaner if this
+  drifts again; not worth the indirection for two primitives yet).
+- `marketplace.tsx` and `listings/[id].tsx` each have one `// eslint-disable-next-line
+  react-hooks/set-state-in-effect` on the `setLoading(true)` at the top of their data-fetching
+  effect — this is `eslint-plugin-react-hooks@7`'s new (React 19-era) rule flagging any synchronous
+  `setState` at the start of an effect body. It's a real, standard "refetch when a dependency
+  changes" pattern, not a bug; don't remove the disable comment without an actual redesign (e.g.
+  `useTransition`) to replace it.
+- **`refresh()` from `useAuth()` after anything that moves WaveCoin** (purchase, order accept/cancel,
+  dispute resolve, coaching booking/complete/cancel, withdrawal request/cancel, top-up return) or the
+  topbar balance goes stale until a hard reload — this was missing in several places before the
+  2026-09 audit. Depend on `user?.id`, not the `user` object, in effects that must not re-run on a
+  balance refresh (`refresh()` replaces the object).
+- Reading `event.currentTarget` after an `await` in a handler is `null` in React 17+ — capture the
+  element (`const input = event.currentTarget`) first (file-upload handlers on `orders/[id].tsx`
+  had this bug).
+- Forms on admin/seller pages use `.stack-form` + `<label className="field">` (real labels, a
+  `<form onSubmit>` so Enter works) instead of placeholder-only inputs; client-side validation mirrors
+  the backend DTO bounds and returns a Georgian message before the round-trip.
+- Images in `components/`/auth pages use `next/image` (`unoptimized` for the SVG icons). Zero ESLint
+  warnings is the bar — `npm run frontend:lint` must be clean.
+- Copy is in Georgian, matching the existing auth pages — keep new user-facing text in Georgian
+  unless told otherwise.
+- **`AdminLayout` shows every nav link to any user with a non-null `adminRole`, regardless of
+  which specific role.** It does not replicate SPECIFICATION.md §5.13's full per-role CAN/CANNOT
+  matrix client-side — each page's own API calls are the real enforcement (`AdminGuard` +
+  `@RequireAdminRole(...)` server-side), and a role without access to a section just gets an
+  `ApiError` with the backend's 403 message rendered in that page's error banner. Building a
+  client-side mirror of the exact backend matrix was judged not worth the duplication/drift risk
+  for a first pass — six roles with genuinely different per-capability access would need real
+  upkeep to keep in sync. If this becomes confusing in practice (a role clicking into a section
+  that immediately errors), revisit by hiding nav links per role rather than by duplicating the
+  guard logic in a different form.
+- Admin-panel mutation responses (`adminApproveListing`/`adminRejectListing`/`adminHideReview`/
+  `adminRemoveReview`/`adminRestoreReview`) are typed `unknown` in `lib/api.ts`, not
+  `PublicListingDetail`/`PublicReview` — those backend routes return the raw, unmapped TypeORM
+  entity, not the `Public*` shape. The admin pages that call them only care that the call
+  succeeded (they remove the row from local state on success), not the response body — don't add a
+  `Public*` type to these calls without first fixing the backend to actually return that shape.
+
+## Related modules
+- `packages/shared-types/` — always check here first for an enum/type before defining one locally.
+- `backend/src/auth/` — every endpoint `lib/api.ts` calls is defined there; check that module's doc
+  for request/response shapes and behavior before changing either side.
+- `backend/src/orders/`, `backend/src/wallet/`, `backend/src/withdrawals/`,
+  `backend/src/payments/`, `backend/src/chat/`, `backend/src/disputes/`,
+  `backend/src/notifications/` — back the orders/wallet/chat/dispute/notification pages; check
+  those modules' docs for status-transition rules and response shapes before changing either side.
+  Note `wallet.tsx`'s balance/transaction endpoints actually live in `backend/src/withdrawals/`'s
+  controller, not `backend/src/wallet/`'s — see that module's doc.
+- `backend/src/support/` — backs `pages/support/*.tsx` and `pages/admin/tickets*.tsx`.
+- `backend/src/settings/` — backs `pages/admin/settings.tsx`.
+- `backend/src/coaching/` — backs `pages/coaching/*.tsx` and `pages/admin/coaches.tsx`.
+- `backend/src/tournaments/` — backs `pages/tournaments/*.tsx` and `pages/admin/tournaments.tsx`.
+- `backend/src/chat/` — backs `pages/messages/index.tsx` (Direct messaging) as well as the order
+  chat panel on `orders/[id].tsx`.
+
+## Status
+The full auth flow is real and fully wired to the backend end-to-end (no fallback/mock path):
+register, login, logout, `/me`, email verification (with a working landing page + resend), password
+reset (request + confirm, both with working pages). Marketplace browsing, checkout, order
+management, and WaveCoin top-up are now real too: home page, filtered/paginated browse grid, a
+listing detail page with packages/reviews and a working buy button (including the requirements
+form for service listings), an order list + detail page with the full status-gated action set
+(start/deliver/accept/revision/cancel/review), and a wallet page with the full derived balance
+breakdown, BOG top-up, seller withdrawal requests, and transaction history — all backed by the
+real `backend/src/listings/`, `backend/src/orders/`, `backend/src/reviews/`,
+`backend/src/payments/`+`backend/src/wallet/`, and `backend/src/withdrawals/` endpoints, no mock
+data. Session state is shared via `lib/auth.tsx`'s `AuthProvider`/`useAuth()` (replacing the
+per-page `api.me()` duplication that used to exist in `Header`, `listings/[id].tsx`,
+`orders/[id].tsx`, `orders/index.tsx`, and `wallet.tsx`). `orders/[id].tsx` also has a polling chat
+panel (`backend/src/chat/CLAUDE.md`) and a dispute panel (open/discuss/attach evidence —
+`backend/src/disputes/CLAUDE.md`). `Header` now shows a notification bell (unread badge, dropdown
+panel, mark-read/mark-all-read — `NotificationBell`, `backend/src/notifications/CLAUDE.md`).
+A real admin panel now exists: `AdminLayout` + `pages/admin/*.tsx` cover listing approval, review
+moderation, dispute resolution, withdrawal payout processing, user search/suspend/restore/
+ban/unban, platform settings, tournament management, and support-ticket triage — see the Key files
+entry above and `backend/src/admin/CLAUDE.md` for the backend side. Tournaments (2026-09-16) are
+also real end-to-end — public browse/detail/register pages and the admin create/edit/cover-upload/
+delete page, all verified in a real browser click-through against a live Postgres instance, not
+just curl (see `backend/src/tournaments/CLAUDE.md`'s Status section for the full verification
+writeup, including a real cross-origin image-loading bug found and fixed in `backend/src/main.ts`
+during that pass). Direct (non-order) messaging (2026-09-16) is also real end-to-end —
+`pages/messages/index.tsx` plus "Message" buttons on `orders/[id].tsx`/`coaching-sessions/[id].tsx`
+— verified with two real logged-in sessions messaging each other live (see
+`backend/src/chat/CLAUDE.md`'s Status section). Digital key (Steam Keys) listings (2026-09-17) are
+also real end-to-end — marketplace/listing-detail browsing and purchase, a buyer-only key-reveal
+panel on the order page, and a seller-facing create/key-management flow at
+`pages/sell/digital-keys/*.tsx` — verified with a real two-account (seller + buyer) browser
+click-through including two real purchases against a real 2-key inventory, both keys correctly
+revealed, and the listing correctly auto-pausing on sellout (see `backend/src/listings/CLAUDE.md`'s
+Status section for the full writeup, including a real concurrent-purchase correctness bug found and
+fixed, and a separate stale-balance bug fixed on the original `listings/[id].tsx` purchase flow).
+This covers Phase 11c (core CRUD), 11d
+(Support ticketing — both the staff queue and the user-facing `pages/support/*.tsx`), and part of
+11f (platform settings). A first slice of Coaching (Phase 11b) has frontend too — the public
+directory/profile/apply pages and the admin verification queue — but no session-booking UI, since
+the backend has no booking model yet (see `backend/src/coaching/CLAUDE.md`). Trust & Safety/
+Analytics (11e, 11g) have no frontend at all yet. No cart page
+(checkout is a direct single-listing buy, not a multi-item cart — matches the WaveCoin/order model,
+not an oversight), no seller dashboard / create-listing frontend yet. The repo-root static site
+remains the reference mockup for all of that until it's ported here.
+
+**2026-09 frontend audit (chore/frontend-audit)**: audited plans/subscriptions, tournaments,
+messages, digital keys, listing/order key flows, coaching + sessions, public profile and the shared
+components against the backend controllers/DTOs; added the unverified-email banner + friendly 403
+handling, the Georgian 404/error pages, per-page titles/meta, favicon/robots, keyboard/ARIA fixes
+and phone-width overflow fixes (`.main-panel` grid track, tournament hero, marketplace head), and
+found/fixed the `error`-before-`message` bug in `api.ts` above. Verified in a real browser against a
+live backend + Postgres: banner + resend, the unverified 403 on tournament registration, digital-key
+purchase → key reveal with the topbar balance updating, coach session booking/cancel with balance
+refresh, direct messaging (Enter to send), admin tournament/plan pages, 375px overflow sweep. Not
+verified: real BOG checkout (no credentials), the seller-side file upload handler, a real
+`ka-GE` date locale (the headless browser lacked ICU data for it).
+
+**Verification caveat (historical)**: this workspace has no Docker/Postgres available (a constraint noted
+throughout this repo's `CLAUDE.md` files), so everything above was verified via
+`npm run build`/`lint`/typecheck only, against real response *shapes* from `packages/shared-types` —
+not against a running backend with real seeded data in an actual browser. **A live browser preview
+of this app is also not reachable from this particular sandbox**: the session's primary working
+directory is a sibling of this repo, and the sandbox blocks the shell from `cd`-ing into it to run
+`npm run dev` (`shell-init: error retrieving current directory: getcwd: cannot access parent
+directories: Operation not permitted`) — this is a harness-level restriction, not a project bug; a
+session whose primary working directory is inside this repo shouldn't hit it. In particular, the
+BOG top-up redirect and the full purchase→deliver→accept→review order lifecycle have never been
+click-tested end-to-end. Do that (from a working directory inside this repo, `docker-compose up`,
+seed a listing, walk a full buyer+seller journey through `/marketplace` → `/orders` → `/wallet`)
+before trusting this in front of a real user.
+
+## Subscriptions UI
+`/plans` also moved off the legacy `.page-title`/`.page-subtitle`/`.admin-row` bridge classes
+2026-09-24 onto the same `.detail-page` + `.detail-title-block` + `.detail-section` language as the
+other net-new own-data pages (subscriptions have no static-prototype page either); the "my
+subscriptions" rows use `.orders-list`/`.order-card` with `.order-thumb` holding the plan's
+initials and the cancel button in `.order-side`. `.plan-grid`/`.plan-card` are unchanged.
+
+`/plans` (public plan browse grouped by audience, "my subscriptions" with cancel-at-period-end,
+subscribe → BOG redirect; checkout 503s locally without BOG credentials), `/admin/subscription-plans`
+(create + activate/deactivate; perks form covers the four known keys; also a manual grant form —
+user search via `adminListUsers`, plan, optional days, mandatory reason — and a live-subscriptions list with
+revoke). `/plans` shows a red past-due warning banner (perks continue during the 7-day grace) and per-state date
+labels; admin-granted subscriptions are marked "won't auto-renew" and have no user Cancel button. `.badge-pill` renders
+`profileBadge` on `/u/[username]` and coach cards/detail.
+
+## Production API URL
+`NEXT_PUBLIC_API_URL` is inlined at **build** time (`frontend/Dockerfile` build arg). In the
+production Caddy layout it is `https://<domain>/api` — same origin as the site, so the `credentials:
+'include'` session cookie is first-party and CORS is never exercised. Changing it means rebuilding the
+image. During Maintenance Mode a refused write surfaces the API's 503 text through `ApiError` (the
+frontend has no dedicated banner; `GET /health` exposes `maintenance` for a future one). See
+`docs/DEPLOY.md`.
+
+## 2026-10-01 Steam / featured / admin powers
+- `/sell/digital-keys` is **staff-only** (`lib/roles.ts#canPublishSteam`, UI only — the backend
+  enforces it): non-staff see a notice; the category is fixed to `steam-games`. Reached from Admin nav
+  "Steam თამაშები", the `/steam-keys` header ("თამაშების მართვა") and the seller modal — each shown
+  to Steam publishers only. `/sell/digital-keys/[id]` edits title/description/price + facts and
+  sets the main photo ("მთავარად დაყენება").
+- The marketplace product filter no longer offers keys (Steam keys aren't marketplace products).
+- Home "Featured Items" = `browseListings({ featured: true, limit: 3 })`; staff pick them in
+  Admin → Listings → "ყველა განცხადება · რჩეული" (`al-` CSS).
+- Admin → Users: Super Admins get a "მართვა" panel (WaveCoin adjust, admin role) — `au-` CSS.
+- Sidebar has a "გამოწერები" (Subscriptions, `/plans`) item.
+
+## 2026-10-01 Tournament fixes
+- `/tournaments/[id]`: every registration opens `RegistrationModal` (in-game name + ID + rules
+  checkbox; squads add teammates by WaveHub username/ID with a live account lookup chip). The
+  register button is always the register button (state-labelled); recorded matches get their own
+  "მატჩები და შედეგები" link (previously the button turned into a matches link and registration
+  disappeared). Only the captain sees "withdraw".
+- **Uploaded covers are never drawn over**: the detail hero (`.wt-hero.has-photo` + `.wt-hero-title`
+  under it) and the home featured-tournament card (`.tournament-cover.has-photo`, no `data-title`)
+  show staff covers as-is; only fallback game art gets the overlaid title.
+- Teams tab and Admin → Tournaments → teams show real accounts (avatar/initial, link to `/u/…`);
+  the stock `team-player-portraits.png` sprite is no longer painted on players (rule #6).
+- Match stats tables keep all five columns on phones (compact + horizontal scroll fallback).
+- Admin → Tournaments: reload after save uses `adminBrowseTournaments` (the public list hid edited
+  drafts); prize / format-info-rules sections are expanded by default.
+
+## 2026-10-01 Coaches: packages, questions, video, staff-managed
+- `components/CoachExtras.tsx` — `CoachVideoEditor` (MP4/WebM ≤5MB upload/clear),
+  `CoachPackagesEditor` (≤6 fixed-price packages), `CoachQuestionsEditor` (pre-booking questions,
+  reuses `ServiceEditors`' `RequirementsEditor`), `LANGUAGE_OPTIONS`. Each takes its api calls as
+  props, so the coach's `/coaching/profile` and Admin → Coaches share them. CSS: `ce-` block at the
+  end of `global.css`.
+- `pages/admin/coaches.tsx` — "ქოუჩის დამატება" form (existing account by username → verified
+  coach, `api.adminCreateCoach`) and a per-coach "რედაქტირება" panel (profile fields, video,
+  packages, questions via the `api.admin*Coach*` calls). `reload()` is silent so an open panel
+  stays mounted after a save.
+- `/coaching/[id]` renders the uploaded video (`.coach-video-file`) before the YouTube link, and a
+  packages card (`.coach-packages-card`) whose "დაჯავშნა" preselects the package in the booking
+  form; the form asks the coach's questions. `/coaching-sessions/[id]` shows package + answers
+  (`.cs-answers`).
+- `/coaching` header has a visible "გახდი ქოუჩი" button (`.coach-apply-cta`) next to the sort.
+
+
+## 2026-10-01 Listing editor (bug 9) + Super Admin edits
+- `components/ListingEditor.tsx` is the full editor for a listing: photos (add/main/remove), title,
+  price, description, and the item's game details. Every existing attribute key keeps its type;
+  the game's empty optional fields from `lib/game-details.json` can be filled in.
+  - `mode="owner"`: `/sell/items/[id]`. Live listing → saving or adding a photo goes back to
+    review; pending → read-only with a note; rejected → shows the reason plus a resubmit button.
+  - `mode="admin"`: `/admin/listings/[id]`, Super Admin only. Any type, applied as-is, plus a
+    service's packages.
+- My Listings: "Edit" opens the editor for the listing's type (items → `/sell/items/[id]`,
+  services → `/sell/services/[id]`, Steam keys → `/sell/digital-keys/[id]`). The old
+  title/price-only modal is gone.
+- Entry points: `/listings/[id]` shows "განცხადების რედაქტირება" to the owner and
+  "რედაქტირება (ადმინი)" to Super Admin. The Steam game page does the same via `editHref`.
+  Admin → Listings rows get "რედაქტირება" for Super Admin. CSS: `le-` block.
+
+## 2026-10-01 User search (feature 11)
+- **Topbar search box** (`components/Topbar.tsx`, `role="combobox"`) now opens a suggestions
+  dropdown (`.search-suggest`):
+  - matching users from `api.searchUsers` (debounced 250 ms, ≥2 chars), each linking to `/u/[username]`;
+  - a final "მოძებნე მარკეტში" row that searches the marketplace.
+  - `.search-box.is-suggesting` lifts the box's `overflow: hidden` while the dropdown is open.
+- **`/marketplace?q=`** lists matching users above the products (`.marketplace-users`).
+
+## 2026-10-02 Coaching: 6-step booking, session lifecycle, rank icons
+- **`/coaching/[id]/book`** = Tornike's `coach-booking.html` 6-step flow (`booking-*` CSS,
+  `booking-flow-body` on `<body>`), on real data:
+  - **packages**: the hourly single session + the coach's real packages;
+  - **schedule**: 14 days × 10:00–23:00 Tbilisi slots, the coach's busy times greyed out, N slots
+    for an N-session package;
+  - **goal**: goal + Discord + the coach's questions;
+  - **review**;
+  - **payment**: from the WaveCoin balance, with a top-up link when short (the draft survives in
+    `sessionStorage`);
+  - **confirmation**.
+  - The coach page's "სესიის დაჯავშნა" and the packages' "დაჯავშნა" link here; the old inline form
+    is gone.
+- **`/coaching-sessions/[id]`** (`cs-` CSS):
+  - a 4-step tracker and one "what to do now" card per side (confirm start / mark done / confirm
+    done / cancel per the lifecycle rules);
+  - polls every 20 s;
+  - fee breakdown for the coach;
+  - goal / Discord / answers;
+  - review after completion;
+  - dates are formatted manually in Tbilisi time (`ka-GE` locale data isn't everywhere).
+- `/coaching-sessions` opens on the coach tab for coaches with live sessions (bug #2). The dashboard
+  next-session card counts both sides.
+- `lib/api.ts#send` turns an empty body into `null` (it used to be `{}`).
+- **Rank icons** (Tornike's `a46894e`):
+  - names: the owner's 10 tier names (`WAVE_RANK_TIERS`);
+  - icon: `waveRankIcon(name)` → `/assets/rank-icons/rank-N.png` (resized to 164px);
+    `components/RankIcon.tsx`;
+  - shown in the profile menu, the mobile home profile, the dashboard, `/u/[username]` (rank card +
+    tier badge), review authors and the coach Wave Score.
+
+## 2026-10-02 Admin panel redesign + profile polish
+- **`components/AdminLayout.tsx`** is the admin shell:
+  - grouped sidebar with icons (Overview / Marketplace / Finance / People / Content / System),
+    a role badge and breadcrumbs;
+  - on ≤980px it becomes a scrollable tab strip;
+  - Super-Admin-only links (Statistics, Settings) and Steam publishing are hidden from other roles;
+    everything else is still enforced server-side.
+  - The `adm-` CSS block at the end of `global.css` restyles the shared admin classes **inside
+    `.adm-main` only** (page titles, `.admin-row` → table-like rows, flat `.stack-form` panels,
+    neutral small `.button`s with the glow removed, inputs, empty states), so every admin page
+    changed without touching the public site.
+- **`/admin`** is a real dashboard: queue KPIs (listings, coaches, tickets, disputes, withdrawals,
+  reported reviews — "—" when the role can't see one), a to-do list and quick actions. The old
+  developer note citing SPECIFICATION.md is gone.
+- **`/u/[username]`**: calmer glows, thinner photo ring, rank icons, compact phone hero (end of
+  `global.css`).
+
+## 2026-10-02 Working hours, notifications, order reviews, Admin → Reviews
+- **Coach working hours**: `CoachHoursEditor` (`components/CoachExtras.tsx`) — per-weekday ranges
+  (30-minute steps), "apply to all days", days off, minimum notice, "reset to default". Used by the
+  coach (`/coaching/profile`) and by staff (`/admin/coaches`). `availability: null` means the default
+  schedule (every day 10:00–24:00).
+  `pages/coaching/[id]/book.tsx` no longer hard-codes 10:00–23:00: slots come from
+  `coachAvailabilityStarts` and are filtered with `coachAvailabilityProblem` (both from
+  `@wavehub/shared-types`, the same functions the backend enforces), the calendar opens on the first
+  day with bookable time, and a non-working day says so. All times are Tbilisi time.
+- **Notifications**:
+  - `lib/shell.tsx` polls `unread-count` every **15s** and on every `routeChangeComplete`, and
+    exposes `latestNotificationAt`.
+  - `components/NotificationToasts.tsx` (mounted in `_app.tsx`) pops up to 3 toasts when
+    `latestNotificationAt` changes: unread, younger than 6h, not yet shown in this browser (ids kept
+    per user in `localStorage`, try/catch-wrapped). Clicking opens the target and marks it read.
+  - `pages/notifications.tsx`: full list, All / Unread filter, "load more", mark all read. The bell
+    panel footer links to it.
+  - `lib/notifications.ts`: `notificationTarget` (follows `metadata.link` only when it is a
+    same-site path), `notificationKind`, `formatNotificationTime` — shared by all three.
+- **Order reviews**: `components/OrderReview.tsx` replaces the inline form on `/orders/[id]`
+  (anchor `#review`): loads `GET reviews/order/:id`, shows the existing review and its moderation
+  state, the buyer's form if there is none, and the seller's one-time reply form. Listing and Steam
+  game pages show "you bought this — write a review" when `GET reviews/pending` has a matching order.
+  A digital-key order page has no delivery-files section and no "request revision".
+- **`/admin/reviews`**: tabs Reported / Products / Coaches, search, status filter (products), 25 per
+  page; Super Admin gets an edit form (stars, text, seller reply) and coach-review delete. The
+  listing page's remaining English review strings are now Georgian (with dictionary entries).
+- New strings are in `lib/i18n-ka-en.app.json`, including `{0}` patterns for the backend's
+  notification texts.
+
+## 2026-10-02 Profile + coaching pages to the design mockups
+- **`/coaching` (mockup 06)** — rebuilt on its own `cl-` CSS block (end of `global.css`) instead of the
+  prototype's `.coach-shell`/`.coach-card` rules: two-line heading, toolbar (sort select + Grid/List
+  toggle), game chips (horizontal scroll on phones), and the mockup's coach card — photo (or
+  initials) with the real online pill, plan badge, specialty, rank, rating, measured response time,
+  game, price + "Book Session" (links straight to `/coaching/[id]/book`), tag chips with icons.
+  The filter panel keeps the prototype's `.coach-filter-panel` styling: beside the grid on desktop,
+  folded behind the toolbar's Filters button below 1000px (it used to sit above everything on phones).
+  Left out for lack of data (rule #6): "Top 1%", and a tier badge for coaches without a plan badge.
+  The home "View all" coach links already point here.
+- **"Profile" opens the mockup-12 page**: the phone bottom nav's Profile tab and the phone header
+  avatar now go to the signed-in user's `/u/[username]` (they opened the `/profile` Settings page, so
+  the owner never saw the redesigned profile). `/profile` stays the Settings editor, reached from
+  "Edit profile" on the user's own page and from the profile menu. Signed out, both still lead to login.
+- **`/u/[username]`**: hero wave artwork (inline SVG in CSS — the mockup's photo isn't an asset we
+  have) and an icon per game-profile fact (`.up-fact`).
+- `/coaching/[id]` (mockup 14) was already on the target design; unchanged apart from a
+  missing English unit (`წთ ·`).
+- Checked at 1440 / 1000 / 375px in Georgian and English: no horizontal scroll, no untranslated UI
+  strings (coach-entered text such as package names stays as written).
+
+## 2026-10-02 Launch fixes: packages, email code, session clock
+- **`components/PackageCard.tsx`** — the one card for the platform's Starter / Growth / Elite
+  (owner spec): name, length (`3 × 50 წუთი`), price + "სრული ფასი", tagline + description, "რას
+  მოიცავს" bullets, CTA "პაკეტის არჩევა". Accents keep the booking colours (Starter pink, Growth
+  gold, Elite purple). `.pkg-grid`: 3 per row, 2+1 below 1100px, 1 column below 680px. Used on
+  `/coaching/[id]` (CTA → `/coaching/[id]/book?package=…`) and booking step 1 (CTA selects).
+- Booking step 1 shows only the packages (the hourly single session is the fallback when none is
+  active). Coach cards (home, `/coaching`) and the profile show the cheapest package ("19₾-დან",
+  `lib/coaching-price.ts`); `/coaching` hides the price sort and price filter while packages exist.
+- **Admin → Coaching packages** (`pages/admin/coaching-packages.tsx`, nav under "ხალხი"): edit each
+  package with a live card preview; Super Admin only (others read-only). The coach's own package
+  editor (`CoachPackagesEditor`) is gone from `/coaching/profile` and Admin → Coaches.
+- **`components/EmailCodeForm.tsx`** — the 6-digit code from the verification email (links are dead
+  in Gmail's spam folder): in `VerifyEmailBanner`, after registering, and on `/verify-email`.
+- `/coaching-sessions/[id]` times the start window on the server clock (`session.serverNow`).
+- The phone bottom nav highlights "Profile" only on the viewer's own `/u/[username]`.
+
+## 2026-10-03 Disputes, reports, promo codes, banners, Trust & Safety, mobile home
+- Session disputes: `components/SessionDisputePanel.tsx` on `/coaching-sessions/[id]`; Admin → Disputes
+  has an orders / coaching-sessions tab; `pages/admin/session-disputes/[id].tsx` decides.
+- `components/ReportButton.tsx` on `/u/[username]`, listing pages, coach pages and received direct
+  messages → Admin → უსაფრთხოება (`pages/admin/trust.tsx`: overview, reports queue, user detail).
+- `components/PromoCodeForm.tsx` on `/wallet`; `pages/admin/promo-codes.tsx` (Super Admin);
+  `pages/admin/banners.tsx` + `components/HomeBanners.tsx` on the homepage.
+- `/profile` has the "notifications by email too" switch.
+- Home "Coaching & Tournaments" on phones (≤560px) follows the owner's mobile mockup: compact coach
+  cards (photo with the name over it) in a centred carousel with the active card outlined, compact
+  tournament card. The cover no longer shows a hard-coded "WAVE CUP" / "CS2" — real data only.
+- The coach profile no longer lists packages; they appear only in the booking flow.
+
+## 2026-10-03 Marketplace priority batch (client docx BUG 01–07, Mariam, Gio, screenshots)
+- **Own photos first**: `ProductCard`, `MyListings`, the listing gallery use `listing.images[0]` and
+  only fall back to the game cover when a listing has no photos. Gallery hero is `contain` (no forced
+  crop). `components/ImageLightbox.tsx` — portal lightbox (Esc/arrows/swipe/outside click, body
+  scroll lock) on listing, profile avatar, coach portrait and Steam game heroes.
+- **Mobile sell form (Gio)**: the listing builder uses `100dvh` so Publish stays reachable with 3+
+  photos; `body.modal-open` (set by `SellerModal`) and any focused field hide `.mobile-bottom-nav`
+  at ≤620px so a stray tap can't navigate away; the image field is a `<div>` (only the dropzone is a
+  `<label>`), previews open the lightbox; a localStorage draft (`wavehub.sellDraft.<userId>`, text
+  fields only — files can't be stored) restores after an accidental close, cleared on publish/reset.
+- **Items** kind (`itemAttributes.kind = 'item'`, category slug `items`, migration
+  `1784376000000-ItemsCategory`) alongside accounts/skins; marketplace type chips + select; region
+  list has "Local"; Clash of Clans gained TH18 and lost Laboratory Level (`lib/game-details.json`).
+- **Sell Service** (`/sell/services`) is its own flow: own title/description/photos (≥1, uploaded
+  after create), category optional (defaults to custom gaming services).
+- **Money with tetri**: buyer fees are exact (84.80), so balances can have tetri — render every
+  balance/fee/total with `lib/money.ts#gel` ("84.80" / "84"), round sums with `roundMoney`; a
+  top-up shortfall rounds *up* to whole GEL (top-ups are whole).
+- **Buyer-paid fee**: `components/FeeBreakdown.tsx` renders `GET /order-quote` (price / fee % /
+  total) on the listing buy panel and Steam key page; the cart sums each line's quoted fee; the
+  balance check uses the total. Order page details are cards: parties, money breakdown (buyer: total
+  paid; seller: you receive; legacy `feePaidBy: 'seller'` orders show the fee as deducted), dates.
+- **Photo limits**: user photos are 2MB server-side; `lib/image-resize.ts#shrinkPhoto` re-encodes
+  bigger JPG/PNG/WEBP (≤2048px JPEG, stepping quality down) inside `api.uploadAvatar`,
+  `uploadListingImage`, `adminUploadListingImage`, `uploadMyTeamLogo`; pickers accept originals up to
+  `PHOTO_SOURCE_MAX_BYTES` (20MB). Coach intro video: 5MB (`CoachExtras.MAX_VIDEO_BYTES`).
+- Screenshot fixes: `/u` name breaks inside long words so the verified badge stays on screen;
+  session cards lead with the counterpart (coach for a student, student for a coach); session page
+  goal/challenges/message as labelled cards; tournament "you're participating" bar re-laid out at
+  ≤800px; dispute section has a textarea composer + styled evidence upload; other-tournament status
+  badge moved off the cover's logo; `.site-footer` z-index 0 so the fixed marketplace cart bar no
+  longer slides under it.
+- Tornike's 2026-10-03 prototype commits ported: real ♡ favourite buttons on home featured cards
+  (`FeaturedHeart`), a "View details" action on mobile featured cards, featured-items bottom padding
+  90→24px (the gap before the CTA), tournament cover without overlaid status labels, competition
+  button fit, mobile DM composer layout. His rank renames were already in shared-types.
+
+## 2026-10-04 Admin CRUD + marketplace walkthrough fixes
+- Admin → Listings → all: take down (reason prompt) / restore / delete (Super Admin); Admin →
+  Coaches: delete (Super Admin); Admin → Promo codes: delete while unused. `.button.danger` style.
+- Marketplace (phones): the fixed cart bar is hidden while the cart is empty and is one compact row
+  otherwise; product cards get a phone footer (3 rows, readable sizes) and a shade under the title.
+- Listing builder: action bar `bottom: 0` (the Publish button was clipped), dropzone hint wraps, and a
+  "sent for review" panel replaces the form after publishing (the old status line sat at the bottom).
+
+## 2026-10-04 Owner screenshots ("Wavehub icon guides") + client feedback round
+- **Icons**: `public/assets/ui/*.png` (the owner's icon set, 96px) and `public/assets/badges/*.png`
+  (13 badges, 192px; black-backed art uses `mix-blend-mode: lighten`).
+  - Pages that use them start with `/* eslint-disable @next/next/no-img-element */`: static
+    sprites, nothing for `next/image` to optimise.
+  - Notifications (bell panel, toasts, `/notifications`) use `lib/notifications.ts#notificationIcon`
+    instead of letter glyphs.
+- **Rebuilt to the screenshots (phone first; desktop is the same column centred)**:
+
+  | Page | CSS prefix | Notes |
+  |---|---|---|
+  | `/orders` | `oc-` | |
+  | `/orders/[id]` | `od-` | product, participants, payment, timeline, key card, progress guide (open orders only), chat with photo/file attachments, dispute, review empty state |
+  | My Listings | `ml-` | |
+  | `/coaching-sessions` | `sc-` | |
+  | `/coaching-sessions/[id]` | `ss-` | **not `sd-`**, which is the Steam page; includes the coach's `StudentBadges` panel |
+  | listing reviews | `rv-` | `components/ReviewCard.tsx`, likes |
+  | service questions | `rq-` | with seller placeholders |
+  | Escrow explainer | `ex-` | `components/EscrowExplainer.tsx` |
+
+- **Client feedback items**:
+  - `/services` is its own page (`MarketplaceView servicesOnly`: no product chips/select, Sidebar
+    "სერვისები", "გაყიდე სერვისი" button);
+  - `components/StepsGuide.tsx` on marketplace / services / coaching (stacks on phones);
+  - `/tournaments/[id]/registered` success page; the registration modal requires Discord;
+  - `components/FollowLists.tsx` on `/profile`;
+  - `/notifications?id=` expands one notification in full;
+  - Admin: online-now KPI (30s refresh), coach "featured" toggle, coaching fee field,
+    `AdminBadgeManager` (Users → ბეიჯები), `AdminKeyInventory` (Steam keys on
+    `/admin/listings/[id]`);
+  - dashboard next session refetches every 60s and when a start passes.
+- **People are shown by photo + full name** (`components/Avatar.tsx` `displayName`,
+  `VerifiedMark`), not `@handle`; rank icons are 26px.
+- **Dates**: `lib/dates.ts` (`kaDate` / `kaDateTime` / `kaTime`, Georgian months by hand).
+  `lib/tournaments.tsx` and notification times use it too, because `ka-GE` locale data is missing
+  in some browsers and printed English.
+- Georgian `toUpperCase()` turns text into Mtavruli; use `latinUpper` for upper-case labels.
+
+## 2026-10-07 Client round (screenshots + messages)
+- **Avatar fix (site-wide)**: `.wh-avatar > img` is absolutely pinned. As a centred grid item its
+  `height:100%` didn't resolve, so portrait photos kept their ratio and spilled out of the circle.
+- **Direct messages on phones**: `.direct-message-contacts` / `.direct-message-thread` get
+  `min-width: 0` and the shell `minmax(0, 1fr)` at ≤720px. With 2+ conversations the contact row
+  widened the column to ~650px and clipped the send button off-screen ("can't send on mobile").
+- **Order page**: amber 24h auto-complete warning under the chat (`.od-warn`); see
+  `backend/src/orders/CLAUDE.md`. The step guide hides on finished orders. Order-card dates wrap
+  under the status instead of overflowing.
+- **Product card**: eye/heart icons from the owner's set for the counters; Georgian rank, review and
+  delivery text. `lib/labels.ts#deliveryTimeLabel` maps stored English delivery values to Georgian
+  (also in the seller form options and the listing page).
+- **Home**:
+  - the top hero is a CMS banner when one is published (`home_hero`);
+  - the coach carousel opens on the middle coach;
+  - the featured tournament's "დარეგისტრირდი" uses the "Add listing" button's colours
+    (`.tour-register`) and sizes to its text (the fixed 184px clipped the Georgian label);
+  - `kaDayMonth` for its date.
+- **Banners everywhere**: `HomeBanners placement=…` at the top of marketplace, services, Steam,
+  coaching and tournaments.
+- **Admin**: banner placements; subscription plan edit form.
+- **Reviews** on `/u/[username]` and `/coaching/[id]` show the reviewer's photo + full name.
+
+## 2026-10-07 Final sweep (visual + icons)
+- **Site icon**: the owner's WHX logo, served as `public/favicon.ico` (48px) and
+  `public/assets/whx-icon-{32,48,180,192,512}.png`, linked in `_document.tsx` (`?v=5` busts caches).
+  `whx-icon-48.png` is also the support avatar fallback.
+- **Owner icon audit**: every provided icon is in `public/assets/ui/`. Deliberately not used: a mask
+  icon, a plain black star, and plain black dots (status dots are CSS). The last unused ones are now
+  placed:
+  - x-circle — cancel buttons;
+  - check-solid — the seller's start / deliver buttons;
+  - chevron-right — notification rows;
+  - send-pink — the DM send button;
+  - paperclip — delivered files;
+  - info-pink — order deadline notes;
+  - bag-light — empty orders.
+- **Automated sweep** (iframe checker at 360 / 375 / 391 / 1280px over ~40 pages). It flags
+  horizontal overflow, children spilling out of cards, clipped text, broken images, non-round
+  avatars and English text nodes. Fixed:
+  - Escrow explainer steps spilling: the box is a size container, and below 620px the tiles wrap
+    3 + 2;
+  - `/profile` grid 12px too wide;
+  - support-thread avatar stretched (`> span` rules must use `:not(.wh-avatar)`);
+  - English UI labels on the listing detail, Steam, tournament facts (`TOURNAMENT_DETAIL_KEYS`
+    labels are Georgian now), Wave Score / rank labels and `/about`.
+  - User-entered text (titles, names, CMS policy copy) stays as written.
+- Support / dispute threads: photo + full name (see `backend/src/support/CLAUDE.md`).
+- `lib/support.tsx#formatTicketDate` and message bubbles use the manual Georgian date helpers.
+
+## 2026-10-07 Admin → Steam
+- `pages/admin/steam/index.tsx` and `pages/admin/steam/[id].tsx` replace `/sell/digital-keys`
+  (now redirects) for Steam publishers. Pages are inside `AdminLayout`; CSS uses the `st-` /
+  `aki-` prefixes. Admin nav, the Steam store header, the seller modal, My Listings and the Steam
+  game page's edit link all point here.
+- `components/AdminKeyInventory.tsx` shows per-status counts and Georgian dates, collapses long
+  lists to the latest 50, and reports the available count through `onChange` (pass a stable
+  setter — it's an effect dependency). Backend: `backend/src/listings/CLAUDE.md`.
+
+
+## 2026-10-07 Client round 2 (10 screenshots + the corrected icon folders)
+- **Icons**: badges (`public/assets/badges/`, 192px) and `rank-9.png` were replaced from the owner's
+  corrected set. New product-card icons are `ui/cart-white.png`, `ui/level-bars.png` and
+  `ui/heart-circle.png`.
+- **Product card** (`components/ProductCard.tsx`, the `pc-` CSS block, the owner's target design
+  1:1):
+  - Cover with game / kind badges and the heart.
+  - Title, then the level, then the seller (photo, name, Wave tier from `GET stats/seller-tiers`,
+    passed in as `sellerTier`), then the rating ("ახალი" with no reviews).
+  - Delivery, then the price with view / like counts.
+  - A cart button and "დეტალების ნახვა →".
+  - Every `pc-` selector is scoped under `.marketplace-card.pc-card`, because legacy rules like
+    `.marketplace-card h3` otherwise win.
+  - Tapping the seller opens `SellerPreview`.
+- **`components/SellerPreview.tsx`** is Tornike's `seller-profile-preview.js` ported. It is a
+  portal card (a bottom sheet on phones) built from `GET users/:username`:
+  - photo, online dot, name / verified, bio, location, member since;
+  - Wave rank with a progress bar;
+  - rating, deals and followers;
+  - the latest reviews;
+  - "მიწერა" and "სრული პროფილი".
+  - It uses the existing `.seller-profile-*` CSS.
+- **Home**:
+  - **CMS hero** (`HeroBanner`): text sits on the left (title, then subtitle, then the button).
+    The button shows only when the banner has both a link and a button label. A banner with no
+    text is the photo only.
+  - **`HomeBanners`** follows the same rules.
+  - **Coach cards** (`fc-` CSS) use the photo as the card. If there's no photo, they fall back
+    to game art, then to initials.
+    - Top row: a pill for a real distinction only (popular / top rated / plan badge — no more
+      "new coach" pill), plus a "♛ ვერიფიცირებული" pill.
+    - Bottom: name, rating (hidden with 0 reviews), game, "🎓 ქოუჩი", price.
+    - Pills and the name row wrap on the ~180px desktop cards.
+- **Marketplace Back** (`lib/scroll-memory.ts`): leaving `/marketplace` snapshots the loaded list
+  (including "load more" pages). Coming back via Back within 10 minutes restores that list and the
+  scroll position, with no refetch.
+  - The `filters` memo depends on the category **id**, not on the categories array. The array
+    arriving used to refetch and wipe the restored list.
+- **Phone search** (`Topbar`): the magnifier opens a fixed full-width search field (≤620px). Enter
+  searches the marketplace; × or Escape closes it.
+- **`components/ChatThread.tsx`** is the DM chat look as a reusable thread: header with photo and
+  name, bubbles, and a composer (or a custom `composer`).
+  - **`/support/[id]`** uses it; staff appear as "Support — Name".
+  - **Admin → Tickets → ticket** uses it with the `atk-` header card and a reply / internal-note
+    composer.
+- **Profile reviews** (`/u/[username]`): `ReviewCard`s from `reviews.cards`, with `readOnly`
+  for coach reviews.
+- **Seller modal**: publishing is idempotent. See `backend/src/listings/CLAUDE.md`
+  ("Duplicate posts").
+- **Messages**:
+  - The "WaveHubX გუნდი — მიწერე" row (`.dm-team`) is shown to staff, coaches and sellers.
+  - A staff counterpart is labelled "WaveHubX გუნდი" with no profile link, since their username
+    isn't sent.
+  - See `backend/src/chat/CLAUDE.md`.

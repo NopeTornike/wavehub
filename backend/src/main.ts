@@ -1,53 +1,36 @@
+// Must be the first import: populates process.env from backend/.env before anything else
+// (notably auth.module.ts, imported transitively via AppModule below) reads it at module-eval
+// time. Never overrides a variable already set in the real environment (Docker Compose, a real
+// deployment's env injection, etc.) — see backend/CLAUDE.md's "Local dev" note for why this file
+// previously did nothing outside Docker despite the README instructing you to create it.
+import 'dotenv/config';
+// Second: in NODE_ENV=production, refuses to boot on any unsafe/missing config (dev secrets,
+// http:// URLs, TYPEORM_SYNC...) with one complete list — before AppModule's own module-level
+// checks can throw piecemeal. See config/production-config.ts.
+import './config/boot-check';
 import 'reflect-metadata';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import { configureApp } from './app.setup';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.useBodyParser('json', { limit: '25mb' });
-  const configuredOrigins = process.env.CORS_ORIGIN
-    || (process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : '');
-  const allowedOrigins = configuredOrigins
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-  if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
-    throw new Error('CORS_ORIGIN is required in production');
-  }
-  const localOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
+  // rawBody: true makes `request.rawBody` available on every request — required by
+  // POST /payments/bog/callback to verify BOG's signature over the exact bytes it sent, before
+  // the body gets parsed into a JS object. See backend/src/payments/bog-signature.util.ts.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
+  configureApp(app);
+  // SIGTERM/SIGINT (docker stop, systemd) => Nest stops accepting connections, lets in-flight
+  // requests finish, then closes the DB pool, instead of being killed mid-transaction.
+  app.enableShutdownHooks();
 
-  app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      if (process.env.NODE_ENV !== 'production' && origin === 'null') {
-        callback(null, true);
-        return;
-      }
-
-      if (process.env.NODE_ENV !== 'production' && localOriginPattern.test(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-  });
-  app.useGlobalPipes(
-    new ValidationPipe({
-      forbidNonWhitelisted: true,
-      transform: true,
-      whitelist: true,
-    }),
-  );
   const port = process.env.PORT || 4000;
   await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}`);
+  new Logger('Bootstrap').log(`Backend listening on port ${port} (NODE_ENV=${process.env.NODE_ENV ?? 'unset'})`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+});

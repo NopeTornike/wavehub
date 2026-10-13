@@ -1,0 +1,37 @@
+import { OrderQuoteController } from './order-quote.controller';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Order } from './order.entity';
+import { OrderDeliveryFile } from './order-delivery-file.entity';
+import { Listing } from '../listings/listing.entity';
+import { Package } from '../listings/package.entity';
+import { ServiceDetails } from '../listings/service-details.entity';
+import { ItemDetails } from '../listings/item-details.entity';
+import { ListingKeyInventory } from '../listings/listing-key-inventory.entity';
+import { OrdersService } from './orders.service';
+import { OrdersController } from './orders.controller';
+import { WalletModule } from '../wallet/wallet.module';
+import { StorageModule } from '../storage/storage.module';
+import { AuthModule } from '../auth/auth.module';
+import { ChatModule } from '../chat/chat.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { SettingsModule } from '../settings/settings.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { BadgesModule } from '../badges/badges.module';
+
+@Module({
+  imports: [BadgesModule, 
+    TypeOrmModule.forFeature([Order, OrderDeliveryFile, Listing, Package, ServiceDetails, ItemDetails, ListingKeyInventory]),
+    WalletModule,
+    StorageModule,
+    AuthModule,
+    ChatModule,
+    NotificationsModule,
+    SettingsModule,
+    SubscriptionsModule,
+  ],
+  controllers: [OrdersController, OrderQuoteController],
+  providers: [OrdersService],
+  exports: [OrdersService],
+})
+export class OrdersModule {}

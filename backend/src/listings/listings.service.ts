@@ -1,0 +1,1038 @@
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Brackets, In, Repository } from 'typeorm';
+import { ListingFavorite } from './listing-favorite.entity';
+import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType, NotificationType, UserStatus } from '@wavehub/shared-types';
+import type { AdminListingSummary, AdminSteamGameSummary, ListingForEdit, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
+import { User } from '../users/user.entity';
+import { Listing } from './listing.entity';
+import { ListingImage } from './listing-image.entity';
+import { ServiceDetails } from './service-details.entity';
+import { ItemDetails } from './item-details.entity';
+import { ListingKeyInventory } from './listing-key-inventory.entity';
+import { Package } from './package.entity';
+import { Category } from './category.entity';
+import { Game } from './game.entity';
+import { assertValidTransition } from './listing-lifecycle';
+import { CreateListingDto } from './dto/create-listing.dto';
+import { UpdateListingDto } from './dto/update-listing.dto';
+import { CreatePackageDto } from './dto/create-package.dto';
+import { BrowseListingsDto } from './dto/browse-listings.dto';
+import { StorageService } from '../storage/storage.service';
+import { encryptKeyValue } from './key-encryption.util';
+import { NotificationsService } from '../notifications/notifications.service';
+
+// The joined `seller` relation is a full User row (email, wallet balance, admin role, moderation
+// reason...). Anything public must go through this projection — the shared `PublicSeller` type
+// always promised exactly these fields, but the raw entity was being serialized instead (found by
+// the response-privacy sweep in backend/test/security.e2e-spec.ts).
+function toPublicSeller(seller: User, verified = false): PublicSeller {
+  return {
+    id: seller.id,
+    username: seller.username,
+    firstName: seller.firstName,
+    lastName: seller.lastName,
+    avatarUrl: seller.avatarUrl ?? null,
+    verified,
+    sellerRatingAvg: seller.sellerRatingAvg,
+    sellerRatingCount: seller.sellerRatingCount,
+  };
+}
+
+const MAX_IMAGES_PER_LISTING = 6;
+const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// Listing photos: 2MB (owner decision 2026-10-03). The frontend downscales larger phone photos
+// before uploading (frontend/lib/image-resize.ts), so this only rejects what a browser didn't shrink.
+export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
+@Injectable()
+export class ListingsService {
+  constructor(
+    @InjectRepository(Listing) private readonly listings: Repository<Listing>,
+    @InjectRepository(ListingImage) private readonly images: Repository<ListingImage>,
+    @InjectRepository(ServiceDetails) private readonly serviceDetails: Repository<ServiceDetails>,
+    @InjectRepository(ItemDetails) private readonly itemDetails: Repository<ItemDetails>,
+    @InjectRepository(ListingKeyInventory) private readonly keyInventory: Repository<ListingKeyInventory>,
+    @InjectRepository(Package) private readonly packages: Repository<Package>,
+    @InjectRepository(Category) private readonly categories: Repository<Category>,
+    @InjectRepository(Game) private readonly games: Repository<Game>,
+    @InjectRepository(ListingFavorite) private readonly favorites: Repository<ListingFavorite>,
+    private readonly storage: StorageService,
+    private readonly notifications: NotificationsService,
+  ) {}
+
+  listCategories() {
+    return this.categories.find({ where: { isActive: true }, order: { sortOrder: 'ASC' } });
+  }
+
+  listGames() {
+    return this.games.find({ where: { isActive: true }, order: { sortOrder: 'ASC' } });
+  }
+
+  async createDraft(sellerId: string, dto: CreateListingDto): Promise<Listing> {
+    if ((dto.type === ListingType.Item || dto.type === ListingType.DigitalKey) && !dto.priceWaveCoin) {
+      throw new ForbiddenException(
+        `${dto.type === ListingType.Item ? 'Item' : 'Digital key'} listings require priceWaveCoin`,
+      );
+    }
+    assertCompareAtPrice(dto.attributes, dto.priceWaveCoin ?? null);
+    // The same post twice within two minutes is a retry or a double tap, not a second listing (a
+    // seller once ended up with 10 copies of one post while photo uploads were failing).
+    const recentTwin = await this.listings
+      .createQueryBuilder('l')
+      .where('l.sellerId = :sellerId', { sellerId })
+      .andWhere('lower(trim(l.title)) = lower(trim(:title))', { title: dto.title })
+      .andWhere('l.type = :type', { type: dto.type })
+      .andWhere("l.createdAt > now() - interval '2 minutes'")
+      .getCount();
+    if (recentTwin > 0) {
+      throw new ConflictException('You just created this listing — open it from My Listings instead of creating it again');
+    }
+    if (dto.type === ListingType.DigitalKey) {
+      // Steam games are published by the administration only (owner decision 2026-10-01).
+      const author = await this.listings.manager.getRepository(User).findOne({ where: { id: sellerId }, select: { id: true, adminRole: true } });
+      if (!author?.adminRole || !STEAM_PUBLISHER_ROLES.includes(author.adminRole)) {
+        throw new ForbiddenException('Only the WaveHub administration can publish Steam games');
+      }
+      const category = await this.categories.findOne({ where: { id: dto.categoryId } });
+      if (category?.slug !== STEAM_CATEGORY_SLUG) {
+        throw new ForbiddenException('Steam games must use the Steam games category');
+      }
+    }
+    if (dto.type === ListingType.DigitalKey && dto.resaleRightsAttested !== true) {
+      throw new ForbiddenException('You must confirm you have the legal right to resell these keys');
+    }
+
+    if (dto.type === ListingType.Service) {
+      await this.assertServiceCategory(dto.categoryId);
+      assertRequirementsSchema(dto.requirementsSchema ?? []);
+    } else if (dto.requirementsSchema?.length || dto.faq?.length) {
+      throw new ForbiddenException('Only service listings have requirements and FAQ');
+    }
+
+    const listing = this.listings.create({
+      sellerId,
+      categoryId: dto.categoryId,
+      gameId: dto.gameId ?? null,
+      type: dto.type,
+      title: dto.title,
+      description: dto.description,
+      status: ListingStatus.Draft,
+      priceWaveCoin: dto.type === ListingType.Item || dto.type === ListingType.DigitalKey ? dto.priceWaveCoin! : null,
+      // DigitalKey stock is derived from listing_key_inventory row counts, never stored here.
+      stockQuantity: dto.type === ListingType.Item ? dto.stockQuantity ?? 1 : null,
+      resaleRightsAttestedAt: dto.type === ListingType.DigitalKey ? new Date() : null,
+    });
+    const saved = await this.listings.save(listing);
+
+    if (dto.type === ListingType.Service) {
+      await this.serviceDetails.save(
+        this.serviceDetails.create({
+          listingId: saved.id,
+          requirementsSchema: dto.requirementsSchema ?? [],
+          faq: dto.faq ?? [],
+        }),
+      );
+    } else if (dto.type === ListingType.Item || dto.type === ListingType.DigitalKey) {
+      // Digital keys use the same row for the seller-entered Steam game facts (attributes only;
+      // their stock lives in listing_key_inventory).
+      await this.itemDetails.save(
+        this.itemDetails.create({
+          listingId: saved.id,
+          attributes: dto.attributes ?? {},
+          isUnique: dto.type === ListingType.Item ? (dto.isUnique ?? true) : false,
+        }),
+      );
+    }
+
+    return saved;
+  }
+
+  // The seller's own listings (any status), with the attributes they entered so edit forms can be
+  // pre-filled.
+  async findMine(sellerId: string): Promise<Array<Listing & { itemAttributes: Record<string, unknown> | null; favoriteCount: number }>> {
+    const rows = await this.listings.find({ where: { sellerId }, relations: ['game', 'images'], order: { createdAt: 'DESC' } });
+    rows.forEach(sortImages);
+    const ids = rows.filter((row) => row.type !== ListingType.Service).map((row) => row.id);
+    const details = ids.length ? await this.itemDetails.find({ where: { listingId: In(ids) }, select: ['listingId', 'attributes'] }) : [];
+    const byId = new Map(details.map((d) => [d.listingId, d.attributes]));
+    // ♡ counts for the seller panel's stats line (views / likes / orders — design 2026-10-04).
+    const favCounts: Array<{ listingId: string; n: number }> = rows.length
+      ? await this.listings.query(`SELECT "listingId", count(*)::int AS n FROM "listing_favorites" WHERE "listingId" = ANY($1) GROUP BY 1`, [rows.map((r) => r.id)])
+      : [];
+    const favById = new Map(favCounts.map((f) => [f.listingId, f.n]));
+    return rows.map((row) =>
+      Object.assign(row, { itemAttributes: row.type === ListingType.Service ? null : (byId.get(row.id) ?? {}), favoriteCount: favById.get(row.id) ?? 0 }),
+    );
+  }
+
+  // The seller's own listing in any status, everything needed to edit it (GET listings/mine/:id).
+  async findOwnedForEdit(sellerId: string, listingId: string): Promise<ListingForEdit> {
+    const listing = await this.getOwnedListing(sellerId, listingId);
+    return this.toListingForEdit(listing.id);
+  }
+
+  // A moderator's preview of any listing before deciding (GET admin/listings/:id).
+  findForReview(listingId: string): Promise<ListingForEdit> {
+    return this.toListingForEdit(listingId);
+  }
+
+  // --- Admin → Steam (2026-10-07): the whole Steam catalogue for any Steam publisher ---
+
+  // Every Steam game (digital-key listing), whoever created it, newest first, with key stock.
+  async steamCatalogue(): Promise<AdminSteamGameSummary[]> {
+    const rows: Array<Record<string, unknown>> = await this.listings.query(
+      `SELECT l.id, l.title, l.status, l."priceWaveCoin", l."ordersCount", l."isFeatured", l."createdAt", l."updatedAt", u.username AS "createdByUsername",
+              (SELECT i.url FROM listing_images i WHERE i."listingId" = l.id ORDER BY i."sortOrder" ASC LIMIT 1) AS "coverUrl",
+              (SELECT count(*)::int FROM listing_key_inventory k WHERE k."listingId" = l.id AND k.status = $2) AS "availableKeys",
+              (SELECT count(*)::int FROM listing_key_inventory k WHERE k."listingId" = l.id AND k.status = $3) AS "soldKeys"
+         FROM listings l JOIN users u ON u.id = l."sellerId"
+        WHERE l.type = $1
+        ORDER BY l."createdAt" DESC`,
+      [ListingType.DigitalKey, KeyInventoryStatus.Available, KeyInventoryStatus.Sold],
+    );
+    return rows.map((r) => ({
+      id: String(r.id),
+      title: String(r.title),
+      status: r.status as ListingStatus,
+      priceWaveCoin: r.priceWaveCoin === null ? null : Number(r.priceWaveCoin),
+      coverUrl: (r.coverUrl as string | null) ?? null,
+      availableKeys: Number(r.availableKeys),
+      soldKeys: Number(r.soldKeys),
+      ordersCount: Number(r.ordersCount),
+      isFeatured: r.isFeatured === true,
+      createdByUsername: String(r.createdByUsername),
+      createdAt: new Date(r.createdAt as string).toISOString(),
+      updatedAt: new Date(r.updatedAt as string).toISOString(),
+    }));
+  }
+
+  // 404 unless the listing is a Steam game — the Steam routes never touch other listing types.
+  async assertSteamGame(listingId: string): Promise<void> {
+    const listing = await this.listings.findOne({ where: { id: listingId }, select: ['id', 'type'] });
+    if (!listing || listing.type !== ListingType.DigitalKey) throw new NotFoundException('Steam game not found');
+  }
+
+  async steamGameForEdit(listingId: string): Promise<ListingForEdit> {
+    await this.assertSteamGame(listingId);
+    return this.toListingForEdit(listingId);
+  }
+
+  // Staff publish a Steam game straight to the store (they are the moderators of their own
+  // catalogue) — only with at least one key in stock — or pause / resume it.
+  async steamSetLive(listingId: string, live: boolean): Promise<Listing> {
+    await this.assertSteamGame(listingId);
+    const listing = await this.getListingOrThrow(listingId);
+    if (live) {
+      if (listing.status === ListingStatus.Active) throw new ConflictException('This game is already live');
+      const available = await this.keyInventory.count({ where: { listingId, status: KeyInventoryStatus.Available } });
+      if (available === 0) throw new ConflictException('Add at least one key before publishing');
+      listing.status = ListingStatus.Active;
+      listing.rejectionReason = null;
+    } else {
+      if (listing.status !== ListingStatus.Active) throw new ConflictException('Only a live game can be paused');
+      listing.status = ListingStatus.Paused;
+    }
+    return this.listings.save(listing);
+  }
+
+  private async toListingForEdit(listingId: string): Promise<ListingForEdit> {
+    const listing = await this.listings.findOne({ where: { id: listingId }, relations: ['seller', 'category', 'game', 'images'] });
+    if (!listing) throw new NotFoundException('Listing not found');
+    const [packages, service, item] = await Promise.all([
+      this.packages.find({ where: { listingId }, order: { sortOrder: 'ASC' } }),
+      listing.type === ListingType.Service ? this.serviceDetails.findOne({ where: { listingId } }) : null,
+      listing.type !== ListingType.Service ? this.itemDetails.findOne({ where: { listingId } }) : null,
+    ]);
+    return {
+      id: listing.id,
+      type: listing.type,
+      status: listing.status,
+      title: listing.title,
+      description: listing.description,
+      rejectionReason: listing.rejectionReason ?? null,
+      priceWaveCoin: listing.priceWaveCoin,
+      category: { id: listing.category.id, name: listing.category.name, slug: listing.category.slug },
+      game: listing.game ? { id: listing.game.id, name: listing.game.name, slug: listing.game.slug, iconUrl: listing.game.iconUrl } : null,
+      sellerUsername: listing.seller.username,
+      images: [...(listing.images ?? [])].sort((a, b) => a.sortOrder - b.sortOrder).map((img) => ({ id: img.id, url: img.url, sortOrder: img.sortOrder })),
+      packages: packages.map((p) => ({ id: p.id, name: p.name, priceWaveCoin: p.priceWaveCoin, deliveryTimeDays: p.deliveryTimeDays, features: p.features ?? [], revisionsIncluded: p.revisionsIncluded })),
+      requirementsSchema: service?.requirementsSchema ?? [],
+      faq: service?.faq ?? [],
+      itemAttributes: item?.attributes ?? null,
+      createdAt: listing.createdAt.toISOString(),
+    };
+  }
+
+  // Removing or reordering already-moderated photos is harmless, so it never re-triggers review.
+  async removeImage(editor: ListingEditor, listingId: string, imageId: string): Promise<{ ok: true }> {
+    await this.getEditableListing(editor, listingId);
+    const result = await this.images.delete({ id: imageId, listingId });
+    if (!result.affected) throw new NotFoundException('Image not found');
+    await this.renumberImages(listingId);
+    return { ok: true };
+  }
+
+  // The first image (sortOrder 0) is the listing's main photo everywhere it's shown. This moves the
+  // chosen one to the front and renumbers the rest in their current order.
+  async setCoverImage(editor: ListingEditor, listingId: string, imageId: string): Promise<{ ok: true }> {
+    await this.getEditableListing(editor, listingId);
+    const rows = await this.images.find({ where: { listingId }, order: { sortOrder: 'ASC', id: 'ASC' } });
+    const chosen = rows.find((img) => img.id === imageId);
+    if (!chosen) throw new NotFoundException('Image not found');
+    await this.renumberImages(listingId, [chosen, ...rows.filter((img) => img.id !== imageId)]);
+    return { ok: true };
+  }
+
+  private async renumberImages(listingId: string, ordered?: ListingImage[]) {
+    const rows = ordered ?? (await this.images.find({ where: { listingId }, order: { sortOrder: 'ASC', id: 'ASC' } }));
+    await Promise.all(rows.map((img, index) => (img.sortOrder === index ? null : this.images.update(img.id, { sortOrder: index }))));
+  }
+
+  // Backs the public seller-profile page (backend/src/users/users.controller.ts) — only counts
+  // what's actually visible to a public visitor, same as browseActive's own status filter.
+  countActiveBySeller(sellerId: string): Promise<number> {
+    return this.listings.count({ where: { sellerId, status: ListingStatus.Active } });
+  }
+
+  // Admin → Listings search (any status) with the Featured flag, for picking Featured Items.
+  async adminSearch(query: { q?: string; status?: ListingStatus; type?: ListingType; featured?: boolean; limit?: number }): Promise<AdminListingSummary[]> {
+    const qb = this.listings
+      .createQueryBuilder('l')
+      .leftJoinAndSelect('l.seller', 'seller')
+      .leftJoinAndSelect('l.category', 'category')
+      .leftJoinAndSelect('l.game', 'game');
+    if (query.status) qb.andWhere('l.status = :status', { status: query.status });
+    if (query.type) qb.andWhere('l.type = :type', { type: query.type });
+    if (query.featured !== undefined) qb.andWhere('l.isFeatured = :featured', { featured: query.featured });
+    const q = query.q?.trim();
+    if (q) {
+      const pattern = `%${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+      qb.andWhere(new Brackets((w) => w.where('l.title ILIKE :p', { p: pattern }).orWhere('seller.username ILIKE :p', { p: pattern })));
+    }
+    const rows = await qb.orderBy('l.isFeatured', 'DESC').addOrderBy('l.createdAt', 'DESC').take(Math.min(query.limit ?? 50, 100)).getMany();
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      type: row.type,
+      sellerId: row.sellerId,
+      sellerUsername: row.seller.username,
+      categoryName: row.category.name,
+      gameName: row.game?.name ?? null,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      isFeatured: row.isFeatured,
+      priceWaveCoin: row.priceWaveCoin,
+    }));
+  }
+
+  async setFeatured(listingId: string, isFeatured: boolean): Promise<{ id: string; isFeatured: boolean }> {
+    const listing = await this.getListingOrThrow(listingId);
+    await this.listings.update(listing.id, { isFeatured });
+    return { id: listing.id, isFeatured };
+  }
+
+  // Backs the admin `GET listings/pending-review` route — the "what needs my approval" queue.
+  // Returns a purpose-built projection (AdminListingSummary), not the raw joined entity — a bare
+  // Listing.seller relation would carry the seller's full User row (email, wavecoinBalance, etc.)
+  // into an approval-queue table that has no reason to see it. approve/reject already existed
+  // (Phase 11a) but had nothing that could actually list the ids to act on.
+  async listPendingReview(): Promise<AdminListingSummary[]> {
+    const rows = await this.listings.find({
+      where: { status: ListingStatus.PendingReview },
+      relations: ['seller', 'category', 'game'],
+      order: { createdAt: 'ASC' },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      type: row.type,
+      sellerId: row.sellerId,
+      sellerUsername: row.seller.username,
+      categoryName: row.category.name,
+      gameName: row.game?.name ?? null,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+    }));
+  }
+
+  // Public browse — only ever returns Active listings. A listing's owner viewing their own
+  // draft/pending/paused/rejected listings must use findMine, not this.
+  //
+  // Joins seller/category/game/images so the caller (the frontend marketplace grid) has enough to
+  // render a card without N+1 follow-up requests — a bare Listing only has FK ids, not names. Full
+  // package rows aren't joined (that's a detail-page concern, see findPublicById), but a
+  // `startingPriceWaveCoin` (item's own price, or a service listing's cheapest package) is computed
+  // in one batched follow-up query so cards can always show a price.
+  async browseActive(
+    filters: BrowseListingsDto,
+  ): Promise<{ items: Array<Omit<Listing, 'seller'> & { seller: PublicSeller; startingPriceWaveCoin: number | null }>; total: number }> {
+    const qb = this.listings
+      .createQueryBuilder('listing')
+      .leftJoinAndSelect('listing.seller', 'seller')
+      .leftJoinAndSelect('listing.category', 'category')
+      .leftJoinAndSelect('listing.game', 'game')
+      .leftJoinAndSelect('listing.images', 'images')
+      .where('listing.status = :status', { status: ListingStatus.Active })
+      // A suspended or banned seller's listings leave the marketplace with them (2026-10-03).
+      .andWhere('seller.status = :sellerStatus', { sellerStatus: UserStatus.Active });
+
+    if (filters.categoryId) {
+      qb.andWhere('listing.categoryId = :categoryId', { categoryId: filters.categoryId });
+    }
+    if (filters.gameId) {
+      qb.andWhere('listing.gameId = :gameId', { gameId: filters.gameId });
+    } else if (filters.game) {
+      qb.andWhere('game.slug = :gameSlug', { gameSlug: filters.game });
+    }
+    if (filters.type) {
+      qb.andWhere('listing.type = :type', { type: filters.type });
+    } else if (!filters.featured) {
+      // Steam games live on their own page (/steam-keys), never in the marketplace grid.
+      qb.andWhere('listing.type <> :steamType', { steamType: ListingType.DigitalKey });
+    }
+    if (filters.genre) {
+      qb.andWhere(
+        `EXISTS (SELECT 1 FROM "item_details" d WHERE d."listingId" = "listing"."id" AND d."attributes"->>'genre' = :genre)`,
+        { genre: filters.genre },
+      );
+    }
+    const search = filters.q?.trim();
+    if (search) {
+      const pattern = `%${search.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+      qb.andWhere(
+        new Brackets((w) => {
+          w.where('listing.title ILIKE :search', { search: pattern })
+            .orWhere('listing.description ILIKE :search', { search: pattern })
+            .orWhere('game.name ILIKE :search', { search: pattern });
+        }),
+      );
+    }
+
+    // `featuredListings` perk boost (LAUNCH_PLAN.md §3b) — read live via a join to
+    // user_subscriptions/subscription_plans, never a cached flag on Listing, so a lapsed
+    // subscription stops boosting the instant it lapses rather than lingering until something
+    // re-syncs a flag. Joined (not a separate lookup) so the boost applies BEFORE pagination cuts
+    // the result down to one page — a later in-memory re-sort of just the fetched page would be too
+    // late to promote a boosted listing that the SQL-level ORDER BY + LIMIT already excluded.
+    // Every alias below is quoted to match TypeORM's own mixed-case alias quoting exactly
+    // ("sellerSub", "sellerPlan") — an unquoted reference in a raw join condition gets
+    // lowercase-folded by Postgres's parser and then fails to resolve against the quoted alias
+    // TypeORM generates elsewhere in the same query (`missing FROM-clause entry for "sellersub"`,
+    // caught while verifying this against a live instance).
+    qb.leftJoin(
+      'user_subscriptions',
+      'sellerSub',
+      `"sellerSub"."userId" = "listing"."sellerId" AND "sellerSub"."status" IN ('active', 'past_due') AND "sellerSub"."audience" = 'seller_coach'`,
+    )
+      .leftJoin(
+        'subscription_plans',
+        'sellerPlan',
+        `"sellerPlan"."id" = "sellerSub"."planId" AND ("sellerPlan"."perks"->>'featuredListings')::boolean IS TRUE`,
+      )
+      // A named raw column, not an inline expression in .orderBy() — TypeORM's orderBy alias
+      // resolution (used to decide whether DISTINCT/pagination needs adjusting) chokes on a raw
+      // boolean/CASE expression passed directly, but orders correctly by a plain addSelect alias.
+      .addSelect('CASE WHEN "sellerPlan"."id" IS NOT NULL THEN 1 ELSE 0 END', 'featured_boost');
+    if (filters.featured) {
+      // Featured = picked by an admin (isFeatured) or boosted by a seller's featured-listings perk.
+      qb.andWhere('("sellerPlan"."id" IS NOT NULL OR listing.isFeatured = true)');
+    }
+
+    // Sort key for price sorts: an item/key's own price, else the cheapest package (services).
+    qb.addSelect(
+      `COALESCE("listing"."priceWaveCoin", (SELECT MIN(p."priceWaveCoin") FROM "packages" p WHERE p."listingId" = "listing"."id"))`,
+      'sort_price',
+    );
+    if (filters.sort === 'oldest') {
+      qb.orderBy('listing.createdAt', 'ASC');
+    } else if (filters.sort === 'price_asc') {
+      qb.orderBy('sort_price', 'ASC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
+    } else if (filters.sort === 'price_desc') {
+      qb.orderBy('sort_price', 'DESC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
+    } else if (filters.sort === 'popular') {
+      qb.orderBy('listing.ordersCount', 'DESC').addOrderBy('listing.createdAt', 'DESC');
+    } else {
+      qb.orderBy('listing.isFeatured', 'DESC').addOrderBy('featured_boost', 'DESC').addOrderBy('listing.createdAt', 'DESC');
+    }
+
+    const [items, total] = await qb
+      .take(filters.limit ?? 20)
+      .skip(filters.offset ?? 0)
+      .getManyAndCount();
+
+    return { items: await this.decorateSummaries(items), total };
+  }
+
+  // Everything a listing card needs beyond the row itself, batched per page (a fixed handful of
+  // queries regardless of page size): cheapest package price for services, live available-key
+  // count for digital keys, item attributes, and the favourite count. Shared by browse and the
+  // favourites list so both return the exact same card shape.
+  private async decorateSummaries(items: Listing[]) {
+    items.forEach(sortImages);
+    const serviceListingIds = items.filter((item) => item.type === ListingType.Service).map((i) => i.id);
+    const minPriceByListing = new Map<string, number>();
+    if (serviceListingIds.length > 0) {
+      const rows: Array<{ listingId: string; min: string }> = await this.packages
+        .createQueryBuilder('pkg')
+        .select('pkg.listingId', 'listingId')
+        .addSelect('MIN(pkg.priceWaveCoin)', 'min')
+        .where('pkg.listingId IN (:...ids)', { ids: serviceListingIds })
+        .groupBy('pkg.listingId')
+        .getRawMany();
+      rows.forEach((row) => minPriceByListing.set(row.listingId, Number(row.min)));
+    }
+
+    // DigitalKey "stock" isn't a stored column (see listing.entity.ts) — it's a live count of
+    // `available` rows, batched the same way startingPriceWaveCoin is above (one extra query per
+    // page, not per listing).
+    const digitalKeyListingIds = items.filter((item) => item.type === ListingType.DigitalKey).map((i) => i.id);
+    const availableCountByListing = new Map<string, number>();
+    if (digitalKeyListingIds.length > 0) {
+      const rows: Array<{ listingId: string; count: string }> = await this.keyInventory
+        .createQueryBuilder('k')
+        .select('k.listingId', 'listingId')
+        .addSelect('COUNT(*)', 'count')
+        .where('k.listingId IN (:...ids)', { ids: digitalKeyListingIds })
+        .andWhere('k.status = :status', { status: KeyInventoryStatus.Available })
+        .groupBy('k.listingId')
+        .getRawMany();
+      rows.forEach((row) => availableCountByListing.set(row.listingId, Number(row.count)));
+    }
+
+    const ids = items.map((item) => item.id);
+    const itemListingIds = items.filter((item) => item.type !== ListingType.Service).map((i) => i.id);
+    const [attributeRows, favoriteRows] = await Promise.all([
+      itemListingIds.length > 0
+        ? this.itemDetails.find({ where: { listingId: In(itemListingIds) }, select: ['listingId', 'attributes'] })
+        : Promise.resolve([] as ItemDetails[]),
+      ids.length > 0
+        ? this.favorites
+            .createQueryBuilder('f')
+            .select('f.listingId', 'listingId')
+            .addSelect('COUNT(*)', 'count')
+            .where('f.listingId IN (:...ids)', { ids })
+            .groupBy('f.listingId')
+            .getRawMany<{ listingId: string; count: string }>()
+        : Promise.resolve([] as Array<{ listingId: string; count: string }>),
+    ]);
+    const attributesByListing = new Map(attributeRows.map((row) => [row.listingId, row.attributes]));
+    const favoritesByListing = new Map(favoriteRows.map((row) => [row.listingId, Number(row.count)]));
+
+    return items.map((item) => ({
+      ...item,
+      seller: toPublicSeller(item.seller),
+      stockQuantity: item.type === ListingType.DigitalKey ? availableCountByListing.get(item.id) ?? 0 : item.stockQuantity,
+      startingPriceWaveCoin:
+        item.type === ListingType.Item || item.type === ListingType.DigitalKey
+          ? item.priceWaveCoin
+          : minPriceByListing.get(item.id) ?? null,
+      itemAttributes: item.type !== ListingType.Service ? attributesByListing.get(item.id) ?? {} : null,
+      favoriteCount: favoritesByListing.get(item.id) ?? 0,
+    }));
+  }
+
+  // --- Favourites (the prototype's ♡ / Favorites page) ---
+
+  // Only an Active listing can be saved (same visibility rule as the public detail page); saving
+  // twice is a no-op thanks to the composite primary key.
+  async addFavorite(userId: string, listingId: string): Promise<{ favorited: true; favoriteCount: number }> {
+    const exists = await this.listings.exist({ where: { id: listingId, status: ListingStatus.Active } });
+    if (!exists) {
+      throw new NotFoundException('Listing not found');
+    }
+    await this.favorites
+      .createQueryBuilder()
+      .insert()
+      .into(ListingFavorite)
+      .values({ userId, listingId })
+      .orIgnore()
+      .execute();
+    return { favorited: true, favoriteCount: await this.favorites.count({ where: { listingId } }) };
+  }
+
+  async removeFavorite(userId: string, listingId: string): Promise<{ favorited: false; favoriteCount: number }> {
+    await this.favorites.delete({ userId, listingId });
+    return { favorited: false, favoriteCount: await this.favorites.count({ where: { listingId } }) };
+  }
+
+  async listFavoriteIds(userId: string): Promise<string[]> {
+    const rows = await this.favorites.find({ where: { userId }, select: ['listingId'], order: { createdAt: 'DESC' } });
+    return rows.map((row) => row.listingId);
+  }
+
+  // The viewer's saved listings as ordinary cards, newest save first. Listings that have since
+  // stopped being Active are left out (they'd 404 on click) but the favourite row is kept, so it
+  // reappears if the seller re-activates the listing.
+  async listFavorites(userId: string) {
+    const ids = await this.listFavoriteIds(userId);
+    if (ids.length === 0) return [];
+    const rows = await this.listings.find({
+      where: { id: In(ids), status: ListingStatus.Active, seller: { status: UserStatus.Active } },
+      relations: ['seller', 'category', 'game', 'images'],
+    });
+    const order = new Map(ids.map((id, index) => [id, index]));
+    rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return this.decorateSummaries(rows);
+  }
+
+  // Public detail lookup — 404s on anything not Active (a draft/pending listing isn't "not found"
+  // in the DB sense, but it must behave as not found to an unauthenticated/non-owner caller).
+  // Increments viewsCount as a side effect, best-effort (not awaited as part of the critical path).
+  //
+  // Returns more than a bare `Listing`: packages (sorted) and the type-specific requirements/FAQ/
+  // item-attributes are fetched separately (they don't join cleanly via `relations` because of the
+  // sort-order and type-branching) and attached to the response. There's no shared response DTO for
+  // this shape yet — see packages/shared-types/CLAUDE.md if that becomes worth formalizing.
+  async findPublicById(id: string) {
+    const listing = await this.listings.findOne({
+      where: { id, status: ListingStatus.Active, seller: { status: UserStatus.Active } },
+      relations: ['seller', 'category', 'game', 'images'],
+    });
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+    sortImages(listing);
+    void this.listings.increment({ id }, 'viewsCount', 1);
+    const [favoriteCount, [{ sellerCompletedOrders }]] = await Promise.all([
+      this.favorites.count({ where: { listingId: id } }),
+      this.listings.query(
+        `SELECT count(*)::int AS "sellerCompletedOrders" FROM "orders" WHERE "sellerId" = $1 AND "status" = 'completed'`,
+        [listing.sellerId],
+      ),
+    ]);
+
+    const [{ n: verifiedCount }] = await this.listings.query(
+      `SELECT count(*)::int AS n FROM "user_badges" WHERE "userId" = $1 AND "badgeKey" = 'verified'`,
+      [listing.sellerId],
+    );
+    const sellerVerified = verifiedCount > 0;
+    if (listing.type === ListingType.Service) {
+      const [packages, details] = await Promise.all([
+        this.packages.find({ where: { listingId: id }, order: { sortOrder: 'ASC' } }),
+        this.serviceDetails.findOne({ where: { listingId: id } }),
+      ]);
+      return {
+        ...listing,
+        seller: toPublicSeller(listing.seller, sellerVerified),
+        packages,
+        requirementsSchema: details?.requirementsSchema ?? [],
+        faq: details?.faq ?? [],
+        itemAttributes: null,
+        favoriteCount,
+        sellerCompletedOrders,
+      };
+    }
+
+    if (listing.type === ListingType.DigitalKey) {
+      const availableCount = await this.keyInventory.count({
+        where: { listingId: id, status: KeyInventoryStatus.Available },
+      });
+      const keyDetails = await this.itemDetails.findOne({ where: { listingId: id } });
+      return {
+        ...listing,
+        seller: toPublicSeller(listing.seller, sellerVerified),
+        packages: [],
+        stockQuantity: availableCount,
+        itemAttributes: keyDetails?.attributes ?? {},
+        favoriteCount,
+        sellerCompletedOrders,
+      };
+    }
+
+    const itemDetails = await this.itemDetails.findOne({ where: { listingId: id } });
+    return { ...listing, seller: toPublicSeller(listing.seller, sellerVerified), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount, sellerCompletedOrders };
+  }
+
+  // Packages are what a buyer pays for, so changing them on a live (Active/Paused) service sends it
+  // back to review exactly like any other edit (see #update); mid-review changes are refused.
+  async addPackage(editor: ListingEditor, listingId: string, dto: CreatePackageDto): Promise<Package> {
+    const listing = await this.getEditableListing(editor, listingId);
+    if (listing.type !== ListingType.Service) {
+      throw new ForbiddenException('Only service listings have packages');
+    }
+    if (editor !== STAFF_EDITOR) this.assertPackagesEditable(listing);
+    const existing = await this.packages.count({ where: { listingId } });
+    if (existing >= MAX_PACKAGES) {
+      throw new ConflictException(`A service can have at most ${MAX_PACKAGES} packages`);
+    }
+    if (editor !== STAFF_EDITOR) await this.backToReviewIfLive(listing);
+
+    const pkg = this.packages.create({
+      listingId,
+      name: dto.name,
+      priceWaveCoin: dto.priceWaveCoin,
+      deliveryTimeDays: dto.deliveryTimeDays,
+      features: dto.features ?? [],
+      revisionsIncluded: dto.revisionsIncluded ?? 0,
+      sortOrder: existing,
+    });
+    return this.packages.save(pkg);
+  }
+
+  async removePackage(editor: ListingEditor, listingId: string, packageId: string): Promise<void> {
+    const listing = await this.getEditableListing(editor, listingId);
+    if (editor !== STAFF_EDITOR) this.assertPackagesEditable(listing);
+    const result = await this.packages.delete({ id: packageId, listingId });
+    if (!result.affected) {
+      throw new NotFoundException('Package not found');
+    }
+    if (editor !== STAFF_EDITOR) await this.backToReviewIfLive(listing);
+  }
+
+  // A seller can't change a listing while it's being reviewed (text, packages or new photos).
+  private assertPackagesEditable(listing: Listing) {
+    if (listing.status === ListingStatus.PendingReview) {
+      throw new ConflictException('This listing is waiting for review — edit it after the decision');
+    }
+  }
+
+  private async backToReviewIfLive(listing: Listing) {
+    if (listing.status === ListingStatus.Active || listing.status === ListingStatus.Paused) {
+      assertValidTransition(listing.status, ListingStatus.PendingReview);
+      listing.status = ListingStatus.PendingReview;
+      await this.listings.save(listing);
+    }
+  }
+
+  private async assertServiceCategory(categoryId: string) {
+    const category = await this.categories.findOne({ where: { id: categoryId, isActive: true } });
+    if (!category || (category.type !== 'service' && category.type !== 'both')) {
+      throw new ForbiddenException('Choose a service category for a service listing');
+    }
+  }
+
+  // A seller's new photo is unmoderated content: on a live (Active/Paused) listing it sends the
+  // listing back to review, and it's refused while a review is in progress — same rules as a text
+  // edit. Before this, a photo added after approval went live without anyone seeing it.
+  async addImage(
+    editor: ListingEditor,
+    listingId: string,
+    file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+  ): Promise<ListingImage> {
+    const listing = await this.getEditableListing(editor, listingId);
+    if (editor !== STAFF_EDITOR) this.assertPackagesEditable(listing);
+
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.mimetype)) {
+      throw new ForbiddenException('Only JPG, PNG, or WEBP images are allowed');
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      throw new ForbiddenException('Image exceeds the 2MB size limit');
+    }
+
+    const existingCount = await this.images.count({ where: { listingId } });
+    if (existingCount >= MAX_IMAGES_PER_LISTING) {
+      throw new ForbiddenException(`A listing can have at most ${MAX_IMAGES_PER_LISTING} images`);
+    }
+
+    const stored = await this.storage.save(file.buffer, file.originalname, 'image');
+    const image = this.images.create({ listingId, url: stored.url, sortOrder: existingCount });
+    const saved = await this.images.save(image);
+    if (editor !== STAFF_EDITOR) await this.backToReviewIfLive(listing);
+    return saved;
+  }
+
+  // Seller edit. A Draft/Rejected listing just takes the changes (the seller submits it when ready);
+  // an Active/Paused one goes back to PendingReview so the edited version is moderated before it's
+  // buyable again. A listing already waiting for review can't be edited mid-review.
+  async update(editor: ListingEditor, listingId: string, dto: UpdateListingDto): Promise<Listing> {
+    const listing = await this.getEditableListing(editor, listingId);
+    const staff = editor === STAFF_EDITOR;
+    if (!staff && listing.status === ListingStatus.PendingReview) {
+      throw new ConflictException('This listing is waiting for review — edit it after the decision');
+    }
+    if (dto.priceWaveCoin !== undefined && listing.type === ListingType.Service) {
+      throw new ForbiddenException('Service listings are priced by their packages');
+    }
+    if (dto.attributes !== undefined && listing.type === ListingType.Service) {
+      throw new ForbiddenException('Only item and key listings have attributes');
+    }
+    if ((dto.requirementsSchema !== undefined || dto.faq !== undefined) && listing.type !== ListingType.Service) {
+      throw new ForbiddenException('Only service listings have requirements and FAQ');
+    }
+    if (dto.requirementsSchema !== undefined) assertRequirementsSchema(dto.requirementsSchema);
+    assertCompareAtPrice(dto.attributes, dto.priceWaveCoin ?? listing.priceWaveCoin);
+    if (dto.title !== undefined) listing.title = dto.title;
+    if (dto.description !== undefined) listing.description = dto.description;
+    if (dto.priceWaveCoin !== undefined) listing.priceWaveCoin = dto.priceWaveCoin;
+    if (!staff && (listing.status === ListingStatus.Active || listing.status === ListingStatus.Paused)) {
+      assertValidTransition(listing.status, ListingStatus.PendingReview);
+      listing.status = ListingStatus.PendingReview;
+    }
+    const saved = await this.listings.save(listing);
+    if (dto.requirementsSchema !== undefined || dto.faq !== undefined) {
+      const patch: Partial<ServiceDetails> = {};
+      if (dto.requirementsSchema !== undefined) patch.requirementsSchema = dto.requirementsSchema;
+      if (dto.faq !== undefined) patch.faq = dto.faq;
+      const updated = await this.serviceDetails.update({ listingId }, patch);
+      if (!updated.affected) await this.serviceDetails.save(this.serviceDetails.create({ listingId, requirementsSchema: [], faq: [], ...patch }));
+    }
+    if (dto.attributes !== undefined) {
+      // Key listings created before they carried attributes have no details row yet.
+      const updated = await this.itemDetails.update({ listingId }, { attributes: dto.attributes });
+      if (!updated.affected) {
+        await this.itemDetails.save(this.itemDetails.create({ listingId, attributes: dto.attributes, isUnique: false }));
+      }
+    }
+    return saved;
+  }
+
+  // Seller delete. Only a listing nobody has ever ordered can be removed — orders (and their
+  // escrow/dispute/review history) must keep pointing at the listing they bought, so a listing with
+  // orders gets a clear "pause it instead" answer.
+  async remove(sellerId: string, listingId: string): Promise<void> {
+    const listing = await this.getOwnedListing(sellerId, listingId);
+    const [{ count }] = await this.listings.query(`SELECT count(*)::int AS count FROM "orders" WHERE "listingId" = $1`, [listingId]);
+    if (count > 0) {
+      throw new ConflictException('This listing has orders and can’t be deleted — pause it instead');
+    }
+    try {
+      await this.listings.delete({ id: listing.id });
+    } catch (err) {
+      // 23503 = foreign_key_violation: an order was placed between the check above and the delete.
+      if ((err as { code?: string }).code === '23503') {
+        throw new ConflictException('This listing has orders and can’t be deleted — pause it instead');
+      }
+      throw err;
+    }
+  }
+
+  async submitForReview(sellerId: string, listingId: string): Promise<Listing> {
+    const listing = await this.getOwnedListing(sellerId, listingId);
+    assertValidTransition(listing.status, ListingStatus.PendingReview);
+    if (listing.type === ListingType.Service && (await this.packages.count({ where: { listingId } })) === 0) {
+      throw new ConflictException('Add at least one package before submitting a service for review');
+    }
+    listing.status = ListingStatus.PendingReview;
+    listing.rejectionReason = null;
+    return this.listings.save(listing);
+  }
+
+  async pause(sellerId: string, listingId: string): Promise<Listing> {
+    const listing = await this.getOwnedListing(sellerId, listingId);
+    assertValidTransition(listing.status, ListingStatus.Paused);
+    listing.status = ListingStatus.Paused;
+    return this.listings.save(listing);
+  }
+
+  async unpause(sellerId: string, listingId: string): Promise<Listing> {
+    const listing = await this.getOwnedListing(sellerId, listingId);
+    assertValidTransition(listing.status, ListingStatus.Active);
+    listing.status = ListingStatus.Active;
+    return this.listings.save(listing);
+  }
+
+  // Admin-only actions per the build plan — not wired to any HTTP route yet (Phase 11 adds the
+  // guarded admin controller that calls these). Implemented now so Phase 11 doesn't need to design
+  // the state machine from scratch, matching how backend/src/wallet/wallet.service.ts's primitives
+  // were built ahead of Orders.
+  async approve(listingId: string): Promise<Listing> {
+    const listing = await this.getListingOrThrow(listingId);
+    assertValidTransition(listing.status, ListingStatus.Active);
+    listing.status = ListingStatus.Active;
+    listing.rejectionReason = null;
+    const saved = await this.listings.save(listing);
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingApproved,
+      'განცხადება დამტკიცდა',
+      `„${listing.title}“ დამტკიცდა და უკვე ჩანს მარკეტზე.`,
+      { link: `/listings/${listing.id}` },
+    );
+    return saved;
+  }
+
+  async reject(listingId: string, reason: string): Promise<Listing> {
+    const listing = await this.getListingOrThrow(listingId);
+    assertValidTransition(listing.status, ListingStatus.Rejected);
+    listing.status = ListingStatus.Rejected;
+    listing.rejectionReason = reason;
+    const saved = await this.listings.save(listing);
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingRejected,
+      'განცხადება უარყოფილია',
+      `„${listing.title}“ არ დამტკიცდა. მიზეზი: ${reason}. შეასწორე და ხელახლა გაგზავნე.`,
+      { link: '/sell' },
+    );
+    return saved;
+  }
+
+  // --- Staff moderation of live listings (2026-10-03) ---
+
+  // Take a live (or paused / waiting) listing off the marketplace: it becomes Rejected with the
+  // moderation reason, loses the Featured flag, and the seller is told why. Open orders are not
+  // touched — they finish (or get disputed) as usual.
+  async adminTakeDown(listingId: string, reason: string): Promise<Listing> {
+    const listing = await this.getListingOrThrow(listingId);
+    assertValidTransition(listing.status, ListingStatus.Rejected);
+    listing.status = ListingStatus.Rejected;
+    listing.rejectionReason = reason;
+    listing.isFeatured = false;
+    const saved = await this.listings.save(listing);
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingRejected,
+      'განცხადება მოხსნილია მარკეტიდან',
+      `„${listing.title}“ მოდერაციამ მოხსნა მარკეტიდან. მიზეზი: ${reason}. შეასწორე და ხელახლა გაგზავნე განსახილველად.`,
+      { link: '/sell' },
+    );
+    return saved;
+  }
+
+  // Put a taken-down (or rejected) listing straight back on the marketplace.
+  async adminRestore(listingId: string): Promise<Listing> {
+    const listing = await this.getListingOrThrow(listingId);
+    if (listing.status !== ListingStatus.Rejected) throw new ConflictException('Only a removed or rejected listing can be restored');
+    // Admin-only override of the lifecycle table (which keeps Rejected → Active closed to sellers).
+    listing.status = ListingStatus.Active;
+    listing.rejectionReason = null;
+    const saved = await this.listings.save(listing);
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingApproved,
+      'განცხადება აღდგა',
+      `„${listing.title}“ მოდერაციამ აღადგინა და ისევ ჩანს მარკეტზე.`,
+      { link: `/listings/${listing.id}` },
+    );
+    return saved;
+  }
+
+  // Permanently delete a listing — only one nobody ever ordered (orders and reviews reference it;
+  // their history must survive). Anything with orders is taken down instead.
+  async adminDelete(listingId: string): Promise<{ title: string; sellerId: string }> {
+    const listing = await this.getListingOrThrow(listingId);
+    const [{ count }] = await this.listings.query(`SELECT count(*)::int AS count FROM "orders" WHERE "listingId" = $1`, [listingId]);
+    if (count > 0) throw new ConflictException('This listing has orders and can’t be deleted — take it down instead');
+    try {
+      await this.listings.delete({ id: listing.id });
+    } catch (err) {
+      if ((err as { code?: string }).code === '23503') {
+        throw new ConflictException('This listing has orders and can’t be deleted — take it down instead');
+      }
+      throw err;
+    }
+    await this.notifications.tryEmit(
+      listing.sellerId,
+      NotificationType.ListingRejected,
+      'განცხადება წაიშალა',
+      `„${listing.title}“ მოდერაციამ წაშალა.`,
+      { link: '/sell' },
+    );
+    return { title: listing.title, sellerId: listing.sellerId };
+  }
+
+  // Bulk "paste a list of keys" upload — a seller realistically has dozens/hundreds per title (see
+  // LAUNCH_PLAN.md §2d). Each raw key is encrypted before it ever touches a `save()` call; nothing
+  // in this method (or its caller) ever logs or returns a raw value back.
+  // `editor` is the owner's id, or STAFF_EDITOR for a Steam publisher managing a game another staff
+  // member created (client feedback #5: only the publishing account could add stock).
+  async addKeys(editor: ListingEditor, listingId: string, rawKeys: string[]): Promise<{ added: number }> {
+    const listing = await this.getEditableListing(editor, listingId);
+    if (listing.type !== ListingType.DigitalKey) {
+      throw new ForbiddenException('Only digital key listings accept key inventory');
+    }
+    const rows = rawKeys.map((raw) =>
+      this.keyInventory.create({
+        listingId,
+        keyValueEncrypted: encryptKeyValue(raw.trim()),
+        status: KeyInventoryStatus.Available,
+      }),
+    );
+    await this.keyInventory.save(rows);
+    return { added: rows.length };
+  }
+
+  // Seller-facing inventory view — status/timestamps only, never the key value (see
+  // SellerListingKeySummary's own comment in packages/shared-types). Once uploaded, a seller has no
+  // way to read a key back through this app; they're expected to keep their own record before
+  // pasting it in, same as any real key-reseller platform.
+  async listKeys(editor: ListingEditor, listingId: string): Promise<SellerListingKeySummary[]> {
+    const listing = await this.getEditableListing(editor, listingId);
+    if (listing.type !== ListingType.DigitalKey) {
+      throw new ForbiddenException('Only digital key listings have key inventory');
+    }
+    const rows = await this.keyInventory.find({ where: { listingId }, order: { createdAt: 'DESC' } });
+    return rows.map((row) => ({
+      id: row.id,
+      status: row.status,
+      soldAt: row.soldAt?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString(),
+    }));
+  }
+
+  // Soft-delete only — an already-`sold` key is permanent (it's tied to a real order), and this
+  // query's WHERE clause only ever matches an `available` row, so attempting to "remove" a sold key
+  // just 404s rather than silently no-op'ing on the wrong row.
+  async removeKey(editor: ListingEditor, listingId: string, keyId: string): Promise<void> {
+    await this.getEditableListing(editor, listingId);
+    const result = await this.keyInventory.update(
+      { id: keyId, listingId, status: KeyInventoryStatus.Available },
+      { status: KeyInventoryStatus.Revoked },
+    );
+    if (!result.affected) {
+      throw new NotFoundException('Available key not found');
+    }
+  }
+
+  private async getListingOrThrow(listingId: string): Promise<Listing> {
+    const listing = await this.listings.findOne({ where: { id: listingId } });
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+    return listing;
+  }
+
+  private async getEditableListing(editor: ListingEditor, listingId: string): Promise<Listing> {
+    return editor === STAFF_EDITOR ? this.getListingOrThrow(listingId) : this.getOwnedListing(editor, listingId);
+  }
+
+  private async getOwnedListing(sellerId: string, listingId: string): Promise<Listing> {
+    const listing = await this.getListingOrThrow(listingId);
+    if (listing.sellerId !== sellerId) {
+      throw new ForbiddenException("This listing doesn't belong to you");
+    }
+    return listing;
+  }
+}
+
+// A seller-entered "was" price (attributes.compareAtPrice) is shown struck through with a discount
+// %, so it must be a whole number above the real price — otherwise it would advertise a discount
+// that doesn't exist.
+function assertCompareAtPrice(attributes: Record<string, unknown> | undefined, price: number | null | undefined) {
+  const compareAt = attributes?.compareAtPrice;
+  if (compareAt === undefined || compareAt === null || compareAt === '') return;
+  if (typeof compareAt !== 'number' || !Number.isInteger(compareAt) || !price || compareAt <= price) {
+    throw new BadRequestException('The original price must be a whole number above the current price');
+  }
+}
+
+const MAX_PACKAGES = 5;
+
+// Requirement keys identify the buyer's answers (orders/requirements-validator.ts), so they must be
+// unique; a dropdown needs something to pick.
+function assertRequirementsSchema(fields: Array<{ key: string; type: string; options?: string[] }>) {
+  const keys = new Set<string>();
+  for (const field of fields) {
+    if (keys.has(field.key)) throw new ForbiddenException(`Duplicate requirement key "${field.key}"`);
+    keys.add(field.key);
+    if (field.type === 'dropdown' && !field.options?.length) {
+      throw new ForbiddenException('A dropdown requirement needs at least one option');
+    }
+  }
+}
+
+// listing.images comes back from a relation join in no particular order; the main photo is the
+// one with the lowest sortOrder.
+function sortImages(listing: { images?: ListingImage[] }) {
+  listing.images?.sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id));
+}
+
+export const STEAM_CATEGORY_SLUG = 'steam-games';
+
+// Who is editing a listing: its seller (by user id) or Super Admin staff (`STAFF_EDITOR`, the
+// admin/listings/:id routes). The seller's edits of a live listing go back through moderation;
+// staff are the moderators, so their edits apply as-is (and are audit-logged by the controller).
+export const STAFF_EDITOR = Symbol('staff-editor');
+export type ListingEditor = string | typeof STAFF_EDITOR;
+export const STEAM_PUBLISHER_ROLES: AdminRole[] = [AdminRole.SuperAdmin, AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];

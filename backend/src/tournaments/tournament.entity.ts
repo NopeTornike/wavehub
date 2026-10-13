@@ -1,0 +1,65 @@
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { TournamentStatus } from '@wavehub/shared-types';
+import type { TournamentPrizes } from '@wavehub/shared-types';
+import { Game } from '../listings/game.entity';
+
+// Admin-managed tournaments — teams register, staff verify teams and record matches/results (see
+// CLAUDE.md). No automated matchmaking or prize payout.
+@Entity('tournaments')
+export class Tournament {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  gameId: string;
+
+  @ManyToOne(() => Game)
+  @JoinColumn({ name: 'gameId' })
+  game: Game;
+
+  @Column({ length: 70 })
+  name: string;
+
+  @Column({ type: 'text' })
+  description: string;
+
+  // Free text, not a structured amount — matches the static prototype's own flexible "5,000 GEL"
+  // field. WaveHub doesn't automate tournament prize payouts (see Status); an admin who wants to
+  // actually pay a winner does it through the existing withdrawal/admin-adjustment tooling.
+  @Column({ length: 60 })
+  prize: string;
+
+  @Column({ type: 'varchar', default: TournamentStatus.Upcoming })
+  status: TournamentStatus;
+
+  @Column({ type: 'date' })
+  startDate: string;
+
+  @Column({ type: 'integer', default: 64 })
+  maxPlayers: number;
+
+  @Column({ type: 'varchar', nullable: true })
+  coverImageUrl: string | null;
+
+  // Admin-entered facts shown on the tournament page (format, mode, region, platform, times,
+  // deadline, entry fee, team size, minimum rank, bracket, matches, eligibility, communication,
+  // organizer) — a flat string bag, see TOURNAMENT_DETAIL_KEYS in shared-types.
+  @Column({ type: 'jsonb', default: {} })
+  details: Record<string, string>;
+
+  @Column({ type: 'text', nullable: true })
+  rules: string | null;
+
+  // Players per team; 1 = solo. Capacity is `maxPlayers` players = floor(maxPlayers / teamSize) teams.
+  @Column({ type: 'integer', default: 1 })
+  teamSize: number;
+
+  @Column({ type: 'jsonb', default: { places: [], specialRewards: [], note: null } })
+  prizes: TournamentPrizes;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updatedAt: Date;
+}

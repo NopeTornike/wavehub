@@ -1,0 +1,192 @@
+# wallet
+
+## Purpose
+The single source of truth for all WaveCoin movement. Owns `users.wavecoinBalance` and the ledger
+that records every change to it. Nothing outside this module should ever write to
+`wavecoinBalance` directly.
+
+## Key files
+- `wallet-ledger-entry.entity.ts` — `WalletLedgerEntry`: one row per balance change, with a signed
+  `amountWaveCoin`, a `balanceAfter` snapshot, a `type`/`status` from `@wavehub/shared-types`, and
+  an optional `reference` (unique — used for idempotency, e.g. a BOG transactionId)
+- `wallet.service.ts` — `WalletService`, the only thing allowed to change a balance:
+  `recordTopup`, `debitForOrder`, `releaseSellerEarnings`, `refundBuyer`, `holdForWithdrawal`,
+  `reverseWithdrawal`, and — new as of 2026-09-16, see `backend/src/coaching/CLAUDE.md` §5 of
+  `LAUNCH_PLAN.md` for the full context — `debitForSession`/`releaseCoachEarnings`/
+  `refundBuyerForSession`, a structurally identical trio for coaching-session escrow, kept as
+  **separate methods** (not a generalized `debitForOrder(ref: {orderId} | {sessionId})`) so no
+  existing Order/Dispute caller's signature had to change. Every balance-changing method takes an
+  optional trailing `manager: EntityManager` param — pass one when the call must be atomic with
+  other writes in the caller's own transaction (e.g. `OrdersService.purchase` creating the `Order`
+  row and debiting the buyer together); omit it to let the method open its own transaction. Also
+  has two read-only methods with no `manager` param since they never write: `getBalanceSummary`
+  (derived available/pending/earned numbers) and `listTransactions` (paginated raw ledger history).
+- `transaction-retry.util.ts` — `withTransactionRetry`/`isRetryableTransactionError`: bounded retry of a
+  whole transaction on Postgres `40P01`/`40001` (see the deadlock note under Conventions)
+- `fee.util.ts` — `calculatePlatformFee(amountWaveCoin, feePercent)`, a pure function (floors the
+  fee rather than losing a fractional coin) — the coach-pays split for coaching sessions; and
+  `calculateBuyerFee(price, feePercent)` — the marketplace fee the *buyer* pays on top, exact to the
+  tetri (`buyerTotalWaveCoin = price + fee`, e.g. 84.80)
+- `money.ts` — **amounts carry tetri since 2026-10-03**: `users.wavecoinBalance`,
+  `wallet_ledger_entries.amountWaveCoin`/`balanceAfter` (and an order's fee/total) are
+  `numeric(14,2)` with `moneyTransformer` (pg returns numeric as a string; entities expose a
+  number). Every computed balance goes through `roundMoney` (JS: 100 − 84.8 = 15.200000000000003);
+  `formatGel` renders "84.80"/"84". Raw SQL over these columns returns strings — wrap in `Number()`.
+  Top-ups, promo credits, admin adjustments, prices, payouts and **withdrawals stay whole GEL**
+  (`availableToWithdraw` floors), see `backend/src/orders/CLAUDE.md`
+- `wallet.module.ts` — exports `WalletService`
+
+## Data model
+`wallet_ledger_entries` table (migration: `CreateWalletLedger`). `orderId`'s FK constraint to
+`orders` was added later, in the `CreateOrdersSchema` migration (Phase 4), once that table existed
+— a reminder that this module was deliberately built ahead of Orders, with the FK backfilled once
+the referenced table caught up.
+
+`sessionId` (migration: `CreateCoachingSessions`, **not yet run against the live DB** — see
+`backend/src/coaching/CLAUDE.md`) — the same pattern for coaching sessions: a bare `uuid` column,
+**no FK constraint yet** (unlike `orderId`, which did eventually get one). Add the FK once
+`coaching_sessions` is confirmed stable, same as `orderId`'s history. `orderId` and `sessionId` are
+mutually exclusive on any one row — an entry is either order-related or session-related, never
+both.
+
+## Conventions & gotchas
+- **`availableToWithdraw` nets out prior withdrawals** (`withdrawnNet` = sum of `withdrawal` ledger
+  rows: holds are negative, reversals positive). Before, only earnings and the current balance were
+  compared, so the same cleared earnings could be withdrawn repeatedly against top-up money (found
+  by `test/withdrawals.e2e-spec.ts`).
+- **`recordTopup` locks the user row BEFORE its `reference` idempotency check.** Concurrent
+  deliveries of one BOG callback serialize there and the loser returns the existing entry; the old
+  order (check, then lock) credited once but let the loser die on the unique index as a 500.
+- **Every method runs inside one transaction** that both updates `users.wavecoinBalance` and writes
+  the matching ledger row — either one opened internally (`dataSource.transaction()`, the default
+  when no `manager` is passed) or the caller's own (when composed via the `manager` param). Never
+  split those two writes across separate calls/transactions — a crash between them would leave the
+  balance and the audit trail disagreeing. See `backend/src/orders/orders.service.ts#purchase` for
+  the reference example of composing a debit into a larger transaction.
+- Balance reads use `lock: { mode: 'pessimistic_write' }` inside the transaction — this serializes
+  concurrent debits/credits against the same user so two simultaneous requests can't both read a
+  balance of 100, both debit 80, and leave the balance at -60. Don't remove the lock to "optimize"
+  a read path.
+- **`recordTopup` is idempotent on `reference`** — calling it twice with the same reference returns
+  the original entry instead of double-crediting. This exists specifically because BOG retries
+  callbacks; see `backend/src/payments/CLAUDE.md`. Any other caller that has a natural unique
+  reference (a withdrawal request id, once that exists) should use the same pattern rather than
+  inventing its own dedup logic.
+- **There is no separate "hold" step before `releaseSellerEarnings`.** The seller's balance is
+  credited immediately when an order completes; `status: Pending` + `availableAt` (default 7 days
+  out) model *withdrawal eligibility*, not balance ownership. This was a deliberate simplification
+  of the build plan's original "holdSellerEarnings + releaseSellerEarnings" two-primitive framing,
+  and held even once Orders landed (Phase 4) and became a real caller — `OrdersService.acceptDelivery`
+  /`autoCompleteDueOrders` both call `releaseSellerEarnings` directly, no separate hold step needed.
+- **No platform-fee ledger row is written.** WaveHub's cut is just the gap between what a buyer was
+  debited (`debitForOrder` — an order's `buyerTotalWaveCoin`) and what a seller receives
+  (`releaseSellerEarnings`'s `sellerReceivesWaveCoin` argument — the order's `sellerPayoutWaveCoin`) — there's no "house" user account
+  in this schema to attribute a fee entry to. A revenue report can derive platform revenue from
+  Order data once Orders exist (build-plan Phase 11, Revenue Dashboard). Don't invent a fake user
+  row just to hang a ledger entry off of.
+- **No cron marks `pending` entries `available` yet**, even though `@nestjs/schedule` is now
+  installed (Phase 4, for Orders' unrelated auto-complete job (24h)) — nothing has wired an
+  equivalent job for wallet entries. `getBalanceSummary` doesn't need one either: it compares
+  `availableAt` to `now()` at query time rather than trusting `status`, so the missing cron doesn't
+  block correctness, only means `status` itself stays a slightly stale label.
+- **`getBalanceSummary` derives `availableToWithdraw` as `min(walletBalance, clearedEarnings)`,
+  not just `clearedEarnings`.** `walletBalance` (== `users.wavecoinBalance`) is a single pooled
+  number that also includes buyer top-up money and already nets out every debit (purchases,
+  withdrawal holds); `clearedEarnings` (`totalEarned - pendingClearance`) only tracks
+  seller-earnings that have passed the 7-day hold, with no knowledge of what the seller has since
+  spent. Capping by the actual current balance is what prevents a seller who already spent earned
+  coins on a purchase from requesting a withdrawal against money they no longer have — see
+  `wallet.service.spec.ts`'s two `getBalanceSummary` tests for both directions of this cap.
+- **`totalEarned`/`pendingClearance` sum BOTH `OrderRelease` and `SessionRelease` together** —
+  `sumEntries()`'s `type` param takes a single type or an array (`WHERE type IN (...)`), not just a
+  single type. This is a real bug fix (2026-09-16): `getBalanceSummary` originally summed only
+  `OrderRelease`, found while verifying the new coaching-session escrow against a live Postgres
+  instance — a coach's `SessionRelease` earnings were silently excluded from their own balance
+  summary even though the WaveCoin really was credited to `wavecoinBalance`. If a third earning
+  type is ever added (e.g. a future Tournament prize payout), add it to the `earningTypes` array in
+  `getBalanceSummary` too — it won't be picked up automatically.
+- **`getBalanceSummary` deliberately does NOT include `pendingWithdrawal`/`totalWithdrawn`** —
+  this module has no access to `WithdrawRequest` (owned by `backend/src/withdrawals/`, which
+  depends on this module, not the other way around). `WithdrawalsService#getBalanceSummary`
+  composes this method's output with its own numbers into the full `PublicWalletBalance` the
+  frontend actually renders — see that module's `CLAUDE.md`.
+- **`holdForWithdrawal`/`reverseWithdrawal` follow the exact `debitForOrder`/`refundBuyer` shape**
+  (lock the user row, check balance where relevant, write balance + ledger row in one step) with
+  one addition: both are idempotent on a derived `reference` (`withdraw:<id>` /
+  `withdraw-reversed:<id>`), same pattern as `recordTopup` — a duplicate call for the same
+  withdrawal request (e.g. a network retry) is a no-op, not a double debit/credit.
+- WaveCoin is always an integer — never switch any of these fields to a float/decimal.
+- **Same-buyer deadlock — FIXED (2026-09-22).** Root cause: `OrdersService.purchase` (and
+  session booking, withdrawal requests) first INSERTs a row with an FK to `users` (Order.buyerId
+  etc.), which takes a `FOR KEY SHARE` lock on the user row — shareable across concurrent
+  transactions — and only then `debitFor*` runs `SELECT ... FOR UPDATE` on that same row. N
+  concurrent same-user transactions each hold KEY SHARE and each wait for the others' to clear
+  before upgrading: Postgres aborts one with `40P01`, surfacing as a 500. Fix, two layers:
+  (1) **lock ordering** — `WalletService.lockAccount(userId, manager)` takes the exclusive row
+  lock, and every caller that inserts an FK-to-user row before debiting
+  (`OrdersService.purchase`, `CoachingSessionsService` booking, `WithdrawalsService` request) now
+  calls it as the FIRST statement in the transaction, so same-user transactions serialize cleanly
+  instead of deadlocking; (2) **bounded retry** — `transaction-retry.util.ts`'s
+  `withTransactionRetry` re-runs the whole transaction (up to 4 attempts, jittered backoff) on
+  `40P01`/`40001`, as a backstop for any other lock-order interaction. Business errors
+  (`INSUFFICIENT_BALANCE`) are never retried. **Rules for new code**: if a transaction inserts a
+  row FK-referencing a user and then debits/credits that user, call `lockAccount` first; only wrap
+  callbacks in `withTransactionRetry` when they have no external side effects (notifications/chat/
+  email go after commit). Overdraw is impossible: the balance check happens after the exclusive
+  lock, so concurrent debits see each other's committed result. Covered by
+  `backend/test/wallet-concurrency.e2e-spec.ts` (real Postgres: 12 simultaneous same-buyer
+  purchases, no 5xx; 10 simultaneous purchases against a 35-coin balance -> exactly 3 succeed,
+  balance 5) — that spec returned 500s on the unfixed code.
+
+## Related modules
+- `backend/src/users/` — owns the `wavecoinBalance` column this module writes to.
+- `backend/src/payments/` — calls `recordTopup`, via the BOG callback.
+- `backend/src/orders/` — calls `debitForOrder` (purchase), `releaseSellerEarnings` (accept/
+  auto-complete), and `refundBuyer` (cancellation) — all composed into `OrdersService`'s own
+  transactions via the `manager` param. Read `orders/CLAUDE.md` for the composition pattern before
+  adding a new money-moving call site anywhere.
+- `backend/src/disputes/` — the second real caller of `releaseSellerEarnings`/`refundBuyer`
+  (admin-decided outcomes via `DisputesService#resolve`), composed the same way via `manager`. This
+  did **not** end up being the thing that sets `status: Held` on a ledger entry (an earlier version
+  of this doc predicted it would) — dispute resolution reuses the existing `Pending`/`Available`
+  statuses exactly as `OrdersService` already used them; `Held` is still unset by anything. See
+  `backend/src/disputes/CLAUDE.md` for how a dispute "freezes" an order (via `Order.status`, not a
+  wallet-ledger flag).
+- `backend/src/withdrawals/` — the third real caller of `holdForWithdrawal`/`reverseWithdrawal`/
+  `getBalanceSummary`/`listTransactions`. Also owns `GET wallet/balance`/`GET wallet/transactions`
+  in its own controller, not a `WalletController` here — see that module's `CLAUDE.md` for why.
+- `packages/shared-types/` — `WalletLedgerType`/`WalletLedgerStatus` enums,
+  `PublicWalletTransaction` response shape.
+
+## Status
+`recordTopup`, `debitForOrder`, `releaseSellerEarnings`, `refundBuyer`, `holdForWithdrawal`,
+`reverseWithdrawal`, and (2026-09-16) `debitForSession`/`releaseCoachEarnings`/
+`refundBuyerForSession` are all fully wired to real callers now (`backend/src/payments/`,
+`backend/src/orders/`, `backend/src/disputes/`, `backend/src/withdrawals/`, and
+`backend/src/coaching/`) and exercised by unit tests — no more "built ahead of its caller"
+primitives left in this module. `getBalanceSummary`/`listTransactions` are the read-side
+counterpart, also real, tested, and (as of the same date) correctly aggregating both order and
+session earnings — see the `sumEntries` gotcha above.
+There's still no `WalletController` in this directory — see `backend/src/withdrawals/CLAUDE.md`
+for where those routes actually live and why. `status: Held` on a ledger entry is finally used
+too, by `holdForWithdrawal` — the one prediction from an earlier version of this doc (that
+disputes would be the first to use it) turned out wrong, withdrawals got there instead.
+
+## 2026-10-01 Admin adjustment
+`adminAdjust(userId, amountWaveCoin, adminId, reference)` — the only non-order/non-payment writer:
+locks the user row, refuses a result below 0 (`INSUFFICIENT_BALANCE`), writes one
+`AdminAdjustment` ledger row (status `Available`, `createdBy` = the admin) and updates the balance in
+the same transaction. Added credit is spendable balance, **not** withdrawable earnings (withdrawals
+only count cleared sales). `test/flows.ts#assertConserved` counts `admin_adjustment` rows as an
+inflow. Called only from `POST admin/users/:id/wallet-adjustment` (Super Admin).
+
+## Production data fix (2026-10-07)
+- `lifecycletest`, an early test account, had a balance of 85 against a −15 ledger: it was credited
+  100 directly on 2026-09-23 with no top-up row. Deleted at the owner's request in one checked
+  transaction (after a backup):
+  - its review, its DM thread and its one completed order were removed;
+  - both ledger rows of that order went too (buyer −15, `demoseller_nika` +14 release), and the
+    seller's balance was lowered by 14 to match;
+  - the listing's and the seller's cached counters were recomputed, and the seller's automatic
+    First Order badge (from that order only) was removed.
+- Afterwards no account's balance differs from its ledger.

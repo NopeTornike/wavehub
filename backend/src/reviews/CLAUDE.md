@@ -1,0 +1,144 @@
+# reviews
+
+## Purpose
+Buyer reviews of completed orders, plus the seller-facing rating aggregates shown across the
+marketplace. One review per order, gated on the order actually being `Completed`.
+
+## Key files
+- `review.entity.ts` — `Review`: `orderId` is `UNIQUE` (one review per order, enforced at the DB
+  level), `listingId`/`sellerId` denormalized from the order for fast per-listing/per-seller
+  queries, `rating` (1-5), optional `body` + fixed-vocabulary `tags`, `status`
+  (`published|hidden|reported|deleted`), a single `sellerReply`
+- `review-report.entity.ts` — `ReviewReport`: any user can file one against a review
+- `reviews.service.ts` — `create` (gates on order ownership + `Completed` status + the DB unique
+  constraint), `reply` (seller-only, once), `report`, `findForListing` (sort: newest/highest/
+  lowest), and admin-only `hide`/`remove`/`restore` (now real guarded routes — see the gotcha below)
+- `dto/create-review.dto.ts` — also exports `REVIEW_TAGS`, the fixed tag vocabulary from the source
+  spec (Fast Delivery, Good Communication, Friendly, Professional, Highly Skilled, Recommended)
+
+## Data model
+`reviews`, `review_reports` (migration: `CreateReviewsSchema`, which also adds `ratingAvg`/
+`ratingCount` to `listings` and `sellerRatingAvg`/`sellerRatingCount` to `users` — see the gotcha
+below on why they live there). `reviews.orderId` has a `UNIQUE` constraint and a `CHECK (rating
+BETWEEN 1 AND 5)` — both enforced by Postgres, not just app-layer validation.
+
+## Conventions & gotchas
+- **`report()` only flips a `Published` review to `Reported`** (conditional update). Any user can
+  report any review, and previously reporting a hidden/deleted one resurrected it into the queue.
+- **"One review per order" is a DB constraint, not just a service-layer check.** `create()` does
+  check first, but the real guarantee is the `UNIQUE` constraint on `reviews.orderId` — a
+  Postgres `23505` unique-violation error is caught and translated into a clean
+  `ForbiddenException`. This closes the race where two concurrent requests for the same order both
+  pass the app-layer check before either has committed. Follow this pattern (check-then-DB-
+  constraint-as-backstop) for any other "at most once" rule; don't trust the app-layer check alone.
+- **Rating aggregates live on `Listing.ratingAvg`/`ratingCount` and `User.sellerRatingAvg`/
+  `sellerRatingCount`, not on a `seller_profiles` table** — that table doesn't exist yet (see
+  build-plan schema notes). Putting seller-level rating fields on `User` is a pragmatic stopgap,
+  same precedent as `wavecoinBalance` living there — move both to `seller_profiles` together if/when
+  that table gets built, don't duplicate the fields onto both.
+- **Both aggregates are recomputed with a fresh `AVG()`/`COUNT()` query** inside the same transaction
+  as the write that changed them (new review, or an admin hide/restore), not incremented/decremented
+  in place. Simpler and self-correcting (a stray inconsistency can't compound), at the cost of an
+  extra query per write — fine at this scale, reconsider only if review volume ever makes this a
+  real hot path.
+- **`ratingAvg` columns are `numeric(3,2)`, typed as `string | null` in TypeScript** — this is
+  deliberate (TypeORM's standard pattern for `numeric` columns, avoiding float-precision surprises),
+  not a bug. Don't "fix" it to `number`.
+- **`hide`/`remove`/`restore` now have real routes**: `POST reviews/:id/hide` and `.../restore` are
+  guarded by `AdminGuard` + `@RequireAdminRole(OperationLead, MarketplaceCoachingOpsManager,
+  TrustSafetyOfficer)` (all three explicitly have "hide" in SPECIFICATION.md §5.13's CAN lists);
+  `.../remove` (permanent delete) is `@RequireAdminRole()` — Super Admin only, since only its CAN
+  list uses the word "delete." Audit-logged from `reviews.controller.ts`, not the service — the
+  service methods themselves take no actor param, unchanged. All three recompute both rating
+  aggregates, since the aggregate query only counts `status = 'published'` reviews.
+- **`report()` immediately flips the review to `Reported` status** on the first report — there's no
+  threshold. This matches the source spec's status list but means a single bad-faith report hides a
+  review from aggregate-affecting queries until an admin acts on it (`hide`/`restore`). If this
+  turns out to be abusable, the narrow fix is not flipping status until N reports or an admin
+  action, not rearchitecting this file.
+- **`GET reviews/reported`** (same three roles as `hide` above) is the moderation queue —
+  `listReported()` returns `AdminReviewSummary[]` (`@wavehub/shared-types`), joined with
+  listing/buyer/seller usernames but not the full entities (same "don't leak a full `User` row
+  into an admin table" reasoning as `ListingsService.listPendingReview`). This queries
+  `reviews.status = 'reported'`, **not** the separate `review_reports` table — it surfaces which
+  reviews need attention, not each individual report's own reason/reporter. A per-report browse
+  view over `review_reports` itself still doesn't exist (see Related modules).
+
+- **`findForListing` returns `PublicReview[]`** (2026-10-01): id, rating, body, tags, seller reply,
+  `buyer: {id, username}` and `buyerRank` (the reviewer's Wave rank name via
+  `CommunityService#waveRank`). It used to return raw `Review` rows without the buyer joined, so the
+  listing page's `review.buyer.username` would have thrown as soon as a real review existed.
+
+## Related modules
+- `backend/src/orders/` — `create()`'s only real dependency: an order must exist, belong to the
+  caller, and be `Completed`.
+- `backend/src/listings/` — `Listing.ratingAvg`/`ratingCount` written here, read there (and by
+  marketplace browse/search once that exists).
+- `backend/src/users/` — `User.sellerRatingAvg`/`sellerRatingCount` written here.
+- `backend/src/notifications/` — `ReviewPosted`, best-effort, chained after `create()`'s
+  transaction resolves (not inside it — see `notifications/CLAUDE.md`).
+- `packages/shared-types/` — `ReviewStatus` enum.
+- `backend/src/admin/` — `AdminGuard`/`@RequireAdminRole`/`AdminAuditService`, used by
+  `hide`/`remove`/`restore`/`listReported`. A per-report browse view over `review_reports` (each
+  individual report's own reason/reporter, as opposed to `listReported`'s "which reviews are
+  currently reported") still doesn't exist.
+
+## Status
+Create/reply/report/browse/admin-moderate are implemented and unit-tested (guard clauses,
+duplicate-review race-safety via the DB constraint, reply-once enforcement) — 176 backend tests
+total as of the last update. Not verified against a live Postgres transaction (no DB available in
+the sandbox this was built in). Frontend now exists: `frontend/pages/listings/[id].tsx` displays a
+listing's reviews (sortable), `frontend/pages/orders/[id].tsx` shows a submission form once an
+order is `Completed` and the viewer is the buyer (it doesn't pre-check "have I already reviewed
+this order," it just lets the backend's `orderId` unique constraint reject a second attempt with a
+clear error), and `frontend/pages/admin/reviews.tsx` gives moderators a real hide/remove/restore
+UI over the `listReported` queue. No seller-reply UI yet (reply is backend-only so far). Still no
+per-report browse view over `review_reports` itself.
+
+## 2026-10-02 Review flow fixes + Admin → Reviews
+Supersedes the Status notes above ("doesn't pre-check", "no seller-reply UI").
+- **`GET reviews/order/:orderId`** (buyer or seller of that order) → `OrderReviewState`
+  `{ review, status }` — never a bare `null` (an empty body used to read as "already reviewed").
+  The order page uses it to show the existing review, its moderation state, and the seller's reply
+  form.
+- **`GET reviews/pending`** → the caller's completed orders with no review yet (`PendingReview[]`,
+  max 50) — backs the "you bought this — write a review" button on listing / Steam game pages. Both
+  routes are declared before any `reviews/:id` route.
+- Steam-key orders can now actually be reviewed: they start at `Delivered` and complete on buyer
+  confirmation or after 72h (see `backend/src/orders/CLAUDE.md`); before, they sat at `Paid` forever.
+- **`admin-reviews.controller.ts` (`/admin/reviews`)** — every product (order) review and every coach
+  (session) review:
+  - `GET ?kind=product|coach&status=&q=&page=` → `{ items: AdminReviewRow[], total }`, 25 per page,
+    for Operation Lead / Marketplace & Coaching Ops / Trust & Safety (+ Super Admin). `q` matches
+    buyer, seller/coach username, listing title and review text (LIKE wildcards escaped). Coach
+    reviews have no status column — they're always `published`, so any other status filter is empty.
+  - `PATCH product/:id`, `PATCH coach/:id` (rating / body / seller reply — reply on product reviews
+    only; `null` clears) and `DELETE coach/:id` are **Super Admin only** and audit-logged with
+    before/after values (`review.edit`, `coach_review.edit`, `coach_review.delete`). Aggregates are
+    recomputed in the same transaction (`recomputeListingRating`/`recomputeSellerRating`, or
+    `recomputeCoachRating`, which takes the same coach row lock as `CoachingSessionsService#review`).
+  - Product reviews are still hidden/removed/restored through the existing moderation routes; only
+    coach reviews are hard-deleted (they have no soft status).
+- ReviewsModule now registers `CoachingSessionReview` + `Coach` repositories directly (no
+  CoachingModule import — avoids a cycle).
+- Frontend: `components/OrderReview.tsx` (order page), `pages/admin/reviews.tsx` (Reported /
+  Products / Coaches tabs, search, status filter, paging, Super Admin edit).
+- e2e: `test/review-admin.e2e-spec.ts`, `test/digital-keys.e2e-spec.ts`.
+
+## Likes + richer public reviews (2026-10-04, design "reviews")
+- `review_likes` (migration `1784380000000-ReviewLikes`, `review-like.entity.ts`): one row per
+  (review, user, target), where target is `review` or `reply`.
+- `POST reviews/:id/like {target, liked}`:
+  - guards: `AuthGuard` + `VerifiedEmailGuard` + `CREATE_THROTTLE`;
+  - idempotent; returns `{liked, count}`;
+  - 404 for liking a reply that doesn't exist.
+- `GET me/review-likes?listingId=` returns `MyReviewLikes` ({review: ids, reply: ids}). The public
+  list only carries counts.
+- `findForListing` now returns:
+  - `buyer {id, username, firstName, lastName, avatarUrl, online}` (online uses
+    `ONLINE_WINDOW_MINUTES`);
+  - `seller {…, rank}`;
+  - `likeCount`, `replyLikeCount`.
+  - Names and photos are public profile data. Email and balance never appear (covered by the
+    security sweep and `client-feedback.e2e-spec.ts`).
+- Frontend: `components/ReviewCard.tsx` on `/listings/[id]`.

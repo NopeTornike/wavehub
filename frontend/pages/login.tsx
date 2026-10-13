@@ -1,117 +1,92 @@
+import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useState, type FormEvent } from 'react'
+import { api, errorMessage } from '../lib/api'
+import AuthCardTop from '../components/AuthCardTop'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import PageHead from '../components/PageHead'
+import { useAuth } from '../lib/auth'
 
-const apiUrls = [
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
-  'http://127.0.0.1:4000',
-]
-const sessionKey = 'wavehub.session'
-
-type LoginPayload = {
-  username: string
-  password: string
-}
-
-async function fetchWithTimeout(url: string, options: RequestInit) {
-  const controller = new AbortController()
-  const timeoutId = window.setTimeout(() => controller.abort(), 2500)
-
-  try {
-    return await fetch(url, { ...options, signal: controller.signal })
-  } finally {
-    window.clearTimeout(timeoutId)
+// `next` must be a same-origin relative path (starting with exactly one `/`) — never redirect to
+// an absolute/protocol-relative URL taken from a query param, that's an open-redirect vector.
+function safeNextPath(next: unknown): string {
+  if (typeof next === 'string' && next.startsWith('/') && !next.startsWith('//')) {
+    return next
   }
+  return '/'
 }
 
-async function loginOnServer(payload: LoginPayload) {
-  for (const apiUrl of Array.from(new Set(apiUrls))) {
-    try {
-      const res = await fetchWithTimeout(`${apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      })
-      const data = await res.json().catch(() => ({}))
-
-      if (!res.ok) {
-        const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message
-        return { ok: false, error: data?.error || message || 'Username ან პაროლი არასწორია' }
-      }
-
-      return { ok: true, user: data.user, local: false }
-    } catch (err) {
-      console.warn('Login API is unavailable:', err)
-    }
-  }
-
-  return { ok: false, offline: true }
-}
-
+// Matches auth.html's structure — that page combines login+register as two tabs in one form
+// shell; here it's two real Next.js routes (/login, /register) instead, with the tab buttons just
+// linking between them so it looks and feels the same.
 export default function Login() {
+  const router = useRouter()
+  const { refresh } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
-    setSuccess('')
 
-    const payload = {
-      username: username.trim().toLowerCase(),
-      password,
-    }
-
-    if (!payload.username || !payload.password) {
+    const trimmedUsername = username.trim().toLowerCase()
+    if (!trimmedUsername || !password) {
       setError('გთხოვთ შეიყვანოთ username და პაროლი.')
       return
     }
 
-    const serverResult = await loginOnServer(payload)
-    const result = serverResult
-
-    if (!result.ok) {
-      setError(result.offline ? 'ავტორიზაციის სერვერი მიუწვდომელია. სცადეთ მოგვიანებით.' : result.error || 'Username ან პაროლი არასწორია')
-      return
+    setSubmitting(true)
+    try {
+      await api.login({ username: trimmedUsername, password })
+      setPassword('')
+      await refresh()
+      router.push(safeNextPath(router.query.next))
+    } catch (err) {
+      setError(errorMessage(err, 'სერვერთან დაკავშირება ვერ მოხერხდა.'))
+    } finally {
+      setSubmitting(false)
     }
-
-    window.localStorage.setItem(
-      sessionKey,
-      JSON.stringify({
-        user: result.user,
-        loggedInAt: new Date().toISOString(),
-      }),
-    )
-    setPassword('')
-    setSuccess(`შესვლა წარმატებით დასრულდა: ${result.user.firstName} ${result.user.lastName}`)
   }
 
   return (
-    <div className="container">
-      <div className="card">
-        <h1>WaveHub - შესვლა</h1>
-        <p className="note">შედით username-ით და პაროლით</p>
-        <form className="register-form" onSubmit={submit}>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
+    <main className="auth-page-shell">
+      <LanguageSwitcher floating />
+      <PageHead title="შესვლა" description="შედით თქვენს WaveHub ანგარიშზე." noIndex />
+      <section className="auth-card" aria-labelledby="authTitle">
+        <AuthCardTop />
+
+        <div className="auth-card-head">
+          <p className="section-kicker">WaveHub ანგარიში</p>
+          <h1 id="authTitle">შედით ან შექმენით ანგარიში</h1>
+        </div>
+
+        <div className="auth-tabs" role="tablist" aria-label="ავტორიზაცია">
+          <button className="auth-tab active" type="button" role="tab" aria-selected="true">
+            შესვლა
+          </button>
+          <Link className="auth-tab" href="/register" role="tab" aria-selected="false">
+            რეგისტრაცია
+          </Link>
+        </div>
+
+        <form className="auth-form" onSubmit={submit}>
+          <label>
+            <span>მომხმარებლის სახელი</span>
             <input
-              id="username"
               autoComplete="username"
-              className="input"
               name="username"
-              placeholder="username"
+              placeholder="your_username"
               required
               value={username}
               onChange={(event) => setUsername(event.target.value.toLowerCase())}
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">პაროლი</label>
+          </label>
+          <label>
+            <span>პაროლი</span>
             <input
-              id="password"
               autoComplete="current-password"
-              className="input"
               name="password"
               placeholder="პაროლი"
               required
@@ -119,19 +94,24 @@ export default function Login() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
-          </div>
-
-          {error && <div className="status-text status-error">{error}</div>}
-          {success && <div className="status-text status-success">{success}</div>}
-
-          <button className="glow-on-hover button" type="submit">
+          </label>
+          {error && (
+            <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
+              {error}
+            </p>
+          )}
+          <button className="auth-submit-button" type="submit" disabled={submitting}>
             შესვლა
           </button>
-          <a className="note" href="/register">
-            რეგისტრაცია
-          </a>
         </form>
-      </div>
-    </div>
+
+        <Link className="auth-back-link" href="/forgot-password">
+          დაგავიწყდათ პაროლი?
+        </Link>
+        <Link className="auth-back-link" href="/marketplace">
+          მარკეტფლეისზე დაბრუნება
+        </Link>
+      </section>
+    </main>
   )
 }

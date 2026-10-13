@@ -1,0 +1,58 @@
+import { calculateBuyerFee, calculatePlatformFee } from './fee.util';
+
+describe('calculatePlatformFee', () => {
+  it('matches the spec example: $100 order, 10% fee -> seller gets $90', () => {
+    expect(calculatePlatformFee(100, 10)).toEqual({ feeWaveCoin: 10, sellerReceivesWaveCoin: 90 });
+  });
+
+  it('matches the spec example: $20 order, 10% fee -> seller gets $18', () => {
+    expect(calculatePlatformFee(20, 10)).toEqual({ feeWaveCoin: 2, sellerReceivesWaveCoin: 18 });
+  });
+
+  it('floors the fee instead of producing a fractional coin', () => {
+    // 3 * 10% = 0.3 -> floors to 0, seller keeps the full amount rather than losing a fraction
+    expect(calculatePlatformFee(3, 10)).toEqual({ feeWaveCoin: 0, sellerReceivesWaveCoin: 3 });
+  });
+
+  it('handles a 0% fee', () => {
+    expect(calculatePlatformFee(50, 0)).toEqual({ feeWaveCoin: 0, sellerReceivesWaveCoin: 50 });
+  });
+
+  it('handles a 100% fee', () => {
+    expect(calculatePlatformFee(50, 100)).toEqual({ feeWaveCoin: 50, sellerReceivesWaveCoin: 0 });
+  });
+
+  it('rejects a non-integer amount', () => {
+    expect(() => calculatePlatformFee(10.5, 10)).toThrow();
+  });
+
+  it('rejects a negative amount', () => {
+    expect(() => calculatePlatformFee(-5, 10)).toThrow();
+  });
+
+  it('rejects an out-of-range fee percent', () => {
+    expect(() => calculatePlatformFee(10, 101)).toThrow();
+    expect(() => calculatePlatformFee(10, -1)).toThrow();
+  });
+});
+
+describe('calculateBuyerFee', () => {
+  it("matches the owner's example exactly: 80 GEL at 6% -> 4.80 fee, buyer pays 84.80", () => {
+    expect(calculateBuyerFee(80, 6)).toEqual({ feeWaveCoin: 4.8, buyerTotalWaveCoin: 84.8 });
+  });
+
+  it('keeps tetri, never rounds to whole coins, and handles 0%', () => {
+    expect(calculateBuyerFee(25, 10)).toEqual({ feeWaveCoin: 2.5, buyerTotalWaveCoin: 27.5 });
+    expect(calculateBuyerFee(7, 6)).toEqual({ feeWaveCoin: 0.42, buyerTotalWaveCoin: 7.42 });
+    expect(calculateBuyerFee(50, 0)).toEqual({ feeWaveCoin: 0, buyerTotalWaveCoin: 50 });
+  });
+
+  it('rounds only a fractional percentage, to the nearest tetri', () => {
+    expect(calculateBuyerFee(33, 6.5)).toEqual({ feeWaveCoin: 2.15, buyerTotalWaveCoin: 35.15 }); // 2.145 -> 2.15
+  });
+
+  it('rejects fractional prices and out-of-range percentages', () => {
+    expect(() => calculateBuyerFee(10.5, 10)).toThrow();
+    expect(() => calculateBuyerFee(10, 101)).toThrow();
+  });
+});
