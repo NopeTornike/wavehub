@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="ka">
 <head>
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png?v=4">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Main</title>
-  <link rel="stylesheet" href="styles.css?v=20260720-mobile-1" />
+  <link rel="stylesheet" href="styles.css?v=20261003-competition-button-desktop-fit-2" />
 </head>
 <body class="home-page">
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
       <a class="brand" href="index.html" aria-label="WaveHub home">
-        <img src="assets/logo-wavehubx.png" alt="WaveHubX" />
+        <img src="assets/logo-wavehubx-main.png" alt="WaveHubX" />
       </a>
 
       <nav class="side-nav" aria-label="Main pages">
@@ -21,6 +22,10 @@
         <a class="side-link" href="marketplace.html" data-section="Marketplace">
           <span class="nav-icon nav-icon-marketplace" aria-hidden="true"><img src="assets/marketplace-icon.svg" alt="" /></span>
           <span>Marketplace</span>
+        </a>
+        <a class="side-link" href="steam-keys.html" data-section="Steam Keys">
+          <span class="nav-icon steam-side-icon" aria-hidden="true"><img src="assets/steam-logo.png?v=1" alt="" /></span>
+          <span>Steam Keys</span>
         </a>
         <!-- <a class="side-link" href="#" data-section="Team Finder">
           <span class="nav-icon" aria-hidden="true">T</span>
@@ -34,12 +39,20 @@
           <span class="nav-icon nav-icon-coaching" aria-hidden="true"><img src="assets/sidebar-coaching-icon.svg" alt="" /></span>
           <span>Coaching</span>
         </a>
+        <a class="side-link" href="tournaments.html" data-section="Tournaments">
+          <span class="nav-icon nav-icon-tournaments" aria-hidden="true"><img src="assets/tournaments-icon.svg" alt="" /></span>
+          <span>Tournaments</span>
+        </a>
+        <a class="side-link" href="about.html" data-section="About Us">
+          <span class="nav-icon nav-icon-about" aria-hidden="true"><img src="assets/about-icon.svg?v=2" alt="" /></span>
+          <span>About Us</span>
+        </a>
         <a class="side-link" href="orders.html" data-section="Orders">
           <span class="nav-icon nav-icon-orders" aria-hidden="true"><img src="assets/orders-icon.svg" alt="" /></span>
           <span>Orders</span>
         </a>
         <a class="side-link" href="messages.html" data-section="Messages">
-          <span class="nav-icon" aria-hidden="true"><img class="message-icon-image" src="assets/message-icon.svg" alt="" /></span>
+          <span class="nav-icon nav-icon-messages" aria-hidden="true"><img src="assets/sidebar-message-icon.svg" alt="" /></span>
           <span>Messages</span>
           <span class="nav-pill" id="messageCount">0</span>
         </a>
@@ -47,16 +60,16 @@
           <span class="nav-icon nav-icon-wallet" aria-hidden="true"><img src="assets/wallet-icon.svg" alt="" /></span>
           <span>Wallet</span>
         </a>
-        <a class="side-link" href="#" data-section="Favorites">
-          <span class="nav-icon nav-icon-heart" aria-hidden="true"><img src="assets/favorites-icon.svg" alt="" /></span>
-          <span>Favorites</span>
-        </a>
         <a class="side-link" href="cart.html" data-section="Cart">
           <span class="nav-icon nav-icon-cart" aria-hidden="true">
             <img src="assets/sidebar-cart-icon.svg" alt="" />
           </span>
           <span>Cart</span>
           <span class="nav-pill" id="cartNavCount" data-cart-count>0</span>
+        </a>
+        <a class="side-link" href="#" data-section="Favorites">
+          <span class="nav-icon nav-icon-heart" aria-hidden="true"><img src="assets/favorites-icon.svg" alt="" /></span>
+          <span>Favorites</span>
         </a>
         <!-- <a class="side-link" href="#" data-section="Reviews">
           <span class="nav-icon" aria-hidden="true">R</span>
@@ -79,12 +92,16 @@
     <div class="scrim" id="scrim" hidden></div>
 
     <main class="main-panel">
-      <header class="topbar">
+      <header class="topbar global-topbar">
         <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
           <span></span>
           <span></span>
           <span></span>
         </button>
+
+        <a class="mobile-header-brand" href="index.html" aria-label="WaveHubX home">
+          <img src="assets/logo-wavehubx-main.png" alt="WaveHubX" />
+        </a>
 
         <label class="search-box" aria-label="Search">
           <span class="search-icon" aria-hidden="true">/</span>
@@ -102,51 +119,63 @@
           <button class="icon-button has-alert" type="button" aria-label="Notifications" title="Notifications">
             <span aria-hidden="true">!</span>
           </button>
+          <a class="home-top-wallet" href="wallet.html" aria-label="Wallet balance"><span id="homeTopWalletBalance">0</span> WC</a>
           <div class="profile-menu" id="profileMenu">
             <button class="profile-chip" id="profileButton" type="button" aria-label="Profile" aria-haspopup="true" aria-expanded="false">
               <span class="avatar avatar-hot" id="profileAvatar">?</span>
-              <span>
-                <strong id="profileUsername">Guest</strong>
-                <small id="profileMeta">Not signed in</small>
-              </span>
             </button>
 
             <div class="profile-dropdown" id="profileDropdown" hidden>
               <div class="profile-dropdown-head">
-                <span class="avatar avatar-hot" id="profilePanelAvatar">?</span>
-                <div>
-                  <strong id="profileFullName">Guest account</strong>
-                  <small id="profileHandle">@guest</small>
+                <span class="profile-panel-avatar-wrap">
+                  <span class="avatar avatar-hot" id="profilePanelAvatar">?</span>
+                  <i aria-label="Online"></i>
+                </span>
+                <div class="profile-dropdown-identity">
+                  <div class="profile-dropdown-name-row">
+                    <strong id="profileFullName">Guest account</strong>
+                    <span class="profile-verified-mark" aria-label="Verified">&#10003;</span>
+                  </div>
+                  <small><img class="profile-rank-icon" id="profileDropdownRankIcon" src="assets/rank-icons/rank%20icons/Starter.png" alt="" aria-hidden="true"><span id="profileDropdownRank">Starter</span></small>
+                  <span class="profile-tier"><img class="profile-rank-icon" id="profileTierIcon" src="assets/rank-icons/rank%20icons/Starter.png" alt="" aria-hidden="true"><b id="profileTierName">Starter</b><i aria-hidden="true">→</i><strong id="profileNextTier">Bronze Core</strong></span>
                 </div>
               </div>
 
-              <div class="account-details" aria-label="Account details">
-                <div>
-                  <span>Username</span>
-                  <strong id="accountUsername">Guest</strong>
-                </div>
-                <div>
-                  <span>Name</span>
-                  <strong id="accountName">Not signed in</strong>
-                </div>
-                <div>
-                  <span>Account ID</span>
-                  <strong id="accountId">-</strong>
-                </div>
-                <div>
-                  <span>Logged in</span>
-                  <strong id="accountLoggedIn">-</strong>
-                </div>
+              <div class="profile-level-row" aria-label="Account level">
+                <span>Lv. <strong id="profileDropdownLevel">1</strong></span>
+                <i><b id="profileDropdownProgress"></b></i>
+                <small><span id="profileDropdownXp">120</span> / <span id="profileDropdownXpGoal">500</span> XP</small>
               </div>
+
+              <nav class="profile-dropdown-links" aria-label="Profile shortcuts">
+                <div class="profile-dropdown-group">
+                  <a href="orders.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></svg></span><span>My Orders</span><i aria-hidden="true">›</i></a>
+                  <a id="profileFavoritesLink" href="#favorites"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.5 5.5 0 0 0 0-7.8Z"/></svg></span><span>Favorites</span><i aria-hidden="true">›</i></a>
+                  <a href="messages.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 13v-2a8 8 0 0 1 16 0v2"/><path d="M4 12H2v5a2 2 0 0 0 2 2h2v-7H4Zm16 0h2v5a2 2 0 0 1-2 2h-2v-7h2ZM18 19c0 2-2 2-4 2"/></svg></span><span>Support</span><i aria-hidden="true">›</i></a>
+                  <a href="profile.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Settings</span><i aria-hidden="true">›</i></a>
+                </div>
+                <div class="profile-dropdown-group">
+                  <a id="profilePublicLink" href="profile.html"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span><span>View Profile</span></a>
+                  <a href="profile.html#verification"><span class="profile-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 7 3v5c0 4.6-2.9 8.2-7 10-4.1-1.8-7-5.4-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><span>Verified Status</span></a>
+                </div>
+              </nav>
 
               <div class="auth-entry-actions" id="authEntryActions">
                 <a class="auth-open-button" href="auth.html?mode=login">Log in</a>
                 <a class="auth-open-button primary" href="auth.html?mode=register">Create account</a>
               </div>
 
-              <button class="logout-button" id="logoutButton" type="button">Log out</button>
+              <button class="logout-button" id="logoutButton" type="button">Log Out</button>
             </div>
           </div>
+        </div>
+
+        <div class="mobile-header-auth" aria-label="Account actions">
+          <a href="auth.html?mode=login">Sign In</a>
+          <a class="join" href="auth.html?mode=register">Join</a>
+          <a class="mobile-user-profile" id="mobileUserProfile" href="profile.html" aria-label="Open profile">
+            <span class="avatar avatar-hot" id="mobileHeaderAvatar">?</span>
+          </a>
         </div>
       </header>
 
@@ -159,7 +188,7 @@
           </div>
           <div class="mobile-account-copy">
             <h2><span id="mobileProfileUsername">Guest</span><i aria-label="Verified">&#10003;</i></h2>
-            <p><span class="mobile-rank-icon" aria-hidden="true">&#9670;</span><strong id="mobileProfileRank">Wave Rookie</strong></p>
+            <p><span class="mobile-rank-icon" aria-hidden="true">&#9670;</span><strong id="mobileProfileRank">Starter</strong></p>
             <a href="profile.html">View profile <span aria-hidden="true">&rsaquo;</span></a>
           </div>
         </article>
@@ -203,6 +232,9 @@
           <div class="hero-actions">
             <a class="primary-action" href="marketplace.html">Explore Marketplace</a>
             <a class="secondary-action" href="coaching.html">Browse Coaches</a>
+            <a class="secondary-action" href="about.html">About Us</a>
+            <a class="secondary-action" href="#faq">FAQ</a>
+            <a class="secondary-action" href="#how-it-works">How It Works</a>
           </div>
         </div>
 
@@ -238,113 +270,76 @@
         </div>
       </section> -->
 
-      <section class="content-section popular-games-section" aria-labelledby="popular-games-title">
-        <div class="section-heading popular-games-heading">
-          <div class="popular-games-heading-copy">
-            <span class="popular-games-heading-icon" aria-hidden="true">◆</span>
-            <div>
-              <h2 id="popular-games-title">Popular <span>Games</span></h2>
-              <p>Explore the most popular games and find the best accounts, skins &amp; deals.</p>
-            </div>
+      <div class="home-dashboard-grid">
+        <div class="home-dashboard-main">
+      <section class="content-section home-marketplace-showcase" aria-labelledby="home-marketplace-title">
+        <a class="home-marketplace-cover" href="marketplace.html" aria-label="Explore the WaveHubX marketplace">
+          <img src="assets/home-marketplace-cover.png" alt="WaveHubX neon gaming marketplace" />
+          <span class="mobile-cover-cta">Explore Now <b aria-hidden="true">&rarr;</b></span>
+        </a>
+
+        <section class="mobile-home-services" aria-labelledby="mobile-services-title">
+          <header>
+            <h2 id="mobile-services-title"><span aria-hidden="true">&#9734;</span> Services</h2>
+            <a href="marketplace.html">View all <span aria-hidden="true">&rsaquo;</span></a>
+          </header>
+          <div class="mobile-service-grid">
+            <a href="coaching.html"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 20v-5a7 7 0 0 1 14 0v5M9 17H6v7h4v-7H9Zm14 0h3v7h-4v-7h1ZM22 25c0 2-2 3-5 3"/></svg><span>Coaching</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m6 17 10-10 10 10M11 15v11h10V15M7 22h4M21 22h4"/></svg><span>Rank Up</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="8" width="19" height="17" rx="2"/><path d="m24 13 5-3v13l-5-3M13 13l6 4-6 4v-8Z"/></svg><span>VOD Review</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16Z"/><circle cx="16" cy="16" r="4"/></svg><span>Live Spectate</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="6"/><path d="M16 3v4M16 25v4M3 16h4M25 16h4M7 7l3 3M22 22l3 3M25 7l-3 3M10 22l-3 3"/></svg><span>Settings<br>Optimization</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 3 10 4v8c0 7-4 11-10 14C10 26 6 22 6 15V7l10-4Z"/><path d="m11 16 3 3 7-7"/></svg><span>Account Audit</span></a>
+            <a href="marketplace.html"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="10" r="4"/><circle cx="7" cy="13" r="3"/><circle cx="25" cy="13" r="3"/><path d="M9 27v-3a7 7 0 0 1 14 0v3M2 26v-2a5 5 0 0 1 7-5M30 26v-2a5 5 0 0 0-7-5"/></svg><span>Team Finder</span></a>
+            <a href="steam-keys.html"><img class="mobile-service-steam-icon" src="assets/steam-logo.png" alt="" aria-hidden="true" /><span>Steam Games</span></a>
           </div>
-          <a href="marketplace.html">View all games <span aria-hidden="true">›</span></a>
+        </section>
+
+        <div class="home-marketplace-heading">
+          <h2 id="home-marketplace-title"><img src="assets/marketplace-icon.svg" alt="" /><span class="desktop-marketplace-title">Marketplace</span><span class="mobile-marketplace-title">Popular Games</span></h2>
+          <a class="home-marketplace-heading-link" href="marketplace.html">View all <span aria-hidden="true">&rsaquo;</span></a>
         </div>
 
-        <div class="game-carousel" data-carousel>
-          <div class="game-grid" data-carousel-track>
-            <article class="game-card" data-game="PUBG Mobile" data-search="pubg mobile battle royale rank boost">
-              <div class="game-cover cover-pubg">
-                <span class="cover-label">PUBG</span>
-              </div>
-              <div class="card-body">
-                <h3>PUBG Mobile</h3>
-                <div class="rating" aria-label="4.8 out of 5">4.8 / 5</div>
-                <p class="game-listing-counts"><span>0 accounts</span><span>0 skins</span></p>
-                <div class="game-card-actions">
-                  <a href="marketplace.html?type=account&amp;game=PUBG%20Mobile">Accounts</a>
-                  <a href="marketplace.html?type=skin&amp;game=PUBG%20Mobile">Skins</a>
-                </div>
-              </div>
-            </article>
-
-            <article class="game-card" data-game="Call of Duty" data-search="call of duty mobile codm coaching">
-              <div class="game-cover cover-cod">
-                <span class="cover-label">COD</span>
-              </div>
-              <div class="card-body">
-                <h3>Call of Duty</h3>
-                <div class="rating" aria-label="4.7 out of 5">4.7 / 5</div>
-                <p class="game-listing-counts"><span>0 accounts</span><span>0 skins</span></p>
-                <div class="game-card-actions">
-                  <a href="marketplace.html?type=account&amp;game=Call%20of%20Duty">Accounts</a>
-                  <a href="marketplace.html?type=skin&amp;game=Call%20of%20Duty">Skins</a>
-                </div>
-              </div>
-            </article>
-
-            <article class="game-card" data-game="CS2" data-search="cs2 counter strike 2 skins coaching prime">
-              <div class="game-cover cover-cs2">
-                <span class="cover-label">CS2</span>
-              </div>
-              <div class="card-body">
-                <h3>CS2</h3>
-                <div class="rating" aria-label="4.8 out of 5">4.8 / 5</div>
-                <p class="game-listing-counts"><span>0 accounts</span><span>0 skins</span></p>
-                <div class="game-card-actions">
-                  <a href="marketplace.html?type=account&amp;game=CS2">Accounts</a>
-                  <a href="marketplace.html?type=skin&amp;game=CS2">Skins</a>
-                </div>
-              </div>
-            </article>
-
-            <article class="game-card" data-game="Mobile Legends" data-search="mobile legends mlbb rank service">
-              <div class="game-cover cover-ml">
-                <span class="cover-label">MLBB</span>
-              </div>
-              <div class="card-body">
-                <h3>Mobile Legends</h3>
-                <div class="rating" aria-label="4.9 out of 5">4.9 / 5</div>
-                <p class="game-listing-counts"><span>0 accounts</span><span>0 skins</span></p>
-                <div class="game-card-actions">
-                  <a href="marketplace.html?type=skin&amp;game=Mobile%20Legends">Skins</a>
-                </div>
-              </div>
-            </article>
-
-            <article class="game-card" data-game="Free Fire" data-search="free fire rank boost tournament">
-              <div class="game-cover cover-freefire">
-                <span class="cover-label">FF</span>
-              </div>
-              <div class="card-body">
-                <h3>Free Fire</h3>
-                <div class="rating" aria-label="4.6 out of 5">4.6 / 5</div>
-                <p class="game-listing-counts"><span>0 accounts</span><span>0 skins</span></p>
-                <div class="game-card-actions">
-                  <a href="marketplace.html?type=account&amp;game=Free%20Fire">Accounts</a>
-                  <a href="marketplace.html?type=skin&amp;game=Free%20Fire">Skins</a>
-                </div>
-              </div>
-            </article>
-
-            <article class="game-card" data-game="Roblox" data-search="roblox account items services">
-              <div class="game-cover cover-roblox">
-                <span class="cover-label">RBX</span>
-              </div>
-              <div class="card-body">
-                <h3>Roblox</h3>
-                <div class="rating" aria-label="4.8 out of 5">4.8 / 5</div>
-                <p class="game-listing-counts"><span>0 accounts</span><span>0 skins</span></p>
-                <div class="game-card-actions">
-                  <a href="marketplace.html?type=account&amp;game=Roblox">Accounts</a>
-                  <a href="marketplace.html?type=skin&amp;game=Roblox">Skins</a>
-                </div>
-              </div>
-            </article>
-          </div>
+        <div class="home-marketplace-game-grid" aria-label="Marketplace games">
+          <a class="home-marketplace-game-card" href="marketplace.html?game=CS2" data-marketplace-game="CS2">
+            <span class="home-marketplace-game-image" aria-hidden="true"></span>
+            <span class="home-marketplace-game-info"><strong>CS2</strong><small data-marketplace-count>0 Items</small><i aria-hidden="true">›</i></span>
+          </a>
+          <a class="home-marketplace-game-card" href="marketplace.html?game=Dota%202" data-marketplace-game="Dota 2">
+            <span class="home-marketplace-game-image" aria-hidden="true"></span>
+            <span class="home-marketplace-game-info"><strong>DOTA 2</strong><small data-marketplace-count>0 Items</small><i aria-hidden="true">›</i></span>
+          </a>
+          <a class="home-marketplace-game-card" href="marketplace.html?game=PUBG%20Mobile" data-marketplace-game="PUBG Mobile">
+            <span class="home-marketplace-game-image" aria-hidden="true"></span>
+            <span class="home-marketplace-game-info"><strong>PUBG MOBILE</strong><small data-marketplace-count>0 Items</small><i aria-hidden="true">›</i></span>
+          </a>
+          <a class="home-marketplace-game-card" href="marketplace.html?game=Mobile%20Legends" data-marketplace-game="Mobile Legends">
+            <span class="home-marketplace-game-image" aria-hidden="true"></span>
+            <span class="home-marketplace-game-info"><strong>MOBILE LEGENDS</strong><small data-marketplace-count>0 Items</small><i aria-hidden="true">›</i></span>
+          </a>
+          <a class="home-marketplace-game-card" href="marketplace.html?game=Call%20of%20Duty" data-marketplace-game="Call of Duty">
+            <span class="home-marketplace-game-image" aria-hidden="true"></span>
+            <span class="home-marketplace-game-info"><strong>CALL OF DUTY MOBILE</strong><small data-marketplace-count>0 Items</small><i aria-hidden="true">›</i></span>
+          </a>
+          <a class="home-marketplace-game-card" href="marketplace.html?game=Fortnite" data-marketplace-game="Fortnite">
+            <span class="home-marketplace-game-image" aria-hidden="true"></span>
+            <span class="home-marketplace-game-info"><strong>FORTNITE</strong><small data-marketplace-count>0 Items</small><i aria-hidden="true">›</i></span>
+          </a>
+          <a class="home-marketplace-game-card" href="marketplace.html?game=Roblox" data-marketplace-game="Roblox">
+            <span class="home-marketplace-game-image" aria-hidden="true"></span>
+            <span class="home-marketplace-game-info"><strong>ROBLOX</strong><small data-marketplace-count>0 Items</small><i aria-hidden="true">›</i></span>
+          </a>
+          <a class="home-marketplace-game-card" href="marketplace.html?game=Standoff%202" data-marketplace-game="Standoff 2">
+            <span class="home-marketplace-game-image" aria-hidden="true"></span>
+            <span class="home-marketplace-game-info"><strong>STANDOFF 2</strong><small data-marketplace-count>0 Items</small><i aria-hidden="true">›</i></span>
+          </a>
         </div>
+
+        <a class="home-marketplace-view-all" href="marketplace.html">View all games <span aria-hidden="true">›</span></a>
       </section>
 
-      <section class="content-section" id="services" aria-labelledby="services-title">
+      <!-- Popular Services
+      <section class="content-section trusted-services-section" id="services" aria-labelledby="services-title">
         <div class="section-heading">
           <div>
             <p class="section-kicker">Verified offers</p>
@@ -363,8 +358,8 @@
               <h3>PUBG Ace Booster</h3>
               <p>Fast rank push with verified delivery and progress updates.</p>
               <div class="seller-row">
-                <span class="avatar">AK</span>
-                <span>Top 100 Player</span>
+                <button class="avatar seller-profile-trigger" type="button" data-profile="top-player" aria-label="Open Top 100 Player profile">AK</button>
+                <button class="seller-profile-name seller-profile-trigger" type="button" data-profile="top-player">Top 100 Player</button>
               </div>
               <div class="price-row">
                 <strong>18 GEL</strong>
@@ -380,8 +375,8 @@
               <h3>MLBB Mythic Duo</h3>
               <p>Play with a verified carry and climb safely in duo queue.</p>
               <div class="seller-row">
-                <span class="avatar avatar-gold">MX</span>
-                <span>MythX</span>
+                <button class="avatar avatar-gold seller-profile-trigger" type="button" data-profile="mythx" aria-label="Open MythX profile">MX</button>
+                <button class="seller-profile-name seller-profile-trigger" type="button" data-profile="mythx">MythX</button>
               </div>
               <div class="price-row">
                 <strong>12 GEL/game</strong>
@@ -389,7 +384,7 @@
               </div>
             </article>
 
-            <article class="service-card" data-search="free fire weekly tournament squad entry">
+            <article class="service-card" id="tournaments" data-search="free fire weekly tournament squad entry">
               <div class="service-top">
                 <span class="service-tag event">Event</span>
                 <button class="save-button" type="button" aria-label="Save service" title="Save service"></button>
@@ -397,22 +392,701 @@
               <h3>Free Fire Cup Slot</h3>
               <p>Weekly tournament entry for squads with prize tracking.</p>
               <div class="seller-row">
-                <span class="avatar avatar-green">WH</span>
-                <span>WaveHub Events</span>
+                <button class="avatar avatar-green seller-profile-trigger" type="button" data-profile="wavehub-events" aria-label="Open WaveHub Events profile">WH</button>
+                <button class="seller-profile-name seller-profile-trigger" type="button" data-profile="wavehub-events">WaveHub Events</button>
               </div>
               <div class="price-row">
                 <strong>9 GEL</strong>
                 <button type="button">Join</button>
               </div>
             </article>
+
           </div>
         </div>
+      </section>
+      -->
+
+      <section class="content-section home-how-section" id="how-it-works" aria-labelledby="howTitle">
+        <div class="how-page">
+          <header class="how-hero">
+            <p class="how-eyebrow">HOW IT WORKS</p>
+            <h1 id="howTitle">See how <em>WaveHubX</em> works</h1>
+            <p>Tap a step to learn more about each stage.</p>
+          </header>
+
+          <div class="how-stepper" role="tablist" aria-label="How WaveHubX works">
+            <button class="how-step is-active" type="button" role="tab" aria-selected="true" data-step="0"><i>1</i><strong>Explore</strong></button>
+            <button class="how-step" type="button" role="tab" aria-selected="false" data-step="1"><i>2</i><strong>Compare &amp; Choose</strong></button>
+            <button class="how-step" type="button" role="tab" aria-selected="false" data-step="2"><i>3</i><strong>Order Securely</strong></button>
+            <button class="how-step" type="button" role="tab" aria-selected="false" data-step="3"><i>4</i><strong>Receive &amp; Confirm</strong></button>
+          </div>
+
+          <div class="how-slider" id="howSlider" aria-live="polite">
+            <div class="how-slides">
+              <article class="how-slide is-active" data-slide="0">
+                <div class="how-detail-copy"><h2>Explore</h2><p>Start your journey by exploring thousands of verified listings and exclusive offers across your favorite games.</p><div class="how-features"><div class="how-feature"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4 4"/></svg></span><strong>Browse thousands of listings</strong><small>Explore a wide variety of accounts, services, and boosts from trusted sellers in one place.</small></div><div class="how-feature"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.7 7 4v8l-7 4-7-4v-8l7-4Z"/><path d="m8.6 8.4 3.4 2 3.4-2M12 10.4v4"/></svg></span><strong>Find the best services &amp; offers</strong><small>Use filters and categories to compare and find exactly what you need quickly and easily.</small></div><div class="how-feature"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 2.5c1 3.6-.8 5.1-2.2 7.1-1.1-1-.9-2.1-.8-3.3C6.6 8.4 5 11 5 14a7 7 0 0 0 14 0c0-2.8-1.4-5.4-3.8-7.2.1 2.5-.7 4-2 4.8.2-3.4-.1-6.5-.7-9.1Z"/></svg></span><strong>Discover new deals daily</strong><small>Check back often for fresh deals, limited-time offers, and exclusive promotions.</small></div></div></div>
+              </article>
+              <article class="how-slide" data-slide="1" hidden>
+                <div class="how-detail-copy"><h2>Compare &amp; Choose</h2><p>Review verified offers side by side and confidently choose the one that fits you best.</p><div class="how-features"><div class="how-feature"><span>◎</span><strong>Compare prices &amp; features</strong><small>See pricing, delivery times, and offer details clearly before you decide.</small></div><div class="how-feature"><span>★</span><strong>Check trusted reviews</strong><small>Use seller ratings and buyer feedback to make a confident choice.</small></div><div class="how-feature"><span>✓</span><strong>Pick your perfect match</strong><small>Select the service that best fits your needs, budget, and timeline.</small></div></div></div>
+              </article>
+              <article class="how-slide" data-slide="2" hidden>
+                <div class="how-detail-copy"><h2>Order Securely</h2><p>Place your order with confidence. Your payment stays protected until everything is complete.</p><div class="how-features"><div class="how-feature"><span>⌾</span><strong>Protected payments</strong><small>Secure escrow keeps your money safe throughout every transaction.</small></div><div class="how-feature"><span>↗</span><strong>Track your order</strong><small>Follow progress and stay in touch with the seller from one place.</small></div><div class="how-feature"><span>◇</span><strong>Get support anytime</strong><small>Our support team is ready to help whenever you need assistance.</small></div></div></div>
+              </article>
+              <article class="how-slide" data-slide="3" hidden>
+                <div class="how-detail-copy"><h2>Receive &amp; Confirm</h2><p>Review your delivery, confirm everything is right, and complete your order safely.</p><div class="how-features"><div class="how-feature"><span>↓</span><strong>Receive your order</strong><small>Get your item or service within the delivery time shown on the offer.</small></div><div class="how-feature"><span>✓</span><strong>Check everything</strong><small>Make sure your delivery matches exactly what you purchased.</small></div><div class="how-feature"><span>♡</span><strong>Confirm &amp; rate</strong><small>Complete the order and share feedback to help build community trust.</small></div></div></div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+        </div>
+
+        <aside class="home-right-rail" aria-label="Featured marketplace items">
+          <section class="home-featured-items" aria-labelledby="homeFeaturedTitle">
+            <header class="home-featured-heading">
+              <span class="home-featured-spark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2.5 18.9 13l10.6 3-10.6 3L16 29.5 13.1 19 2.5 16l10.6-3L16 2.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m24.5 4 .9 3.1 3.1.9-3.1.9-.9 3.1-.9-3.1-3.1-.9 3.1-.9.9-3.1Z" fill="currentColor"/></svg></span>
+              <h2 id="homeFeaturedTitle">Featured Items</h2>
+            </header>
+            <div class="home-featured-list" id="homeFeaturedItems"></div>
+            <p class="home-featured-empty" id="homeFeaturedEmpty" hidden>Featured marketplace items will appear here.</p>
+            <a class="home-featured-view-all" href="marketplace.html">View all items <span aria-hidden="true">&rsaquo;</span></a>
+          </section>
+        </aside>
+      </div>
+
+      <section class="content-section home-faq-section" id="faq" aria-labelledby="faqTitle">
+        <div class="faq-page">
+          <header class="faq-hero">
+            <p class="faq-eyebrow"><span></span><b>FAQ</b><span></span></p>
+            <h1 id="faqTitle">Frequently <em>Asked Questions</em></h1>
+            <p>Find answers to the most common questions.</p>
+          </header>
+
+          <div class="faq-grid">
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>What is WaveHubX?</strong><small>Learn what WaveHubX is and how it connects gamers worldwide.</small></span><i></i></summary>
+              <p>WaveHubX is an all-in-one gaming ecosystem where players can discover marketplace products, coaches, digital services and tournaments in one secure platform.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>How do I become a seller or coach?</strong><small>Start earning by offering your skills or items on WaveHubX.</small></span><i></i></summary>
+              <p>Create an account, complete your profile and use the seller or coach registration tools. Once the required information is verified, you can publish your offers.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>How does the escrow system work?</strong><small>We hold the payment securely until both sides are satisfied.</small></span><i></i></summary>
+              <p>The buyer's payment is held securely while the order is active. Funds are released to the seller after the agreed product or service has been delivered and completed.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>How long does delivery usually take?</strong><small>Delivery time depends on the type of service or product you choose.</small></span><i></i></summary>
+              <p>Each offer shows its expected delivery time. Instant products may arrive within minutes, while coaching sessions and custom services depend on scheduling.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>Is my payment protected?</strong><small>Yes. Your payment is safe with our escrow system until the order is completed.</small></span><i></i></summary>
+              <p>Yes. Payment remains protected during the transaction and is not released before the order reaches the required completion stage.</p>
+            </details>
+            <details class="faq-card">
+              <summary><span class="faq-question-mark">?</span><span class="faq-question-copy"><strong>Can I request a refund?</strong><small>Yes, you can request a refund if the terms are not met. We've got you covered.</small></span><i></i></summary>
+              <p>If an order does not meet the agreed terms, contact support with the order details. The case will be reviewed according to the platform's refund rules.</p>
+            </details>
+          </div>
+
+          <section class="faq-support-banner" aria-labelledby="faqSupportTitle">
+            <span class="faq-support-icon" aria-hidden="true">•••</span>
+            <div><h2 id="faqSupportTitle">Still have questions?</h2><p>Our support team is ready to help you.</p></div>
+            <a href="messages.html">Contact Support <strong aria-hidden="true">→</strong></a>
+          </section>
+        </div>
+      </section>
+
+      <section class="content-section home-competition-section" id="competition" aria-labelledby="competitionTitle">
+        <header class="competition-heading">
+          <h2 id="competitionTitle" data-i18n-keep><span aria-hidden="true">&#10022;</span> Coaching <em>&amp;</em> Tournaments <span aria-hidden="true">&#10022;</span></h2>
+          <span>Train with the best. Compete for glory.</span>
+        </header>
+
+        <div class="competition-showcase">
+          <article class="competition-panel coaching-preview">
+            <header class="competition-panel-title">
+              <span class="competition-title-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48"><path d="M9 28v-5a15 15 0 0 1 30 0v5M9 27H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h5V27H9Zm30 0h3a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-5V27h2Zm-2 14c0 3-3 4-7 4"/></svg>
+              </span>
+              <div><h3>Top Coaches</h3><p>1-on-1 sessions. Real results.</p></div><a class="competition-panel-all" href="coaching.html">View All <b aria-hidden="true">→</b></a>
+            </header>
+
+            <div class="featured-coaches">
+              <a class="featured-coach" href="coaching.html" aria-label="View Luna's coaching sessions"><div class="featured-coach-photo luna"><span>🔥 Most booked</span><i class="featured-coach-online">Online</i></div><div class="featured-coach-copy"><div class="featured-coach-name"><h4>Luna</h4><b aria-label="Verified coach">&#10003;</b><span><i>&#9733;</i> 4.8<small>(210 reviews)</small></span></div><p>CS2</p><ul><li>Movement</li><li>Positioning</li><li>Teamplay</li></ul><footer><strong>&#8382;25 <small>/ session</small></strong><span>Book Session →</span></footer></div></a>
+              <a class="featured-coach" href="coaching.html" aria-label="View Zephyr's coaching sessions"><div class="featured-coach-photo zephyr"><span>♛ Pro coach</span><i class="featured-coach-online">Online</i></div><div class="featured-coach-copy"><div class="featured-coach-name"><h4>Zephyr</h4><b aria-label="Verified coach">&#10003;</b><span><i>&#9733;</i> 4.9<small>(278 reviews)</small></span></div><p>Valorant</p><ul><li>Macro</li><li>Lane Control</li><li>Mindset</li></ul><footer><strong>&#8382;30 <small>/ session</small></strong><span>Book Session →</span></footer></div></a>
+              <a class="featured-coach" href="coaching.html" aria-label="View Kairo's coaching sessions"><div class="featured-coach-photo kairo"><span>✪ Top rated</span><i class="featured-coach-online">Online</i></div><div class="featured-coach-copy"><div class="featured-coach-name"><h4>Kairo</h4><b aria-label="Verified coach">&#10003;</b><span><i>&#9733;</i> 4.7<small>(162 reviews)</small></span></div><p>Valorant</p><ul><li>Aim</li><li>Game Sense</li><li>Strategy</li></ul><footer><strong>&#8382;28 <small>/ session</small></strong><span>Book Session →</span></footer></div></a>
+            </div>
+
+            <div class="featured-coach-carousel" aria-label="Coach carousel controls">
+              <div class="featured-coach-dots" aria-hidden="true"><i class="active"></i><i></i><i></i></div>
+              <div class="featured-coach-arrows"><button type="button" data-coach-carousel="previous" aria-label="Previous coach">&lsaquo;</button><button type="button" data-coach-carousel="next" aria-label="Next coach">&rsaquo;</button></div>
+            </div>
+
+            <a class="competition-button" href="coaching.html"><span aria-hidden="true">&#9786;</span> Explore All Coaches <b aria-hidden="true">&#8594;</b></a>
+            <ul class="competition-perks"><li><b aria-hidden="true">◉</b><span>1-on-1 Coaching<small>Personalized guidance</small></span></li><li><b aria-hidden="true">◎</b><span>Pro Strategies<small>Learn from the best</small></span></li><li><b aria-hidden="true">↗</b><span>Track Progress<small>See real improvement</small></span></li><li><b aria-hidden="true">♧</b><span>All Skill Levels<small>Beginners to Pros</small></span></li></ul>
+          </article>
+
+          <div class="competition-bridge" aria-hidden="true">
+            <svg class="coach-connection-lines" viewBox="0 0 260 100" preserveAspectRatio="none">
+              <path d="M0 31 H43 Q66 31 66 39 V61 Q66 69 43 69 H0" />
+            </svg>
+            <span class="bridge-line bridge-top"></span>
+            <span class="bridge-trophy">
+              <svg viewBox="0 0 64 64"><path d="M20 10h24v11c0 10-5 17-12 17s-12-7-12-17V10Zm0 5H10v6c0 8 5 12 12 12m22-18h10v6c0 8-5 12-12 12M32 38v9m-10 7h20M26 47h12l3 7H23l3-7Z"/><path d="m32 16 2 4 5 .7-3.5 3.4.8 4.9-4.3-2.3-4.3 2.3.8-4.9-3.5-3.4 5-.7 2-4Z"/></svg>
+            </span>
+            <span class="bridge-line bridge-bottom"></span>
+            <p>Train.<br>Improve.<br>Compete.</p>
+          </div>
+
+          <article class="competition-panel tournament-preview">
+            <header class="competition-panel-title">
+              <span class="competition-title-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48"><path d="M15 7h18v8c0 9-4 15-9 15s-9-6-9-15V7Zm0 5H7v4c0 7 4 10 10 10m16-14h8v4c0 7-4 10-10 10M24 30v7m-8 5h16m-12-5h8l2 5H18l2-5Z"/><path d="m24 12 1.5 3 3.5.5-2.5 2.5.6 3.5-3.1-1.7-3.1 1.7.6-3.5-2.5-2.5 3.5-.5 1.5-3Z"/></svg>
+              </span>
+              <div><h3>Featured Tournament</h3><p>Compete. Win. Make your mark.</p></div><a class="competition-panel-all" href="tournaments.html">View All <b aria-hidden="true">→</b></a>
+            </header>
+
+            <div class="featured-tournament">
+              <div class="tournament-cover"></div>
+              <div class="tournament-copy">
+                <h4>CS2 Weekend Cup</h4>
+                <p>5v5 <i></i> Single Elimination <i></i> Online</p>
+                <dl>
+                  <div><dt><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M15 7h18v8c0 9-4 15-9 15s-9-6-9-15V7Z"/><path d="M15 12H7v4c0 7 4 10 10 10m16-14h8v4c0 7-4 10-10 10M24 30v7m-8 5h16m-12-5h8l2 5H18l2-5Z"/><path d="m24 12 1.5 3 3.5.5-2.5 2.5.6 3.5-3.1-1.7-3.1 1.7.6-3.5-2.5-2.5 3.5-.5 1.5-3Z"/></svg><span>Prize Pool</span></dt><dd>&#8382;1,000</dd></div>
+                  <div><dt><svg viewBox="0 0 48 48" aria-hidden="true"><g transform="rotate(-24 24 24)"><path d="M8 15h32v8a5 5 0 0 0 0 10v8H8v-8a5 5 0 0 0 0-10v-8Z"/><path d="M29 15v5m0 5v5m0 5v6"/><path d="m19 23 1.7 3.4 3.8.6-2.8 2.7.7 3.8-3.4-1.8-3.4 1.8.7-3.8-2.8-2.7 3.8-.6L19 23Z"/></g></svg><span>Entry Fee</span></dt><dd>&#8382;10 / team</dd></div>
+                  <div><dt><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="14" r="6"/><circle cx="10.5" cy="18" r="4.5"/><circle cx="37.5" cy="18" r="4.5"/><path d="M14 39v-4c0-7 4-11 10-11s10 4 10 11v4M2 38v-3c0-6 3-9 8-9 2 0 4 .7 5.4 2M46 38v-3c0-6-3-9-8-9-2 0-4 .7-5.4 2"/></svg><span>Teams</span></dt><dd>32 / 32</dd></div>
+                  <div><dt><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="10" width="34" height="32" rx="4"/><path d="M15 6v8m18-8v8M7 19h34M15 26h3m6 0h3m6 0h3m-21 8h3m6 0h3m6 0h3"/></svg><span>Date</span></dt><dd>May 25</dd></div>
+                </dl>
+                <a class="competition-button" href="tournaments.html">Register Now <b aria-hidden="true">&#8594;</b></a>
+              </div>
+            </div>
+            <ul class="competition-perks tournament-perks"><li><b aria-hidden="true">⌁</b><span>Exciting Matches<small>High level competition</small></span></li><li><b aria-hidden="true">◉</b><span>Grow Your Team<small>Show your skill</small></span></li><li><b aria-hidden="true">✦</b><span>Win Rewards<small>Cash &amp; exclusive prizes</small></span></li><li><b aria-hidden="true">◎</b><span>Join Community<small>Play. Compete. Belong.</small></span></li></ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="content-section home-steam-section" id="homeSteamGames" aria-labelledby="homeSteamTitle">
+        <header class="home-steam-heading">
+          <div class="home-steam-title-wrap">
+            <span class="home-steam-logo" aria-hidden="true"><img src="assets/steam-logo.png?v=1" alt="" /></span>
+            <div><h2 id="homeSteamTitle">Steam Games</h2><p>Buy your favorite games at the best prices. Instant delivery, 100% secure.</p></div>
+          </div>
+          <a href="steam-keys.html">View all <span aria-hidden="true">&rarr;</span></a>
+        </header>
+
+        <div class="home-steam-carousel">
+          <button class="home-steam-arrow home-steam-prev" type="button" data-home-steam-direction="-1" aria-label="Previous Steam games">&lsaquo;</button>
+          <div class="home-steam-track" id="homeSteamTrack">
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover cs2" aria-label="Counter-Strike 2"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 14.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover dota" aria-label="Dota 2"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 9.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover fortnite" aria-label="Fortnite"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 4.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover elden-ring" aria-label="Elden Ring"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 29.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover cod" aria-label="Call of Duty"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 19.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover gta" aria-label="GTA V"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 24.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover valorant" aria-label="Valorant"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 12.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover minecraft" aria-label="Minecraft"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 26.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover league" aria-label="League of Legends"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 8.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover pubg" aria-label="PUBG Mobile"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 11.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover roblox" aria-label="Roblox"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 7.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover mobile-legends" aria-label="Mobile Legends"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 6.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover clash" aria-label="Clash of Clans"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 9.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover standoff" aria-label="Standoff 2"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 5.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover rdr2" aria-label="Red Dead Redemption 2"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 34.99 GEL</strong>
+            </a>
+            <a class="home-steam-card" href="steam-keys.html">
+              <span class="home-steam-cover cyberpunk" aria-label="Cyberpunk 2077"></span>
+              <span class="home-steam-platform"><b class="steam-mark" aria-hidden="true">S</b> Steam Key</span>
+              <strong><span class="home-steam-cart" aria-hidden="true">&#128722;</span> 27.99 GEL</strong>
+            </a>
+          </div>
+          <button class="home-steam-arrow home-steam-next" type="button" data-home-steam-direction="1" aria-label="Next Steam games">&rsaquo;</button>
+        </div>
+        <div class="home-steam-dots" aria-hidden="true"><i class="active"></i><i></i><i></i></div>
+      </section>
+      <section class="featured-items" id="mobileFeaturedItems" aria-labelledby="mobileFeaturedItemsTitle">
+        <header class="featured-items-heading">
+          <div class="featured-items-title">
+            <span class="featured-items-spark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2.5 18.9 13l10.6 3-10.6 3L16 29.5 13.1 19 2.5 16l10.6-3L16 2.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m24.5 4 .9 3.1 3.1.9-3.1.9-.9 3.1-.9-3.1-3.1-.9 3.1-.9.9-3.1Z" fill="currentColor"/></svg></span>
+            <h2 id="mobileFeaturedItemsTitle">Featured Items</h2>
+          </div>
+          <a href="steam-keys.html">View all <span aria-hidden="true">→</span></a>
+        </header>
+        <div class="featured-items-grid" id="mobileFeaturedItemsList">
+          <a class="featured-item-card" href="steam-keys.html"><span class="featured-item-save" aria-hidden="true">♡</span><span class="featured-item-art item-prime" aria-hidden="true"><svg viewBox="0 0 180 130" fill="none"><path d="m22 89 54-54 42 10 40 40-18 18-42-42-17 17 42 42-18 18-42-42-17 17 42 42-18 18-48-48Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><circle cx="76" cy="35" r="13" stroke="currentColor" stroke-width="5"/><path d="M30 106c24 11 98 12 123 0" stroke="currentColor" stroke-width="2" opacity=".55"/></svg></span><strong>CS2 Prime Status</strong><small>Instant activation</small><b>39.99 GEL</b><span class="featured-item-action">View details <i aria-hidden="true">→</i></span></a>
+          <a class="featured-item-card" href="steam-keys.html"><span class="featured-item-save" aria-hidden="true">♡</span><span class="featured-item-art item-wallet" aria-hidden="true"><svg viewBox="0 0 180 130" fill="none"><path d="M38 35h80a14 14 0 0 1 14 14v57a14 14 0 0 1-14 14H38a14 14 0 0 1-14-14V49a14 14 0 0 1 14-14Z" stroke="currentColor" stroke-width="5"/><path d="M24 55h92a12 12 0 0 1 12 12v27H91a14 14 0 0 1 0-28h37" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><circle cx="94" cy="80" r="4" fill="currentColor"/><path d="M61 28h45" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M30 106c24 11 98 12 123 0" stroke="currentColor" stroke-width="2" opacity=".55"/></svg></span><strong>Steam Wallet</strong><small>50 GEL gift balance</small><b>50.00 GEL</b><span class="featured-item-action">View details <i aria-hidden="true">→</i></span></a>
+          <a class="featured-item-card" href="steam-keys.html"><span class="featured-item-save" aria-hidden="true">♡</span><span class="featured-item-art item-pass" aria-hidden="true"><svg viewBox="0 0 180 130" fill="none"><rect x="30" y="32" width="120" height="72" rx="12" stroke="currentColor" stroke-width="5"/><path d="M71 68h-12m6-6v12M114 60l12 8-12 8V60Z" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 106c24 11 98 12 123 0" stroke="currentColor" stroke-width="2" opacity=".55"/></svg></span><strong>PC Game Pass</strong><small>1 month membership</small><b>29.99 GEL</b><span class="featured-item-action">View details <i aria-hidden="true">→</i></span></a>
+        </div>
+        <p class="featured-items-empty" id="mobileFeaturedItemsEmpty" hidden>ამ ეტაპზე Featured Item-ები არ არის.</p>
       </section>
     </main>
   </div>
 
-  <script src="script.js?v=20260719-2"></script>
+  <div class="seller-profile-modal" id="sellerProfileModal" hidden>
+    <div class="seller-profile-backdrop" data-profile-close></div>
+    <section class="seller-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="sellerProfileName">
+      <button class="seller-profile-close" type="button" data-profile-close aria-label="Close profile">×</button>
+
+      <header class="seller-profile-header">
+        <div class="seller-profile-person">
+          <span class="seller-profile-photo" id="sellerProfilePhoto">AK<i aria-label="Online"></i></span>
+          <div class="seller-profile-identity">
+            <h2><span id="sellerProfileName">Top 100 Player</span><b aria-label="Verified">✓</b></h2>
+            <div><strong id="sellerProfileHandle">@top100player</strong><span>♢ Verified Seller</span></div>
+            <p id="sellerProfileBio">Professional rank booster and competitive player</p>
+            <small><span>⌖ <b id="sellerProfileLocation">Tbilisi, Georgia</b></span><span>▣ Member since <b id="sellerProfileMember">Jan 2023</b></span><span class="seller-online">● Online Now</span></small>
+          </div>
+        </div>
+
+        <div class="seller-rank-card">
+          <span class="seller-rank-emblem" data-rank="Obsidian Warlord"></span>
+          <div><small>RANK</small><strong id="sellerProfileRank">OBSIDIAN WARLORD</strong><span>WaveHubX Rank</span></div>
+          <p><span></span><small>Next: <b>CRIMSON MONARCH</b></small></p>
+        </div>
+      </header>
+
+      <div class="seller-profile-stats">
+        <div><strong id="sellerProfileRating">4.9</strong><small>RATING</small><span>★★★★★</span></div>
+        <div><strong id="sellerProfileSales">237+</strong><small>TOTAL SALES</small><span>Completed Orders</span></div>
+        <div><strong><span id="sellerProfileScore">96</span><small>/100</small></strong><small>WV SCORE</small><span>Top 12% of sellers</span></div>
+      </div>
+
+      <section class="seller-profile-reviews">
+        <header><h3>☵ &nbsp; REVIEWS <small>(48)</small></h3><a href="profile.html#reviews">View all reviews →</a></header>
+        <article><span class="seller-review-avatar">GH</span><div><h4>GioHunter <small>♢ Verified Buyer</small></h4><b>★★★★★</b><p>Amazing service! Fast, professional and very reliable. Highly recommended! 🔥</p></div><time>2d ago</time></article>
+        <article><span class="seller-review-avatar alt">GM</span><div><h4>GameMaster <small>♢ Verified Buyer</small></h4><b>★★★★★</b><p>Great communication and reliable service. Will order again!</p></div><time>5d ago</time></article>
+        <article><span class="seller-review-avatar warm">RP</span><div><h4>RankUpPro <small>♢ Verified Buyer</small></h4><b>★★★★★</b><p>Fast, safe and legit. Got exactly what I needed. Thanks a lot!</p></div><time>1w ago</time></article>
+      </section>
+
+      <footer class="seller-profile-actions">
+        <a class="seller-message-action" href="messages.html"><span>▣</span><b>Message<small>Chat with seller</small></b><i>→</i></a>
+        <a class="seller-view-action" href="profile.html">View Full Profile <span>→</span></a>
+      </footer>
+    </section>
+  </div>
+
+  <script src="script.js?v=20260902-preserve-marketplace-listings"></script>
   <script src="cart-nav.js"></script>
-  <script src="profile-nav.js?v=20260720-mobile-1"></script>
+<script src="profile-nav.js?v=20260902-secure-session-messages-1"></script>
+  <script src="state-sync.js?v=20260902-server-state-1"></script>
+  <script>
+    (() => {
+      const modal = document.getElementById('sellerProfileModal');
+      if (!modal) return;
+      const profiles = {
+        'top-player': { initials: 'AK', name: 'Top 100 Player', handle: '@top100player', bio: 'Professional rank booster and competitive player', location: 'Tbilisi, Georgia', member: 'Jan 2023', rank: 'OBSIDIAN WARLORD', rating: '4.9', sales: '237+', score: '96' },
+        mythx: { initials: 'MX', name: 'MythX', handle: '@mythx', bio: 'Mobile Legends coach and Mythic rank specialist', location: 'Batumi, Georgia', member: 'Mar 2024', rank: 'CRIMSON MONARCH', rating: '4.8', sales: '184+', score: '92' },
+        'wavehub-events': { initials: 'WH', name: 'WaveHub Events', handle: '@wavehubevents', bio: 'Official tournaments, cups and community events', location: 'Tbilisi, Georgia', member: 'Jan 2023', rank: 'MYTHIC PRIME', rating: '5.0', sales: '320+', score: '99' }
+      };
+      const fields = { name: 'sellerProfileName', handle: 'sellerProfileHandle', bio: 'sellerProfileBio', location: 'sellerProfileLocation', member: 'sellerProfileMember', rank: 'sellerProfileRank', rating: 'sellerProfileRating', sales: 'sellerProfileSales', score: 'sellerProfileScore' };
+      let lastTrigger = null;
+      const close = () => {
+        modal.classList.remove('is-open');
+        document.body.classList.remove('seller-profile-open');
+        window.setTimeout(() => { modal.hidden = true; lastTrigger?.focus(); }, 180);
+      };
+      document.querySelectorAll('.seller-profile-trigger').forEach(trigger => trigger.addEventListener('click', () => {
+        const profile = profiles[trigger.dataset.profile];
+        if (!profile) return;
+        lastTrigger = trigger;
+        Object.entries(fields).forEach(([key, id]) => document.getElementById(id).textContent = profile[key]);
+        document.getElementById('sellerProfilePhoto').firstChild.textContent = profile.initials;
+        modal.hidden = false;
+        document.body.classList.add('seller-profile-open');
+        requestAnimationFrame(() => { modal.classList.add('is-open'); modal.querySelector('.seller-profile-close').focus(); });
+      }));
+      modal.querySelectorAll('[data-profile-close]').forEach(control => control.addEventListener('click', close));
+      document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) close(); });
+    })();
+
+    (() => {
+      const section = document.getElementById('how-it-works');
+      if (!section) return;
+      const faqSection = document.getElementById('faq');
+      const competitionSection = document.getElementById('competition');
+      const steamSection = document.getElementById('homeSteamGames');
+      const mobileFeaturedItems = document.getElementById('mobileFeaturedItems');
+      if (faqSection && competitionSection && steamSection) {
+        faqSection.insertAdjacentElement('beforebegin', competitionSection);
+        faqSection.insertAdjacentElement('beforebegin', steamSection);
+        if (mobileFeaturedItems) faqSection.insertAdjacentElement('beforebegin', mobileFeaturedItems);
+        faqSection.insertAdjacentElement('beforebegin', section);
+      }
+      const steamTrack = document.getElementById('homeSteamTrack');
+      const steamDescriptions = {
+        'Counter-Strike 2': 'Team up in tactical 5v5 action.',
+        'Dota 2': 'Master strategy in legendary team battles.',
+        Fortnite: 'Build, battle and be the last one standing.',
+        'Elden Ring': 'Enter a dark fantasy world of adventure.',
+        'Call of Duty': 'Fast-paced combat on iconic battlefields.',
+        'GTA V': 'Explore Los Santos in an open-world epic.',
+        Valorant: 'Precise gunplay meets unique abilities.',
+        Minecraft: 'Create, explore and survive your own world.',
+      };
+      steamTrack?.querySelectorAll('.home-steam-card').forEach(card => {
+        const cover = card.querySelector('.home-steam-cover');
+        const title = cover?.getAttribute('aria-label') || 'Steam Game';
+        const rawPrice = card.querySelector(':scope > strong')?.textContent?.replace(/[^0-9.,]/g, '') || '0';
+        const body = document.createElement('span');
+        body.className = 'home-steam-mobile-body';
+        body.innerHTML = `<strong class="home-steam-mobile-title"></strong><span class="home-steam-mobile-description"></span><span class="home-steam-mobile-price-row"><b></b><i><span></span>In Stock</i></span><span class="home-steam-mobile-details">See Details <b aria-hidden="true">→</b></span>`;
+        body.querySelector('.home-steam-mobile-title').textContent = title;
+        body.querySelector('.home-steam-mobile-description').textContent = steamDescriptions[title] || 'Instant Steam key. Start playing today.';
+        body.querySelector('.home-steam-mobile-price-row > b').textContent = `${rawPrice} GEL`;
+        card.appendChild(body);
+      });
+      const steamButtons = [...document.querySelectorAll('[data-home-steam-direction]')];
+      const steamDots = [...steamSection.querySelectorAll('.home-steam-dots i')];
+      const updateSteamCarousel = () => {
+        if (!steamTrack) return;
+        const maxScroll = Math.max(0, steamTrack.scrollWidth - steamTrack.clientWidth);
+        const progress = maxScroll ? steamTrack.scrollLeft / maxScroll : 0;
+        const activeDot = Math.round(progress * Math.max(0, steamDots.length - 1));
+        steamDots.forEach((dot, index) => dot.classList.toggle('active', index === activeDot));
+        steamButtons.forEach(button => {
+          const direction = Number(button.dataset.homeSteamDirection);
+          button.disabled = direction < 0 ? steamTrack.scrollLeft <= 2 : steamTrack.scrollLeft >= maxScroll - 2;
+        });
+      };
+      steamButtons.forEach(button => button.addEventListener('click', () => {
+        const direction = Number(button.dataset.homeSteamDirection) || 1;
+        const card = steamTrack?.querySelector('.home-steam-card');
+        const gap = steamTrack ? parseFloat(getComputedStyle(steamTrack).columnGap) || 12 : 12;
+        const cardStep = card ? card.getBoundingClientRect().width + gap : steamTrack?.clientWidth || 0;
+        const visibleCards = cardStep && steamTrack ? Math.max(1, Math.floor((steamTrack.clientWidth + gap) / cardStep)) : 1;
+        steamTrack?.scrollBy({ left: direction * cardStep * visibleCards, behavior: 'smooth' });
+      }));
+      steamTrack?.addEventListener('scroll', () => requestAnimationFrame(updateSteamCarousel), { passive: true });
+      window.addEventListener('resize', updateSteamCarousel);
+      updateSteamCarousel();
+      const slides = [...section.querySelectorAll('.how-slide')];
+      const tabs = [...section.querySelectorAll('.how-step')];
+      const dots = [...section.querySelectorAll('.how-dots button')];
+      const slider = section.querySelector('#howSlider');
+      let current = 0;
+      let startX = 0;
+      const show = index => {
+        current = (index + slides.length) % slides.length;
+        slides.forEach((slide, i) => { slide.hidden = i !== current; slide.classList.toggle('is-active', i === current); });
+        tabs.forEach((tab, i) => { tab.classList.toggle('is-active', i === current); tab.setAttribute('aria-selected', String(i === current)); });
+        dots.forEach((dot, i) => dot.classList.toggle('is-active', i === current));
+      };
+      [...tabs, ...dots].forEach(control => control.addEventListener('click', () => show(Number(control.dataset.step))));
+      section.querySelector('.how-arrow-prev')?.addEventListener('click', () => show(current - 1));
+      section.querySelector('.how-arrow-next')?.addEventListener('click', () => show(current + 1));
+      slider.addEventListener('touchstart', event => { startX = event.touches[0].clientX; }, { passive: true });
+      slider.addEventListener('touchend', event => { const distance = event.changedTouches[0].clientX - startX; if (Math.abs(distance) > 45) show(current + (distance < 0 ? 1 : -1)); }, { passive: true });
+
+      const walletSource = document.getElementById('mobileWalletBalance');
+      const syncHomeTopWallet = () => {
+        const topWallet = document.getElementById('homeTopWalletBalance');
+        if (topWallet && walletSource) topWallet.textContent = walletSource.textContent;
+      };
+      syncHomeTopWallet();
+      if (walletSource) new MutationObserver(syncHomeTopWallet).observe(walletSource, { childList: true, subtree: true });
+
+      const readHomeData = (key, fallback = []) => {
+        try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+        catch { return fallback; }
+      };
+      const normalizeMarketplaceGame = value => {
+        const normalized = String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        const aliases = {
+          'call of duty mobile': 'call of duty',
+          'cod mobile': 'call of duty',
+          codm: 'call of duty',
+          dota2: 'dota 2',
+          pubg: 'pubg mobile',
+          standoff2: 'standoff 2'
+        };
+        return aliases[normalized] || normalized;
+      };
+      const renderHomeMarketplaceCounts = () => {
+        const source = readHomeData('wavehub.sellerListings');
+        const listings = Array.isArray(source) ? source.filter(item => item && typeof item === 'object') : [];
+        const counts = listings.reduce((totals, listing) => {
+          const game = normalizeMarketplaceGame(listing.game);
+          if (game) totals.set(game, (totals.get(game) || 0) + 1);
+          return totals;
+        }, new Map());
+
+        document.querySelectorAll('[data-marketplace-game]').forEach(card => {
+          const count = counts.get(normalizeMarketplaceGame(card.dataset.marketplaceGame)) || 0;
+          const countLabel = card.querySelector('[data-marketplace-count]');
+          const gameLabel = card.querySelector('strong')?.textContent?.trim() || card.dataset.marketplaceGame;
+          if (countLabel) countLabel.textContent = `${count.toLocaleString('en-US')} ${count === 1 ? 'Item' : 'Items'}`;
+          card.setAttribute('aria-label', `${gameLabel}: ${count} marketplace ${count === 1 ? 'item' : 'items'}`);
+        });
+      };
+      const featuredImageByGame = {
+        'Call of Duty': 'assets/call-of-duty-marketplace-photo.png',
+        'Clash of Clans': 'assets/clash-of-clans-marketplace-cover.png',
+        'CS2': 'assets/cs2-marketplace-cover.png',
+        'Dota 2': 'assets/dota-2-marketplace-cover.png',
+        'Fortnite': 'assets/fortnite-marketplace-cover.png',
+        'GTA 5': 'assets/gta-5-marketplace-cover.png',
+        'League of Legends': 'assets/league-of-legends-marketplace-cover.png',
+        'Minecraft': 'assets/minecraft-marketplace-cover.png',
+        'Mobile Legends': 'assets/mobile-legends-marketplace-cover.png',
+        'PUBG Mobile': 'assets/pubg-mobile-marketplace-cover.png',
+        'Roblox': 'assets/roblox-marketplace-cover.png',
+        'Standoff 2': 'assets/home-game-standoff2.png',
+        'Valorant': 'assets/valorant-marketplace-cover.png'
+      };
+      const featuredAccountImage = {
+        basic: 'assets/basic-account.png',
+        'full-collection': 'assets/full-collection-account.png',
+        fullcollection: 'assets/full-collection-account.png',
+        og: 'assets/og-account.png',
+        premium: 'assets/premium-account.png',
+        ranked: 'assets/ranked-account.png',
+        rare: 'assets/rare-account.png'
+      };
+      const getFeaturedImage = listing => (
+        listing.imageData
+        || listing.galleryImages?.[0]
+        || (listing.listingType === 'account' ? featuredAccountImage[String(listing.accountStatus || '').toLowerCase()] : '')
+        || featuredImageByGame[listing.game]
+        || ''
+      );
+      const getFeaturedInitials = game => String(game || 'WH').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+      const formatFeaturedPrice = value => {
+        const price = Number(value);
+        return `${Number.isFinite(price) ? (Number.isInteger(price) ? price : price.toFixed(2)) : 0} GEL`;
+      };
+      const featuredFavoritesKey = 'wavehub.favorites';
+      const featuredSessionKey = 'wavehub.session';
+      const getFeaturedUser = async () => (
+        window.wavehubAuthReady ? await window.wavehubAuthReady : readHomeData(featuredSessionKey, null)?.user || null
+      );
+      const getFeaturedFavoriteId = listing => listing?.id ? `listing:${listing.id}` : '';
+      const getFeaturedFavorites = username => {
+        const favorites = readHomeData(featuredFavoritesKey, {})?.[username];
+        return Array.isArray(favorites) ? favorites : [];
+      };
+      const setFeaturedHeartState = (heart, saved) => {
+        heart.classList.toggle('saved', saved);
+        heart.setAttribute('aria-pressed', String(saved));
+        heart.setAttribute('aria-label', saved ? 'Remove from favorites' : 'Save product');
+        heart.title = saved ? 'Remove from favorites' : 'Save product';
+        heart.textContent = saved ? '♥' : '♡';
+      };
+      const getFeaturedFavorite = listing => ({
+        id: getFeaturedFavoriteId(listing), type: 'product', listingId: listing.id || '',
+        search: [listing.game, listing.title, listing.description, listing.listingType].join(' ').toLowerCase(),
+        title: listing.title || `${listing.game || 'Marketplace'} item`, description: listing.description || '',
+        seller: listing.sellerName || listing.sellerUsername || 'WaveHub seller', price: formatFeaturedPrice(listing.price),
+        tag: `${listing.game || 'Marketplace'} ${listing.listingType === 'skin' ? 'Skin' : 'Account'}`, savedAt: new Date().toISOString(),
+      });
+      const bindFeaturedFavoriteButton = (heart, listing) => heart.addEventListener('click', async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const user = await getFeaturedUser();
+        if (!user?.username) {
+          document.getElementById('profileButton')?.click();
+          return;
+        }
+        const favorite = getFeaturedFavorite(listing);
+        const favoritesByUser = readHomeData(featuredFavoritesKey, {});
+        const favorites = getFeaturedFavorites(user.username);
+        const wasSaved = favorites.some(item => item.id === favorite.id);
+        const nextFavorites = wasSaved ? favorites.filter(item => item.id !== favorite.id) : [...favorites.filter(item => item.id !== favorite.id), favorite];
+        localStorage.setItem(featuredFavoritesKey, JSON.stringify({ ...favoritesByUser, [user.username]: nextFavorites }));
+        document.querySelectorAll(`[data-featured-favorite-id="${CSS.escape(favorite.id)}"]`).forEach(button => setFeaturedHeartState(button, !wasSaved));
+      });
+      const configureFeaturedHeart = async (heart, listing) => {
+        const user = await getFeaturedUser();
+        setFeaturedHeartState(heart, Boolean(user?.username && getFeaturedFavorites(user.username).some(item => item.id === getFeaturedFavoriteId(listing))));
+      };
+      const renderHomeFeaturedItems = () => {
+        const list = document.getElementById('homeFeaturedItems');
+        const empty = document.getElementById('homeFeaturedEmpty');
+        if (!list || !empty) return;
+
+        const source = readHomeData('wavehub.sellerListings');
+        const featured = (Array.isArray(source) ? source : [])
+          .filter(item => item && item.isActive !== false && item.status !== 'inactive')
+          .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+        const hasFeaturedItems = featured.length > 0;
+        list.replaceChildren();
+        empty.hidden = hasFeaturedItems;
+        empty.closest('.home-right-rail').hidden = !hasFeaturedItems;
+        document.body.classList.toggle('featured-items-fallback', !hasFeaturedItems);
+        featured.slice(0, 2).forEach(listing => {
+          const card = document.createElement('article');
+          const imageLink = document.createElement('a');
+          const heart = document.createElement('button');
+          const copy = document.createElement('div');
+          const title = document.createElement('h3');
+          const titleLink = document.createElement('a');
+          const meta = document.createElement('p');
+          const footer = document.createElement('footer');
+          const price = document.createElement('strong');
+          const details = document.createElement('a');
+          const detailUrl = listing.id ? `detail.html?type=product&id=${encodeURIComponent(listing.id)}` : 'marketplace.html';
+          const image = getFeaturedImage(listing);
+
+          card.className = 'home-featured-card';
+          imageLink.className = 'home-featured-image';
+          imageLink.href = detailUrl;
+          imageLink.setAttribute('aria-label', `View ${listing.title || `${listing.game || 'Marketplace'} item`}`);
+          imageLink.textContent = image ? '' : getFeaturedInitials(listing.game);
+          if (image) imageLink.style.backgroundImage = `linear-gradient(180deg, rgba(8, 5, 14, .02), rgba(8, 5, 14, .18)), url("${String(image).replace(/"/g, '%22')}")`;
+          heart.className = 'home-featured-heart';
+          heart.type = 'button';
+          heart.dataset.featuredFavoriteId = getFeaturedFavoriteId(listing);
+          bindFeaturedFavoriteButton(heart, listing);
+          configureFeaturedHeart(heart, listing);
+          heart.textContent = '♡';
+
+          copy.className = 'home-featured-copy';
+          titleLink.href = detailUrl;
+          titleLink.textContent = listing.title || `${listing.game || 'Marketplace'} ${listing.listingType === 'skin' ? 'Skin' : 'Account'}`;
+          title.appendChild(titleLink);
+          meta.textContent = `${listing.game || 'Marketplace'} / ${listing.listingType === 'skin' ? 'Skin' : 'Account'}`;
+          price.textContent = formatFeaturedPrice(listing.price);
+          details.href = detailUrl;
+          details.textContent = 'View details';
+          footer.append(price, details);
+          copy.append(title, meta, footer);
+          card.append(imageLink, heart, copy);
+          list.appendChild(card);
+        });
+
+        const mobileList = document.getElementById('mobileFeaturedItemsList');
+        const mobileEmpty = document.getElementById('mobileFeaturedItemsEmpty');
+        if (!mobileList || !mobileEmpty) return;
+        mobileList.replaceChildren();
+        mobileEmpty.hidden = hasFeaturedItems;
+        featured.slice(0, 3).forEach(listing => {
+          const card = document.createElement('article');
+          const link = document.createElement('a');
+          const heart = document.createElement('button');
+          const image = document.createElement('span');
+          const title = document.createElement('strong');
+          const condition = document.createElement('small');
+          const price = document.createElement('b');
+          const action = document.createElement('span');
+          const detailUrl = listing.id ? `detail.html?type=product&id=${encodeURIComponent(listing.id)}` : 'marketplace.html';
+          const productImage = getFeaturedImage(listing);
+
+          card.className = 'featured-item-card';
+          link.href = detailUrl;
+          heart.className = 'featured-item-save';
+          heart.type = 'button';
+          heart.dataset.featuredFavoriteId = getFeaturedFavoriteId(listing);
+          bindFeaturedFavoriteButton(heart, listing);
+          configureFeaturedHeart(heart, listing);
+          heart.textContent = '♡';
+          image.className = 'mobile-featured-product-image';
+          image.textContent = productImage ? '' : getFeaturedInitials(listing.game);
+          if (productImage) image.style.backgroundImage = `url("${String(productImage).replace(/"/g, '%22')}")`;
+          title.textContent = listing.title || `${listing.game || 'Marketplace'} item`;
+          condition.textContent = listing.condition || listing.itemCondition || 'Factory New';
+          price.textContent = formatFeaturedPrice(listing.price);
+          action.className = 'featured-item-action';
+          action.innerHTML = 'View details <i aria-hidden="true">→</i>';
+          link.append(image, title, condition, price, action);
+          card.append(heart, link);
+          mobileList.appendChild(card);
+        });
+      };
+      renderHomeMarketplaceCounts();
+      renderHomeFeaturedItems();
+      window.addEventListener('storage', event => {
+        if (event.key === 'wavehub.sellerListings') {
+          renderHomeMarketplaceCounts();
+          renderHomeFeaturedItems();
+        }
+      });
+      window.addEventListener('pageshow', renderHomeMarketplaceCounts);
+    })();
+  </script>
+  <script>
+    (() => {
+      const track = document.querySelector('.home-page .featured-coaches');
+      const controls = document.querySelectorAll('[data-coach-carousel]');
+      const dots = document.querySelectorAll('.featured-coach-dots i');
+      if (!track || !controls.length) return;
+
+      const updateDots = () => {
+        const cards = [...track.children];
+        const center = track.scrollLeft + track.clientWidth / 2;
+        const active = cards.reduce((best, card, index) => {
+          const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+          return Math.abs(cardCenter - center) < best.distance ? { index, distance: Math.abs(cardCenter - center) } : best;
+        }, { index: 0, distance: Infinity }).index;
+        dots.forEach((dot, index) => dot.classList.toggle('active', index === active));
+      };
+
+      controls.forEach(control => control.addEventListener('click', () => {
+        const step = track.querySelector('.featured-coach')?.offsetWidth || 260;
+        const direction = control.dataset.coachCarousel === 'next' ? 1 : -1;
+        track.scrollBy({ left: direction * (step + 12), behavior: 'smooth' });
+      }));
+      track.addEventListener('scroll', () => requestAnimationFrame(updateDots), { passive: true });
+      updateDots();
+    })();
+  </script>
+  <script src="site-footer.js"></script>
 </body>
 </html>

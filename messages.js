@@ -30,10 +30,12 @@ const onlineCount = document.getElementById('onlineCount');
 
 const localUsersKey = 'wavehub.users';
 const sessionKey = 'wavehub.session';
-const directMessagesKey = 'wavehub.directMessages';
+const apiUrls = ['http://localhost:4000', 'http://127.0.0.1:4000'];
 const minOnlineCount = 2;
 const maxOnlineCount = 23;
 let activeDirectParticipant = '';
+let directMessages = [];
+let messagesRefreshInFlight = null;
 
 function readJson(key, fallback) {
   try {
@@ -129,9 +131,38 @@ function formatMessageTime(value) {
   });
 }
 
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    return await fetch(url, { ...options, credentials: 'include', signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function requestMessagesApi(path = '', options = {}) {
+  for (const apiUrl of apiUrls) {
+    try {
+      const response = await fetchWithTimeout(`${apiUrl}/messages${path}`, options);
+      const data = await response.json().catch(() => ({}));
+      return {
+        ok: response.ok,
+        status: response.status,
+        data,
+        error: data?.error || data?.message || 'Message request failed.',
+      };
+    } catch (err) {
+      console.warn('Messages API is unavailable:', err);
+    }
+  }
+
+  return { ok: false, offline: true, error: 'Messages server is unavailable.' };
+}
+
 function getDirectMessages() {
-  const messages = readJson(directMessagesKey, []);
-  return Array.isArray(messages) ? messages : [];
+  return directMessages;
 }
 
 function getUserByUsername(username) {
@@ -147,7 +178,7 @@ function getDirectParticipants(username, messages) {
   });
 
   const requested = new URLSearchParams(window.location.search).get('to');
-  if (requested && requested !== username && getUserByUsername(requested)) names.add(requested);
+  if (requested && requested !== username && /^[a-z0-9_-]+$/.test(requested)) names.add(requested);
   return [...names].filter(Boolean);
 }
 
@@ -160,25 +191,23 @@ function getConversation(messages, username, participant) {
     .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 }
 
-function markConversationRead(messages, username, participant) {
-  let changed = false;
-  const now = new Date().toISOString();
-  const next = messages.map((message) => {
-    if (message.toUsername === username && message.fromUsername === participant && !message.readAt) {
-      changed = true;
-      return { ...message, readAt: now };
-    }
-    return message;
-  });
+async function markConversationRead(username, participant) {
+  if (!username || !participant) return;
+  const result = await requestMessagesApi(`/read/${encodeURIComponent(participant)}`, { method: 'POST' });
+  if (!result.ok) return;
 
-  if (changed) writeJson(directMessagesKey, next);
-  return next;
+  const now = new Date().toISOString();
+  directMessages = directMessages.map((message) => (
+    message.toUsername === username && message.fromUsername === participant && !message.readAt
+      ? { ...message, readAt: now }
+      : message
+  ));
 }
 
 function renderDirectMessages() {
   const { user } = getCurrentAccount();
   const username = user?.username || '';
-  let messages = getDirectMessages();
+  const messages = getDirectMessages();
   const query = messageSearch?.value.trim().toLowerCase() || '';
   const participants = username
     ? getDirectParticipants(username, messages).filter((participantUsername) => {
@@ -193,10 +222,6 @@ function renderDirectMessages() {
   const requested = new URLSearchParams(window.location.search).get('to');
   const activeParticipant = participants.includes(requested) ? requested : participants[0] || '';
   activeDirectParticipant = activeParticipant;
-
-  if (activeParticipant && username) {
-    messages = markConversationRead(messages, username, activeParticipant);
-  }
 
   if (directMessageContacts) {
     directMessageContacts.innerHTML = '';
@@ -252,14 +277,30 @@ function renderDirectMessages() {
       directMessageHistory.appendChild(empty);
     }
     conversation.forEach((message) => {
+      const isMine = message.fromUsername === username;
+      const senderUsername = isMine ? username : activeParticipant;
+      const sender = isMine ? user : getUserByUsername(senderUsername);
+      const row = document.createElement('div');
+      row.className = `direct-message-row ${isMine ? 'mine' : 'theirs'}`;
       const bubble = document.createElement('article');
-      bubble.className = `direct-message-bubble ${message.fromUsername === username ? 'mine' : 'theirs'}`;
+      bubble.className = `direct-message-bubble ${isMine ? 'mine' : 'theirs'}`;
+      const meta = document.createElement('div');
+      meta.className = 'direct-message-meta';
+      const senderName = document.createElement('strong');
+      senderName.textContent = isMine ? 'You' : getDisplayName(sender || { username: senderUsername });
+      meta.appendChild(senderName);
       const body = document.createElement('p');
       body.textContent = message.body;
       const time = document.createElement('small');
-      time.textContent = `${formatMessageTime(message.createdAt)}${message.fromUsername === username && message.readAt ? ' · Read' : ''}`;
-      bubble.append(body, time);
-      directMessageHistory.appendChild(bubble);
+      time.textContent = `${formatMessageTime(message.createdAt)}${isMine && message.readAt ? ' · Seen' : ''}`;
+      meta.appendChild(time);
+      bubble.append(meta, body);
+      const avatar = document.createElement('span');
+      avatar.className = 'direct-message-avatar';
+      avatar.setAttribute('aria-hidden', 'true');
+      avatar.textContent = getInitials(sender || { username: senderUsername });
+      row.append(avatar, bubble);
+      directMessageHistory.appendChild(row);
     });
     directMessageHistory.scrollTop = directMessageHistory.scrollHeight;
   }
@@ -321,36 +362,44 @@ function renderMessages() {
   window.wavehubRenderMessageNotifications?.();
 }
 
-directMessageContacts?.addEventListener('click', (event) => {
+directMessageContacts?.addEventListener('click', async (event) => {
   const button = event.target instanceof Element ? event.target.closest('[data-message-user]') : null;
   if (!button) return;
   const username = button.dataset.messageUser || '';
   const url = new URL(window.location.href);
   url.searchParams.set('to', username);
   window.history.replaceState({}, '', url);
+  const { user } = getCurrentAccount();
+  await markConversationRead(user?.username, username);
   renderMessages();
 });
 
-directMessageForm?.addEventListener('submit', (event) => {
+directMessageForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const { user } = getCurrentAccount();
   const toUsername = activeDirectParticipant;
   const body = directMessageInput?.value.trim() || '';
 
   if (!user?.username || !toUsername || !body || toUsername === user.username) return;
-  const messages = getDirectMessages();
-  messages.push({
-    id: window.crypto?.randomUUID?.() || `message-${Date.now()}`,
-    fromUsername: user.username,
-    toUsername,
-    body,
-    createdAt: new Date().toISOString(),
-    readAt: '',
+  if (directMessageStatus) directMessageStatus.textContent = 'Sending...';
+  const result = await requestMessagesApi('', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ toUsername, body }),
   });
-  writeJson(directMessagesKey, messages);
+
+  if (!result.ok) {
+    if (directMessageStatus) directMessageStatus.textContent = result.status === 401
+      ? 'Your session expired. Please log in again.'
+      : result.error;
+    return;
+  }
+
+  directMessages.push(result.data.message);
   directMessageForm.reset();
   if (directMessageStatus) directMessageStatus.textContent = 'Message sent.';
   renderMessages();
+  window.wavehubRefreshMessageNotifications?.();
 });
 
 menuToggle?.addEventListener('click', () => {
@@ -397,8 +446,15 @@ profileButton?.addEventListener('click', () => {
   setProfileOpen(profileDropdown?.hidden ?? true);
 });
 
-logoutButton?.addEventListener('click', () => {
+logoutButton?.addEventListener('click', async () => {
+  for (const apiUrl of apiUrls) {
+    try {
+      await fetchWithTimeout(`${apiUrl}/auth/logout`, { method: 'POST' });
+      break;
+    } catch {}
+  }
   localStorage.removeItem(sessionKey);
+  directMessages = [];
   renderProfile();
   renderMessages();
   setProfileOpen(false);
@@ -418,11 +474,73 @@ window.addEventListener('storage', (event) => {
     renderMessages();
   }
 
-  if (event.key === directMessagesKey) {
-    renderMessages();
-  }
 });
 
-renderOnlineCount();
-renderProfile();
-renderMessages();
+async function initializeMessages() {
+  renderOnlineCount();
+  renderProfile();
+
+  const { user } = getCurrentAccount();
+  if (!user?.username) {
+    renderMessages();
+    return;
+  }
+
+  const result = await requestMessagesApi();
+  if (result.ok) {
+    directMessages = Array.isArray(result.data.messages) ? result.data.messages : [];
+    renderMessages();
+    if (activeDirectParticipant) {
+      await markConversationRead(user.username, activeDirectParticipant);
+      renderMessages();
+    }
+    return;
+  }
+
+  if (result.status === 401) {
+    localStorage.removeItem(sessionKey);
+    renderProfile();
+  }
+  if (directMessageStatus) directMessageStatus.textContent = result.offline
+    ? 'Messages server is unavailable.'
+    : 'Please log in to view messages.';
+  renderMessages();
+}
+
+initializeMessages();
+
+async function refreshMessages() {
+  if (messagesRefreshInFlight || document.hidden) return messagesRefreshInFlight;
+  const { user } = getCurrentAccount();
+  if (!user?.username) return null;
+
+  messagesRefreshInFlight = requestMessagesApi()
+    .then(async (result) => {
+      if (!result.ok) {
+        if (result.status === 401) {
+          localStorage.removeItem(sessionKey);
+          directMessages = [];
+          renderProfile();
+          renderMessages();
+        }
+        return;
+      }
+
+      directMessages = Array.isArray(result.data.messages) ? result.data.messages : [];
+      renderMessages();
+      if (activeDirectParticipant) {
+        await markConversationRead(user.username, activeDirectParticipant);
+        renderMessages();
+      }
+      window.wavehubRefreshMessageNotifications?.();
+    })
+    .finally(() => {
+      messagesRefreshInFlight = null;
+    });
+  return messagesRefreshInFlight;
+}
+
+window.setInterval(refreshMessages, 10000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refreshMessages();
+});

@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="ka">
 <head>
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png?v=4">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Detail</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260827-mobile-reference-1" />
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
       <a class="brand" href="index.html" aria-label="WaveHub home">
-        <img src="assets/logo-wavehubx.png" alt="WaveHubX" />
+        <img src="assets/logo-wavehubx-main.png" alt="WaveHubX" />
       </a>
 
       <nav class="side-nav" aria-label="Main pages">
@@ -26,12 +27,13 @@
           <span class="nav-icon nav-icon-coaching" aria-hidden="true"><img src="assets/sidebar-coaching-icon.svg" alt="" /></span>
           <span>Coaching</span>
         </a>
+        <a class="side-link" href="tournaments.html" data-section="Tournaments"><span class="nav-icon nav-icon-tournaments" aria-hidden="true"><img src="assets/tournaments-icon.svg" alt="" /></span><span>Tournaments</span></a>
         <a class="side-link" href="orders.html" data-section="Orders">
           <span class="nav-icon nav-icon-orders" aria-hidden="true"><img src="assets/orders-icon.svg" alt="" /></span>
           <span>Orders</span>
         </a>
         <a class="side-link" href="messages.html" data-section="Messages">
-          <span class="nav-icon" aria-hidden="true"><img class="message-icon-image" src="assets/message-icon.svg" alt="" /></span>
+          <span class="nav-icon nav-icon-messages" aria-hidden="true"><img src="assets/sidebar-message-icon.svg" alt="" /></span>
           <span>Messages</span>
           <span class="nav-pill" id="messageCount">0</span>
         </a>
@@ -39,16 +41,16 @@
           <span class="nav-icon nav-icon-wallet" aria-hidden="true"><img src="assets/wallet-icon.svg" alt="" /></span>
           <span>Wallet</span>
         </a>
-        <a class="side-link" href="index.html#favorites" data-section="Favorites">
-          <span class="nav-icon nav-icon-heart" aria-hidden="true"><img src="assets/favorites-icon.svg" alt="" /></span>
-          <span>Favorites</span>
-        </a>
         <a class="side-link" href="cart.html" data-section="Cart">
           <span class="nav-icon nav-icon-cart" aria-hidden="true">
             <img src="assets/sidebar-cart-icon.svg" alt="" />
           </span>
           <span>Cart</span>
           <span class="nav-pill" id="cartNavCount" data-cart-count>0</span>
+        </a>
+        <a class="side-link" href="index.html#favorites" data-section="Favorites">
+          <span class="nav-icon nav-icon-heart" aria-hidden="true"><img src="assets/favorites-icon.svg" alt="" /></span>
+          <span>Favorites</span>
         </a>
         <a class="side-link" href="profile.html" data-section="Settings">
           <span class="nav-icon nav-icon-settings" aria-hidden="true"><img src="assets/settings-icon.svg" alt="" /></span>
@@ -148,15 +150,11 @@
 
             <div class="detail-title-block">
               <p class="section-kicker" id="detailKicker">Offer</p>
-              <h1 id="detailTitle">Loading...</h1>
+              <div class="detail-heading-row">
+                <img class="detail-title-game-icon" id="detailTitleGameIcon" src="" alt="" hidden />
+                <h1 id="detailTitle">Loading...</h1>
+              </div>
               <p class="detail-lead" id="detailDescription"></p>
-            </div>
-
-            <div class="detail-tabs" aria-label="Product detail sections">
-              <button class="active" type="button" data-detail-target="detailOverview" aria-selected="true">Overview</button>
-              <button type="button" data-detail-target="detailDetails" aria-selected="false">Details</button>
-              <button type="button" data-detail-target="detailGallery" aria-selected="false">Gallery</button>
-              <button type="button" data-detail-target="detailReviews" aria-selected="false">Reviews</button>
             </div>
 
             <div class="detail-tab-panels">
@@ -185,7 +183,7 @@
                 </section>
               </section>
 
-              <section class="detail-tab-panel detail-info-grid" id="detailDetails" hidden>
+              <section class="detail-tab-panel detail-info-grid" id="detailDetails">
                 <section class="detail-section detail-summary-card" aria-labelledby="detailDetailsTitle">
                   <h2 id="detailDetailsTitle">Details</h2>
                   <div class="detail-meta-grid" aria-label="Offer information">
@@ -195,7 +193,18 @@
                     </div>
                     <div>
                       <span>Game</span>
-                      <strong id="detailGame">-</strong>
+                      <strong class="detail-game-value">
+                        <img id="detailGameIcon" src="" alt="" hidden />
+                        <span id="detailGame">-</span>
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Platform</span>
+                      <strong id="detailPlatform">-</strong>
+                    </div>
+                    <div>
+                      <span>Region / Server</span>
+                      <strong id="detailRegion">-</strong>
                     </div>
                     <div>
                       <span>Delivery</span>
@@ -213,6 +222,14 @@
                       <span>Views</span>
                       <strong id="detailViews">-</strong>
                     </div>
+                    <div>
+                      <span>Login Method</span>
+                      <strong id="detailLoginMethod">-</strong>
+                    </div>
+                    <div>
+                      <span>Delivery Time</span>
+                      <strong id="detailDeliveryTime">-</strong>
+                    </div>
                   </div>
                 </section>
 
@@ -220,13 +237,35 @@
                   <h2 id="detailIncludedTitle">Included</h2>
                   <ul id="detailIncluded"></ul>
                 </section>
+
+                <section class="detail-section detail-game-specific-card" id="detailGameSpecific" aria-labelledby="detailGameSpecificTitle" hidden>
+                  <h2 id="detailGameSpecificTitle">Call of Duty Details</h2>
+                  <div class="detail-meta-grid detail-game-specific-grid" id="detailGameSpecificGrid" aria-label="Call of Duty account details"></div>
+                </section>
+
+                <section class="detail-section detail-access-card" id="detailAccessCard" aria-labelledby="detailAccessTitle">
+                  <h2 id="detailAccessTitle">Access &amp; Delivery</h2>
+                  <div class="detail-facts-grid" id="detailAccessGrid"></div>
+                </section>
+
+                <section class="detail-section detail-linked-card" id="detailLinkedCard" aria-labelledby="detailLinkedTitle" hidden>
+                  <h2 id="detailLinkedTitle">Linked Accounts</h2>
+                  <div class="detail-linked-grid" id="detailLinkedGrid"></div>
+                </section>
               </section>
 
-              <section class="detail-tab-panel" id="detailGallery" hidden>
+              <section class="detail-tab-panel detail-combined-section" id="detailGallery">
+                <h2 class="detail-combined-title">Gallery</h2>
                 <section class="detail-gallery-card" aria-label="Product gallery">
                   <div class="detail-hero-image" id="detailHeroImage">
                     <div class="detail-hero-badges">
-                      <span class="service-tag account" id="detailHeroTag">Offer</span>
+                      <span class="service-tag account" id="detailHeroTag">
+                        <svg class="service-tag-account-icon" viewBox="0 0 16 16" aria-hidden="true">
+                          <circle cx="8" cy="5" r="3" fill="currentColor"></circle>
+                          <path d="M2 15a6 6 0 0 1 12 0H2Z" fill="currentColor"></path>
+                        </svg>
+                        <span id="detailHeroTagText">Offer</span>
+                      </span>
                       <span class="detail-delivery-chip" id="detailHeroDelivery">Instant delivery</span>
                     </div>
                     <button class="detail-hero-save" id="detailSaveButton" type="button" aria-label="Add to wishlist"></button>
@@ -259,7 +298,7 @@
                 </section>
               </section>
 
-              <section class="detail-tab-panel detail-section detail-reviews-card" id="detailReviews" aria-labelledby="detailReviewsTitle" hidden>
+              <section class="detail-tab-panel detail-section detail-reviews-card" id="detailReviews" aria-labelledby="detailReviewsTitle">
                 <h2 id="detailReviewsTitle">Reviews</h2>
                 <div class="detail-review-summary" id="detailReviewSummary"></div>
                 <div class="detail-review-list" id="detailReviewList"></div>
@@ -267,13 +306,14 @@
                 <form class="detail-review-form" id="detailReviewForm" hidden>
                   <label>
                     <span>Rating</span>
-                    <select id="detailReviewRating" required>
-                      <option value="5">5 - Excellent</option>
-                      <option value="4">4 - Good</option>
-                      <option value="3">3 - Fair</option>
-                      <option value="2">2 - Poor</option>
-                      <option value="1">1 - Bad</option>
-                    </select>
+                    <input id="detailReviewRating" type="hidden" value="5" />
+                    <span class="feedback-stars" id="detailFeedbackStars" role="radiogroup" aria-label="Choose rating">
+                      <button type="button" data-detail-rating="1" aria-label="1 star">★</button>
+                      <button type="button" data-detail-rating="2" aria-label="2 stars">★</button>
+                      <button type="button" data-detail-rating="3" aria-label="3 stars">★</button>
+                      <button type="button" data-detail-rating="4" aria-label="4 stars">★</button>
+                      <button type="button" data-detail-rating="5" aria-label="5 stars">★</button>
+                    </span>
                   </label>
                   <label>
                     <span>Review</span>
@@ -291,21 +331,39 @@
               <strong id="detailPrice">0 GEL</strong>
               <button class="detail-share-button" type="button" aria-label="Share product">Share</button>
             </div>
+            <div class="detail-stock-lines">
+              <span><i></i> In Stock</span>
+              <span><i></i> Sold by <strong id="detailSoldBy">Seller</strong></span>
+            </div>
             <div class="detail-buy-tags">
               <span class="service-tag account" id="detailTag">Offer</span>
               <span class="detail-delivery-chip" id="detailSideDelivery">Instant delivery</span>
             </div>
 
             <div class="detail-buy-scores" aria-label="Marketplace scores">
-              <div>
+              <div class="detail-icon-score detail-rating-score">
+                <img class="detail-score-icon" src="assets/seller-rating-star-icon.png" alt="" aria-hidden="true">
                 <span>Seller Rating</span>
                 <strong id="detailSideSellerScore">-</strong>
                 <small id="detailSideSellerScoreLabel">No rating</small>
               </div>
-              <div>
+              <div class="detail-icon-score detail-favorites-score">
+                <img class="detail-score-icon" src="assets/favorites-score-icon.svg" alt="" aria-hidden="true">
                 <span>Favorites</span>
                 <strong id="detailSideQualityScore">-</strong>
                 <small id="detailSideQualityScoreLabel">No rating</small>
+              </div>
+              <div class="detail-icon-score detail-completed-score">
+                <img class="detail-score-icon" src="assets/completed-orders-icon.svg" alt="" aria-hidden="true">
+                <span>Completed Orders</span>
+                <strong id="detailCompletedOrders">0</strong>
+                <small>real orders</small>
+              </div>
+              <div class="detail-icon-score detail-response-score">
+                <img class="detail-score-icon" src="assets/avg-response-time-icon.svg" alt="" aria-hidden="true">
+                <span>Avg. Response Time</span>
+                <strong id="detailResponseTime">-</strong>
+                <small>seller response</small>
               </div>
             </div>
 
@@ -321,6 +379,15 @@
             </div>
 
           </aside>
+
+          <section class="detail-seller-strip" id="detailSellerStrip">
+            <span class="detail-seller-avatar" id="detailSellerAvatar">?</span>
+            <div>
+              <strong id="detailSellerStripName">Seller</strong>
+              <small id="detailSellerStripMeta">No reviews yet</small>
+            </div>
+            <a id="detailSellerProfileButton" href="#">View Seller Profile →</a>
+          </section>
         </article>
 
         <div class="marketplace-empty" id="detailEmpty" hidden>Offer not found.</div>
@@ -328,8 +395,10 @@
     </main>
   </div>
 
-  <script src="detail.js"></script>
+  <script src="detail.js?v=20260905-gel-1"></script>
   <script src="cart-nav.js"></script>
-  <script src="profile-nav.js"></script>
+<script src="profile-nav.js?v=20260902-secure-session-messages-1"></script>
+  <script src="state-sync.js?v=20260902-server-state-1"></script>
+  <script src="site-footer.js"></script>
 </body>
 </html>
