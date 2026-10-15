@@ -23,7 +23,13 @@ mockup → route → data-source map (`README.md`). Match them with real data on
 finding (as of 2026-09-16): `origin/main` has diverged into a parallel, simpler backend (a
 localStorage-mirroring blob store instead of this branch's real Postgres schema, plus a
 static-only nginx Docker target that drops the real Next.js app) — confirmed to stay reference-only,
-not merged. It also has the confirmed workplan (all open product questions answered as of
+not merged. **2026-10-13: Tornike merged `main` into `aslan-backend` anyway (`fd04316`).** Its root
+prototype files (`*.html`, `*.js`, `styles.css`) are harmless reference copies and stay; its backend
+parts were undone on 2026-10-15: `backend/src/state` + `backend/src/messages` (the blob-store backend,
+never registered) were deleted, and a class-level `@UseGuards(AuthGuard)` on
+`BogPaymentsController` was reverted — it didn't compile (no import), and it would have put the
+session guard on BOG's signed server-to-server callback, so no top-up would ever be credited.
+Re-check `backend/` after any future merge from `main`. It also has the confirmed workplan (all open product questions answered as of
 2026-09-16 — see its "Decisions" section) for BOG subscriptions + buyer/seller-coach membership
 plans, Tournaments, Direct Messaging (transacted-users-only, coordination not transactions), Steam
 Keys, and finishing the in-progress Coaching session-booking feature. Read its §7 for the build
