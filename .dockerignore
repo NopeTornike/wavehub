@@ -19,6 +19,15 @@ packages/*/dist
 backend/uploads
 tmp
 
+# Server backups (scripts/backup.sh writes them to ./backups on the VPS): database dumps and uploads
+# archives. Never in a build context — before 2026-10-15 they were (7 GB), copied into both images
+# and filling the disk mid-build.
+backups
+*.sql
+*.sql.gz
+*.dump
+*.tar.gz
+
 # Local env files may contain real secrets — never let them leak into an image layer.
 .env
 .env.*
