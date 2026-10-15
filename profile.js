@@ -13,6 +13,7 @@ const publicProfileBio = document.getElementById('publicProfileBio');
 const publicProfileMessage = document.getElementById('publicProfileMessage');
 const publicProfileRole = document.getElementById('publicProfileRole');
 const publicProfileRank = document.getElementById('publicProfileRank');
+const publicProfileRankIcon = document.getElementById('publicProfileRankIcon');
 const publicProfileRankCaption = document.getElementById('publicProfileRankCaption');
 const publicProfileRankProgress = document.getElementById('publicProfileRankProgress');
 const publicProfileRankMeta = document.getElementById('publicProfileRankMeta');
@@ -112,16 +113,38 @@ const purchasesKey = 'wavehub.purchases';
 const sellerReviewsKey = 'wavehub.sellerReviews';
 const cartKey = 'wavehub.cart';
 const favoritesKey = 'wavehub.favorites';
-const listingGames = ['PUBG Mobile', 'Call of Duty', 'CS2', 'Mobile Legends', 'Free Fire', 'Roblox'];
+const listingGames = [
+  'Call of Duty',
+  'Mobile Legends',
+  'CS2',
+  'PUBG Mobile',
+  'Roblox',
+  'Clash of Clans',
+  'League of Legends',
+  'Fortnite',
+  'Minecraft',
+  'GTA 5',
+  'Dota 2',
+  'Valorant',
+  'Standoff 2',
+];
 const coaches = Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : [];
 const sessionTimeOptions = ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '18:30', '19:00', '19:30', '20:00', '21:00'];
 const publicProfileGameImages = {
-  'PUBG Mobile': 'assets/pubg-photo.jpeg',
+  'PUBG Mobile': 'assets/pubg-mobile-marketplace-cover.png',
   'Call of Duty': 'assets/call-of-duty-marketplace-photo.png',
-  CS2: 'assets/cs2-photo.jpeg',
-  'Mobile Legends': 'assets/mobile-legends-photo.jpeg',
+  CS2: 'assets/cs2-marketplace-cover.png',
+  'Mobile Legends': 'assets/mobile-legends-marketplace-cover.png',
   'Free Fire': 'assets/freefire-photo.jpeg',
-  Roblox: 'assets/roblox-photo.jpeg',
+  Roblox: 'assets/roblox-marketplace-cover.png',
+  'Clash of Clans': 'assets/clash-of-clans-marketplace-cover.png',
+  'League of Legends': 'assets/league-of-legends-marketplace-cover.png',
+  Fortnite: 'assets/fortnite-marketplace-cover.png',
+  Minecraft: 'assets/minecraft-marketplace-cover.png',
+  'GTA 5': 'assets/gta-5-marketplace-cover.png',
+  'Dota 2': 'assets/dota-2-marketplace-cover.png',
+  Valorant: 'assets/valorant-marketplace-cover.png',
+  'Standoff 2': 'assets/home-game-standoff2.png',
 };
 
 function readJson(key, fallback) {
@@ -228,11 +251,18 @@ function getSellerReviews(username) {
   }
 
   const reviews = readJson(sellerReviewsKey, []);
-  return Array.isArray(reviews)
+  const matching = Array.isArray(reviews)
     ? reviews
         .filter((review) => review.sellerUsername === username)
         .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     : [];
+  const seen = new Set();
+  return matching.filter((review) => {
+    const key = `${String(review.buyerUsername || '').toLowerCase()}:${String(review.listingId || '')}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function getAverageRating(reviews) {
@@ -268,6 +298,11 @@ function getSellerSoldItems(username, listings = getSellerListings(), user = get
       || (item.listingId && listingIds.has(item.listingId))
       || (displayName && item.seller === displayName)
     ));
+}
+
+function isCompletedOrder(item) {
+  const status = String(item?.status || '').trim().toLowerCase();
+  return ['completed', 'complete', 'delivered', 'fulfilled'].includes(status);
 }
 
 function renderOnlineCount() {
@@ -840,8 +875,12 @@ function createPublicReviewCard(review) {
   const head = document.createElement('div');
   head.className = 'public-review-head';
 
-  const reviewerWrap = document.createElement('div');
+  const reviewerWrap = document.createElement(review.buyerUsername ? 'a' : 'div');
   reviewerWrap.className = 'public-review-reviewer';
+  if (reviewerWrap instanceof HTMLAnchorElement) {
+    reviewerWrap.href = getPublicProfileUrl(review.buyerUsername);
+    reviewerWrap.setAttribute('aria-label', `Open ${review.buyerName || review.buyerUsername} profile`);
+  }
 
   const reviewerAvatar = document.createElement('span');
   reviewerAvatar.className = 'message-avatar';
@@ -855,7 +894,14 @@ function createPublicReviewCard(review) {
 
   const reviewer = document.createElement('strong');
   reviewer.textContent = reviewerName;
-  reviewerWrap.append(reviewerAvatar, reviewer);
+  const reviewerIdentity = document.createElement('span');
+  reviewerIdentity.className = 'public-review-reviewer-identity';
+  const reviewerRank = document.createElement('small');
+  reviewerRank.className = 'public-review-reviewer-rank';
+  const reviewerTier = reviewerUser ? getWaveRankMetrics(reviewerUser).tier : 'Starter';
+  reviewerRank.innerHTML = `<img class="wave-rank-inline-icon" src="${getWaveRankIconPath(reviewerTier)}" alt="" />${escapeHtml(reviewerTier)}`;
+  reviewerIdentity.append(reviewer, reviewerRank);
+  reviewerWrap.append(reviewerAvatar, reviewerIdentity);
 
   const rating = document.createElement('span');
   rating.className = 'public-review-rating';
@@ -868,7 +914,8 @@ function createPublicReviewCard(review) {
   head.append(reviewerWrap, rating, date);
 
   const item = document.createElement('span');
-  item.textContent = review.itemTitle ? `Order: ${review.itemTitle}` : 'Marketplace order';
+  item.className = 'public-review-item';
+  item.textContent = review.itemTitle ? `About: ${review.itemTitle}` : 'About: Marketplace';
 
   const body = document.createElement('p');
   body.textContent = review.comment || 'No written comment.';
@@ -877,34 +924,63 @@ function createPublicReviewCard(review) {
   return card;
 }
 
+const waveRankTiers = [
+  ['Starter', 0], ['Bronze Core', 70], ['Silver Vanguard', 140], ['Gold Sovereign', 220],
+  ['Platinum Sentinel', 320], ['Diamond Ascendant', 440], ['Obsidian Warlord', 580],
+  ['Crimson Monarch', 720], ['Mythic Prime', 860], ['WaveHub Apex', 1000],
+];
+
+function getWaveRankIconPath(tier) {
+  return `assets/rank-icons/rank%20icons/${encodeURIComponent(tier)}.png`;
+}
+
+function isRecentWaveActivity(value) {
+  const time = new Date(value || 0).getTime();
+  return Number.isFinite(time) && time >= Date.now() - (30 * 24 * 60 * 60 * 1000);
+}
+
+function getWaveRankMetrics(user, listings = getSellerListings()) {
+  const username = user?.username || '';
+  const userListings = listings.filter((item) => item?.sellerUsername === username);
+  const purchases = getPurchases();
+  const purchaseItems = purchases.flatMap((purchase) => Array.isArray(purchase?.items)
+    ? purchase.items.map((item) => ({ ...item, purchasedAt: item.purchasedAt || purchase.purchasedAt, buyerUsername: item.buyerUsername || purchase.buyerUsername }))
+    : [purchase]);
+  const sold = getSellerSoldItems(username, userListings, user);
+  const bought = purchaseItems.filter((item) => item?.buyerUsername === username || item?.username === username);
+  const reviews = getSellerReviews(username);
+  const progress = Math.min(500,
+    userListings.length * 15 + sold.length * 60 + bought.length * 20 + reviews.length * 25 + Math.min(100, Number(user?.xp) || 0)
+  );
+  const recentEvents = [
+    ...userListings.map((item) => item.createdAt || item.updatedAt),
+    ...sold.map((item) => item.soldAt || item.purchasedAt || item.createdAt),
+    ...bought.map((item) => item.purchasedAt || item.createdAt),
+    ...reviews.map((item) => item.createdAt),
+  ].filter(isRecentWaveActivity).length;
+  const activity = Math.min(500, recentEvents * 75);
+  const score = Math.min(1000, progress + activity);
+  const tierIndex = waveRankTiers.reduce((current, [, threshold], index) => score >= threshold ? index : current, 0);
+  const [tier, threshold] = waveRankTiers[tierIndex];
+  const nextThreshold = waveRankTiers[tierIndex + 1]?.[1] || 1000;
+  return {
+    score, activity, progress, recentEvents, tier,
+    tierProgress: threshold === nextThreshold ? 100 : Math.round(((score - threshold) / (nextThreshold - threshold)) * 100),
+  };
+}
+
 function getPublicProfileRank(username) {
   const users = readJson(localUsersKey, []);
   const listings = getSellerListings();
-  const rankedUsers = (Array.isArray(users) ? users : []).map((user) => {
-    const userListings = listings.filter((listing) => listing.sellerUsername === user.username);
-    const orders = getSellerSoldItems(user.username, userListings, user).length;
-    const reviews = getSellerReviews(user.username);
-    return {
-      username: user.username,
-      orders,
-      reviews: reviews.length,
-      listings: userListings.length,
-      rating: getAverageRating(reviews) || 0,
-    };
-  }).filter((entry) => entry.orders || entry.reviews || entry.listings).sort((a, b) => (
-    b.orders - a.orders
-    || b.reviews - a.reviews
-    || b.listings - a.listings
-    || b.rating - a.rating
-    || a.username.localeCompare(b.username)
-  ));
-
+  const rankedUsers = (Array.isArray(users) ? users : []).map((user) => ({
+    username: user.username,
+    ...getWaveRankMetrics(user, listings),
+  })).filter((entry) => entry.score > 0).sort((a, b) => b.score - a.score || b.activity - a.activity || a.username.localeCompare(b.username));
   const index = rankedUsers.findIndex((entry) => entry.username === username);
   if (index < 0) return null;
   const rank = index + 1;
   const total = Math.max(rankedUsers.length, 1);
-  const percentile = Math.max(1, Math.ceil((rank / total) * 100));
-  return { rank, total, percentile, progress: Math.max(4, Math.round(((total - rank + 1) / total) * 100)) };
+  return { ...rankedUsers[index], rank, total, percentile: Math.max(1, Math.ceil((rank / total) * 100)) };
 }
 
 function getPublicProfileGames(listings, soldItems) {
@@ -932,7 +1008,7 @@ function renderPublicProfileGame(game, nameElement, metaElement, imageElement, f
       : fallbackMeta;
   }
   if (imageElement) {
-    const image = game?.imageData || publicProfileGameImages[game?.game] || '';
+    const image = publicProfileGameImages[game?.game] || game?.imageData || '';
     imageElement.style.backgroundImage = image
       ? `linear-gradient(180deg, rgba(4, 7, 17, 0.03), rgba(4, 7, 17, 0.5)), url("${image}")`
       : '';
@@ -1054,6 +1130,7 @@ function renderPublicReviews(reviews) {
 function renderPublicProfile(user) {
   const listings = getSellerListings().filter((listing) => listing.sellerUsername === user?.username);
   const soldItems = getSellerSoldItems(user?.username, listings, user);
+  const completedSoldItems = soldItems.filter(isCompletedOrder);
   const reviews = getSellerReviews(user?.username);
   const averageRating = getAverageRating(reviews);
   const joinedDate = formatProfileDate(user?.createdAt);
@@ -1077,6 +1154,7 @@ function renderPublicProfile(user) {
     if (publicProfileRole) publicProfileRole.textContent = 'Unavailable profile';
     if (publicProfileMessage) publicProfileMessage.hidden = true;
     if (publicProfileRank) publicProfileRank.textContent = '#-';
+    if (publicProfileRankIcon) publicProfileRankIcon.hidden = true;
     if (publicProfileRankCaption) publicProfileRankCaption.textContent = 'Profile unavailable';
     if (publicProfileRankProgress) publicProfileRankProgress.style.width = '0%';
     if (publicProfileRankMeta) publicProfileRankMeta.textContent = 'No ranking data';
@@ -1143,7 +1221,7 @@ function renderPublicProfile(user) {
   }
   if (publicProfileRegistered) publicProfileRegistered.textContent = formatProfileMonth(user.createdAt);
   if (publicProfileListed) publicProfileListed.textContent = formatCount(listings.length);
-  if (publicProfileSold) publicProfileSold.textContent = formatCount(soldItems.length);
+  if (publicProfileSold) publicProfileSold.textContent = formatCount(completedSoldItems.length);
   if (publicProfileReviewCount) publicProfileReviewCount.textContent = formatCount(reviews.length);
   if (publicProfileRating) publicProfileRating.textContent = averageRating === null ? '-' : formatRating(averageRating);
   if (publicProfileListingCount) publicProfileListingCount.textContent = formatCount(listings.length);
@@ -1153,13 +1231,19 @@ function renderPublicProfile(user) {
       ? `${formatCount(listings.length)} listed · ${formatCount(soldItems.length)} orders`
       : 'WaveHub community member';
   }
-  if (publicProfileRank) publicProfileRank.textContent = rank ? `#${formatCount(rank.rank)}` : '#-';
-  if (publicProfileRankCaption) {
-    publicProfileRankCaption.textContent = rank ? `Top ${rank.percentile}% of active members` : 'No marketplace activity yet';
+  const profileTier = rank ? rank.tier : 'Starter';
+  if (publicProfileRank) publicProfileRank.textContent = profileTier;
+  if (publicProfileRankIcon) {
+    publicProfileRankIcon.hidden = false;
+    publicProfileRankIcon.src = getWaveRankIconPath(profileTier);
+    publicProfileRankIcon.alt = `${profileTier} rank icon`;
   }
-  if (publicProfileRankProgress) publicProfileRankProgress.style.width = rank ? `${rank.progress}%` : '0%';
+  if (publicProfileRankCaption) {
+    publicProfileRankCaption.textContent = rank ? `${formatCount(rank.score)} Wave Points · Top ${rank.percentile}%` : 'Earn points through progress and activity';
+  }
+  if (publicProfileRankProgress) publicProfileRankProgress.style.width = rank ? `${Math.max(4, rank.tierProgress)}%` : '0%';
   if (publicProfileRankMeta) {
-    publicProfileRankMeta.textContent = rank ? `${formatCount(rank.rank)} of ${formatCount(rank.total)} ranked members` : 'Not ranked';
+    publicProfileRankMeta.textContent = rank ? `${formatCount(rank.activity)} activity points in the last 30 days` : 'No activity yet';
   }
   renderPublicProfileGame(
     displayedGames[0],

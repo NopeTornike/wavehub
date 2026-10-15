@@ -53,6 +53,7 @@ function assertSameOriginAsFrontend(url: string, fieldName: string): void {
 }
 
 @Controller('payments/bog')
+@UseGuards(AuthGuard)
 export class BogPaymentsController {
   private readonly logger = new Logger(BogPaymentsController.name);
 

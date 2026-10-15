@@ -42,18 +42,6 @@ const sessionKey = 'wavehub.session';
 const sellerListingsKey = 'wavehub.sellerListings';
 const favoritesKey = 'wavehub.favorites';
 const coachingSessionsKey = 'wavehub.cart';
-const marketplaceCleanupKey = 'wavehub.marketplaceCleared.v1';
-
-function clearExistingMarketplaceProducts() {
-  if (localStorage.getItem(marketplaceCleanupKey) === 'true') {
-    return;
-  }
-
-  localStorage.removeItem(sellerListingsKey);
-  localStorage.setItem(marketplaceCleanupKey, 'true');
-}
-
-clearExistingMarketplaceProducts();
 
 const minOnlineCount = 2;
 const maxOnlineCount = 23;
@@ -493,6 +481,7 @@ function initCarousels() {
     let pauseUntil = 0;
     let lastFrameTime = performance.now();
     const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const autoplayDuration = carousel.classList.contains('service-carousel') ? 14000 : 28000;
 
     const pauseAutoplay = (delay = 1400) => {
       pauseUntil = Math.max(pauseUntil, performance.now() + delay);
@@ -518,7 +507,7 @@ function initCarousels() {
       carousel.classList.toggle('is-autoplaying', shouldAutoplay);
 
       if (shouldAutoplay) {
-        carousel.scrollLeft += elapsed * (loopDistance / 28000);
+        carousel.scrollLeft += elapsed * (loopDistance / autoplayDuration);
 
         if (carousel.scrollLeft >= loopDistance) {
           carousel.scrollLeft -= loopDistance;

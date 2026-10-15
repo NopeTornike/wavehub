@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="ka">
 <head>
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png?v=4">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WaveHub - Cart</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260827-mobile-reference-1" />
 </head>
 <body class="cart-page">
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="WaveHub navigation">
       <a class="brand" href="index.html" aria-label="WaveHub home">
-        <img src="assets/logo-wavehubx.png" alt="WaveHubX" />
+        <img src="assets/logo-wavehubx-main.png" alt="WaveHubX" />
       </a>
 
       <nav class="side-nav" aria-label="Main pages">
@@ -26,12 +27,13 @@
           <span class="nav-icon nav-icon-coaching" aria-hidden="true"><img src="assets/sidebar-coaching-icon.svg" alt="" /></span>
           <span>Coaching</span>
         </a>
+        <a class="side-link" href="tournaments.html" data-section="Tournaments"><span class="nav-icon nav-icon-tournaments" aria-hidden="true"><img src="assets/tournaments-icon.svg" alt="" /></span><span>Tournaments</span></a>
         <a class="side-link" href="orders.html" data-section="Orders">
           <span class="nav-icon nav-icon-orders" aria-hidden="true"><img src="assets/orders-icon.svg" alt="" /></span>
           <span>Orders</span>
         </a>
         <a class="side-link" href="messages.html" data-section="Messages">
-          <span class="nav-icon" aria-hidden="true"><img class="message-icon-image" src="assets/message-icon.svg" alt="" /></span>
+          <span class="nav-icon nav-icon-messages" aria-hidden="true"><img src="assets/sidebar-message-icon.svg" alt="" /></span>
           <span>Messages</span>
           <span class="nav-pill" id="messageCount">0</span>
         </a>
@@ -39,16 +41,16 @@
           <span class="nav-icon nav-icon-wallet" aria-hidden="true"><img src="assets/wallet-icon.svg" alt="" /></span>
           <span>Wallet</span>
         </a>
-        <a class="side-link" href="marketplace.html#favorites" data-section="Favorites">
-          <span class="nav-icon nav-icon-heart" aria-hidden="true"><img src="assets/favorites-icon.svg" alt="" /></span>
-          <span>Favorites</span>
-        </a>
         <a class="side-link active" href="cart.html" data-section="Cart">
           <span class="nav-icon nav-icon-cart" aria-hidden="true">
             <img src="assets/sidebar-cart-icon.svg" alt="" />
           </span>
           <span>Cart</span>
           <span class="nav-pill" id="cartNavCount" data-cart-count>0</span>
+        </a>
+        <a class="side-link" href="marketplace.html#favorites" data-section="Favorites">
+          <span class="nav-icon nav-icon-heart" aria-hidden="true"><img src="assets/favorites-icon.svg" alt="" /></span>
+          <span>Favorites</span>
         </a>
         <a class="side-link" href="profile.html" data-section="Settings">
           <span class="nav-icon nav-icon-settings" aria-hidden="true"><img src="assets/settings-icon.svg" alt="" /></span>
@@ -210,6 +212,8 @@
 
   <script src="cart.js"></script>
   <script src="cart-nav.js"></script>
-  <script src="profile-nav.js"></script>
+<script src="profile-nav.js?v=20260902-secure-session-messages-1"></script>
+  <script src="state-sync.js?v=20260902-server-state-1"></script>
+  <script src="site-footer.js"></script>
 </body>
 </html>

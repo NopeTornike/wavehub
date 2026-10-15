@@ -15,6 +15,7 @@ const coachPagination = document.querySelector('.coach-pagination');
 const viewToggleButtons = document.querySelectorAll('.coach-view-toggle button');
 const cartKey = 'wavehub.cart';
 const localUsersKey = 'wavehub.users';
+const sellerReviewsKey = 'wavehub.sellerReviews';
 const coachesPerPage = 8;
 
 let activeGame = 'all';
@@ -54,6 +55,7 @@ function getCoachListingsFromSessions() {
     id: session.id || session.listingId,
     sourceListingId: session.listingId || '',
     sourceSessionId: session.id || '',
+    sellerUsername: session.buyerUsername || '',
     title: session.title || '',
     name: session.seller || 'Wave Coach',
     game: session.game || 'Coaching',
@@ -95,10 +97,30 @@ function getCoachListingsFromSessions() {
   });
 }
 
-const coaches = [
-  ...(Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : []),
-  ...getCoachListingsFromSessions(),
-];
+function applyCoachReviews(coach) {
+  if (!coach.sellerUsername) return coach;
+  const ids = new Set([coach.id, coach.sourceListingId, coach.sourceSessionId].filter(Boolean).map(String));
+  const reviews = readJson(sellerReviewsKey, []);
+  const matching = (Array.isArray(reviews) ? reviews : []).filter((review) => (
+    review.sellerUsername === coach.sellerUsername
+    && (ids.has(String(review.listingId || '')) || review.reviewType === 'coaching')
+  ));
+  const rating = matching.length
+    ? matching.reduce((total, review) => total + (Number(review.rating) || 0), 0) / matching.length
+    : null;
+  return { ...coach, rating, reviews: matching.length };
+}
+
+let coaches = [];
+
+function refreshCoachData() {
+  coaches = [
+    ...(Array.isArray(window.wavehubCoaches) ? window.wavehubCoaches : []),
+    ...getCoachListingsFromSessions(),
+  ].map(applyCoachReviews);
+}
+
+refreshCoachData();
 
 function getSelectedValues(name) {
   if (!coachFilters) {
@@ -146,8 +168,12 @@ function getCoachInitials(coach) {
     .toUpperCase();
 }
 
-function getCoachBookingUrl(coach) {
+function getCoachDetailUrl(coach) {
   return `coach-book-session.html?coach=${encodeURIComponent(coach.id || coach.name || coach.game)}`;
+}
+
+function getCoachBookingUrl(coach) {
+  return `coach-booking.html?coach=${encodeURIComponent(coach.id || coach.name || coach.game)}`;
 }
 
 function getCoachSearchText(coach) {
@@ -259,9 +285,14 @@ function createSessionMeta(coach) {
 function createCoachCard(coach) {
   const card = document.createElement('article');
   const gameIcon = getGameIconPath(coach.game);
+  const detailUrl = getCoachDetailUrl(coach);
+  const bookingUrl = getCoachBookingUrl(coach);
   card.className = 'coach-card';
   card.dataset.game = coach.game;
   card.dataset.coachId = coach.id || '';
+  card.tabIndex = 0;
+  card.setAttribute('role', 'link');
+  card.setAttribute('aria-label', `View ${coach.name || 'coach'} profile`);
   card.innerHTML = `
     <div class="coach-card-main">
       <div class="coach-avatar-ring">
@@ -291,7 +322,7 @@ function createCoachCard(coach) {
 
     <div class="coach-price-row">
       <p><strong>${coach.priceText || `${coach.price} GEL/hour`}</strong></p>
-      <a href="${getCoachBookingUrl(coach)}" aria-label="Book a session with ${coach.name || 'this coach'}">Book Session</a>
+      <a class="coach-book-primary" href="${bookingUrl}" data-booking-url="${bookingUrl}" aria-label="Book a session with ${coach.name || 'this coach'}">Book Session</a>
     </div>
 
     <div class="coach-card-tags">
@@ -307,6 +338,22 @@ function createCoachCard(coach) {
     const initials = avatar?.querySelector('span');
     if (initials) initials.textContent = '';
   }
+
+  const bookSessionButton = card.querySelector('[data-booking-url]');
+  bookSessionButton?.addEventListener('click', (event) => {
+    event.preventDefault();
+    window.location.assign(bookSessionButton.dataset.bookingUrl || detailUrl);
+  });
+
+  card.addEventListener('click', (event) => {
+    if (event.target.closest('a, button, input, select, textarea')) return;
+    window.location.href = detailUrl;
+  });
+  card.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    window.location.href = detailUrl;
+  });
 
   return card;
 }
@@ -531,3 +578,10 @@ applyServiceParam();
 applySearchParam();
 updatePriceLabel();
 renderCoaches();
+
+window.addEventListener('storage', (event) => {
+  if ([cartKey, localUsersKey, sellerReviewsKey].includes(event.key)) {
+    refreshCoachData();
+    renderCoaches();
+  }
+});

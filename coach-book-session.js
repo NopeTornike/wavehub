@@ -5,6 +5,7 @@
   const purchasesKey = 'wavehub.purchases';
   const sellerReviewsKey = 'wavehub.sellerReviews';
   const localUsersKey = 'wavehub.users';
+  const sessionKey = 'wavehub.session';
   const wishlistKey = 'wavehub.coachWishlist';
   const params = new URLSearchParams(window.location.search);
   const requestedCoach = params.get('coach') || params.get('id') || '';
@@ -114,6 +115,16 @@
     return (Array.isArray(users) ? users : []).find((user) => (
       String(user?.username || '').trim().toLowerCase() === normalizedUsername
     ));
+  }
+
+  function getCurrentUser() {
+    const sessionUser = readJson(sessionKey, null)?.user;
+    const storedUser = getLocalUser(sessionUser?.username);
+    return sessionUser ? { ...sessionUser, ...storedUser } : null;
+  }
+
+  function getUserDisplayName(user) {
+    return [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.username || 'Verified buyer';
   }
 
   const coaches = [
@@ -419,7 +430,7 @@
 
     if (hasText(coach.about)) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-about-card">
           <h2>About ${escapeHtml(coach.name)}</h2>
           <p>${escapeHtml(coach.about)}</p>
         </article>
@@ -428,7 +439,7 @@
 
     if (styleItems.length) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-style-card">
           <h2>Coaching Style</h2>
           <ul class="coach-check-list">
             ${styleItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
@@ -439,7 +450,7 @@
 
     if (expertise) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-expertise-card">
           <h2>Expertise</h2>
           ${expertise}
         </article>
@@ -448,7 +459,7 @@
 
     if (expertiseAreas.length) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-expertise-card">
           <h2>Expertise</h2>
           <ul class="coach-check-list">
             ${expertiseAreas.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
@@ -459,7 +470,7 @@
 
     if (hasText(coach.sessionDescription)) {
       cards.push(`
-        <article class="coach-info-card">
+        <article class="coach-info-card coach-session-card">
           <h2>About Session</h2>
           <p>${escapeHtml(coach.sessionDescription)}</p>
         </article>
@@ -486,7 +497,8 @@
               const icon = gameIconSource
                 ? `<img src="${gameIconSource}" alt="" aria-hidden="true">`
                 : escapeHtml(game.split(' ').map((part) => part[0]).join('').slice(0, 4));
-              return `<span${gameIconSource ? ' class="coach-game-item-with-image"' : ''}><b${gameIconSource ? ' class="coach-game-image-shell"' : ''}>${icon}</b>${escapeHtml(game)}${index === 0 ? '<small>Main Game</small>' : ''}</span>`;
+              const itemClasses = [gameIconSource ? 'coach-game-item-with-image' : '', index === 0 ? 'coach-game-item-main' : ''].filter(Boolean).join(' ');
+              return `<span${itemClasses ? ` class="${itemClasses}"` : ''}>${index === 0 ? '<small>Main Game</small>' : ''}<b${gameIconSource ? ' class="coach-game-image-shell"' : ''}>${icon}</b><em class="coach-game-name">${escapeHtml(game)}</em></span>`;
             }).join('')}
           </div>
         </article>
@@ -813,6 +825,49 @@
       .join('');
   }
 
+  function getCoachPurchase(coach, buyerUsername) {
+    if (!coach?.sellerUsername || !buyerUsername || coach.sellerUsername === buyerUsername) return null;
+    const coachIds = new Set([coach.id, coach.sourceListingId, coach.sourceSessionId].filter(Boolean).map(String));
+    const purchases = readJson(purchasesKey, []);
+    return (Array.isArray(purchases) ? purchases : []).find((purchase) => (
+      purchase.buyerUsername === buyerUsername
+      && (Array.isArray(purchase.items) ? purchase.items : []).some((item) => (
+        (item.listingId && coachIds.has(String(item.listingId)))
+        || (item.productType === 'Coaching' && item.sellerUsername === coach.sellerUsername)
+      ))
+    )) || null;
+  }
+
+  function getExistingCoachReview(coach, buyerUsername) {
+    const reviews = readJson(sellerReviewsKey, []);
+    const coachIds = new Set([coach.id, coach.sourceListingId, coach.sourceSessionId].filter(Boolean).map(String));
+    return (Array.isArray(reviews) ? reviews : []).find((review) => (
+      review.buyerUsername === buyerUsername
+      && review.sellerUsername === coach.sellerUsername
+      && coachIds.has(String(review.listingId || ''))
+    )) || null;
+  }
+
+  function renderCoachFeedbackForm(coach) {
+    const user = getCurrentUser();
+    const purchase = getCoachPurchase(coach, user?.username);
+    if (!user?.username || !purchase) return '';
+    const existing = getExistingCoachReview(coach, user.username);
+    const rating = Math.max(1, Math.min(5, Number(existing?.rating) || 5));
+    const stars = [1, 2, 3, 4, 5].map((value) => (
+      `<button class="${value <= rating ? 'selected' : ''}" type="button" data-coach-rating="${value}" aria-label="${value} star${value === 1 ? '' : 's'}" aria-checked="${String(value === rating)}">★</button>`
+    )).join('');
+
+    return `<form class="coach-feedback-form" id="coachFeedbackForm">
+      <h3>${existing ? 'Update your feedback' : 'Rate this coaching session'}</h3>
+      <input id="coachFeedbackRating" type="hidden" value="${rating}" />
+      <span class="feedback-stars" role="radiogroup" aria-label="Choose coaching rating">${stars}</span>
+      <label><span>Feedback</span><textarea id="coachFeedbackComment" maxlength="240" placeholder="Share your coaching experience..." required>${escapeHtml(existing?.comment || '')}</textarea></label>
+      <button class="coach-book-primary" type="submit">${existing ? 'Update Feedback' : 'Publish Feedback'}</button>
+      <p class="coach-booking-status" id="coachFeedbackStatus" aria-live="polite"></p>
+    </form>`;
+  }
+
   function renderSimilar(coach) {
     return coaches
       .filter((item) => item.id !== coach.id && (!coach.isFixedSession || item.isFixedSession))
@@ -911,7 +966,8 @@
     const reviewItems = getReviewItems(coach);
     const availabilityText = availabilityLabels[coach.availability] || coach.availability || '';
     const overviewBlocks = [renderOverviewTop(coach), renderInfoGrid(coach), renderAchievements(coach)].filter(Boolean);
-    const bookButtonText = coach.isFixedSession ? 'Add Session to Cart' : 'Book Session';
+    const bookButtonText = coach.isFixedSession ? 'Book This Session' : 'Book Session';
+    const bookingFlowUrl = `coach-booking.html?coach=${encodeURIComponent(coach.id || coach.name || coach.game)}`;
     const messageUrl = coach.sellerUsername
       ? `messages.html?to=${encodeURIComponent(coach.sellerUsername)}`
       : 'messages.html';
@@ -922,7 +978,7 @@
       ['Price', coach.priceText || `${Number(coach.price) || 0} GEL/hour`],
     ];
 
-    document.title = `WaveHub - ${coach.name} Book Session`;
+    document.title = `WaveHub - ${coach.name} Coach Profile`;
 
     root.innerHTML = `
       <a class="coach-profile-back" href="coaching.html"><span aria-hidden="true">&lt;</span> Back to Coaches</a>
@@ -952,7 +1008,7 @@
 
       <div class="coach-profile-tabs" role="tablist" aria-label="Coach sections">
         <button class="active" type="button" data-profile-tab="overview" role="tab" aria-selected="true">Overview</button>
-        <button type="button" data-profile-tab="reviews" role="tab" aria-selected="false">Reviews (${reviewItems.length})</button>
+        <button type="button" data-profile-tab="reviews" role="tab" aria-selected="false">Student Review (${reviewItems.length})</button>
       </div>
 
       <section class="coach-profile-panel" data-profile-panel="overview">
@@ -961,6 +1017,7 @@
 
       <section class="coach-profile-panel coach-reviews-panel ${reviewItems.length ? '' : 'is-empty'}" data-profile-panel="reviews" hidden>
         ${renderReviews(coach) || '<p class="coach-profile-empty">No reviews yet.</p>'}
+        ${renderCoachFeedbackForm(coach)}
       </section>
 
       <section class="coach-booking-panel" aria-label="Book coaching session">
@@ -969,12 +1026,10 @@
             <span>${coach.isFixedSession ? 'Session price' : 'Starting from'}</span>
             <strong>${escapeHtml(coach.priceText || `${Number(coach.price) || 0} GEL/hour`)}</strong>
           </div>
-          <button class="coach-book-primary" type="button" data-action="book">${bookButtonText}</button>
+          <a class="coach-book-primary" href="${bookingFlowUrl}">${bookButtonText}</a>
           <a class="coach-book-secondary coach-message-secondary" href="${messageUrl}">Message Coach</a>
           <button class="coach-book-secondary" type="button" data-action="wishlist">Add to Wishlist</button>
         </div>
-
-        ${renderBookingCalendar(coach)}
 
         <p class="coach-booking-status" id="coachBookingStatus" aria-live="polite"></p>
 
@@ -1026,6 +1081,18 @@
     const timeButton = target?.closest('[data-session-time]');
     const gameButton = target?.closest('[data-session-game]');
     const calendarNav = target?.closest('[data-calendar-nav]');
+    const ratingButton = target?.closest('[data-coach-rating]');
+
+    if (ratingButton) {
+      const rating = Number(ratingButton.dataset.coachRating) || 5;
+      const input = document.getElementById('coachFeedbackRating');
+      if (input) input.value = String(rating);
+      root.querySelectorAll('[data-coach-rating]').forEach((button) => {
+        button.classList.toggle('selected', Number(button.dataset.coachRating) <= rating);
+        button.setAttribute('aria-checked', String(Number(button.dataset.coachRating) === rating));
+      });
+      return;
+    }
 
     if (tab) {
       setActiveTab(tab.dataset.profileTab || 'overview');
@@ -1088,6 +1155,65 @@
     }
   });
 
+  root.addEventListener('submit', (event) => {
+    if (event.target?.id !== 'coachFeedbackForm') return;
+    event.preventDefault();
+    const user = getCurrentUser();
+    const purchase = getCoachPurchase(activeCoach, user?.username);
+    const feedbackStatus = document.getElementById('coachFeedbackStatus');
+    const rating = Number(document.getElementById('coachFeedbackRating')?.value);
+    const comment = document.getElementById('coachFeedbackComment')?.value.trim() || '';
+    const setFeedbackStatus = (type, message) => {
+      if (!feedbackStatus) return;
+      feedbackStatus.className = `coach-booking-status ${type || ''}`.trim();
+      feedbackStatus.textContent = message;
+    };
+
+    if (!user?.username || !purchase) {
+      setFeedbackStatus('error', 'Feedback is available after purchasing this coaching session.');
+      return;
+    }
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5 || !comment) {
+      setFeedbackStatus('error', 'Choose 1–5 stars and write your feedback.');
+      return;
+    }
+
+    const existing = getExistingCoachReview(activeCoach, user.username);
+    const reviews = readJson(sellerReviewsKey, []);
+    const review = {
+      id: existing?.id || window.crypto?.randomUUID?.() || String(Date.now()),
+      sellerUsername: activeCoach.sellerUsername,
+      sellerName: activeCoach.name,
+      buyerUsername: user.username,
+      buyerName: getUserDisplayName(user),
+      listingId: activeCoach.id,
+      itemTitle: `${activeCoach.name} Coaching Session`,
+      purchaseId: purchase.id,
+      rating,
+      comment,
+      reviewType: 'coaching',
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const source = Array.isArray(reviews) ? reviews : [];
+    const isSameSessionReview = (item) => (
+      String(item.buyerUsername || '').toLowerCase() === String(review.buyerUsername || '').toLowerCase()
+      && String(item.sellerUsername || '').toLowerCase() === String(review.sellerUsername || '').toLowerCase()
+      && String(item.listingId || '') === String(review.listingId || '')
+    );
+    writeJson(sellerReviewsKey, [
+      review,
+      ...source.filter((item) => item.id !== review.id && !isSameSessionReview(item)),
+    ]);
+    renderCoachPage(applyRealCoachActivity(activeCoach));
+    setActiveTab('reviews');
+    const nextStatus = document.getElementById('coachFeedbackStatus');
+    if (nextStatus) {
+      nextStatus.className = 'coach-booking-status success';
+      nextStatus.textContent = existing ? 'Feedback updated.' : 'Feedback published.';
+    }
+  });
+
   profileSearch?.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') {
       return;
@@ -1100,8 +1226,8 @@
   });
 
   window.addEventListener('storage', (event) => {
-    if (event.key === purchasesKey) {
-      renderCoachPage(activeCoach);
+    if (event.key === purchasesKey || event.key === sellerReviewsKey || event.key === sessionKey) {
+      renderCoachPage(applyRealCoachActivity(activeCoach));
     }
   });
 }());
