@@ -8,7 +8,7 @@ import { canPublishSteam } from '../lib/roles'
 import { useShell } from '../lib/shell'
 import GAME_DETAILS from '../lib/game-details.json'
 import ImageLightbox from './ImageLightbox'
-import { PHOTO_SOURCE_MAX_BYTES } from '../lib/image-resize'
+import { PHOTO_SOURCE_MAX_BYTES, materializeFiles } from '../lib/image-resize'
 import { DELIVERY_TIME_OPTIONS, deliveryTimeLabel } from '../lib/labels'
 
 // The prototype's "Become a seller" listing builder (marketplace.html #sellerModal +
@@ -213,7 +213,11 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
       setStatus({ kind: 'error', text: 'ფოტო: JPG, PNG ან WEBP, მაქსიმუმ 20MB — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე.' })
       return
     }
-    setFiles((current) => [...current, ...incoming].slice(0, MAX_IMAGES))
+    // Copied into memory now — a gallery / cloud photo reference can expire before Publish.
+    void materializeFiles(incoming).then(({ files: copies, unreadable }) => {
+      if (unreadable) setStatus({ kind: 'error', text: 'ზოგიერთი ფოტოს წაკითხვა ვერ მოხერხდა — თუ ფოტო ღრუბელშია, ჯერ ჩამოტვირთე ტელეფონში და აირჩიე თავიდან.' })
+      if (copies.length) setFiles((current) => [...current, ...copies].slice(0, MAX_IMAGES))
+    })
   }
 
   const reset = () => {

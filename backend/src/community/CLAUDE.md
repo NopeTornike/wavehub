@@ -57,3 +57,6 @@ are recent events. `CommunityService` is exported (coach profiles show the coach
 - 2026-10-07: **`GET stats/seller-tiers`** (public) → `{ [username]: tierName }` for active sellers
   with an active listing. Only the Wave rank name, same computation as `waveRank`, cached for 60s.
   Product cards show it under the seller's name. Covered by `test/client-round-2.e2e-spec.ts`.
+
+- 2026-10-15: `GET stats/games` counts **item** listings only (services live on `/services`, keys on
+  `/steam-keys`), matching the marketplace, which now lists items only.

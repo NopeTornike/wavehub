@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { AdminUserSummary, StaffPermissions } from '@wavehub/shared-types'
-import { AdminRole, UserStatus } from '@wavehub/shared-types'
+import { AdminRole, PROFILE_TITLE_LABELS, ProfileTitle, UserStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -116,6 +116,51 @@ function SuperAdminPanel({
   )
 }
 
+// The public profile's title chip (owner 2026-10-15): staff may set any title — the user can't
+// change it afterwards — or "Auto" to give the choice back. Audit-logged server-side.
+function TitleEditor({ item, onUpdated }: { item: AdminUserSummary; onUpdated: (u: AdminUserSummary) => void }) {
+  const [title, setTitle] = useState<string>(item.profileTitleByStaff && item.profileTitle ? item.profileTitle : '')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
+  const save = async (event: FormEvent) => {
+    event.preventDefault()
+    setBusy(true)
+    setMessage(null)
+    try {
+      onUpdated(await api.adminSetProfileTitle(item.id, (title || null) as ProfileTitle | null))
+      setMessage({ kind: 'success', text: 'Title შენახულია.' })
+    } catch (err) {
+      setMessage({ kind: 'error', text: errorMessage(err, 'შენახვა ვერ მოხერხდა.') })
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="au-panel">
+      <form className="au-form" onSubmit={save}>
+        <strong>პროფილის Title</strong>
+        <select value={title} onChange={(e) => setTitle(e.target.value)} aria-label="პროფილის Title" data-i18n-keep="">
+          <option value="">Auto (მომხმარებელი ირჩევს)</option>
+          {Object.values(ProfileTitle).map((t) => (
+            <option key={t} value={t}>
+              {PROFILE_TITLE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="button" disabled={busy}>
+          შენახვა
+        </button>
+      </form>
+      {message && (
+        <p className={`status-text ${message.kind === 'error' ? 'status-error' : 'status-success'}`} role={message.kind === 'error' ? 'alert' : 'status'}>
+          {message.text}
+        </p>
+      )}
+      <p className="au-note">გუნდის დაყენებულ Title-ს მომხმარებელი ვერ შეცვლის. „Auto“ არჩევანს მას უბრუნებს.</p>
+    </div>
+  )
+}
+
 const STATUS_LABELS: Record<UserStatus, string> = {
   [UserStatus.PendingVerification]: 'დაუდასტურებელი',
   [UserStatus.Active]: 'აქტიური',
@@ -126,6 +171,9 @@ const STATUS_LABELS: Record<UserStatus, string> = {
 export default function AdminUsers() {
   const { user: me } = useAuth()
   const isSuperAdmin = me?.adminRole === AdminRole.SuperAdmin
+  // Same roles the API allows for profile titles (user management).
+  const canTitle = isSuperAdmin || me?.adminRole === AdminRole.OperationLead || me?.adminRole === AdminRole.MainAdministrator
+  const [titleId, setTitleId] = useState<string | null>(null)
   // Super-Admin-controlled powers (Support's switches); the backend re-checks every action.
   const [perms, setPerms] = useState<StaffPermissions | null>(null)
   useEffect(() => {
@@ -295,12 +343,20 @@ export default function AdminUsers() {
                     {openId === item.id ? 'დახურვა' : 'მართვა'}
                   </button>
                 )}
+                {canTitle && (
+                  <button type="button" className="button ghost" aria-expanded={titleId === item.id} onClick={() => setTitleId(titleId === item.id ? null : item.id)}>
+                    {titleId === item.id ? 'Title-ის დახურვა' : 'Title'}
+                  </button>
+                )}
                 {canBadge && (
                   <button type="button" className="button ghost" aria-expanded={badgeId === item.id} onClick={() => setBadgeId(badgeId === item.id ? null : item.id)}>
                     {badgeId === item.id ? 'ბეიჯების დახურვა' : 'ბეიჯები'}
                   </button>
                 )}
               </div>
+              {canTitle && titleId === item.id && (
+                <TitleEditor item={item} onUpdated={(updated) => setItems((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))} />
+              )}
               {canBadge && badgeId === item.id && <AdminBadgeManager userId={item.id} myRole={me?.adminRole} />}
               {canManage(item) && openId === item.id && (
                 <SuperAdminPanel

@@ -11,8 +11,8 @@ import { useAuth } from '../../lib/auth'
 // edit panel (profile fields, uploaded video, packages, pre-booking questions — the same editors
 // the coach uses on /coaching/profile). Every mutation is audit-logged server-side.
 
-type CoachForm = { username: string; gameId: string; specialty: string; bio: string; rate: number; rank: string; languages: string[] }
-const EMPTY_FORM: CoachForm = { username: '', gameId: '', specialty: '', bio: '', rate: 20, rank: '', languages: ['ka'] }
+type CoachForm = { username: string; gameId: string; specialty: string; bio: string; rate: number; rank: string; languages: string[]; extraGameIds: string[] }
+const EMPTY_FORM: CoachForm = { username: '', gameId: '', specialty: '', bio: '', rate: 20, rank: '', languages: ['ka'], extraGameIds: [] }
 
 // Mirrors AdminCreateCoachDto / UpdateCoachProfileDto bounds.
 function validateCoachForm(form: CoachForm, needUsername: boolean): string {
@@ -89,7 +89,7 @@ function CoachEditPanel({ coachId, games, onSaved }: { coachId: string; games: P
       .then((p) => {
         if (cancelled) return
         setProfile(p)
-        setForm({ username: '', gameId: p.gameId ?? '', specialty: p.specialty, bio: p.bio, rate: p.hourlyRateWaveCoin, rank: p.rank ?? '', languages: p.languages })
+        setForm({ username: '', gameId: p.gameId ?? '', specialty: p.specialty, bio: p.bio, rate: p.hourlyRateWaveCoin, rank: p.rank ?? '', languages: p.languages, extraGameIds: p.extraGameIds ?? [] })
       })
       .catch((err) => {
         if (!cancelled) setStatus({ kind: 'error', text: errorMessage(err, 'პროფილის ჩატვირთვა ვერ მოხერხდა.') })
@@ -112,7 +112,9 @@ function CoachEditPanel({ coachId, games, onSaved }: { coachId: string; games: P
         hourlyRateWaveCoin: form.rate,
         rank: form.rank.trim() || null,
         languages: form.languages,
-        extraGameIds: (profile?.extraGameIds ?? []).filter((g) => g !== form.gameId),
+        // Staff can remove games too (owner 2026-10-15: a removed game used to stay on the profile —
+        // this panel had no control for the other games and re-saved the old list).
+        extraGameIds: form.extraGameIds.filter((g) => g !== form.gameId),
       })
       setProfile(next)
       setStatus({ kind: 'success', text: 'პროფილი შენახულია.' })
@@ -136,6 +138,29 @@ function CoachEditPanel({ coachId, games, onSaved }: { coachId: string; games: P
           რანგი თამაშში <small>მაგ. Conqueror</small>
           <input maxLength={40} value={form.rank} onChange={(e) => setForm({ ...form, rank: e.target.value })} />
         </label>
+        <fieldset className="field">
+          <legend>სხვა თამაშები (მაქს. 4)</legend>
+          <div className="wc-chips">
+            {games
+              .filter((g) => g.id !== form.gameId)
+              .map((g) => {
+                const on = form.extraGameIds.includes(g.id)
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={on ? 'active' : undefined}
+                    aria-pressed={on}
+                    onClick={() =>
+                      setForm({ ...form, extraGameIds: on ? form.extraGameIds.filter((id) => id !== g.id) : form.extraGameIds.length >= 4 ? form.extraGameIds : [...form.extraGameIds, g.id] })
+                    }
+                  >
+                    {g.name}
+                  </button>
+                )
+              })}
+          </div>
+        </fieldset>
         {status.text && (
           <p className={`seller-status ${status.kind}`} role={status.kind === 'error' ? 'alert' : undefined}>
             {status.text}
@@ -286,19 +311,38 @@ export default function AdminCoaches() {
     }
   }
 
-  // Super Admin only. A coach with session history can't be deleted (the API answers 409 — the
-  // message says to suspend instead); the user account itself is kept.
+  // Super Admin only. A coach without sessions is deleted; one with session history is removed —
+  // hidden from the directory, the home page and their profile title, with the sessions kept. The
+  // user account itself stays either way.
   const removeCoach = async (coach: AdminCoachSummary) => {
-    if (!window.confirm(`@${coach.username} — ქოუჩის პროფილი სამუდამოდ წაიშლება (ანგარიში დარჩება). გავაგრძელოთ?`)) return
+    if (!window.confirm(`@${coach.username} — ქოუჩი წაიშლება: გაქრება ქოუჩინგიდან, მთავარი გვერდიდან და პროფილიდან (ანგარიში და სესიების ისტორია დარჩება). გავაგრძელოთ?`)) return
     setBusyId(coach.id)
     setError('')
+    setNotice('')
     try {
-      await api.adminDeleteCoach(coach.id)
+      const res = await api.adminDeleteCoach(coach.id)
+      setNotice(res.outcome === 'deleted' ? `@${coach.username} — ქოუჩის პროფილი წაიშალა.` : `@${coach.username} — ქოუჩი წაიშალა; სესიების ისტორია შენახულია.`)
       reload()
     } catch (err) {
-      setError(errorMessage(err, 'წაშლა ვერ მოხერხდა — თუ ქოუჩს სესიები ჰქონდა, შეაჩერე.'))
+      setError(errorMessage(err, 'წაშლა ვერ მოხერხდა.'))
     } finally {
       setBusyId(null)
+    }
+  }
+
+  // The home coach section's order (owner 2026-10-15): featured coaches, first to last. On phones
+  // the carousel opens on the middle one.
+  const featuredOrder = all.filter((c) => c.isFeatured).sort((a, b) => (a.homeOrder ?? 999) - (b.homeOrder ?? 999))
+  const moveFeatured = async (index: number, direction: -1 | 1) => {
+    const ids = featuredOrder.map((c) => c.id)
+    const target = index + direction
+    if (target < 0 || target >= ids.length) return
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    setError('')
+    try {
+      setAll(await api.adminSetCoachHomeOrder(ids))
+    } catch (err) {
+      setError(errorMessage(err, 'რიგის შენახვა ვერ მოხერხდა.'))
     }
   }
 
@@ -351,6 +395,29 @@ export default function AdminCoaches() {
                 </div>
               ))}
             </div>
+          )}
+
+          {featuredOrder.length > 0 && (
+            <section className="ce-home-order" aria-labelledby="homeOrderTitle">
+              <h2 id="homeOrderTitle">მთავარ გვერდზე — რიგი</h2>
+              <p className="ce-hint">ასე ჩანან ქოუჩები მთავარ გვერდზე, მარცხნიდან მარჯვნივ. ტელეფონზე კარუსელი შუა ქოუჩზე იხსნება.</p>
+              <ol>
+                {featuredOrder.map((coach, index) => (
+                  <li key={coach.id}>
+                    <b>{index + 1}</b>
+                    <span>
+                      @{coach.username} <small>{coach.specialty}</small>
+                    </span>
+                    <button type="button" className="button ghost" aria-label="მაღლა" disabled={index === 0} onClick={() => void moveFeatured(index, -1)}>
+                      ↑
+                    </button>
+                    <button type="button" className="button ghost" aria-label="დაბლა" disabled={index === featuredOrder.length - 1} onClick={() => void moveFeatured(index, 1)}>
+                      ↓
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </section>
           )}
 
           <h2 style={{ fontSize: '1rem' }}>ყველა მწვრთნელი</h2>

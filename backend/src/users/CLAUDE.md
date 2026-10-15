@@ -149,3 +149,18 @@ Covered by `test/user-search.e2e-spec.ts`, and the `security.e2e-spec.ts` privac
 
 - 2026-10-01: Support Specialist may also adjust WaveCoin (capped) and suspend/restore non-staff
   users when a Super Admin enables it — see `backend/src/settings/CLAUDE.md` "Support permissions".
+
+## 2026-10-15 Profile title + registration counts
+- `users.profileTitle` (`ProfileTitle`: player / seller / coach / pro_player / streamer /
+  content_creator / collector, CHECK constraint; null = automatic) and `profileTitleByStaff`
+  (migration `1784385000000-CoachRemovalProfileTitle`).
+  - The user picks it in Settings (`PATCH me/profile { profileTitle }`). Seller and Coach only while
+    true (`ProfilesService#eligibleTitles`): a listing that passed review or a completed sale /
+    a verified, active, non-removed coach. A staff-set title can't be changed by the user (403).
+  - `POST admin/users/:id/profile-title { title | null }` — user-management roles (Operation Lead,
+    Main Administrator, Super Admin), audit `user.set_profile_title`. Any title; null gives the
+    choice back. `AdminUserSummary` carries both fields.
+  - `GET users/:username` returns `title` (staff-set as is; the user's pick while still true;
+    otherwise the automatic role). Shown in English in both languages.
+- `GET admin/users/registration-stats` (any staff role, counts only): `total`, `verified`,
+  `today`, `last7Days` — Tbilisi calendar days. Registered before `:id`.

@@ -194,7 +194,7 @@ export default function Orders() {
         </div>
         {rows === null && user && <div className="orders-empty">იტვირთება…</div>}
 
-        {user && <MyListings className="orders-listings-section" gridId="ordersListings" query={query} />}
+        {user && <MyListings id="my-listings" className="orders-listings-section" gridId="ordersListings" query={query} />}
       </section>
     </Layout>
   )

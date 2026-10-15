@@ -98,3 +98,17 @@ forever.
 `verificationEmail(name, url, code?)` shows the 6-digit code (large, monospace) above the button in
 both language blocks and in the text part; the subject starts with the code so it's visible in the
 inbox list. See `backend/src/auth/CLAUDE.md` for why (Gmail disables links in spam).
+
+## 2026-10-15 Why mail arrives late / in spam (production finding)
+- SPF (`ip4:51.195.201.222`), DKIM (`wh2026._domainkey`) and DMARC (`p=quarantine`) are all
+  published and correct.
+- The mail log shows Gmail answering `421-4.7.28 … unusual rate of unsolicited mail originating
+  from your IP Netblock`: the hosting provider's shared IP range has a poor reputation. Postfix
+  retries, so mail lands 9–40 minutes late, and the same reputation pushes it into Spam. This is
+  not our sending volume.
+- **Fix (owner action):** send through a reputable provider. The `resend` driver is already built:
+  create a Resend account, verify `wavehubx.com` there (it gives DKIM/SPF records to add in DNS),
+  then set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`. Alternatively, keep Postfix
+  and relay it through a provider's SMTP.
+- Emails now say "WaveHubX" (they said "WaveHub"), matching the site and the new verification
+  instructions.

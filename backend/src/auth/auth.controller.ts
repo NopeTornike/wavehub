@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
@@ -52,14 +52,21 @@ class RegisterDto {
 }
 
 class LoginDto {
+  // The username or the account's email address (owner design 2026-10-15: "Email or Username").
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
   @IsString()
   @IsNotEmpty()
+  @MaxLength(254)
   username: string;
 
   @IsString()
   @IsNotEmpty()
   password: string;
+
+  // "Remember me": off = a browser-session cookie instead of a 7-day one. Defaults to on.
+  @IsOptional()
+  @IsBoolean()
+  remember?: boolean;
 }
 
 class VerifyEmailDto {
@@ -131,7 +138,7 @@ export class AuthController {
   async login(@Body() body: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
       const user = await this.auth.login(body);
-      this.sessions.attach(res, user.id);
+      this.sessions.attach(res, user.id, body.remember !== false);
       await this.auth.recordLogin({ userId: user.id }, req.ip, req.headers['user-agent'], true);
       return { ok: true, user: this.usersService.toPublicUser(user) };
     } catch (err: any) {

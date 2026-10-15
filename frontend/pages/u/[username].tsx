@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { PublicUserProfile } from '@wavehub/shared-types'
+import { PROFILE_TITLE_LABELS } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -20,7 +21,6 @@ import ReviewCard from '../../components/ReviewCard'
 // tagline, location, main game, platform, preferred role, notable achievement (Settings). Computed:
 // everything else. A field the member hasn't filled in is left out rather than invented.
 
-const ROLE_LABEL: Record<PublicUserProfile['role'], string> = { coach: 'ქოუჩი', seller: 'გამყიდველი', player: 'მოთამაშე' }
 
 const BADGE_ICON: Record<string, ReactNode> = {
   tier: <path d="m12 2 8 5v10l-8 5-8-5V7l8-5Zm0 5-4 2.5v5L12 17l4-2.5v-5L12 7Z" />,
@@ -162,12 +162,14 @@ export default function PublicProfile() {
                 {copied ? '✓' : '⧉'}
               </button>
             </p>
-            <span className="up-role">
+            <span className="up-role" data-i18n-keep="">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 8h12a4 4 0 0 1 4 4v1a4 4 0 0 1-7 2.6L14 14h-4l-1 1.6A4 4 0 0 1 2 13v-1a4 4 0 0 1 4-4Z" />
               </svg>
-              {p.profileBadge ?? ROLE_LABEL[p.role]}
+              {/* The title the user picked (or staff set) — English in both languages (owner 2026-10-15). */}
+              {PROFILE_TITLE_LABELS[p.title]}
             </span>
+            {p.profileBadge && <span className="up-role up-plan-badge">{p.profileBadge}</span>}
             <p className="up-meta">
               {p.location && (
                 <span>

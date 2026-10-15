@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
@@ -219,18 +220,19 @@ export default function Wallet() {
       : [{ key: 'email', label: 'ელფოსტა' }]
 
   const walletBalance = user?.wavecoinBalance ?? 0
-  const pendingPayouts = (balance?.pendingClearance ?? 0) + (balance?.pendingWithdrawal ?? 0)
   const purchased = (transactions ?? []).filter((tx) => tx.type === WalletLedgerType.Topup).reduce((sum, tx) => sum + tx.amountWaveCoin, 0)
   const q = query.trim().toLowerCase()
   const shown = (transactions ?? []).filter(
     (tx) => inCategory(tx, category) && (!q || [TX_LABELS[tx.type], tx.orderId, tx.id, String(tx.amountWaveCoin)].filter(Boolean).join(' ').toLowerCase().includes(q)),
   )
 
+  // The four cards in the owner's wording (2026-10-15), every number from the server: spendable
+  // balance; what's held for open orders / sessions; what can be withdrawn now; every top-up.
   const summary: Array<[string, string, string, number, string]> = [
-    ['available', '▣', 'ხელმისაწვდომი ბალანსი', walletBalance, 'მზადაა დასახარჯად'],
-    ['escrow', '◇', 'ესქროუში', escrow, 'დაცული გადახდები'],
-    ['pending', '◷', 'მოსალოდნელი გაცემები', pendingPayouts, 'დასრულების მოლოდინში'],
-    ['purchased', '↥', 'სულ შეძენილი', purchased, 'BOG-ით შევსებული თანხა'],
+    ['available', '▣', 'ხელმისაწვდომი ბალანსი', walletBalance, 'WaveHubX-ზე გამოსაყენებელი თანხა'],
+    ['escrow', '◇', 'ესქროუში გაყინული', balance?.inEscrow ?? escrow, 'აქტიურ შეკვეთებში დროებით დაბლოკილი თანხა'],
+    ['pending', '◷', 'გასატანი თანხა', balance?.availableToWithdraw ?? 0, 'თანხა, რომლის გატანაც შეგიძლია'],
+    ['purchased', '↥', 'სულ შეტანილი თანხა', balance?.totalToppedUp ?? purchased, 'ჯამურად ანგარიშზე შეტანილი თანხა'],
   ]
 
   return (
@@ -296,19 +298,34 @@ export default function Wallet() {
       <PromoCodeForm onRedeemed={loadWalletData} />
 
       <section className="wallet-layout" aria-label="საფულის მართვა">
-        <form className="wallet-buy-panel" id="walletBuyForm" onSubmit={topUp}>
-          <div className="wallet-buy-heading">
-            <span className="wallet-add-icon" aria-hidden="true">
+        {/* Owner design 2026-10-15 (Bank of Georgia top-up card). */}
+        <form className="wallet-buy-panel wb-topup" id="walletBuyForm" onSubmit={topUp}>
+          <div className="wb-head">
+            <span className="wb-plus" aria-hidden="true">
               +
             </span>
-            <div>
-              <p className="section-kicker">ბალანსის შევსება</p>
-              <h2>შევსება BOG-ით</h2>
+            <div className="wb-title">
+              <h2>ბალანსის შევსება</h2>
+              <small>Bank of Georgia / საქართველოს ბანკი</small>
             </div>
+            <span className="wb-bank" aria-label="Bank of Georgia">
+              <img src="/assets/ui/bog-mark.png" alt="" aria-hidden="true" />
+              <span>
+                საქართველოს ბანკი
+                <b>BANK OF GEORGIA</b>
+              </span>
+            </span>
           </div>
-          <label>
+          <p className="wb-secure">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m12 3 7 3v5c0 4.6-2.9 8.2-7 10-4.1-1.8-7-5.4-7-10V6l7-3Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            გადახდა მუშავდება Bank of Georgia-ს უსაფრთხო გადახდის სისტემით
+          </p>
+          <label className="wb-amount">
             <span>თანხა (GEL)</span>
-            <span className="wallet-amount-stepper">
+            <span className="wallet-amount-stepper wb-stepper">
               <button type="button" aria-label="შემცირება" onClick={() => setAmount((value) => Math.max(1, value - 1))}>
                 −
               </button>
@@ -318,19 +335,20 @@ export default function Wallet() {
               </button>
             </span>
           </label>
-          <div className="wallet-quick-actions" aria-label="სწრაფი თანხები">
+          <div className="wallet-quick-actions wb-quick" aria-label="სწრაფი თანხები">
             {TOPUP_AMOUNTS.map((value) => (
-              <button key={value} type="button" onClick={() => setAmount(value)}>
+              <button key={value} type="button" className={amount === value ? 'active' : undefined} aria-pressed={amount === value} onClick={() => setAmount(value)}>
                 {value} GEL
               </button>
             ))}
           </div>
-          <div className="wallet-price-row">
+          <div className="wallet-price-row wb-total">
             <span>ჯამი</span>
             <strong id="walletBuyTotal">{Number.isFinite(amount) ? amount : 0} GEL</strong>
           </div>
-          <button className="cart-checkout-button" id="buyWavecoinButton" type="submit" disabled={submitting}>
-            {submitting ? 'გადამისამართება…' : checked && !user ? 'შესვლა და შევსება' : 'გადახდა Bank of Georgia-ით'}
+          <button className="cart-checkout-button wb-pay" id="buyWavecoinButton" type="submit" disabled={submitting}>
+            <span>{submitting ? 'გადამისამართება…' : checked && !user ? 'შესვლა და შევსება' : 'გადახდა Bank of Georgia-ით'}</span>
+            <b aria-hidden="true">→</b>
           </button>
           <p className={`seller-status${topupStatus.kind ? ` ${topupStatus.kind}` : ''}`} id="walletStatus" aria-live="polite">
             {topupStatus.text}
@@ -338,13 +356,13 @@ export default function Wallet() {
         </form>
 
         {user && (
-          <form className="wallet-buy-panel wallet-withdraw-panel" onSubmit={submitWithdrawal}>
-            <div className="wallet-buy-heading">
-              <span className="wallet-add-icon" aria-hidden="true">
+          <form className="wallet-buy-panel wallet-withdraw-panel wb-withdraw" onSubmit={submitWithdrawal}>
+            <div className="wb-head">
+              <span className="wb-plus" aria-hidden="true">
                 ↥
               </span>
-              <div>
-                <p className="section-kicker">გამომუშავებული თანხა</p>
+              <div className="wb-title">
+                <h2>გამომუშავებული თანხა</h2>
                 <h2>თანხის გატანა</h2>
               </div>
             </div>

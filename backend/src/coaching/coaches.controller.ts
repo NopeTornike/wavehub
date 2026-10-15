@@ -1,4 +1,4 @@
-import { IsBoolean } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsUUID } from 'class-validator';
 import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
@@ -30,6 +30,14 @@ const VIDEO_UPLOAD = FileInterceptor('file', { storage: memoryStorage(), limits:
 class SetCoachFeaturedDto {
   @IsBoolean()
   isFeatured: boolean;
+}
+
+// The featured coaches in their home-page order, first to last.
+class SetCoachHomeOrderDto {
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('4', { each: true })
+  ids: string[];
 }
 
 @Controller()
@@ -232,16 +240,28 @@ export class CoachesController {
     return coach;
   }
 
-  // Super Admin only: permanently delete a coach profile with no session history (else 409 —
-  // suspend instead). The user account stays. Audit-logged with who it was.
+  // Home coach section order (staff): the featured coaches, first to last. Audit-logged.
+  @Post('admin/coach-home-order')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...COACH_MANAGEMENT_ROLES)
+  async setHomeOrder(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Body() dto: SetCoachHomeOrderDto) {
+    const coaches = await this.coaches.setHomeOrder(dto.ids);
+    await this.audit.log({ adminId, adminRole, action: 'coach.home_order', entityType: 'coach', entityId: dto.ids[0] ?? 'none', metadata: { ids: dto.ids } });
+    return coaches;
+  }
+
+  // Super Admin only: delete a coach — the profile row when there's no session history, otherwise
+  // a removal that keeps the sessions (see CoachesService#adminDelete). The user account stays.
+  // Audit-logged with who it was and which of the two happened.
   @Delete('admin/coaches/:id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole()
   async adminDelete(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string) {
     const deleted = await this.coaches.adminDelete(id);
-    await this.audit.log({ adminId, adminRole, action: 'coach.delete', entityType: 'coach', entityId: id, metadata: deleted });
-    return { ok: true };
+    await this.audit.log({ adminId, adminRole, action: deleted.outcome === 'deleted' ? 'coach.delete' : 'coach.remove', entityType: 'coach', entityId: id, metadata: deleted });
+    return { ok: true, outcome: deleted.outcome };
   }
 
   @Post('coaches/:id/restore')

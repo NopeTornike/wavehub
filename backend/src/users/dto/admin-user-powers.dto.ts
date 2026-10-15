@@ -1,5 +1,5 @@
 import { IsEnum, IsInt, IsOptional, IsString, Length, Max, Min, NotEquals, ValidateIf } from 'class-validator';
-import { AdminRole } from '@wavehub/shared-types';
+import { AdminRole, ProfileTitle } from '@wavehub/shared-types';
 
 // POST admin/users/:id/wallet-adjustment — Super Admin only. Positive adds, negative removes.
 export class WalletAdjustmentDto {
@@ -24,4 +24,12 @@ export class SetAdminRoleDto {
   @IsString()
   @Length(3, 300)
   reason: string;
+}
+
+// POST admin/users/:id/profile-title — any title (staff vouch for it), or null to hand the choice
+// back to the user.
+export class SetProfileTitleDto {
+  @ValidateIf((_o, value) => value !== null)
+  @IsEnum(ProfileTitle)
+  title: ProfileTitle | null;
 }

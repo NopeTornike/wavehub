@@ -72,6 +72,26 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  // Registrations (owner 2026-10-15): all accounts and today's (Tbilisi day), refreshed with the
+  // online count.
+  const [registrations, setRegistrations] = useState<{ total: number; verified: number; today: number; last7Days: number } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const load = () =>
+      api
+        .adminRegistrationStats()
+        .then((r) => {
+          if (!cancelled) setRegistrations(r)
+        })
+        .catch(() => undefined)
+    load()
+    const timer = window.setInterval(load, 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
+
   const isSuperAdmin = user?.adminRole === AdminRole.SuperAdmin
   const todo = QUEUES.filter((q) => counts[q.key] !== null)
   const total = todo.reduce((sum, q) => sum + (counts[q.key] ?? 0), 0)
@@ -89,6 +109,25 @@ export default function AdminDashboard() {
           <small>აქტიური მომხმარებელი ახლა საიტზე</small>
         </div>
       </header>
+
+      <div className="adm-kpis adm-reg-kpis">
+        <Link href="/admin/users" className="adm-kpi">
+          <span className="adm-kpi-top">
+            სულ რეგისტრირებული
+            <AdminIcon name="users" />
+          </span>
+          <b>{registrations?.total ?? '—'}</b>
+          <small>{registrations ? `${registrations.verified} ვერიფიცირებული ელფოსტით` : 'ანგარიშები'}</small>
+        </Link>
+        <Link href="/admin/users" className={`adm-kpi${registrations?.today ? ' good' : ''}`}>
+          <span className="adm-kpi-top">
+            დღეს დარეგისტრირდა
+            <AdminIcon name="users" />
+          </span>
+          <b>{registrations?.today ?? '—'}</b>
+          <small>{registrations ? `ბოლო 7 დღეში — ${registrations.last7Days}` : 'თბილისის დროით'}</small>
+        </Link>
+      </div>
 
       <div className="adm-kpis">
         {QUEUES.map((q) => {

@@ -88,6 +88,15 @@ export class Coach {
   @Column({ type: 'boolean', default: false })
   isFeatured: boolean;
 
+  // Staff-set position in the home coach section (smallest first; null = after the ordered ones).
+  @Column({ type: 'integer', nullable: true })
+  homeOrder: number | null;
+
+  // Removed by staff (2026-10-15): a coach with session history can't be deleted (the sessions are
+  // payment history), so removal hides the profile everywhere and ends the Coach title instead.
+  @Column({ type: 'timestamptz', nullable: true })
+  removedAt: Date | null;
+
   // Recomputed from coaching_session_reviews whenever a buyer reviews a completed session
   // (CoachingSessionsService#review) — same stored-aggregate precedent as Listing.ratingAvg.
   @Column({ type: 'numeric', precision: 3, scale: 2, nullable: true })

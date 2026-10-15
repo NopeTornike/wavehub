@@ -4,6 +4,9 @@ import type { Response } from 'express';
 
 export const SESSION_COOKIE_NAME = 'wavehub_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+// "Remember me" off: a browser-session cookie (gone when the browser closes) whose token also
+// expires within a day.
+const SHORT_SESSION_TTL_SECONDS = 60 * 60 * 24;
 
 export interface SessionPayload {
   sub: string;
@@ -16,8 +19,8 @@ export interface SessionPayload {
 export class SessionService {
   constructor(private readonly jwt: JwtService) {}
 
-  sign(userId: string): string {
-    return this.jwt.sign({ sub: userId }, { expiresIn: SESSION_TTL_SECONDS });
+  sign(userId: string, ttlSeconds = SESSION_TTL_SECONDS): string {
+    return this.jwt.sign({ sub: userId }, { expiresIn: ttlSeconds });
   }
 
   verify(token: string): SessionPayload {
@@ -25,12 +28,12 @@ export class SessionService {
     return this.jwt.verify<SessionPayload>(token, { algorithms: ['HS256'] });
   }
 
-  attach(res: Response, userId: string) {
-    res.cookie(SESSION_COOKIE_NAME, this.sign(userId), {
+  attach(res: Response, userId: string, remember = true) {
+    res.cookie(SESSION_COOKIE_NAME, this.sign(userId, remember ? SESSION_TTL_SECONDS : SHORT_SESSION_TTL_SECONDS), {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: SESSION_TTL_SECONDS * 1000,
+      ...(remember ? { maxAge: SESSION_TTL_SECONDS * 1000 } : {}),
       path: '/',
     });
   }

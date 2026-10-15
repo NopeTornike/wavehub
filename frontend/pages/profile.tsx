@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useEffect, useState, type FormEvent } from 'react'
-import { type MyProfile, type PublicCoachingSession, type PublicOrderSummary } from '@wavehub/shared-types'
+import { PROFILE_TITLE_LABELS, ProfileTitle, type MyProfile, type PublicCoachingSession, type PublicOrderSummary } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import MyListings from '../components/MyListings'
 import FollowLists from '../components/FollowLists'
@@ -39,7 +39,7 @@ export default function Profile() {
   const { games } = useShell()
   const userId = user?.id
   const [profile, setProfile] = useState<MyProfile | null>(null)
-  const [form, setForm] = useState({ firstName: '', lastName: '', bio: '', mainGameIds: [] as string[], location: '', tagline: '', platform: '', preferredRole: '', achievement: '', emailNotifications: true })
+  const [form, setForm] = useState({ firstName: '', lastName: '', bio: '', mainGameIds: [] as string[], location: '', tagline: '', platform: '', preferredRole: '', achievement: '', emailNotifications: true, profileTitle: '' as ProfileTitle | '' })
   const [status, setStatus] = useState<Status>({ kind: '', text: '' })
   const [saving, setSaving] = useState(false)
   const [listingCount, setListingCount] = useState(0)
@@ -64,6 +64,7 @@ export default function Profile() {
           preferredRole: p.preferredRole ?? '',
           achievement: p.achievement ?? '',
           emailNotifications: p.emailNotifications ?? true,
+          profileTitle: p.profileTitle ?? '',
         })
       })
       .catch(() => undefined)
@@ -109,6 +110,8 @@ export default function Profile() {
         preferredRole: form.preferredRole,
         achievement: form.achievement,
         emailNotifications: form.emailNotifications,
+        // A staff-set title can't be changed by the user (the API refuses it), so it isn't sent.
+        ...(profile?.profileTitleByStaff ? {} : { profileTitle: form.profileTitle || null }),
       })
       setProfile(next)
       await refresh()
@@ -256,6 +259,28 @@ export default function Profile() {
               <label>
                 <span>სასურველი როლი / სტილი</span>
                 <input type="text" maxLength={40} placeholder="მაგ. Aggressive / Slayer" value={form.preferredRole} onChange={(e) => setForm({ ...form, preferredRole: e.target.value })} />
+              </label>
+              {/* The title chip on the public profile (owner 2026-10-15). Seller / Coach only while true. */}
+              <label>
+                <span>პროფილის Title</span>
+                <select
+                  value={form.profileTitle}
+                  disabled={!profile || profile.profileTitleByStaff}
+                  onChange={(e) => setForm({ ...form, profileTitle: e.target.value as ProfileTitle | '' })}
+                  data-i18n-keep=""
+                >
+                  <option value="">Auto</option>
+                  {Object.values(ProfileTitle).map((title) => (
+                    <option key={title} value={title} disabled={!profile?.availableTitles.includes(title)}>
+                      {PROFILE_TITLE_LABELS[title]}
+                    </option>
+                  ))}
+                </select>
+                <small className="profile-field-hint">
+                  {profile?.profileTitleByStaff
+                    ? 'ეს Title დააყენა WaveHubX-ის გუნდმა.'
+                    : 'Seller და Coach ხელმისაწვდომია, როცა რეალურად ხარ გამყიდველი ან ვერიფიცირებული ქოუჩი.'}
+                </small>
               </label>
               <label>
                 <span>გამორჩეული მიღწევა</span>

@@ -12,6 +12,7 @@ import { useFavorites } from '../../lib/favorites'
 import { gameCover, gameIcon } from '../../lib/games'
 import GAME_DETAILS from '../../lib/game-details.json'
 import RankIcon from '../../components/RankIcon'
+import Avatar from '../../components/Avatar'
 import ReportButton from '../../components/ReportButton'
 import ImageLightbox from '../../components/ImageLightbox'
 import EscrowExplainer from '../../components/EscrowExplainer'
@@ -580,48 +581,68 @@ export default function ListingDetail() {
                 გაზიარება
               </button>
             </div>
-            <div className="detail-stock-lines">
-              <span>
-                <i></i> {inStock ? 'მარაგშია' : 'ამოიწურა'}
+            {/* Owner design 2026-10-15: a seller card (stock, photo + name, category, delivery)
+                and the four facts as a 2×2 grid of icon cards. All real numbers. */}
+            <div className="ld-top">
+              <span className={`ld-stock${inStock ? '' : ' out'}`}>
+                <i aria-hidden="true"></i> {inStock ? 'მარაგში' : 'ამოიწურა'}
               </span>
-              <span>
-                <i></i> გამყიდველი: <strong id="detailSoldBy">{sellerName}</strong>
-              </span>
-            </div>
-            <div className="detail-buy-tags">
-              <span className={`service-tag ${kind === 'account' ? 'account' : kind === 'skin' || kind === 'item' ? 'skin' : 'hot'}`} id="detailTag">
+              <Link className="ld-seller" href={`/u/${encodeURIComponent(listing.seller.username)}`}>
+                <Avatar name={sellerName} src={listing.seller.avatarUrl ?? null} size={56} />
+                <span>
+                  <small>გამყიდველი</small>
+                  <strong id="detailSoldBy">{sellerName}</strong>
+                </span>
+              </Link>
+              <span className="ld-category" id="detailTag">
                 {tag}
               </span>
               {delivery && (
-                <span className="detail-delivery-chip" id="detailSideDelivery">
-                  {delivery}
+                <span className="ld-delivery" id="detailSideDelivery">
+                  მიწოდება: {delivery}
                 </span>
               )}
             </div>
-            <div className="detail-buy-scores" aria-label="Marketplace scores">
-              <div className="detail-icon-score detail-rating-score">
-                <img className="detail-score-icon" src="/assets/seller-rating-star-icon.png" alt="" aria-hidden="true" />
-                <span>პროდუქტის რეიტინგი</span>
-                <strong id="detailSideSellerScore">{rating !== null && listing.ratingCount > 0 ? rating.toFixed(1) : '-'}</strong>
-                <small id="detailSideSellerScoreLabel">{listing.ratingCount > 0 ? `${listing.ratingCount} შეფასება` : 'შეფასება არ არის'}</small>
+            <div className="ld-stats" aria-label="Marketplace scores">
+              <div className="ld-stat">
+                <span className="ld-stat-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M4 5h2l2 10h10l2-7H7" /><circle cx="10" cy="19" r="1.5" /><circle cx="17" cy="19" r="1.5" /></svg>
+                </span>
+                <div>
+                  <strong id="detailCompletedOrders">{listing.ordersCount}</strong>
+                  <span>დასრულებული შეკვეთები</span>
+                  <small>რეალური შეკვეთები</small>
+                </div>
               </div>
-              <div className="detail-icon-score detail-favorites-score">
-                <img className="detail-score-icon" src="/assets/favorites-score-icon.svg" alt="" aria-hidden="true" />
-                <span>რჩეულები</span>
-                <strong id="detailSideQualityScore">{favoriteCount}</strong>
-                <small id="detailSideQualityScoreLabel">შენახვა</small>
+              <div className="ld-stat">
+                <span className="ld-stat-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                </span>
+                <div>
+                  <strong id="detailResponseTime">—</strong>
+                  <span>პასუხის საშ. დრო</span>
+                  <small>გამყიდველის პასუხი</small>
+                </div>
               </div>
-              <div className="detail-icon-score detail-completed-score">
-                <img className="detail-score-icon" src="/assets/completed-orders-icon.svg" alt="" aria-hidden="true" />
-                <span>დასრულებული შეკვეთები</span>
-                <strong id="detailCompletedOrders">{listing.ordersCount}</strong>
-                <small>რეალური შეკვეთები</small>
+              <div className="ld-stat">
+                <span className="ld-stat-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg>
+                </span>
+                <div>
+                  <strong id="detailSideQualityScore">{favoriteCount}</strong>
+                  <span>რჩეულები</span>
+                  <small>შენახვა</small>
+                </div>
               </div>
-              <div className="detail-icon-score detail-response-score">
-                <img className="detail-score-icon" src="/assets/avg-response-time-icon.svg" alt="" aria-hidden="true" />
-                <span>პასუხის საშ. დრო</span>
-                <strong id="detailResponseTime">—</strong>
-                <small>გამყიდველის პასუხი</small>
+              <div className="ld-stat">
+                <span className="ld-stat-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3Z" /></svg>
+                </span>
+                <div>
+                  <strong id="detailSideSellerScore">{rating !== null && listing.ratingCount > 0 ? rating.toFixed(1) : '-'}</strong>
+                  <span>პროდუქტის რეიტინგი</span>
+                  <small id="detailSideSellerScoreLabel">{listing.ratingCount > 0 ? `${listing.ratingCount} შეფასება` : 'შეფასება არ არის'}</small>
+                </div>
               </div>
             </div>
 

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { PublicUserProfile } from '@wavehub/shared-types'
-import { waveRankIcon } from '@wavehub/shared-types'
+import { PROFILE_TITLE_LABELS, waveRankIcon } from '@wavehub/shared-types'
 import { api } from '../lib/api'
 import { kaDate } from '../lib/dates'
 import { displayName } from './Avatar'
@@ -49,7 +49,7 @@ export default function SellerPreview({ username, onClose }: { username: string;
   const name = profile ? displayName(profile) : username
   const verified = !!profile?.badges.some((b) => b.key === 'verified')
   const rating = profile?.reviews.average
-  const roleLabel = profile?.role === 'coach' ? 'ქოუჩი' : profile?.role === 'seller' ? 'გამყიდველი' : 'WaveHub-ის წევრი'
+  const roleLabel = profile ? PROFILE_TITLE_LABELS[profile.title] : ''
 
   return createPortal(
     <div className={`seller-profile-modal${open ? ' is-open' : ''}`}>

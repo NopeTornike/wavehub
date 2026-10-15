@@ -8,6 +8,7 @@ import { Dispute } from '../disputes/dispute.entity';
 import { assertValidTransition } from './withdraw-lifecycle';
 import { CreateWithdrawRequestDto } from './dto/create-withdraw-request.dto';
 import { WalletService } from '../wallet/wallet.service';
+import { roundMoney } from '../wallet/money';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { withTransactionRetry } from '../wallet/transaction-retry.util';
@@ -165,7 +166,18 @@ export class WithdrawalsService {
       WithdrawStatus.Processing,
     ]);
     const totalWithdrawn = await this.sumWithdrawRequests(sellerId, [WithdrawStatus.Completed]);
-    return { ...base, pendingWithdrawal, totalWithdrawn };
+    // Wallet page cards (owner 2026-10-15: "the information must be real"). Escrow = what the user
+    // paid for orders / sessions that are still open (the buyer fee is part of what's held);
+    // deposited = every BOG top-up credited. Both straight from the rows, never from a page of
+    // transactions.
+    const [money] = await this.withdrawals.query(
+      `SELECT
+         COALESCE((SELECT SUM("buyerTotalWaveCoin") FROM "orders" WHERE "buyerId" = $1 AND "status" IN ('paid', 'in_progress', 'delivered', 'disputed')), 0)
+           + COALESCE((SELECT SUM("priceWaveCoin") FROM "coaching_sessions" WHERE "buyerId" = $1 AND "status" IN ('scheduled', 'in_progress', 'awaiting_confirmation', 'disputed')), 0) AS "inEscrow",
+         COALESCE((SELECT SUM("amountWaveCoin") FROM "wallet_ledger_entries" WHERE "userId" = $1 AND "type" = 'topup'), 0) AS "totalToppedUp"`,
+      [sellerId],
+    );
+    return { ...base, pendingWithdrawal, totalWithdrawn, inEscrow: roundMoney(Number(money.inEscrow)), totalToppedUp: roundMoney(Number(money.totalToppedUp)) };
   }
 
   private async sumWithdrawRequests(sellerId: string, statuses: WithdrawStatus[]): Promise<number> {

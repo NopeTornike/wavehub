@@ -648,6 +648,11 @@ export interface PublicWalletBalance {
   pendingWithdrawal: number;
   // Sum of this seller's WithdrawRequests with status `completed`.
   totalWithdrawn: number;
+  // What this user paid that is held for their open orders (incl. the buyer fee) and open coaching
+  // sessions — "in escrow" on the wallet page.
+  inEscrow: number;
+  // Every BOG top-up ever credited — "total deposited" on the wallet page.
+  totalToppedUp: number;
 }
 
 export interface PublicWalletTransaction {
@@ -895,8 +900,11 @@ export interface AdminCoachSummary {
   hourlyRateWaveCoin: number;
   verificationStatus: VerificationStatus;
   status: CoachStatus;
-  // Shown in the home page's coach section (staff pick).
+  // Shown in the home page's coach section (staff pick), in `homeOrder` order (smallest first).
   isFeatured: boolean;
+  homeOrder: number | null;
+  // Removed by staff (a coach with session history can't be deleted — see backend/src/coaching).
+  removedAt: string | null;
   rejectionReason: string | null;
   createdAt: string;
 }
@@ -1127,6 +1135,9 @@ export interface AdminUserSummary {
   wavecoinBalance: number;
   moderationReason: string | null;
   createdAt: string;
+  // The public profile title (null = automatic); `profileTitleByStaff` = set from the admin panel.
+  profileTitle: ProfileTitle | null;
+  profileTitleByStaff: boolean;
 }
 
 // Static/legal page CMS — scoped to what Footer.tsx actually links to (About/Contact/Terms/
@@ -1182,6 +1193,9 @@ export interface PublicUserProfile {
   // achievement. Everything else is computed from real rows.
   shortId: string;
   role: 'coach' | 'seller' | 'player';
+  // The title chip under the name (owner 2026-10-15): the user's own pick — Seller / Coach only
+  // while they really are one — or one set by staff; otherwise `role`.
+  title: ProfileTitle;
   location: string | null;
   tagline: string | null;
   platform: string | null;
@@ -1224,7 +1238,42 @@ export interface MyProfile {
   achievement: string | null;
   // Email copies of important notifications (default on).
   emailNotifications: boolean;
+  // The profile title (null = automatic) and the titles this account may pick right now.
+  // `profileTitleByStaff`: staff set it, so the user can't change it.
+  profileTitle: ProfileTitle | null;
+  profileTitleByStaff: boolean;
+  availableTitles: ProfileTitle[];
 }
+
+// The title chip on a public profile (owner 2026-10-15). Written in English in both languages.
+export enum ProfileTitle {
+  Player = 'player',
+  Seller = 'seller',
+  Coach = 'coach',
+  ProPlayer = 'pro_player',
+  Streamer = 'streamer',
+  ContentCreator = 'content_creator',
+  Collector = 'collector',
+}
+
+export const PROFILE_TITLE_LABELS: Record<ProfileTitle, string> = {
+  [ProfileTitle.Player]: 'Player',
+  [ProfileTitle.Seller]: 'Seller',
+  [ProfileTitle.Coach]: 'Coach',
+  [ProfileTitle.ProPlayer]: 'Pro Player',
+  [ProfileTitle.Streamer]: 'Streamer',
+  [ProfileTitle.ContentCreator]: 'Content Creator',
+  [ProfileTitle.Collector]: 'Collector',
+};
+
+// Titles anyone may pick; Seller and Coach need the real thing (see ProfilesService#eligibleTitles).
+export const OPEN_PROFILE_TITLES: ProfileTitle[] = [
+  ProfileTitle.Player,
+  ProfileTitle.ProPlayer,
+  ProfileTitle.Streamer,
+  ProfileTitle.ContentCreator,
+  ProfileTitle.Collector,
+];
 
 // Coaching session booking + escrow payment (build-plan Phase 11b follow-up — see
 // backend/src/coaching/CLAUDE.md's Status section for why this was cut from the original

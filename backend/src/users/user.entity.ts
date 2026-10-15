@@ -97,6 +97,15 @@ export class User {
   @Column({ type: 'varchar', length: 80, nullable: true })
   achievement: string | null;
 
+  // What the profile's title chip says (owner 2026-10-15). Null = automatic (Coach / Seller /
+  // Player from real data). A user may pick Seller / Coach only while they really are one;
+  // staff may set anything (`profileTitleByStaff`), which the user can't override.
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  profileTitle: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  profileTitleByStaff: boolean;
+
   // Email copies of important notifications (NotificationsService#emit); the user can switch them off.
   @Column({ type: 'boolean', default: true })
   emailNotifications: boolean;

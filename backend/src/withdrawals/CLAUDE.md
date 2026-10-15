@@ -94,3 +94,10 @@ details" — this module asks fresh on every request instead, since there's no s
 table yet), KYC status field, automatically cancelling an in-flight withdrawal when a dispute
 opens afterward (only checked at request time), and any real bank/PayPal/Wise payout API
 integration (manual/admin-marked per the MVP decision).
+
+## 2026-10-15 Wallet cards from the server
+`PublicWalletBalance` gains `inEscrow` (what the user paid that is still held: open orders'
+`buyerTotalWaveCoin` — buyer fee included — plus open coaching sessions' price) and
+`totalToppedUp` (every `topup` ledger row). The wallet page used to sum the first 20 transactions
+for "total purchased" and order prices without the fee for escrow. Cards: available balance,
+"in escrow", withdrawable (`availableToWithdraw`), total deposited.

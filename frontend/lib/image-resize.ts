@@ -60,3 +60,19 @@ export async function shrinkPhoto(file: File, maxBytes = MAX_PHOTO_BYTES): Promi
 // The largest original we accept in a picker — anything up to this is downscaled to ≤2MB first.
 export const PHOTO_SOURCE_MAX_BYTES = 20 * 1024 * 1024
 export const PHOTO_LIMIT_TEXT = 'მაქსიმუმ 20MB — დიდი ფოტო ავტომატურად მცირდება 2MB-მდე'
+
+// Copies picked files into memory right away (owner 2026-10-15): on Android a photo chosen from a
+// cloud / gallery app is a temporary reference that can expire before the form is submitted, and
+// the upload then fails. A file that can't be read is left out and reported.
+export async function materializeFiles(files: File[]): Promise<{ files: File[]; unreadable: number }> {
+  const out: File[] = []
+  let unreadable = 0
+  for (const file of files) {
+    try {
+      out.push(new File([await file.arrayBuffer()], file.name, { type: file.type, lastModified: file.lastModified }))
+    } catch {
+      unreadable += 1
+    }
+  }
+  return { files: out, unreadable }
+}

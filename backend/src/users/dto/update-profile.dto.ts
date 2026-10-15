@@ -1,4 +1,5 @@
-import { ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, IsUUID, Length, MaxLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsOptional, IsString, IsUUID, Length, MaxLength, ValidateIf } from 'class-validator';
+import { ProfileTitle } from '@wavehub/shared-types';
 
 // PATCH /me/profile — the prototype's Settings form. Username is not editable (it's the public
 // handle and the login name).
@@ -54,4 +55,10 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsBoolean()
   emailNotifications?: boolean;
+
+  // The profile title chip; null = automatic. Seller / Coach only while true (checked in the
+  // controller); refused when staff set it.
+  @ValidateIf((o: UpdateProfileDto) => o.profileTitle !== undefined && o.profileTitle !== null)
+  @IsEnum(ProfileTitle)
+  profileTitle?: ProfileTitle | null;
 }

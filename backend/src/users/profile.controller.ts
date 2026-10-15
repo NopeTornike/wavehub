@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Patch, Post, UploadedFile, UseGuards, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Patch, Post, UploadedFile, UseGuards, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { memoryStorage } from 'multer';
 import { In, Repository } from 'typeorm';
-import type { MyProfile } from '@wavehub/shared-types';
+import type { MyProfile, ProfileTitle } from '@wavehub/shared-types';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUserId } from '../auth/current-user.decorator';
 import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
@@ -13,6 +13,7 @@ import { StorageService } from '../storage/storage.service';
 import { User } from './user.entity';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ProfilesService } from '../profiles/profiles.service';
 
 // Avatars (also a coach's portrait): 2MB, same as listing photos (owner decision 2026-10-03).
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -28,10 +29,14 @@ export class ProfileController {
     private readonly storage: StorageService,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(Game) private readonly games: Repository<Game>,
+    private readonly profiles: ProfilesService,
   ) {}
 
-  private toMyProfile(user: User): MyProfile {
+  private async toMyProfile(user: User): Promise<MyProfile> {
     return {
+      profileTitle: (user.profileTitle as ProfileTitle | null) ?? null,
+      profileTitleByStaff: user.profileTitleByStaff ?? false,
+      availableTitles: await this.profiles.eligibleTitles(user.id),
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -69,6 +74,14 @@ export class ProfileController {
       if (dto[key] !== undefined) patch[key] = dto[key]!.trim() || null;
     }
     if (dto.emailNotifications !== undefined) patch.emailNotifications = dto.emailNotifications;
+    if (dto.profileTitle !== undefined) {
+      const current = await this.load(userId);
+      if (current.profileTitleByStaff) throw new ForbiddenException('Your profile title was set by WaveHubX staff');
+      if (dto.profileTitle !== null && !(await this.profiles.eligibleTitles(userId)).includes(dto.profileTitle)) {
+        throw new BadRequestException('You can use this title only while it is true for your account');
+      }
+      patch.profileTitle = dto.profileTitle;
+    }
     if (dto.mainGameIds !== undefined) {
       const ids = [...new Set(dto.mainGameIds)];
       const found = ids.length ? await this.games.count({ where: { id: In(ids), isActive: true } }) : 0;

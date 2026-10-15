@@ -398,3 +398,26 @@ account stays. Audited (`coach.delete`, with username/status).
   `coachCompletedAt + 48h`) is set when the coach marks the session done, from
   `sessionAutoConfirmHours` (Admin → Settings). The sweep confirms sessions past it; rows without
   one fall back to `AUTO_CONFIRM_HOURS` (48). Notification texts use the session's own window.
+
+## 2026-10-15 Coach removal + home order (owner: "delete only suspends, the profile still says Coach")
+- **`DELETE admin/coaches/:id`** (Super Admin) now always does something:
+  - no session history → the coach row is deleted (`outcome: 'deleted'`, audit `coach.delete`);
+  - with history → the coach is **removed** (`outcome: 'removed'`, audit `coach.remove`):
+    `coaches.removedAt` is set, status → suspended, featured / home order cleared, Coach badges
+    revoked. Every session (and its money) stays.
+  - Refused (409) while a session is still open (scheduled / in progress / awaiting confirmation /
+    disputed) — finish or cancel it first.
+- A removed coach is gone everywhere: the directory and home (`browseVerified`), the public page
+  (`findPublicById` → 404), the admin lists, every staff action by id (`getOrThrow` → 404), the
+  coach's own editor (`findMine` / `mineOrThrow`), and the profile's Coach role / title
+  (`profiles.service.ts` requires verified + active + not removed).
+- Coming back: `POST admin/coaches` with the same username, or the user applying again, reuses the
+  row and clears `removedAt`.
+- The profile role now drops "coach" for a *suspended* coach too (it used to stay).
+- **Home order**: `coaches.homeOrder` (migration `1784385000000-CoachRemovalProfileTitle`).
+  `POST admin/coach-home-order { ids }` (`COACH_MANAGEMENT_ROLES`, audit `coach.home_order`) — the
+  featured coaches first to last; non-featured ids or duplicates → 400. Browse orders featured
+  first, then `homeOrder ASC NULLS LAST`. Un-featuring clears it. Admin → Coaches has the ↑ / ↓ list.
+- Admin → Coaches' edit panel can now change a coach's **other games** — it had no control for them
+  and re-saved the old list, so a game removed in the admin panel stayed on the profile.
+- Tests: `test/client-round-3.e2e-spec.ts`.

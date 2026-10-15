@@ -118,7 +118,9 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
       ? categories.find((c) => c.slug === (product === 'account' ? 'accounts' : product === 'skin' ? 'skins' : 'items'))?.id
       : undefined
   const filters = useMemo(() => {
-    const byType = product === 'service' ? { type: ListingType.Service } : {}
+    // Services are only on the Services page (owner 2026-10-15: a new service was showing up among
+    // the marketplace products); the marketplace lists item listings (accounts / skins / items).
+    const byType = product === 'service' ? { type: ListingType.Service } : { type: ListingType.Item }
     return { ...byType, categoryId, game: game || undefined, sort, q: q || undefined }
   }, [product, categoryId, game, sort, q])
 

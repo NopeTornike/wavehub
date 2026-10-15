@@ -17,6 +17,7 @@ import type {
   GameListingCount,
   ItemAttributes,
   MyProfile,
+  ProfileTitle,
   OnlineStats,
   SellerRanks,
   WaveRank,
@@ -269,6 +270,7 @@ export function errorMessage(err: unknown, fallback: string): string {
   }
   if (err instanceof ApiError) {
     if (err.status === 0) return 'სერვერთან დაკავშირება ვერ მოხერხდა. შეამოწმეთ ინტერნეტი და სცადეთ ხელახლა.'
+    if (err.status === FILE_UNREADABLE) return 'ფაილის წაკითხვა ვერ მოხერხდა — აირჩიე ფოტო თავიდან. თუ ფოტო ღრუბელშია (Google Photos, iCloud), ჯერ ჩამოტვირთე ტელეფონში.'
     if (err.status === 429) return 'ძალიან ბევრი მოთხოვნა. გთხოვთ, ცოტა ხანში სცადოთ ხელახლა.'
     return err.message ? translateKnown(err.message) : fallback
   }
@@ -324,11 +326,33 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   })) as T
 }
 
+// The picked file can no longer be read (status -1, client-side only).
+export const FILE_UNREADABLE = -1
+
 // Multipart upload — no Content-Type header on purpose, the browser has to set the boundary itself.
+// The file is read into memory first (owner 2026-10-15, "server connection lost while adding"): a
+// photo picked from a cloud / gallery app on Android is only a temporary reference, and when it
+// changed or expired before the upload the browser dropped the request, which looked like a network
+// failure. An unreadable file now says so; a real network blip is retried once.
 async function upload<T>(path: string, file: File): Promise<T> {
-  const form = new FormData()
-  form.append('file', file)
-  return (await send(path, { method: 'POST', body: form })) as T
+  let bytes: File
+  try {
+    bytes = new File([await file.arrayBuffer()], file.name, { type: file.type, lastModified: file.lastModified })
+  } catch {
+    throw new ApiError(FILE_UNREADABLE, 'File unreadable')
+  }
+  const attempt = () => {
+    const form = new FormData()
+    form.append('file', bytes)
+    return send(path, { method: 'POST', body: form })
+  }
+  try {
+    return (await attempt()) as T
+  } catch (err) {
+    if (!(err instanceof ApiError) || err.status !== 0) throw err
+    await new Promise((resolve) => setTimeout(resolve, 1200))
+    return (await attempt()) as T
+  }
 }
 
 export const api = {
@@ -344,7 +368,8 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  login: (payload: { username: string; password: string }) =>
+  // `username` may also be the account's email; `remember: false` = a browser-session cookie.
+  login: (payload: { username: string; password: string; remember?: boolean }) =>
     request<{ ok: true; user: PublicUser }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -530,6 +555,7 @@ export const api = {
     preferredRole?: string
     achievement?: string
     emailNotifications?: boolean
+    profileTitle?: ProfileTitle | null
   }) =>
     request<MyProfile>('/me/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
 
@@ -839,6 +865,11 @@ export const api = {
   // Super Admin only (backend/src/users/admin-users.controller.ts): +/- spendable WaveCoin, and staff roles.
   adminAdjustWallet: (id: string, amountWaveCoin: number, reason: string) =>
     request<AdminUserSummary>(`/admin/users/${id}/wallet-adjustment`, { method: 'POST', body: JSON.stringify({ amountWaveCoin, reason }) }),
+  adminRegistrationStats: () => request<{ total: number; verified: number; today: number; last7Days: number }>('/admin/users/registration-stats'),
+
+  adminSetProfileTitle: (id: string, title: ProfileTitle | null) =>
+    request<AdminUserSummary>(`/admin/users/${id}/profile-title`, { method: 'POST', body: JSON.stringify({ title }) }),
+
   adminSetUserRole: (id: string, adminRole: AdminRole | null, reason: string) =>
     request<AdminUserSummary>(`/admin/users/${id}/role`, { method: 'POST', body: JSON.stringify({ adminRole, reason }) }),
 
@@ -927,7 +958,10 @@ export const api = {
     request<AdminCoachSummary>(`/coaches/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
   // Super Admin only; a coach with any session history can't be deleted (409 — suspend instead).
-  adminDeleteCoach: (id: string) => request<{ ok: true }>(`/admin/coaches/${id}`, { method: 'DELETE' }),
+  // `deleted` = the profile row is gone; `removed` = a coach with session history, hidden everywhere
+  // with the history kept (see backend/src/coaching/CLAUDE.md).
+  adminDeleteCoach: (id: string) => request<{ ok: true; outcome: 'deleted' | 'removed' }>(`/admin/coaches/${id}`, { method: 'DELETE' }),
+  adminSetCoachHomeOrder: (ids: string[]) => request<AdminCoachSummary[]>('/admin/coach-home-order', { method: 'POST', body: JSON.stringify({ ids }) }),
   // Home page coach section: staff choose who is featured (client feedback #2).
   adminSetCoachFeatured: (id: string, isFeatured: boolean) =>
     request<AdminCoachSummary>(`/admin/coaches/${id}/featured`, { method: 'POST', body: JSON.stringify({ isFeatured }) }),

@@ -15,6 +15,9 @@ import { loginHash } from '../trust/login-hash';
 
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+// A bcrypt hash (cost 10, same as real passwords) of random bytes nobody knows — compared against on
+// a login for an unknown account so it costs the same time as a wrong password.
+const TIMING_DUMMY_HASH = '$2b$10$IGVwvQwd1zqfvO4Z2QNQJeALq1II9ZXULiVU30s82T/ZhI/ecJ3km';
 // Wrong 6-digit code entries before the code (and its link) stop working.
 export const MAX_CODE_ATTEMPTS = 5;
 
@@ -59,7 +62,7 @@ export class AuthService {
         this.notifications.create({
           userId: user.id,
           type: NotificationType.Welcome,
-          title: 'კეთილი იყოს შენი მობრძანება WaveHub-ზე!',
+          title: 'კეთილი იყოს შენი მობრძანება WaveHubX-ზე!',
           body: 'დაადასტურე ელფოსტა და შემდეგ შეგიძლია იყიდო და გაყიდო ანგარიშები, დაჯავშნო ქოუჩინგი და მიიღო მონაწილეობა ტურნირებში.',
           metadata: null,
         }),
@@ -122,10 +125,11 @@ export class AuthService {
   }
 
   async login(payload: { username: string; password: string }): Promise<User> {
-    const username = payload.username.trim().toLowerCase();
+    // Username or email address (an email always contains "@", a username never can).
+    const login = payload.username.trim().toLowerCase();
 
     const user = await this.users.findOne({
-      where: { username },
+      where: login.includes('@') ? { email: login } : { username: login },
       select: {
         id: true,
         username: true,
@@ -139,7 +143,13 @@ export class AuthService {
       },
     });
 
-    if (!user || !(await bcrypt.compare(payload.password, user.passwordHash))) {
+    // Unknown account: still run one bcrypt comparison, so the response time doesn't reveal whether
+    // the username / email exists.
+    if (!user) {
+      await bcrypt.compare(payload.password, TIMING_DUMMY_HASH);
+      throw new Error('INVALID_CREDENTIALS');
+    }
+    if (!(await bcrypt.compare(payload.password, user.passwordHash))) {
       throw new Error('INVALID_CREDENTIALS');
     }
     // Checked only AFTER the password matched, so it can't be used to probe which accounts are
@@ -165,7 +175,7 @@ export class AuthService {
     await this.verificationTokens.save(token);
 
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${rawToken}`;
-    await this.email.send(user.email, `${code} — WaveHub-ის დადასტურების კოდი · Verify your email`, verificationEmail(user.firstName, verifyUrl, code));
+    await this.email.send(user.email, `${code} — WaveHubX-ის დადასტურების კოდი · Verify your email`, verificationEmail(user.firstName, verifyUrl, code));
   }
 
   async verifyEmail(rawToken: string): Promise<void> {
@@ -217,7 +227,7 @@ export class AuthService {
     await this.resetTokens.save(token);
 
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${rawToken}`;
-    await this.email.send(user.email, 'პაროლის აღდგენა · Reset your WaveHub password', passwordResetEmail(user.firstName, resetUrl));
+    await this.email.send(user.email, 'პაროლის აღდგენა · Reset your WaveHubX password', passwordResetEmail(user.firstName, resetUrl));
   }
 
   async resetPassword(rawToken: string, newPassword: string): Promise<void> {

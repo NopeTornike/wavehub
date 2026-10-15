@@ -128,3 +128,13 @@ as SHA-256 of `userId:code`), shown in the email (and its subject) next to the b
 `AUTH_THROTTLE`) checks the user's newest live token; `MAX_CODE_ATTEMPTS` (5) wrong codes consume
 it (a fresh email is needed). Frontend: `components/EmailCodeForm.tsx` in the verify banner, after
 registration, and on `/verify-email`. Test: `test/auth.e2e-spec.ts`.
+
+## 2026-10-15 Login: email or username, "Remember me"
+- `POST auth/login { username, password, remember? }`: `username` may also be the account's email
+  (anything with "@" is looked up by email, lower-cased). Unknown accounts still cost one bcrypt
+  comparison (`TIMING_DUMMY_HASH`), so timing doesn't reveal which usernames / emails exist; the
+  error text is identical either way.
+- `remember: false` → a browser-session cookie (no Max-Age) whose JWT expires in 24h; default /
+  `true` → the 7-day cookie as before (`SessionService#attach(res, userId, remember)`).
+- Frontend: one `LoginForm` for `/login`, the desktop side drawer and the phone card (see
+  `frontend/CLAUDE.md`). Tests: `test/client-round-3.e2e-spec.ts`.

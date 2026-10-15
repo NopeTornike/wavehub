@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ListingType, TournamentStatus } from '@wavehub/shared-types'
 import type { PublicBanner, PublicCoachSummary, PublicListingSummary, PublicTournamentSummary } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
@@ -90,17 +90,10 @@ const EXPLORE_SERVICES: Array<{ label: string; href: string | null; icon: React.
   { label: 'CS2 სკინები', href: '/marketplace?type=skin&game=cs2', icon: <path d="M4 18h9l2-4h11l2 3-8 1-2 4h-5l-1 3H6l1-4H4v-3Zm11-4 1-4h5" /> },
   { label: 'ტურნირები', href: '/tournaments', icon: <><path d="M10 5h12v6a6 6 0 0 1-12 0V5Zm0 3H5v2a5 5 0 0 0 5 5m12-7h5v2a5 5 0 0 1-5 5M16 17v5m-6 5h12m-9-5h6" /></> },
   { label: 'Steam თამაშები', href: '/steam-keys', icon: null },
+  // Owner 2026-10-15: the services page (Sidebar → Services) takes the "soon" tile's place; "soon"
+  // moves to the end.
+  { label: 'ინდივიდუალური სერვისები', href: '/services', icon: <><path d="M6 9h20v16H6z" /><path d="M12 9V6h8v3M6 15h20" /><path d="m16 18 1.2 2.4 2.6.4-1.9 1.8.5 2.6-2.4-1.3-2.4 1.3.5-2.6-1.9-1.8 2.6-.4L16 18Z" /></> },
   { label: 'მალე', href: null, icon: <><rect x="8" y="14" width="16" height="12" rx="2" /><path d="M11 14v-3a5 5 0 0 1 10 0v3" /></> },
-]
-
-const MOBILE_SERVICES: Array<{ label: React.ReactNode; href: string; icon: React.ReactNode }> = [
-  { label: 'ქოუჩინგი', href: '/coaching', icon: <path d="M9 20v-5a7 7 0 0 1 14 0v5M9 17H6v7h4v-7H9Zm14 0h3v7h-4v-7h1ZM22 25c0 2-2 3-5 3" /> },
-  { label: 'რანკის აწევა', href: '/marketplace', icon: <path d="m6 17 10-10 10 10M11 15v11h10V15M7 22h4M21 22h4" /> },
-  { label: 'VOD ანალიზი', href: '/marketplace', icon: <><rect x="5" y="8" width="19" height="17" rx="2" /><path d="m24 13 5-3v13l-5-3M13 13l6 4-6 4v-8Z" /></> },
-  { label: 'ლაივ ყურება', href: '/marketplace', icon: <><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16Z" /><circle cx="16" cy="16" r="4" /></> },
-  { label: <>პარამეტრების<br />ოპტიმიზაცია</>, href: '/marketplace', icon: <><circle cx="16" cy="16" r="6" /><path d="M16 3v4M16 25v4M3 16h4M25 16h4M7 7l3 3M22 22l3 3M25 7l-3 3M10 22l-3 3" /></> },
-  { label: 'ანგარიშის აუდიტი', href: '/marketplace', icon: <><path d="m16 3 10 4v8c0 7-4 11-10 14C10 26 6 22 6 15V7l10-4Z" /><path d="m11 16 3 3 7-7" /></> },
-  { label: 'გუნდის პოვნა', href: '/marketplace', icon: <><circle cx="16" cy="10" r="4" /><circle cx="7" cy="13" r="3" /><circle cx="25" cy="13" r="3" /><path d="M9 27v-3a7 7 0 0 1 14 0v3M2 26v-2a5 5 0 0 1 7-5M30 26v-2a5 5 0 0 0-7-5" /></> },
 ]
 
 function listingPrice(listing: PublicListingSummary) {
@@ -185,7 +178,26 @@ export default function Home() {
 
   const slugByName = useMemo(() => new Map(games.map((g) => [g.name, g.slug])), [games])
   const slugById = useMemo(() => new Map(games.map((g) => [g.gameId, g.slug])), [games])
-  const gridGames = games.slice(0, 8)
+  // Every game, as a strip that slides sideways (owner 2026-10-15: "slide to the right through all
+  // the games, like the Steam games").
+  const gridGames = games
+  const gamesTrack = useRef<HTMLDivElement>(null)
+  const [gamesEdge, setGamesEdge] = useState({ atStart: true, atEnd: false })
+  const updateGamesEdge = useCallback(() => {
+    const track = gamesTrack.current
+    if (!track) return
+    setGamesEdge({ atStart: track.scrollLeft <= 4, atEnd: track.scrollLeft + track.clientWidth >= track.scrollWidth - 4 })
+  }, [])
+  useEffect(() => {
+    updateGamesEdge()
+    window.addEventListener('resize', updateGamesEdge)
+    return () => window.removeEventListener('resize', updateGamesEdge)
+  }, [updateGamesEdge, games.length])
+  const scrollGames = (direction: number) => {
+    const track = gamesTrack.current
+    if (!track) return
+    track.scrollBy({ left: direction * track.clientWidth * 0.9, behavior: 'smooth' })
+  }
 
   useEffect(() => {
     api
@@ -387,6 +399,8 @@ export default function Home() {
               </Link>
             )}
 
+            {/* The same services row on phones and desktop (owner 2026-10-15; phones had their own,
+                different list). */}
             <section className="home-explore" aria-labelledby="homeExploreTitle">
               <h2 id="homeExploreTitle">
                 <i aria-hidden="true"></i> გაეცანი ჩვენს <b>სერვისებს</b> <i aria-hidden="true"></i>
@@ -408,29 +422,6 @@ export default function Home() {
               </div>
             </section>
 
-            <section className="mobile-home-services" aria-labelledby="mobile-services-title">
-              <header>
-                <h2 id="mobile-services-title">
-                  <span aria-hidden="true">☆</span> სერვისები
-                </h2>
-                <Link href="/marketplace">
-                  ყველას ნახვა <span aria-hidden="true">›</span>
-                </Link>
-              </header>
-              <div className="mobile-service-grid">
-                {MOBILE_SERVICES.map((service, index) => (
-                  <Link key={index} href={service.href}>
-                    <svg viewBox="0 0 32 32" aria-hidden="true">{service.icon}</svg>
-                    <span>{service.label}</span>
-                  </Link>
-                ))}
-                <Link href="/steam-keys">
-                  <img className="mobile-service-steam-icon" src="/assets/steam-logo.png" alt="" aria-hidden="true" />
-                  <span>Steam თამაშები</span>
-                </Link>
-              </div>
-            </section>
-
             <div className="home-marketplace-heading">
               <h2 id="home-marketplace-title">
                 <img src="/assets/marketplace-icon.svg" alt="" />
@@ -442,7 +433,11 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="home-marketplace-game-grid" aria-label="Marketplace games">
+            <div className="home-games-carousel">
+              <button className="home-steam-arrow home-steam-prev" type="button" aria-label="Previous games" disabled={gamesEdge.atStart} onClick={() => scrollGames(-1)}>
+                ‹
+              </button>
+            <div className="home-marketplace-game-grid" aria-label="Marketplace games" ref={gamesTrack} onScroll={() => requestAnimationFrame(updateGamesEdge)}>
               {gridGames.map((game) => (
                 <Link
                   key={game.slug}
@@ -465,6 +460,10 @@ export default function Home() {
                   </span>
                 </Link>
               ))}
+            </div>
+              <button className="home-steam-arrow home-steam-next" type="button" aria-label="Next games" disabled={gamesEdge.atEnd} onClick={() => scrollGames(1)}>
+                ›
+              </button>
             </div>
 
             <Link className="home-marketplace-view-all" href="/marketplace">

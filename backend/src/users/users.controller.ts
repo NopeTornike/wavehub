@@ -50,8 +50,10 @@ export class UsersController {
       ? (await this.games.find({ where: { id: In(mainGameIds) }, select: ['id', 'name', 'slug'] })).map((g) => ({ name: g.name, slug: g.slug }))
       : [];
     const facts = await this.profiles.facts(user.id, user.lastSeenAt ?? null, activeListingCount);
+    const title = await this.profiles.effectiveTitle(user, facts.role);
     return {
       ...facts,
+      title,
       userId: user.id,
       shortId: user.id.replace(/-/g, '').slice(0, 8).toUpperCase(),
       location: user.location ?? null,

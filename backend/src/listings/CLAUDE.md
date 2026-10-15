@@ -379,3 +379,9 @@ change otherwise; the marketplace filters by category id. Listing photos are cap
   uploaded, and a retry updates that draft (`PATCH`) and uploads only the missing photos.
 - Covered by `test/client-round-2.e2e-spec.ts` (409 rules, 24 photo uploads in a minute) and
   `listings.service.spec.ts`. E2E specs must give drafts unique titles.
+
+- 2026-10-15: the duplicate-post check also ignores repeated spaces (`regexp_replace(lower(trim(title)),
+  '\\s+', ' ')`). Production showed reposts differing only by a double space. The production logs
+  also showed 68 refused re-creates in 4 minutes and 55 throttled edits in one minute from one
+  seller pressing Publish repeatedly; uploads now read the photo into memory first (see
+  `frontend/CLAUDE.md`).

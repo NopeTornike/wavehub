@@ -5,6 +5,7 @@ import { WAVE_RANK_TIERS } from '@wavehub/shared-types'
 import type { PublicUserSearchResult } from '@wavehub/shared-types'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { useAuthModal } from '../lib/auth-modal'
 import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
 import LanguageSwitcher from './LanguageSwitcher'
@@ -41,6 +42,7 @@ const ICONS = {
   verified: 'm12 3 7 3v5c0 4.6-2.9 8.2-7 10-4.1-1.8-7-5.4-7-10V6l7-3Z|m9 12 2 2 4-4',
   plans: 'M4 7h16v12H4zM4 11h16M8 3v4M16 3v4',
   admin: 'M12 3 20 6v6c0 5-3.2 8.2-8 10-4.8-1.8-8-5-8-10V6l8-3Z',
+  tournaments: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z|M17 6h3v2a3 3 0 0 1-3 3M7 6H4v2a3 3 0 0 0 3 3',
 }
 
 function MenuIcon({ paths, circle }: { paths: string; circle?: [number, number, number] }) {
@@ -77,6 +79,7 @@ export default function Topbar({
 }) {
   const router = useRouter()
   const { user, checked, logout } = useAuth()
+  const { openLogin } = useAuthModal()
   const { count: cartCount } = useCart()
   const { unreadMessages, unreadNotifications, waveRank } = useShell()
   const [profileOpen, setProfileOpen] = useState(false)
@@ -391,69 +394,69 @@ export default function Topbar({
               </small>
             </div>
 
-            <nav className="profile-dropdown-links" aria-label="Profile shortcuts">
+            {/* The account menu is English in both languages, in the owner's order (2026-10-15). */}
+            <nav className="profile-dropdown-links" aria-label="Profile shortcuts" data-i18n-keep="">
               <div className="profile-dropdown-group">
                 <Link href={signedIn ? '/orders' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.orders} />
-                  <span>ჩემი შეკვეთები</span>
+                  <span>My Orders</span>
                   <i aria-hidden="true">›</i>
                 </Link>
-                <Link href={signedIn ? '/sell/services' : loginHref} onClick={closeMenu}>
+                <Link href={signedIn ? '/orders#my-listings' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.services} />
-                  <span>ჩემი სერვისები</span>
+                  <span>My Listings</span>
                   <i aria-hidden="true">›</i>
                 </Link>
-                <Link id="profileFavoritesLink" href="/favorites" onClick={closeMenu}>
-                  <MenuIcon paths={ICONS.favorites} />
-                  <span>რჩეულები</span>
+                <Link href={signedIn ? '/tournaments/hub' : loginHref} onClick={closeMenu}>
+                  <MenuIcon paths={ICONS.tournaments} />
+                  <span>My Tournaments</span>
                   <i aria-hidden="true">›</i>
                 </Link>
                 <Link href={signedIn ? '/support' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.support} />
-                  <span>Support</span>
+                  <span>Contact Support</span>
+                  <i aria-hidden="true">›</i>
+                </Link>
+                <Link href={signedIn ? '/profile' : loginHref} onClick={closeMenu}>
+                  <MenuIcon paths={SETTINGS_PATH} circle={[12, 12, 3]} />
+                  <span>Settings</span>
                   <i aria-hidden="true">›</i>
                 </Link>
                 {user?.adminRole && (
                   <Link href="/admin" onClick={closeMenu}>
-                    <MenuIcon paths={ICONS.verified} />
-                    <span>ადმინ პანელი</span>
+                    <MenuIcon paths={ICONS.admin} />
+                    <span>Admin Panel</span>
                     <i aria-hidden="true">›</i>
                   </Link>
                 )}
-                <Link href={signedIn ? '/profile' : loginHref} onClick={closeMenu}>
-                  <MenuIcon paths={SETTINGS_PATH} circle={[12, 12, 3]} />
-                  <span>პარამეტრები</span>
-                  <i aria-hidden="true">›</i>
-                </Link>
               </div>
               <div className="profile-dropdown-group">
                 <Link id="profilePublicLink" href={user ? `/u/${user.username}` : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.profile} circle={[12, 8, 4]} />
-                  <span>View Profile</span>
+                  <span>My Profile</span>
+                </Link>
+                <Link href={signedIn ? '/plans' : loginHref} onClick={closeMenu}>
+                  <MenuIcon paths={ICONS.plans} />
+                  <span>Subscriptions</span>
                 </Link>
                 <Link href={signedIn ? '/profile#verification' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.verified} />
                   <span>Verified Status</span>
                 </Link>
-                {signedIn && (
-                  <Link href="/plans" onClick={closeMenu}>
-                    <MenuIcon paths={ICONS.plans} />
-                    <span>გამოწერები</span>
-                  </Link>
-                )}
-                {user?.adminRole && (
-                  <Link href="/admin" onClick={closeMenu}>
-                    <MenuIcon paths={ICONS.admin} />
-                    <span>ადმინ პანელი</span>
-                  </Link>
-                )}
               </div>
             </nav>
 
             <div className="auth-entry-actions" id="authEntryActions" hidden={signedIn}>
-              <Link className="auth-open-button" href={loginHref} onClick={closeMenu}>
+              <button
+                className="auth-open-button"
+                type="button"
+                onClick={() => {
+                  closeMenu()
+                  openLogin(returnTo)
+                }}
+              >
                 შესვლა
-              </Link>
+              </button>
               <Link className="auth-open-button primary" href="/register" onClick={closeMenu}>
                 ანგარიშის შექმნა
               </Link>
@@ -477,7 +480,9 @@ export default function Topbar({
       </div>
 
       <div className={`mobile-header-auth${signedIn ? ' is-signed-in' : ''}`} aria-label="Account actions">
-        <Link href={loginHref}>Sign In</Link>
+        <button type="button" className="mobile-sign-in" onClick={() => openLogin(returnTo)}>
+          Sign In
+        </button>
         <Link className="join" href="/register">
           Join
         </Link>

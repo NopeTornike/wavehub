@@ -11,6 +11,8 @@ import { useShell } from '../lib/shell'
 // unread direct-message count, the Cart pill is the cart, and "N online" counts accounts seen in
 // the last few minutes (backend/src/community/) instead of the prototype's random number. Staff
 // accounts get one extra "Admin" entry at the end — the admin panel has no prototype equivalent.
+// Order (owner 2026-10-15): Home, Dashboard, Marketplace, Services, Steam Keys, Coaching,
+// Tournaments, About Us, Messages, Wallet, Cart, Favorites. Subscriptions are in the profile menu.
 /* eslint-disable @next/next/no-img-element */
 
 type NavItem = {
@@ -24,30 +26,29 @@ type NavItem = {
 }
 
 const NAV: NavItem[] = [
-  { id: 'index', label: 'მთავარი', href: '/', icon: 'home-icon.svg', iconClass: 'nav-icon-home', match: (p) => p === '/' },
+  { id: 'index', label: 'Home', href: '/', icon: 'home-icon.svg', iconClass: 'nav-icon-home', match: (p) => p === '/' },
   {
     id: 'marketplace',
-    label: 'მარკეტი',
+    label: 'Marketplace',
     href: '/marketplace',
     icon: 'marketplace-icon.svg',
     iconClass: 'nav-icon-marketplace',
     match: (p) => p === '/marketplace' || p.startsWith('/listings'),
   },
   // Services have their own page (client feedback #7).
-  { id: 'services', label: 'სერვისები', href: '/services', icon: 'active-services-icon.svg', iconClass: 'nav-icon-marketplace', match: (p) => p === '/services' || p.startsWith('/sell/services') },
-  { id: 'steam-keys', label: 'Steam გასაღებები', href: '/steam-keys', icon: 'steam-logo.png', iconClass: 'steam-side-icon', match: (p) => p.startsWith('/steam-keys') || p.startsWith('/sell/digital-keys') },
-  { id: 'coaching', label: 'ქოუჩინგი', href: '/coaching', icon: 'sidebar-coaching-icon.svg', iconClass: 'nav-icon-coaching', match: (p) => p.startsWith('/coaching') },
-  { id: 'tournaments', label: 'ტურნირები', href: '/tournaments', icon: 'tournaments-icon.svg', iconClass: 'nav-icon-tournaments', match: (p) => p.startsWith('/tournaments') },
-  { id: 'about', label: 'ჩვენ შესახებ', href: '/about', icon: 'about-icon.svg', iconClass: 'nav-icon-about', match: (p) => p === '/about' },
-  { id: 'messages', label: 'შეტყობინებები', href: '/messages', icon: 'sidebar-message-icon.svg', iconClass: 'nav-icon-messages', count: 'message', match: (p) => p.startsWith('/messages') },
-  { id: 'wallet', label: 'საფულე', href: '/wallet', icon: 'wallet-icon.svg', iconClass: 'nav-icon-wallet', match: (p) => p.startsWith('/wallet') },
-  { id: 'cart', label: 'კალათა', href: '/cart', icon: 'sidebar-cart-icon.svg', iconClass: 'nav-icon-cart', count: 'cart', match: (p) => p.startsWith('/cart') },
-  { id: 'favorites', label: 'რჩეულები', href: '/favorites', icon: 'favorites-icon.svg', iconClass: 'nav-icon-heart', match: (p) => p.startsWith('/favorites') },
-  { id: 'plans', label: 'გამოწერები', href: '/plans', icon: 'plans-icon.svg', iconClass: 'nav-icon-home', match: (p) => p.startsWith('/plans') },
+  { id: 'services', label: 'Services', href: '/services', icon: 'active-services-icon.svg', iconClass: 'nav-icon-marketplace', match: (p) => p === '/services' || p.startsWith('/sell/services') },
+  { id: 'steam-keys', label: 'Steam Keys', href: '/steam-keys', icon: 'steam-logo.png', iconClass: 'steam-side-icon', match: (p) => p.startsWith('/steam-keys') || p.startsWith('/sell/digital-keys') },
+  { id: 'coaching', label: 'Coaching', href: '/coaching', icon: 'sidebar-coaching-icon.svg', iconClass: 'nav-icon-coaching', match: (p) => p.startsWith('/coaching') },
+  { id: 'tournaments', label: 'Tournaments', href: '/tournaments', icon: 'tournaments-icon.svg', iconClass: 'nav-icon-tournaments', match: (p) => p.startsWith('/tournaments') },
+  { id: 'about', label: 'About Us', href: '/about', icon: 'about-icon.svg', iconClass: 'nav-icon-about', match: (p) => p === '/about' },
+  { id: 'messages', label: 'Messages', href: '/messages', icon: 'sidebar-message-icon.svg', iconClass: 'nav-icon-messages', count: 'message', match: (p) => p.startsWith('/messages') },
+  { id: 'wallet', label: 'Wallet', href: '/wallet', icon: 'wallet-icon.svg', iconClass: 'nav-icon-wallet', match: (p) => p.startsWith('/wallet') },
+  { id: 'cart', label: 'Cart', href: '/cart', icon: 'sidebar-cart-icon.svg', iconClass: 'nav-icon-cart', count: 'cart', match: (p) => p.startsWith('/cart') },
+  { id: 'favorites', label: 'Favorites', href: '/favorites', icon: 'favorites-icon.svg', iconClass: 'nav-icon-heart', match: (p) => p.startsWith('/favorites') },
 ]
 
 // Signed-in only (docs/design-mockups/09).
-const DASHBOARD: NavItem = { id: 'dashboard', label: 'დაფა', href: '/dashboard', icon: 'dashboard-icon.svg', iconClass: 'nav-icon-home', match: (p) => p === '/dashboard' }
+const DASHBOARD: NavItem = { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'dashboard-icon.svg', iconClass: 'nav-icon-home', match: (p) => p === '/dashboard' }
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter()
@@ -91,7 +92,8 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
 
   return (
     <>
-      <aside className="sidebar" id="sidebar" aria-label="WaveHub navigation">
+      {/* Navigation stays in English in both languages (owner, 2026-10-15). */}
+      <aside className="sidebar" id="sidebar" aria-label="WaveHub navigation" data-i18n-keep="">
         <Link className="brand" href="/" aria-label="WaveHub home" onClick={onClose}>
           <img src="/assets/logo-wavehubx-main.png" alt="WaveHubX" />
         </Link>
@@ -119,7 +121,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   </a>
                   <div className="marketplace-game-dropdown" aria-label="Marketplace games">
                     <Link href="/marketplace" onClick={onClose}>
-                      ყველა თამაში
+                      All Games
                     </Link>
                     {games.map((game) => (
                       <Link key={game.slug} href={`/marketplace?game=${game.slug}`} onClick={onClose}>
@@ -148,7 +150,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
 
         <div className="sidebar-status" aria-label="Platform activity">
           <span className="status-dot" aria-hidden="true"></span>
-          <span id="onlineCount">{onlineCount === null ? '' : `${onlineCount} online`}</span>
+          <span id="onlineCount">{onlineCount === null ? '' : `${onlineCount} Online`}</span>
         </div>
       </aside>
       <div className="scrim" id="scrim" hidden={!open} onClick={onClose} />

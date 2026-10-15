@@ -31,11 +31,14 @@ function formatDate(value?: string | null) {
 
 export default function MyListings({
   className = '',
+  id,
   gridId,
   query = '',
   onCount,
 }: {
   className?: string
+  // Anchor for links straight to the panel (the profile menu's "My Listings" → /orders#my-listings).
+  id?: string
   gridId?: string
   query?: string
   onCount?: (count: number) => void
@@ -59,6 +62,14 @@ export default function MyListings({
     void reload()
   }, [reload])
 
+  // Opened through its anchor: scroll to the panel once the listings are in (the page above it
+  // loads its own data first, so the browser's own jump lands too early).
+  const loaded = listings !== null
+  useEffect(() => {
+    if (!loaded || !id || typeof window === 'undefined' || window.location.hash !== `#${id}`) return
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [loaded, id])
+
   const act = async (run: () => Promise<unknown>, done: string) => {
     setStatus({ kind: 'pending', text: 'მუშავდება…' })
     try {
@@ -76,7 +87,7 @@ export default function MyListings({
   )
 
   return (
-    <section className={`ml-panel ${className}`.trim()} aria-labelledby={`${gridId ?? 'myListings'}Title`}>
+    <section id={id} className={`ml-panel ${className}`.trim()} aria-labelledby={`${gridId ?? 'myListings'}Title`}>
       <header className="ml-head">
         <div>
           <p className="section-kicker">გამყიდველის პანელი</p>

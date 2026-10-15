@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
-import { AdminRole, AdminUserSummary, UserStatus } from '@wavehub/shared-types';
+import { AdminRole, AdminUserSummary, ProfileTitle, UserStatus } from '@wavehub/shared-types';
 import type { PublicUserSearchResult } from '@wavehub/shared-types';
 import { User } from './user.entity';
 import { ListUsersDto } from './dto/list-users.dto';
@@ -97,7 +97,31 @@ export class UsersService {
       wavecoinBalance: user.wavecoinBalance,
       moderationReason: user.moderationReason,
       createdAt: user.createdAt.toISOString(),
+      profileTitle: (user.profileTitle as ProfileTitle | null) ?? null,
+      profileTitleByStaff: user.profileTitleByStaff ?? false,
     };
+  }
+
+  // Account counts for the admin dashboard. "Today" / "this week" are Tbilisi calendar days
+  // (UTC+4, no DST).
+  async registrationStats(): Promise<{ total: number; verified: number; today: number; last7Days: number }> {
+    const [row] = await this.repo.query(
+      `SELECT count(*)::int AS total,
+              count(*) FILTER (WHERE "status" = 'active')::int AS verified,
+              count(*) FILTER (WHERE "createdAt" >= (date_trunc('day', now() AT TIME ZONE 'Asia/Tbilisi') AT TIME ZONE 'Asia/Tbilisi'))::int AS today,
+              count(*) FILTER (WHERE "createdAt" >= (date_trunc('day', now() AT TIME ZONE 'Asia/Tbilisi') AT TIME ZONE 'Asia/Tbilisi') - interval '6 days')::int AS "last7Days"
+         FROM "users"`,
+    );
+    return { total: row.total, verified: row.verified, today: row.today, last7Days: row.last7Days };
+  }
+
+  // Staff set a user's profile title (any title — staff vouch for it); null hands it back to the
+  // user (automatic until they pick one).
+  async setProfileTitleByStaff(id: string, title: ProfileTitle | null): Promise<AdminUserSummary> {
+    const user = await this.repo.findOne({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    await this.repo.update(id, { profileTitle: title, profileTitleByStaff: title !== null });
+    return this.toAdminUser({ ...user, profileTitle: title, profileTitleByStaff: title !== null });
   }
 
   // Backs `GET /admin/users` — see SPECIFICATION.md §5.13's "User Management: view, search,

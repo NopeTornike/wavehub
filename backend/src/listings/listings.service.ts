@@ -81,7 +81,8 @@ export class ListingsService {
     const recentTwin = await this.listings
       .createQueryBuilder('l')
       .where('l.sellerId = :sellerId', { sellerId })
-      .andWhere('lower(trim(l.title)) = lower(trim(:title))', { title: dto.title })
+      // Case and spacing don't make a different post ("Coc th14  max" = "coc TH14 max").
+      .andWhere("regexp_replace(lower(trim(l.title)), '\\s+', ' ', 'g') = regexp_replace(lower(trim(:title)), '\\s+', ' ', 'g')", { title: dto.title })
       .andWhere('l.type = :type', { type: dto.type })
       .andWhere("l.createdAt > now() - interval '2 minutes'")
       .getCount();

@@ -11,7 +11,7 @@ import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
 import { WalletService } from '../wallet/wallet.service';
-import { SetAdminRoleDto, WalletAdjustmentDto } from './dto/admin-user-powers.dto';
+import { SetAdminRoleDto, SetProfileTitleDto, WalletAdjustmentDto } from './dto/admin-user-powers.dto';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -121,6 +121,38 @@ export class AdminUsersController {
       metadata: { from: before.adminRole, to: user.adminRole, reason: dto.reason },
     });
     return user;
+  }
+
+  // The public profile's title chip (owner 2026-10-15): staff may set any title — the user can't
+  // change it afterwards — or clear it (null) to give the choice back. User-management roles.
+  @Post(':id/profile-title')
+  @HttpCode(HttpStatus.OK)
+  @RequireAdminRole(...USER_SUSPEND_ROLES)
+  async setProfileTitle(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetProfileTitleDto,
+  ) {
+    const before = await this.users.getAdminOne(id);
+    const user = await this.users.setProfileTitleByStaff(id, dto.title);
+    await this.audit.log({
+      adminId,
+      adminRole,
+      action: 'user.set_profile_title',
+      entityType: 'user',
+      entityId: id,
+      metadata: { from: before.profileTitleByStaff ? before.profileTitle : null, to: dto.title },
+    });
+    return user;
+  }
+
+  // Admin dashboard (owner 2026-10-15): how many accounts exist and how many registered today
+  // (Tbilisi day) — counts only, any staff role. Must stay registered before `:id`.
+  @Get('registration-stats')
+  @RequireAdminRole(...Object.values(AdminRole))
+  registrationStats() {
+    return this.users.registrationStats();
   }
 
   @Get()

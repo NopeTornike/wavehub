@@ -100,35 +100,139 @@ function translateString(value: string): string | null {
   return `${leading}${hit}${trailing}`
 }
 
+// Owner rule (2026-10-15, the same as Tornike's site-footer.js glossary): these gaming / platform
+// terms are written in English in both languages, so the platform reads the same everywhere. In
+// Georgian mode a UI string whose English translation uses one of them gets the Georgian word
+// swapped for the English term ("საფულე" → "Wallet", "შეფასებები ჯერ არ არის" → "Reviews ჯერ არ
+// არის"). Only strings with a dictionary entry are touched, so user-written text (titles,
+// descriptions, reviews, names) never is. Each rule: [English term in the translation, the
+// Georgian word(s) for it]. More specific rules first.
+const KA_WORD = '(?<![\u10D0-\u10FF])'
+const GLOSSARY: Array<[RegExp, RegExp]> = (
+  [
+    [/\bverified coach(?:es)?\b/i, 'ვერიფიცირებულ[ა-ჰ]*\s+(?:ქოუჩ|კოუჩ)[ა-ჰ]*'],
+    [/\bverified sellers?\b/i, 'ვერიფიცირებულ[ა-ჰ]*\s+გამყიდველ[ა-ჰ]*'],
+    [/\bvod reviews?\b/i, 'VOD\s+(?:ანალიზ|რევიუ|მიმოხილვ)[ა-ჰ]*'],
+    [/\brank up\b/i, 'რანკის\s+აწევ[ა-ჰ]*'],
+    [/\bteam finder\b/i, 'გუნდის\s+(?:პოვნ|ძებნ)[ა-ჰ]*'],
+    [/\bgrand finals?\b/i, 'გრანდ[\s-]*ფინალ[ა-ჰ]*'],
+    [/\bsteam keys?\b/i, 'Steam[\s-]+გასაღებ[ა-ჰ]*'],
+    [/\bgift cards?\b/i, 'სასაჩუქრე\s+ბარათ[ა-ჰ]*'],
+    [/\busernames?\b/i, '(?:მომხმარებლის\s+სახელ|იუზერნეიმ)[ა-ჰ]*'],
+    [/\bcoaching\b/i, '(?:ქოუჩინგ|კოუჩინგ)[ა-ჰ]*'],
+    [/\bcoach(?:es)?\b/i, '(?:ქოუჩ|კოუჩ)[ა-ჰ]*'],
+    [/\bplayoffs?\b/i, 'პლეი-?ოფ[ა-ჰ]*'],
+    [/\bmatch(?:es)?\b/i, 'მატჩ[ა-ჰ]*'],
+    [/\blobb(?:y|ies)\b/i, 'ლობ[ა-ჰ]*'],
+    [/\bbrackets?\b/i, '(?:ბრეკეტ|ბრაკეტ)[ა-ჰ]*'],
+    [/\bcheck-?ins?\b/i, 'ჩექ-?ინ[ა-ჰ]*'],
+    [/\bleaderboards?\b/i, '(?:ლიდერბორდ|ლიდერების\s+ცხრილ)[ა-ჰ]*'],
+    [/\bstat(?:s|istics)\b/i, 'სტატისტიკ[ა-ჰ]*'],
+    [/\bseasons?\b/i, 'სეზონ[ა-ჰ]*'],
+    [/\bachievements?\b/i, 'მიღწევ[ა-ჰ]*'],
+    [/\bbadges?\b/i, 'ბეიჯ[ა-ჰ]*'],
+    [/\blevels?\b/i, 'დონ[ა-ჰ]*'],
+    [/\branks?\b/i, '(?:რანკ|რანგ)[ა-ჰ]*'],
+    [/\bskins?\b/i, 'სკინ[ა-ჰ]*'],
+    [/\bmarketplace\b/i, '(?:მარკეტფლეის|მარკეტპლეის|მარკეტ)[ა-ჰ]*'],
+    [/\bsellers?\b/i, 'გამყიდველ[ა-ჰ]*'],
+    [/\blistings?\b/i, 'განცხადებ[ა-ჰ]*'],
+    [/\bbundles?\b/i, 'ბანდლ[ა-ჰ]*'],
+    [/\bescrow\b/i, 'ესქრო[ა-ჰ]*'],
+    [/\bfeatured\b/i, 'რჩეულ[ა-ჰ]*'],
+    [/\bpremium\b/i, 'პრემიუმ[ა-ჰ]*'],
+    [/\bsubscriptions?\b/i, 'გამოწერ[ა-ჰ]*'],
+    [/\bfollowers?\b/i, 'გამომწერ[ა-ჰ]*'],
+    [/\bfollow(?:ing)?\b/i, 'გამოწერ[ა-ჰ]*'],
+    [/\bdashboard\b/i, '(?:დაფ|დეშბორდ|დაშბორდ)[ა-ჰ]*'],
+    [/\bprofiles?\b/i, 'პროფილ[ა-ჰ]*'],
+    [/\bavatars?\b/i, 'ავატარ[ა-ჰ]*'],
+    [/\bonline\b/i, 'ონლაინ[ა-ჰ]*'],
+    [/\boffline\b/i, 'ოფლაინ[ა-ჰ]*'],
+    [/\bverified\b/i, '(?:ვერიფიცირებულ|გადამოწმებულ)[ა-ჰ]*'],
+    [/\bratings?\b/i, '(?:რეიტინგ|შეფასებ)[ა-ჰ]*'],
+    [/\breviews?\b/i, '(?:შეფასებ|მიმოხილვ)[ა-ჰ]*'],
+    [/\bsupport\b/i, '(?:მხარდაჭერ|საფორთ)[ა-ჰ]*'],
+    [/\bwallet\b/i, 'საფულ[ა-ჰ]*'],
+  ] as Array<[RegExp, string]>
+).map(([english, georgian]) => [english, new RegExp(`${KA_WORD}${georgian}`, 'g')])
+
+const TERM_CASE: Record<string, string> = { xp: 'XP', mvp: 'MVP', vod: 'VOD', 'check-in': 'Check-in', checkin: 'Check-in' }
+// The English term as written in the translation, in title case ("reviews" → "Reviews").
+function termCase(match: string): string {
+  return match
+    .split(/\s+/)
+    .map((word) => TERM_CASE[word.toLowerCase()] ?? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
+// The Georgian string with the glossary terms in English, or null when nothing changes.
+function glossaryTrimmed(trimmed: string): string | null {
+  if (!GEORGIAN.test(trimmed)) return null
+  const english = translateTrimmed(trimmed)
+  if (!english) return null
+  let out = trimmed
+  for (const [englishTerm, georgian] of GLOSSARY) {
+    const found = englishTerm.exec(english)
+    if (!found) continue
+    out = out.replace(georgian, termCase(found[0]))
+  }
+  return out === trimmed ? null : out
+}
+
+function glossaryString(value: string): string | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const hit = glossaryTrimmed(trimmed)
+  if (!hit) return null
+  const leading = value.match(/^\s*/)?.[0] ?? ''
+  const trailing = value.match(/\s*$/)?.[0] ?? ''
+  return `${leading}${hit}${trailing}`
+}
+
+// The Georgian source of a text node, and the value this layer last wrote into it. React may
+// replace the text at any time (a new count, a status change): then the node's value no longer
+// equals what was written, and the new value is the source.
+const writtenText = new WeakMap<Text, string>()
+
 function applyToTextNode(node: Text, language: Language) {
   if (node.parentElement?.closest(SKIP_SELECTOR)) return
   const current = node.nodeValue ?? ''
-  if (language === 'en') {
-    const translated = translateString(current)
-    if (translated === null) return
-    originalText.set(node, current)
-    if (current !== translated) node.nodeValue = translated
-  } else {
-    const original = originalText.get(node)
-    if (original !== undefined && current !== original) node.nodeValue = original
+  const written = writtenText.get(node)
+  const source = written !== undefined && current === written ? (originalText.get(node) ?? current) : current
+  const next = language === 'en' ? translateString(source) : glossaryString(source)
+  if (next === null || next === source) {
+    if (current !== source) node.nodeValue = source
     originalText.delete(node)
+    writtenText.delete(node)
+    return
   }
+  originalText.set(node, source)
+  writtenText.set(node, next)
+  if (current !== next) node.nodeValue = next
 }
 
 function applyToElementAttributes(element: Element, language: Language) {
+  if (element.closest('[data-i18n-keep]')) return
   for (const attribute of ATTRIBUTES) {
     const stashKey = `${ORIGINAL_ATTR_PREFIX}${attribute}`
-    if (language === 'en') {
-      const value = element.getAttribute(attribute)
-      if (!value) continue
-      const translated = translateTrimmed(value.trim())
-      if (!translated) continue
-      element.setAttribute(stashKey, value)
-      element.setAttribute(attribute, translated)
-    } else if (element.hasAttribute(stashKey)) {
-      element.setAttribute(attribute, element.getAttribute(stashKey) ?? '')
-      element.removeAttribute(stashKey)
+    const value = element.getAttribute(attribute)
+    // A stashed original is still the source unless the attribute was changed since.
+    const stashed = element.getAttribute(stashKey)
+    const source = stashed !== null && element.getAttribute(`${stashKey}-written`) === value ? stashed : value
+    if (source === null) continue
+    const next = source.trim() ? (language === 'en' ? translateTrimmed(source.trim()) : glossaryTrimmed(source.trim())) : null
+    if (!next || next === source) {
+      if (stashed !== null) {
+        element.removeAttribute(stashKey)
+        element.removeAttribute(`${stashKey}-written`)
+        if (value !== source) element.setAttribute(attribute, source)
+      }
+      continue
     }
+    element.setAttribute(stashKey, source)
+    element.setAttribute(`${stashKey}-written`, next)
+    if (value !== next) element.setAttribute(attribute, next)
   }
 }
 
@@ -181,18 +285,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = language
     applyToSubtree(document.body, language)
-    if (language !== 'en') return
-    translateTitle(language)
+    if (language === 'en') translateTitle(language)
 
+    // Georgian mode keeps watching too: the glossary terms (see GLOSSARY) are swapped in as React
+    // renders new text.
     const observer = new MutationObserver((records) => {
       for (const record of records) {
         if (record.type === 'characterData') {
-          applyToTextNode(record.target as Text, 'en')
+          applyToTextNode(record.target as Text, language)
         } else if (record.type === 'attributes' && record.target instanceof Element) {
           const name = record.attributeName ?? ''
-          if (!name.startsWith(ORIGINAL_ATTR_PREFIX)) applyToElementAttributes(record.target, 'en')
+          if (!name.startsWith(ORIGINAL_ATTR_PREFIX)) applyToElementAttributes(record.target, language)
         } else {
-          record.addedNodes.forEach((node) => applyToSubtree(node, 'en'))
+          record.addedNodes.forEach((node) => applyToSubtree(node, language))
         }
       }
     })
@@ -203,7 +308,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       attributes: true,
       attributeFilter: [...ATTRIBUTES],
     })
-    const titleObserver = new MutationObserver(() => translateTitle('en'))
+    const titleObserver = new MutationObserver(() => {
+      if (language === 'en') translateTitle('en')
+    })
     const titleElement = document.querySelector('title')
     if (titleElement) titleObserver.observe(titleElement, { childList: true, characterData: true, subtree: true })
     return () => {

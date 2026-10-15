@@ -54,3 +54,9 @@ Self-entered profile fields live on `users` (migration `1784356000000-ProfilesAn
   - It carries the reviewer's and the owner's Wave rank and online state.
   - `/u/[username]` renders them with `ReviewCard`; coach reviews are `readOnly`.
   - Privacy is asserted in `test/profiles.e2e-spec.ts`.
+
+## 2026-10-15
+- `role` is `coach` only for a verified, **active**, non-removed coach (suspended / removed coaches
+  fall back to seller / player).
+- `eligibleTitles(userId)` / `effectiveTitle(user, role)` back the profile title — see
+  `backend/src/users/CLAUDE.md`.

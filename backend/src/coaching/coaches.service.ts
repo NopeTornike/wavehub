@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, In, IsNull, Repository } from 'typeorm';
 import { CoachStatus, DEFAULT_COACH_AVAILABILITY, NotificationType, SubscriptionAudience, UserStatus, VerificationStatus } from '@wavehub/shared-types';
 import type { AdminCoachSummary, CoachAvailability, MyCoachProfile, PublicCoachDetail, PublicCoachReview, PublicCoachSummary } from '@wavehub/shared-types';
 import { Coach } from './coach.entity';
@@ -132,6 +132,23 @@ export class CoachesService {
   // edit-after-submit path for the same reason — see listings/CLAUDE.md).
   async apply(userId: string, dto: ApplyCoachDto): Promise<Coach> {
     const existing = await this.coaches.findOne({ where: { userId } });
+    if (existing?.removedAt) {
+      // Removed by staff earlier: the same row (userId is unique) starts over as a new application.
+      await this.coaches.update(existing.id, {
+        gameId: dto.gameId ?? null,
+        specialty: dto.specialty,
+        bio: dto.bio,
+        languages: dto.languages ?? [],
+        hourlyRateWaveCoin: dto.hourlyRateWaveCoin,
+        verificationStatus: VerificationStatus.Pending,
+        rejectionReason: null,
+        status: CoachStatus.Active,
+        removedAt: null,
+        isFeatured: false,
+        homeOrder: null,
+      });
+      return this.getOrThrow(existing.id);
+    }
     if (existing) {
       assertValidVerificationTransition(existing.verificationStatus, VerificationStatus.Pending);
       await this.coaches.update(existing.id, {
@@ -160,7 +177,8 @@ export class CoachesService {
   }
 
   async findMine(userId: string): Promise<Coach | null> {
-    return this.coaches.findOne({ where: { userId }, relations: ['game'] });
+    // A removed coach is no coach (they may apply again).
+    return this.coaches.findOne({ where: { userId, removedAt: IsNull() }, relations: ['game'] });
   }
 
   // Public directory — only ever verified + active, same "never leak a non-public state to a
@@ -172,6 +190,7 @@ export class CoachesService {
       .leftJoinAndSelect('coach.game', 'game')
       .where('coach.verificationStatus = :verified', { verified: VerificationStatus.Verified })
       .andWhere('coach.status = :active', { active: CoachStatus.Active })
+      .andWhere('coach.removedAt IS NULL')
       // Seller/Coach `featuredListings` perk boosts a coach ahead of the rating order (aliases are
       // quoted — raw join strings don't get TypeORM's alias escaping; see listings.service.ts).
       .leftJoin(
@@ -202,8 +221,9 @@ export class CoachesService {
       qb.andWhere(':language = ANY(coach.languages)', { language: filters.language });
     }
 
-    // Staff-featured coaches first, then the membership boost, then the chosen sort.
-    qb.orderBy('coach.isFeatured', 'DESC').addOrderBy('featured_boost', 'DESC');
+    // Staff-featured coaches first, in the staff-set home order, then the membership boost, then
+    // the chosen sort.
+    qb.orderBy('coach.isFeatured', 'DESC').addOrderBy('coach.homeOrder', 'ASC', 'NULLS LAST').addOrderBy('featured_boost', 'DESC');
     switch (filters.sort) {
       case 'price_asc':
         qb.addOrderBy('coach.hourlyRateWaveCoin', 'ASC');
@@ -242,7 +262,7 @@ export class CoachesService {
 
   async findPublicById(id: string): Promise<PublicCoachDetail> {
     const coach = await this.coaches.findOne({
-      where: { id, verificationStatus: VerificationStatus.Verified, status: CoachStatus.Active },
+      where: { id, verificationStatus: VerificationStatus.Verified, status: CoachStatus.Active, removedAt: IsNull() },
       relations: ['user', 'game'],
     });
     if (!coach) throw new NotFoundException('Coach not found');
@@ -314,7 +334,7 @@ export class CoachesService {
   }
 
   private async mineOrThrow(userId: string): Promise<Coach> {
-    const coach = await this.coaches.findOne({ where: { userId } });
+    const coach = await this.coaches.findOne({ where: { userId, removedAt: IsNull() } });
     if (!coach) throw new NotFoundException('You are not a coach');
     return coach;
   }
@@ -405,7 +425,7 @@ export class CoachesService {
 
   async listPendingVerification(): Promise<AdminCoachSummary[]> {
     const rows = await this.coaches.find({
-      where: { verificationStatus: VerificationStatus.Pending },
+      where: { verificationStatus: VerificationStatus.Pending, removedAt: IsNull() },
       relations: ['user', 'game'],
       order: { createdAt: 'ASC' },
     });
@@ -413,7 +433,7 @@ export class CoachesService {
   }
 
   async listAll(): Promise<AdminCoachSummary[]> {
-    const rows = await this.coaches.find({ relations: ['user', 'game'], order: { createdAt: 'DESC' } });
+    const rows = await this.coaches.find({ where: { removedAt: IsNull() }, relations: ['user', 'game'], order: { createdAt: 'DESC' } });
     return rows.map((row) => this.toAdminSummary(row));
   }
 
@@ -439,6 +459,12 @@ export class CoachesService {
       rejectionReason: null,
     };
     const existing = await this.coaches.findOne({ where: { userId: user.id } });
+    if (existing?.removedAt) {
+      await this.coaches.update(existing.id, { ...fields, status: CoachStatus.Active, removedAt: null, isFeatured: false, homeOrder: null });
+      await this.badges?.onCoachVerified(user.id);
+      await this.notifyApproved(user.id);
+      return this.toAdminSummary(await this.getOrThrow(existing.id));
+    }
     if (existing) {
       if (existing.verificationStatus === VerificationStatus.Verified) {
         throw new ConflictException('This account is already a coach — edit the existing profile');
@@ -509,21 +535,48 @@ export class CoachesService {
     return this.toAdminSummary(await this.getOrThrow(id));
   }
 
-  // Permanently remove a coach profile (2026-10-03) — only one with no session history: sessions
-  // cascade from the coach row and carry money/escrow history, so a coach who ever had a booking is
-  // suspended instead. The user account itself stays; favourites go with the profile.
-  async adminDelete(id: string): Promise<{ username: string; status: CoachStatus }> {
+  // Delete a coach (Super Admin). Without session history the profile row is deleted. With history
+  // (sessions carry escrow / payment history and cascade from the coach row) the coach is
+  // *removed* instead (owner 2026-10-15: "delete only suspended, and the profile still said
+  // Coach"): `removedAt` hides the profile from the directory, the home page, the admin lists and
+  // the profile title, and the Coach badges go, while every session stays. Refused while a session
+  // is still open — finish or cancel it first. The user account stays either way.
+  async adminDelete(id: string): Promise<{ username: string; status: CoachStatus; outcome: 'deleted' | 'removed' }> {
     const coach = await this.getOrThrow(id);
-    await this.dataSource.transaction(async (m) => {
+    const outcome = await this.dataSource.transaction(async (m) => {
       // FOR UPDATE conflicts with the KEY SHARE lock a booking's session INSERT takes on the coach
-      // row, so no booking can land between this check and the delete (and be cascade-deleted).
+      // row, so no booking can land between this check and the delete / removal.
       await m.query(`SELECT id FROM coaches WHERE id = $1 FOR UPDATE`, [id]);
-      const [{ count }] = await m.query(`SELECT count(*)::int AS count FROM coaching_sessions WHERE "coachId" = $1`, [id]);
-      if (count > 0) throw new ConflictException('This coach has session history and can’t be deleted — suspend them instead');
-      await m.delete(Coach, { id });
+      const [{ total, open }] = await m.query(
+        `SELECT count(*)::int AS total,
+                count(*) FILTER (WHERE "status" IN ('scheduled', 'in_progress', 'awaiting_confirmation', 'disputed'))::int AS open
+           FROM coaching_sessions WHERE "coachId" = $1`,
+        [id],
+      );
+      if (open > 0) throw new ConflictException('This coach has open sessions — complete or cancel them first');
+      if (total === 0) {
+        await m.delete(Coach, { id });
+        return 'deleted' as const;
+      }
+      await m.update(Coach, { id }, { removedAt: new Date(), status: CoachStatus.Suspended, isFeatured: false, homeOrder: null });
+      return 'removed' as const;
     });
     await this.badges?.onCoachUnverified(coach.userId);
-    return { username: coach.user.username, status: coach.status };
+    return { username: coach.user.username, status: coach.status, outcome };
+  }
+
+  // The home coach section's order (staff): `ids` are featured coaches, first to last.
+  async setHomeOrder(ids: string[]): Promise<AdminCoachSummary[]> {
+    const unique = [...new Set(ids)];
+    if (unique.length !== ids.length) throw new BadRequestException('Each coach can appear once');
+    const featured = await this.coaches.find({ where: { isFeatured: true, removedAt: IsNull() }, select: ['id'] });
+    const featuredIds = new Set(featured.map((c) => c.id));
+    if (unique.some((id) => !featuredIds.has(id))) throw new BadRequestException('Only featured coaches have a home order');
+    await this.dataSource.transaction(async (m) => {
+      await m.update(Coach, { isFeatured: true }, { homeOrder: null });
+      for (const [index, id] of unique.entries()) await m.update(Coach, { id }, { homeOrder: index + 1 });
+    });
+    return this.listAll();
   }
 
   private toSummary(coach: Coach, profileBadge: string | null = null, completedSessions = 0, responseMinutes: number | null = null): PublicCoachSummary {
@@ -562,6 +615,8 @@ export class CoachesService {
       verificationStatus: coach.verificationStatus,
       status: coach.status,
       isFeatured: coach.isFeatured,
+      homeOrder: coach.homeOrder ?? null,
+      removedAt: coach.removedAt ? coach.removedAt.toISOString() : null,
       rejectionReason: coach.rejectionReason,
       createdAt: coach.createdAt.toISOString(),
     };
@@ -569,12 +624,14 @@ export class CoachesService {
 
   async setFeatured(id: string, isFeatured: boolean): Promise<AdminCoachSummary> {
     await this.getOrThrow(id);
-    await this.coaches.update(id, { isFeatured });
+    await this.coaches.update(id, isFeatured ? { isFeatured } : { isFeatured, homeOrder: null });
     return this.toAdminSummary(await this.getOrThrow(id));
   }
 
+  // A removed coach (see adminDelete) is gone for every staff action; re-adding them goes through
+  // adminCreate / apply, which find the row by user.
   private async getOrThrow(id: string): Promise<Coach> {
-    const coach = await this.coaches.findOne({ where: { id }, relations: ['user', 'game'] });
+    const coach = await this.coaches.findOne({ where: { id, removedAt: IsNull() }, relations: ['user', 'game'] });
     if (!coach) throw new NotFoundException('Coach not found');
     return coach;
   }

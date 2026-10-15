@@ -1,11 +1,14 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { UserStatus } from '@wavehub/shared-types'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { api, errorMessage } from '../lib/api'
-import AuthCardTop from '../components/AuthCardTop'
-import LanguageSwitcher from '../components/LanguageSwitcher'
 import PageHead from '../components/PageHead'
+import AuthShell from '../components/auth/AuthShell'
+import AuthIcon from '../components/auth/AuthIcons'
+import PasswordInput from '../components/auth/PasswordInput'
+import { useAuthModal } from '../lib/auth-modal'
 import { useAuth } from '../lib/auth'
 import EmailCodeForm from '../components/EmailCodeForm'
 
@@ -25,6 +28,9 @@ export default function Register() {
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [agreed, setAgreed] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState('')
+  const { openLogin } = useAuthModal()
   const { user, refresh } = useAuth()
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
@@ -134,6 +140,11 @@ export default function Register() {
       return
     }
 
+    if (!agreed) {
+      setError('რეგისტრაციისთვის დაეთანხმე მომსახურების პირობებს და კონფიდენციალურობის პოლიტიკას.')
+      return
+    }
+
     setSubmitting(true)
     try {
       await api.register({
@@ -143,9 +154,8 @@ export default function Register() {
         lastName: form.lastName,
         password: form.password,
       })
-      setSuccess(
-        'რეგისტრაცია წარმატებით დასრულდა! ელფოსტაზე გამოგიგზავნეთ წერილი 6-ციფრიანი კოდით — შეიყვანეთ ის ქვემოთ (ან დააჭირეთ წერილში ღილაკს). თუ წერილი სპამში მოხვდა, კოდი მაინც მუშაობს.',
-      )
+      setRegisteredEmail(form.email.trim().toLowerCase())
+      setSuccess('ok')
       // Registration also logs the new account in (session cookie) — sync the shared auth state so
       // the topbar and the verify-your-email banner show up without a reload.
       await refresh()
@@ -161,123 +171,133 @@ export default function Register() {
   }
 
   return (
-    <main className="auth-page-shell">
-      <LanguageSwitcher floating />
-      <PageHead title="რეგისტრაცია" description="შექმენით WaveHub ანგარიში და დაიწყეთ გაყიდვა ან შეძენა." noIndex />
-      <section className="auth-card" aria-labelledby="authTitle">
-        <AuthCardTop />
+    <AuthShell
+      topAction={
+        <button type="button" className="ax-top-link" onClick={() => openLogin('/')}>
+          შესვლა
+        </button>
+      }
+    >
+      <PageHead title="რეგისტრაცია" description="შექმენით WaveHubX ანგარიში და დაიწყეთ გაყიდვა ან შეძენა." noIndex />
+      <img className="ax-logo" src="/assets/logo-wavehubx-main.png" alt="WaveHubX" />
+      <h1 className="ax-heading">
+        შემოგვიერთდი <span>WaveHubX</span>-ზე
+      </h1>
+      <p className="ax-lead">შექმენი ანგარიში და დაიწყე შენი მოგზაურობა გეიმინგ მარკეტში.</p>
 
-        <div className="auth-card-head">
-          <p className="section-kicker">WaveHub ანგარიში</p>
-          <h1 id="authTitle">შედით ან შექმენით ანგარიში</h1>
-        </div>
-
-        <div className="auth-tabs" role="tablist" aria-label="ავტორიზაცია">
-          <Link className="auth-tab" href="/login" role="tab" aria-selected="false">
-            შესვლა
-          </Link>
-          <button className="auth-tab active" type="button" role="tab" aria-selected="true">
-            რეგისტრაცია
-          </button>
-        </div>
-
-        <form className="auth-form" onSubmit={submit}>
-          <label>
-            <span>მომხმარებლის სახელი</span>
-            <input
-              autoComplete="username"
-              name="username"
-              placeholder="choose_username"
-              required
-              value={form.username}
-              onChange={onChange}
-            />
-          </label>
-          {usernameError && (
-            <p className="auth-status" style={{ color: 'var(--red)' }}>
-              {usernameError}
-            </p>
-          )}
-          {form.username && isValidUsername(form.username) && checkingUsername && <p className="auth-status">შემოწმება...</p>}
-          {form.username && isValidUsername(form.username) && usernameAvailable === true && (
-            <p className="auth-status" style={{ color: 'var(--green)' }}>
-              Username თავისუფალია
-            </p>
-          )}
-          {/* auth.html's own register form has no email field — added here because email
-              verification is a non-negotiable rule (root CLAUDE.md §"Non-negotiable rules") the
-              backend actually enforces; the static prototype never had a real backend behind it. */}
-          <label>
-            <span>ელფოსტა</span>
-            <input autoComplete="email" name="email" type="email" placeholder="you@example.com" required value={form.email} onChange={onChange} />
-          </label>
-          <div className="auth-split">
-            <label>
-              <span>სახელი</span>
+      {success && user?.status === UserStatus.PendingVerification ? (
+        <VerifyEmailSteps email={registeredEmail} onVerified={() => void router.push('/')} />
+      ) : success && user ? (
+        <p className="ax-ok" role="status">
+          ელფოსტა დადასტურებულია — ანგარიში აქტიურია.
+        </p>
+      ) : (
+        <form className="ax-form" onSubmit={submit} noValidate>
+          <div className="ax-split">
+            <label className="ax-field">
+              <span className="ax-sr">სახელი</span>
+              <AuthIcon name="user" />
               <input autoComplete="given-name" name="firstName" placeholder="სახელი" required value={form.firstName} onChange={onChange} />
             </label>
-            <label>
-              <span>გვარი</span>
+            <label className="ax-field">
+              <span className="ax-sr">გვარი</span>
+              <AuthIcon name="user" />
               <input autoComplete="family-name" name="lastName" placeholder="გვარი" required value={form.lastName} onChange={onChange} />
             </label>
           </div>
-          <label>
-            <span>პაროლი</span>
-            <input
-              autoComplete="new-password"
-              name="password"
-              type="password"
-              minLength={PASSWORD_MIN_LENGTH}
-              placeholder="მინიმუმ 8 სიმბოლო"
-              required
-              value={form.password}
-              onChange={onChange}
-            />
+          <label className="ax-field">
+            <span className="ax-sr">Username</span>
+            <AuthIcon name="user" />
+            <input autoComplete="username" name="username" placeholder="Username" required value={form.username} onChange={onChange} />
           </label>
-          <label>
-            <span>პაროლის დადასტურება</span>
-            <input
-              autoComplete="new-password"
-              name="confirmPassword"
-              type="password"
-              minLength={PASSWORD_MIN_LENGTH}
-              placeholder="გაიმეორეთ პაროლი"
-              required
-              value={form.confirmPassword}
-              onChange={onChange}
-            />
+          {usernameError && <p className="ax-hint bad">{usernameError}</p>}
+          {form.username && isValidUsername(form.username) && checkingUsername && <p className="ax-hint">შემოწმება...</p>}
+          {form.username && isValidUsername(form.username) && usernameAvailable === true && <p className="ax-hint good">Username თავისუფალია</p>}
+          <label className="ax-field">
+            <span className="ax-sr">ელფოსტა</span>
+            <AuthIcon name="mail" />
+            <input autoComplete="email" name="email" type="email" placeholder="ელფოსტა" required value={form.email} onChange={onChange} />
           </label>
-
+          <PasswordInput name="password" label="პაროლი" placeholder="პაროლი (მინ. 8 სიმბოლო)" autoComplete="new-password" value={form.password} onChange={onChange} />
+          <PasswordInput name="confirmPassword" label="პაროლის დადასტურება" placeholder="გაიმეორე პაროლი" autoComplete="new-password" value={form.confirmPassword} onChange={onChange} />
+          <label className="ax-check ax-terms">
+            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+            <span>
+              ვეთანხმები <Link href="/pages/terms">მომსახურების პირობებს</Link> და <Link href="/pages/privacy">კონფიდენციალურობის პოლიტიკას</Link>
+            </span>
+          </label>
           {error && (
-            <p className="auth-status" aria-live="polite" style={{ color: 'var(--red)' }}>
+            <p className="ax-error" role="alert">
               {error}
             </p>
           )}
-          {success && (
-            <p className="auth-status" aria-live="polite" style={{ color: 'var(--green)' }}>
-              {success}
-            </p>
-          )}
-          {success && user?.status === UserStatus.PendingVerification && <EmailCodeForm onVerified={() => void router.push('/')} />}
-          {success && user && user.status !== UserStatus.PendingVerification && (
-            <p className="auth-status" style={{ color: 'var(--green)' }}>
-              ელფოსტა დადასტურებულია — ანგარიში აქტიურია.
-            </p>
-          )}
-
-          <button
-            className="auth-submit-button"
-            type="submit"
-            disabled={Boolean(usernameError) || checkingUsername || !form.username || submitting}
-          >
-            ანგარიშის შექმნა
+          <button className="ax-submit" type="submit" disabled={Boolean(usernameError) || checkingUsername || !form.username || submitting}>
+            {submitting ? 'იქმნება…' : 'ანგარიშის შექმნა'} <AuthIcon name="arrow" />
           </button>
+          <p className="ax-switch">
+            უკვე გაქვს ანგარიში?{' '}
+            <button type="button" onClick={() => openLogin('/')}>
+              შესვლა
+            </button>
+          </p>
         </form>
+      )}
+    </AuthShell>
+  )
+}
 
-        <Link className="auth-back-link" href="/marketplace">
-          მარკეტფლეისზე დაბრუნება
-        </Link>
-      </section>
-    </main>
+// After registering (owner 2026-10-15: "people don't understand how to confirm"): what happened,
+// where the email is (incl. Spam / Promotions), the code box, and a resend with a cooldown.
+function VerifyEmailSteps({ email, onVerified }: { email: string; onVerified: () => void }) {
+  const [cooldown, setCooldown] = useState(0)
+  const [sending, setSending] = useState(false)
+  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
+  const resend = async () => {
+    setSending(true)
+    setMessage(null)
+    try {
+      await api.resendVerification()
+      setMessage({ kind: 'ok', text: 'ახალი კოდი გამოგზავნილია. გამოიყენე ბოლო წერილის კოდი.' })
+      setCooldown(60)
+    } catch (err) {
+      setMessage({ kind: 'error', text: errorMessage(err, 'წერილის გაგზავნა ვერ მოხერხდა.') })
+    } finally {
+      setSending(false)
+    }
+  }
+  return (
+    <div className="ax-verify">
+      <h2>დაადასტურე ელფოსტა</h2>
+      <ol>
+        <li>
+          <b>1</b>
+          <span>
+            გამოგიგზავნეთ წერილი მისამართზე <strong>{email || 'შენს ელფოსტაზე'}</strong>.
+          </span>
+        </li>
+        <li>
+          <b>2</b>
+          <span>გახსენი წერილი WaveHubX-ისგან. თუ Inbox-ში არ ჩანს, შეამოწმე Spam და Promotions საქაღალდეები — მოსვლას შეიძლება რამდენიმე წუთი დასჭირდეს.</span>
+        </li>
+        <li>
+          <b>3</b>
+          <span>შეიყვანე წერილში მოცემული 6-ციფრიანი კოდი აქ (ან დააჭირე წერილში ღილაკს).</span>
+        </li>
+      </ol>
+      <EmailCodeForm onVerified={onVerified} />
+      <button type="button" className="ax-resend" onClick={() => void resend()} disabled={sending || cooldown > 0}>
+        {sending ? 'იგზავნება…' : cooldown > 0 ? `კოდის თავიდან გაგზავნა (${cooldown}წმ)` : 'წერილი არ მოვიდა? კოდის თავიდან გაგზავნა'}
+      </button>
+      {message && (
+        <p className={message.kind === 'ok' ? 'ax-ok' : 'ax-error'} role="status">
+          {message.text}
+        </p>
+      )}
+    </div>
   )
 }

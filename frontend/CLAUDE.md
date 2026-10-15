@@ -1099,3 +1099,73 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   - A staff counterpart is labelled "WaveHubX გუნდი" with no profile link, since their username
     isn't sent.
   - See `backend/src/chat/CLAUDE.md`.
+
+## 2026-10-15 Owner round 3 (17 screenshots + the terminology / menu specs)
+- **Terminology (owner rule)**: Rank, Level, XP, Achievement, Badge, Leaderboard, Stats, MVP, Season,
+  Skin, Coaching, Coach, Verified Coach, VOD Review, Rank Up, Team Finder, Match, Lobby, Bracket,
+  Playoffs, Grand Final, Check-in, Marketplace, Seller, Verified Seller, Listing, Steam Key, Gift Card,
+  Bundle, Escrow, Featured, Premium, Subscription, Dashboard, Profile, Username, Avatar, Online,
+  Offline, Verified, Follow, Review, Rating, Support and Wallet are written in English in both
+  languages.
+  - `lib/i18n.tsx` `GLOSSARY` does this in Georgian mode, the same way Tornike's `site-footer.js`
+    does on the prototype (`4239914`).
+  - For a UI string with a dictionary entry whose English uses one of these terms, the matching
+    Georgian word is swapped for the term in title case: "საფულე" → "Wallet",
+    "შეფასებები ჯერ არ არის" → "Reviews ჯერ არ არის".
+  - User-written text has no dictionary entry and is never touched. The observer now runs in
+    Georgian mode too.
+  - **So every new Georgian UI string needs its English entry**, or the terms in it stay Georgian.
+- **Navigation is English in both languages** (`data-i18n-keep`):
+  - Sidebar order: Home, Dashboard, Marketplace, Services, Steam Keys, Coaching, Tournaments,
+    About Us, Messages, Wallet, Cart, Favorites. Subscriptions moved to the profile menu.
+  - Profile menu: My Orders, My Listings (`/orders#my-listings`; `MyListings` has an `id` and
+    scrolls itself into view), My Tournaments (`/tournaments/hub`), Contact Support, Settings,
+    Admin Panel, then My Profile, Subscriptions, Verified Status.
+  - Phone bottom nav: Home, Marketplace, Orders, Wallet, Profile.
+- **Home**:
+  - "Explore our services" has 8 tiles: Individual Services (→ `/services`) takes the old "Soon"
+    spot, and Soon moves to the end. Phones show the same row; the separate phone services list is
+    gone.
+  - Popular Games is a sideways strip of every game (arrows on desktop, swipe on phones).
+  - The Steam section uses the phone card design at every width (4 / 3 per row).
+  - Coach card pills stay on one line on phones.
+- **Product card**: the kind badge sits beside the game badge, and both badges and the heart are a
+  bit smaller.
+- **Marketplace lists item listings only** (`type=item`); services are only on `/services`.
+- **Listing page buy panel**: the `ld-` seller card (stock, photo + name, category, delivery) and a
+  2×2 grid of icon cards (completed orders, response time, favourites, rating).
+- **Wallet**:
+  - The four cards in the owner's wording, all from the server (`inEscrow`, `availableToWithdraw`,
+    `totalToppedUp` — see `backend/src/withdrawals/CLAUDE.md`).
+  - The `wb-` top-up card follows the Bank of Georgia design. `public/assets/ui/bog-mark.png` is
+    cropped from the owner's screenshot.
+- **Auth** (`components/auth/*`, `ax-` CSS):
+  - `/register` and `/login` use `AuthShell` (neon X + waves, top bar, centred card).
+  - Register asks for first / last name, username, email, password + confirm (show / hide) and the
+    terms checkbox. Afterwards it shows a 3-step "confirm your email" guide: where the email is,
+    Spam / Promotions, the code box, and resend with a cooldown.
+  - "Log in" in the topbar / profile menu opens `LoginModal` (`lib/auth-modal.tsx`): a right-side
+    drawer on desktop, a centred card on phones.
+  - `LoginForm` accepts email or username and has "Remember me".
+  - No Google / Discord buttons: there is no OAuth, so they would be fake.
+- **Profile title**: Settings has a Title picker (Seller / Coach disabled until true;
+  staff-locked shows a note). Admin → Users has a "Title" panel. `/u/[username]` and
+  `SellerPreview` show `PROFILE_TITLE_LABELS[title]`.
+- **Admin**:
+  - The dashboard has registration KPIs (total / verified / today / last 7 days).
+  - Admin → Coaches has the home-order list (↑ / ↓), the delete result ("deleted" vs "removed"),
+    and other-games chips in the edit panel.
+- **Back keeps your place on every page** (`lib/scroll-memory.ts`, imported in `_app`):
+  - The position is saved under the page being left (on Back the address bar already shows the
+    destination when the route change starts).
+  - The browser's own restoration is manual.
+  - It is re-applied until it holds, because Next resets to the top when the page commits. It
+    stops if the visitor scrolls.
+- **Uploads** (`lib/api.ts#upload`):
+  - Files are read into memory before sending. A gallery / cloud photo on Android is a temporary
+    reference that can expire, and Chrome then dropped the request, which read as "server
+    connection lost".
+  - An unreadable file says so (`FILE_UNREADABLE`); a network failure is retried once.
+  - `SellerModal` copies picked photos right away (`materializeFiles`).
+- **Coach profile games card**: tiles are ≥150px with names breaking between words (three fixed
+  columns squeezed names letter by letter on phones).

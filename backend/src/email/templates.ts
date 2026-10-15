@@ -48,7 +48,7 @@ function actionEmail({ name, ka, en, url, code }: ActionEmail): RenderedEmail {
     en.expiry,
     en.ignore,
     '',
-    'WaveHub — wavehubx.com',
+    'WaveHubX — wavehubx.com',
   ].join('\n');
 
   const block = (lang: 'ka' | 'en', copy: ActionEmail['ka']) => `
@@ -84,7 +84,7 @@ function actionEmail({ name, ka, en, url, code }: ActionEmail): RenderedEmail {
           ${escapeHtml('თუ ღილაკი არ მუშაობს, გახსენით ეს ბმული / If the button doesn\'t work, open this link:')}<br>
           <a href="${safeUrl}" style="color:${BRAND};word-break:break-all">${safeUrl}</a>
         </td></tr>
-        <tr><td style="padding:16px 32px 24px;font-size:12px;color:#8a8696">WaveHub · <a href="https://wavehubx.com" style="color:#8a8696">wavehubx.com</a></td></tr>
+        <tr><td style="padding:16px 32px 24px;font-size:12px;color:#8a8696">WaveHubX · <a href="https://wavehubx.com" style="color:#8a8696">wavehubx.com</a></td></tr>
       </table>
     </td></tr>
   </table>
@@ -99,14 +99,14 @@ export function verificationEmail(name: string, url: string, code?: string): Ren
     code: code ? { ka: 'ან შეიყვანეთ ეს კოდი საიტზე', en: 'Or enter this code on the site', value: code } : undefined,
     ka: {
       heading: 'დაადასტურეთ თქვენი ელფოსტა',
-      intro: 'მადლობა, რომ დარეგისტრირდით WaveHub-ზე. ანგარიშის გასააქტიურებლად დაადასტურეთ ელფოსტა.',
+      intro: 'მადლობა, რომ დარეგისტრირდით WaveHubX-ზე. ანგარიშის გასააქტიურებლად დაადასტურეთ ელფოსტა.',
       button: 'ელფოსტის დადასტურება',
       expiry: 'ბმული მოქმედებს 24 საათის განმავლობაში.',
       ignore: 'თუ ეს ანგარიში თქვენ არ შეგიქმნიათ, უბრალოდ უგულებელყავით ეს წერილი.',
     },
     en: {
       heading: 'Verify your email',
-      intro: 'Thanks for signing up for WaveHub. Please confirm your email address to activate your account.',
+      intro: 'Thanks for signing up for WaveHubX. Please confirm your email address to activate your account.',
       button: 'Verify email',
       expiry: 'This link expires in 24 hours.',
       ignore: "If you didn't create this account, you can safely ignore this email.",
@@ -120,14 +120,14 @@ export function passwordResetEmail(name: string, url: string): RenderedEmail {
     url,
     ka: {
       heading: 'პაროლის აღდგენა',
-      intro: 'მივიღეთ თქვენი WaveHub ანგარიშის პაროლის აღდგენის მოთხოვნა.',
+      intro: 'მივიღეთ თქვენი WaveHubX ანგარიშის პაროლის აღდგენის მოთხოვნა.',
       button: 'ახალი პაროლის დაყენება',
       expiry: 'ბმული მოქმედებს 1 საათის განმავლობაში.',
       ignore: 'თუ ეს თქვენ არ მოგითხოვიათ, უგულებელყავით წერილი — პაროლი არ შეიცვლება.',
     },
     en: {
       heading: 'Reset your password',
-      intro: 'We received a request to reset the password for your WaveHub account.',
+      intro: 'We received a request to reset the password for your WaveHubX account.',
       button: 'Set a new password',
       expiry: 'This link expires in 1 hour.',
       ignore: "If you didn't request this, ignore this email — your password won't change.",
@@ -140,7 +140,7 @@ export function passwordResetEmail(name: string, url: string): RenderedEmail {
 export function notificationEmail(title: string, body: string, url: string): RenderedEmail {
   const safeUrl = escapeHtml(url);
   const settingsUrl = escapeHtml(`${(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '')}/profile`);
-  const text = [title, '', body, '', `ნახვა / View: ${url}`, '', 'ამ წერილების გამორთვა / Turn these emails off: ' + settingsUrl.replace(/&amp;/g, '&'), '', 'WaveHub — wavehubx.com'].join('\n');
+  const text = [title, '', body, '', `ნახვა / View: ${url}`, '', 'ამ წერილების გამორთვა / Turn these emails off: ' + settingsUrl.replace(/&amp;/g, '&'), '', 'WaveHubX — wavehubx.com'].join('\n');
   const html = `<!DOCTYPE html>
 <html lang="ka"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title></head>
 <body style="margin:0;padding:0;background:#f4f3f7;font-family:Arial,Helvetica,sans-serif">
@@ -151,12 +151,12 @@ export function notificationEmail(title: string, body: string, url: string): Ren
         <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:#15131f">${escapeHtml(title)}</h1>
         <p style="margin:0 0 22px;font-size:15px;line-height:1.6;color:#3b3748">${escapeHtml(body).replace(/\n/g, '<br>')}</p>
         <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td style="border-radius:8px;background:${BRAND}">
-          <a href="${safeUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">WaveHub-ზე ნახვა · View on WaveHub</a>
+          <a href="${safeUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">WaveHubX-ზე ნახვა · View on WaveHubX</a>
         </td></tr></table>
       </td></tr>
       <tr><td style="padding:24px 32px;font-size:12px;line-height:1.5;color:#8a8696">
-        ეს წერილი მიიღე, რადგან WaveHub-ზე ანგარიში გაქვს. <a href="${settingsUrl}" style="color:#8a8696">გამორთე ეს წერილები პროფილის პარამეტრებში</a>.<br>
-        You got this because you have a WaveHub account. <a href="${settingsUrl}" style="color:#8a8696">Turn these emails off in your profile settings</a>.
+        ეს წერილი მიიღე, რადგან WaveHubX-ზე ანგარიში გაქვს. <a href="${settingsUrl}" style="color:#8a8696">გამორთე ეს წერილები პროფილის პარამეტრებში</a>.<br>
+        You got this because you have a WaveHubX account. <a href="${settingsUrl}" style="color:#8a8696">Turn these emails off in your profile settings</a>.
       </td></tr>
     </table>
   </td></tr></table>
@@ -177,9 +177,9 @@ export function plainEmail(body: string): RenderedEmail {
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden">
       <tr><td style="padding:24px 32px;background:#0b0a18;font-size:20px;font-weight:800;letter-spacing:2px;color:#ffffff">WAVE<span style="color:${BRAND}">HUB</span>X</td></tr>
       <tr><td style="padding:28px 32px 12px">${paragraphs}</td></tr>
-      <tr><td style="padding:8px 32px 24px;font-size:12px;color:#8a8696">WaveHub · <a href="https://wavehubx.com" style="color:#8a8696">wavehubx.com</a></td></tr>
+      <tr><td style="padding:8px 32px 24px;font-size:12px;color:#8a8696">WaveHubX · <a href="https://wavehubx.com" style="color:#8a8696">wavehubx.com</a></td></tr>
     </table>
   </td></tr></table>
 </body></html>`;
-  return { text: `${body}\n\nWaveHub — wavehubx.com`, html };
+  return { text: `${body}\n\nWaveHubX — wavehubx.com`, html };
 }

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { NotificationType, WAVE_RANK_TIERS } from '@wavehub/shared-types';
+import { NotificationType, OPEN_PROFILE_TITLES, ProfileTitle, WAVE_RANK_TIERS } from '@wavehub/shared-types';
 import type { PublicUserProfile, PublicFollowEntry } from '@wavehub/shared-types';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UserFollow } from './user-follow.entity';
@@ -70,9 +70,38 @@ export class ProfilesService {
     return { following: (await this.follows.count({ where: { followerId, followeeId } })) > 0 };
   }
 
+  // The profile titles this account may pick (owner 2026-10-15): the open ones, plus Seller while
+  // they have a listing that passed review or a completed sale, plus Coach while they are a
+  // verified, active coach. A title can't claim something that isn't true.
+  async eligibleTitles(userId: string): Promise<ProfileTitle[]> {
+    const [row] = await this.db.query(
+      `SELECT
+         EXISTS (SELECT 1 FROM "listings" WHERE "sellerId" = $1 AND "status" IN ('active', 'paused'))
+           OR EXISTS (SELECT 1 FROM "orders" WHERE "sellerId" = $1 AND "status" = 'completed') AS seller,
+         EXISTS (SELECT 1 FROM "coaches" WHERE "userId" = $1 AND "verificationStatus" = 'verified' AND "status" = 'active' AND "removedAt" IS NULL) AS coach`,
+      [userId],
+    );
+    return [
+      ...OPEN_PROFILE_TITLES,
+      ...(row?.seller ? [ProfileTitle.Seller] : []),
+      ...(row?.coach ? [ProfileTitle.Coach] : []),
+    ];
+  }
+
+  // What the title chip shows: a staff-set title as is; the user's own pick while it's still true;
+  // otherwise the automatic role.
+  async effectiveTitle(
+    user: { id: string; profileTitle: string | null; profileTitleByStaff: boolean },
+    role: PublicUserProfile['role'],
+  ): Promise<ProfileTitle> {
+    const chosen = user.profileTitle as ProfileTitle | null;
+    if (chosen && (user.profileTitleByStaff || (await this.eligibleTitles(user.id)).includes(chosen))) return chosen;
+    return role === 'coach' ? ProfileTitle.Coach : role === 'seller' ? ProfileTitle.Seller : ProfileTitle.Player;
+  }
+
   async facts(userId: string, lastSeenAt: Date | null, activeListingCount: number): Promise<Facts> {
     const [row] = await this.db.query(
-      `WITH coach AS (SELECT "id", "verificationStatus" FROM "coaches" WHERE "userId" = $1),
+      `WITH coach AS (SELECT "id", "verificationStatus", "status", "removedAt" FROM "coaches" WHERE "userId" = $1),
             my_teams AS (SELECT "id" FROM "tournament_teams" WHERE "captainUserId" = $1),
             finals AS (
               SELECT m.* FROM "tournament_matches" m
@@ -81,7 +110,7 @@ export class ProfilesService {
        SELECT
          (SELECT count(*) FROM "user_follows" WHERE "followeeId" = $1)::int AS followers,
          (SELECT count(*) FROM "user_follows" WHERE "followerId" = $1)::int AS following,
-         (SELECT "id" FROM coach WHERE "verificationStatus" = 'verified') AS "coachId",
+         (SELECT "id" FROM coach WHERE "verificationStatus" = 'verified' AND "status" = 'active' AND "removedAt" IS NULL) AS "coachId",
          (
            (SELECT count(*) FROM "orders" WHERE "sellerId" = $1 AND "status" = 'completed')
            + (SELECT count(*) FROM "coaching_sessions" WHERE "coachId" IN (SELECT "id" FROM coach) AND "status" = 'completed')
