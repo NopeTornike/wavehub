@@ -19168,6 +19168,7 @@ body:not(.home-page) .mobile-header-auth { display: none !important; }
 .home-explore h2 i:last-child { transform: scaleX(-1); }
 .home-explore-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
 .home-explore-grid > a, .home-explore-grid > span { min-height: 108px; display: grid; justify-items: center; align-content: center; gap: 10px; border: 1px solid rgba(120, 130, 170, .22); border-radius: 10px; color: #eef0f6; background: linear-gradient(170deg, rgba(16, 14, 34, .95), rgba(8, 8, 20, .95)); padding: 12px 8px; font-size: 13px; text-align: center; transition: border-color .2s, transform .2s; }
+.home-explore-grid > a > span, .home-explore-grid > span > span { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .home-explore-grid > a:hover { border-color: rgba(255, 47, 143, .6); transform: translateY(-2px); }
 .home-explore-grid svg { width: 36px; height: 36px; fill: none; stroke: #ff3d9a; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .home-explore-grid img { width: 36px; height: 36px; object-fit: contain; filter: invert(1); }
