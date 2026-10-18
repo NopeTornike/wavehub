@@ -44,6 +44,10 @@ section wins.
   "Tournaments v2" block (`wt-` prefix) near the end of `global.css`; the detail tabs reuse the
   prototype's `.prejoin-*`/`.prize-*`/`.team-*`/`.rule-*` rules. The prototype's team rows use a
   stock portrait sprite for members — overridden to initials (rule #6).
+- **Tournament entry routing**: open/upcoming tournament cards lead to their registration details;
+  in-progress and completed cards lead directly to `/tournaments/[id]/matches`. The detail page
+  opens its Teams tab first for an open tournament and keeps a prominent matches/results link above
+  its four tabs; match history includes a link back to the full tournament information page.
 - **Steam games (docs/design-mockups 04/05)**: `pages/steam-keys.tsx` (search, sort — the genre
   chip bar was removed at the owner's request 2026-09-26; genre stays a seller-entered fact on
   the detail page; 5 large + 7 compact cards, pagination — all server-side) and `components/SteamGameDetail.tsx`

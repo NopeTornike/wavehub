@@ -14,6 +14,7 @@ import HomeBanners, { useBanners } from '../components/HomeBanners'
 import { useFavorites } from '../lib/favorites'
 import { gel } from '../lib/money'
 import { kaDayMonth } from '../lib/dates'
+import { tournamentPrimaryHref } from '../lib/tournaments'
 import { BannerPlacement } from '@wavehub/shared-types'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
@@ -707,7 +708,7 @@ export default function Home() {
                       <dd>{kaDayMonth(tournament.startDate)}</dd>
                     </div>
                   </dl>
-                  <Link className="competition-button tour-register" href={`/tournaments/${tournament.id}`}>
+                  <Link className="competition-button tour-register" href={tournamentPrimaryHref(tournament)}>
                     დარეგისტრირდი <b aria-hidden="true">→</b>
                   </Link>
                 </div>

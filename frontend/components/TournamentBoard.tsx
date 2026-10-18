@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { useMemo, useState, type ReactNode } from 'react'
 import type { PublicTournamentSummary } from '@wavehub/shared-types'
 import { useShell } from '../lib/shell'
-import { isActiveTournament, TIcon, TOURNAMENT_BADGE, tournamentCover, tournamentDates, tournamentFormat } from '../lib/tournaments'
+import { isActiveTournament, TIcon, TOURNAMENT_BADGE, tournamentCover, tournamentDates, tournamentFormat, tournamentPrimaryHref } from '../lib/tournaments'
 
 // docs/design-mockups/02-my-tournaments.jpg: heading with the trophy mark and a game picker, the
 // All / Active / Completed tabs with counts, an "Active" group of large cards (cover left, status
@@ -142,14 +142,14 @@ export default function TournamentBoard({
           <div className="wt-active-grid">
             {shownActive.map((t) => (
               <article key={t.id} className="wt-card-lg">
-                <Link className="wt-card-cover" href={`/tournaments/${t.id}`} style={coverStyle(t)} aria-label={t.name}></Link>
+                <Link className="wt-card-cover" href={tournamentPrimaryHref(t)} style={coverStyle(t)} aria-label={t.name}></Link>
                 <div className="wt-card-body">
                   <Badge t={t} />
                   <h3>
-                    <Link href={`/tournaments/${t.id}`}>{t.name}</Link>
+                    <Link href={tournamentPrimaryHref(t)}>{t.name}</Link>
                   </h3>
                   <Meta t={t} />
-                  <Link className="wt-card-button" href={`/tournaments/${t.id}`}>
+                  <Link className="wt-card-button" href={tournamentPrimaryHref(t)}>
                     ტურნირის ნახვა <TIcon name="arrow" />
                   </Link>
                 </div>
@@ -165,7 +165,7 @@ export default function TournamentBoard({
           {groupHead('completed', completed.length, completed.length)}
           <div className="wt-completed-grid">
             {shownCompleted.map((t) => (
-              <Link key={t.id} className="wt-card-sm" href={`/tournaments/${t.id}`}>
+              <Link key={t.id} className="wt-card-sm" href={tournamentPrimaryHref(t)}>
                 <div className="wt-card-cover" style={coverStyle(t)} aria-hidden="true"></div>
                 <div className="wt-card-body">
                   <Badge t={t} />

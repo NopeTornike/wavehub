@@ -32,6 +32,13 @@ export function isActiveTournament(t: PublicTournamentSummary) {
   return t.status !== TournamentStatus.Completed
 }
 
+// When registration has closed, the match list is the most useful destination.
+export function tournamentPrimaryHref(t: PublicTournamentSummary) {
+  return t.status === TournamentStatus.InProgress || t.status === TournamentStatus.Completed
+    ? `/tournaments/${t.id}/matches`
+    : `/tournaments/${t.id}`
+}
+
 export function tournamentCover(t: PublicTournamentSummary, slugByGameId: Map<string, string>): string | null {
   return t.coverImageUrl ?? gameCover(slugByGameId.get(t.gameId))
 }

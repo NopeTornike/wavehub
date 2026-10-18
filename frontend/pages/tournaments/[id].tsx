@@ -326,6 +326,7 @@ export default function TournamentDetail() {
         setTeams(teamRows)
         setMatches(matchRows)
         setMine(myRows.find((row) => row.tournament.id === id) ?? null)
+        setTab(data.status === TournamentStatus.Open ? 'teams' : 'general')
         setError('')
       })
       .catch((err) => setError(errorMessage(err, 'ტურნირი ვერ მოიძებნა.')))
@@ -483,6 +484,11 @@ export default function TournamentDetail() {
           </section>
 
           <section className="prejoin-details">
+            <p className="wt-matches-link wt-matches-link-prominent">
+              <Link href={`/tournaments/${t.id}/matches`}>
+                მატჩები და შედეგები{matches.length > 0 ? ` (${matches.length})` : ''} <TIcon name="chevron" />
+              </Link>
+            </p>
             <nav aria-label="ტურნირის განყოფილებები">
               {(
                 [
@@ -491,7 +497,10 @@ export default function TournamentDetail() {
                   ['rules', 'layers', 'წესები'],
                   ['teams', 'users', squad ? 'გუნდები' : 'მოთამაშეები'],
                 ] as const
-              ).map(([key, icon, label]) => (
+              )
+                .slice()
+                .sort(([key]) => ['teams', 'general', 'prize', 'rules'].indexOf(key))
+                .map(([key, icon, label]) => (
                 <button key={key} type="button" className={tab === key ? 'active' : undefined} aria-pressed={tab === key} onClick={() => setTab(key)}>
                   <TIcon name={icon} />
                   <span>{label}</span>

@@ -19737,6 +19737,11 @@ a.auth-tab:hover, a.auth-tab:focus-visible { color: white; background: rgba(255,
 .tournament-cover.has-photo::after { background: linear-gradient(0deg, rgba(6, 7, 17, .35), transparent 45%); }
 .wt-matches-link { margin: 10px 0 0; text-align: right; }
 .wt-matches-link a { display: inline-flex; align-items: center; gap: 6px; color: #ff8cc4; font-weight: 800; }
+.wt-matches-link-prominent { margin: 0; padding: 14px 20px 0; text-align: center; }
+.wt-matches-link-prominent a, .wt-tournament-info-link { justify-content: center; min-height: 42px; border: 1px solid rgba(255, 86, 168, .52); border-radius: 8px; color: #ffd4e8; background: rgba(111, 19, 75, .22); padding: 0 15px; }
+.wt-tournament-info-link { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 14px; font-size: 13px; font-weight: 800; }
+.wt-matches-link-prominent a:hover, .wt-matches-link-prominent a:focus-visible, .wt-tournament-info-link:hover, .wt-tournament-info-link:focus-visible { border-color: #ff59ad; color: #fff; background: rgba(190, 27, 115, .38); }
+.prejoin-register + .wt-matches-link { display: none; }
 @media (max-width: 800px) { .wt-hero.has-photo { aspect-ratio: 16 / 9; } }
 
 /* Match stats on phones: every column stays visible (compact), and the table scrolls sideways

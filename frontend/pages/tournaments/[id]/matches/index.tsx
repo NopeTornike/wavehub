@@ -75,6 +75,11 @@ export default function MatchHistory() {
   return (
     <Layout title={tournament ? `${tournament.name} — მატჩები` : 'მატჩები'}>
       <section className="wt-page wt-history">
+        {id && (
+          <Link className="wt-tournament-info-link" href={`/tournaments/${id}`}>
+            ტურნირის სრული ინფოს ნახვა <TIcon name="chevron" />
+          </Link>
+        )}
         <Link className="wt-back" href={mine ? '/tournaments/mine' : id ? `/tournaments/${id}` : '/tournaments'}>
           <TIcon name="back" /> {mine ? 'ჩემს ტურნირებზე დაბრუნება' : 'ტურნირზე დაბრუნება'}
         </Link>
