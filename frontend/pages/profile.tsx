@@ -46,6 +46,7 @@ export default function Profile() {
   const [sessions, setSessions] = useState<PublicCoachingSession[]>([])
   const [purchases, setPurchases] = useState<PublicOrderSummary[]>([])
   const [resending, setResending] = useState(false)
+  const [gamesPickerOpen, setGamesPickerOpen] = useState(false)
 
   useEffect(() => {
     if (!userId) return
@@ -298,7 +299,18 @@ export default function Profile() {
               <legend>
                 მთავარი თამაშები <small>აირჩიეთ მაქსიმუმ 2</small>
               </legend>
-              <div className="profile-main-games-options">
+              <button
+                type="button"
+                className="profile-main-games-toggle"
+                aria-expanded={gamesPickerOpen}
+                aria-controls="profileMainGamesOptions"
+                onClick={() => setGamesPickerOpen((open) => !open)}
+              >
+                <span>{gamesPickerOpen ? 'თამაშების სიის აკეცვა' : 'თამაშების არჩევა'}</span>
+                <span className="profile-main-games-toggle-count">{form.mainGameIds.length}/2</span>
+                <span className="profile-main-games-toggle-icon" aria-hidden="true">⌄</span>
+              </button>
+              <div id="profileMainGamesOptions" className="profile-main-games-options" hidden={!gamesPickerOpen}>
                 {games.map((game) => {
                   const checkedGame = form.mainGameIds.includes(game.gameId)
                   return (

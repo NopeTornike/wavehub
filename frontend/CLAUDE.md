@@ -1152,9 +1152,13 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
     drawer on desktop, a centred card on phones.
   - `LoginForm` accepts email or username and has "Remember me".
   - No Google / Discord buttons: there is no OAuth, so they would be fake.
+  - The registration card uses border-box sizing and zero-minimum grid tracks, so its fields stay
+    within the card at narrow desktop and phone widths.
 - **Profile title**: Settings has a Title picker (Seller / Coach disabled until true;
   staff-locked shows a note). Admin → Users has a "Title" panel. `/u/[username]` and
   `SellerPreview` show `PROFILE_TITLE_LABELS[title]`.
+- **Profile main games**: the two-game checkbox picker is collapsed by default behind its own
+  toggle; its selected count remains visible and it can be opened or closed on desktop and phones.
 - **Admin**:
   - The dashboard has registration KPIs (total / verified / today / last 7 days).
   - Admin → Coaches has the home-order list (↑ / ↓), the delete result ("deleted" vs "removed"),
