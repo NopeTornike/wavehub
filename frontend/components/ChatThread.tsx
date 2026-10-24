@@ -151,7 +151,7 @@ export default function ChatThread({
             m.system ? (
               <p key={m.id} className={`chat-system${m.pending ? ' is-pending' : ''}`}>
                 {m.pending && <span className="chat-spinner" aria-hidden="true" />}
-                {m.body}
+                <span>{m.body}</span>
               </p>
             ) : (
             <div key={m.id} className={`direct-message-row ${m.mine ? 'mine' : 'theirs'}`}>
@@ -166,7 +166,7 @@ export default function ChatThread({
                   <strong>{m.name}</strong>
                   <small>{`${kaDayMonth(m.createdAt)}, ${kaTime(m.createdAt)}`}</small>
                 </div>
-                {m.body && <p>{m.body}</p>}
+                {m.body && m.body.split('\n').map((line, i) => <p key={i}>{line}</p>)}
                 {m.file && <ChatFile file={m.file} />}
               </article>
             </div>

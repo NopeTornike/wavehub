@@ -46,8 +46,9 @@ section wins.
   stock portrait sprite for members — overridden to initials (rule #6).
 - **Tournament entry routing**: open/upcoming tournament cards lead to their registration details;
   in-progress and completed cards lead directly to `/tournaments/[id]/matches`. The detail page
-  opens its Teams tab first for an open tournament and keeps a prominent matches/results link above
-  its four tabs; match history includes a link back to the full tournament information page.
+  opens its Teams tab for an open tournament (tab order: information, prizes, rules, teams — owner
+  round 4) and has the matches/results card under the register bar / "you're registered" card;
+  match history includes a link back to the full tournament information page.
 - **Steam games (docs/design-mockups 04/05)**: `pages/steam-keys.tsx` (search, sort — the genre
   chip bar was removed at the owner's request 2026-09-26; genre stays a seller-entered fact on
   the detail page; 5 large + 7 compact cards, pagination — all server-side) and `components/SteamGameDetail.tsx`
@@ -1223,3 +1224,58 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   - My Listings steps say "wait for approval" / "deliver and get paid";
   - `/sell/services` hides the Coaching category;
   - the phone sidebar scrolls to its last link (`100dvh`, padded past the bottom nav).
+- **Round 4 follow-up (same day, `docs/design-mockups/round-4/` TARGET screens)**:
+  - **Live chat (01)**: the owner's exact greeting and "request received" texts. Both are support
+    bubbles; `ChatThread` splits a body on `\n` into paragraphs, and each paragraph has its own
+    dictionary entry. The "connecting…" spinner under them is plain small text, not a pill. The
+    greeting's English avoids the word "Support", so the glossary keeps "მხარდაჭერის" in Georgian.
+  - **Match history on phones (13)**: below 860px each match is a `wt-mcard`:
+    - logo + name, VS, name + logo;
+    - a 2-column grid of bordered boxes: date & time, map, Best of N, stage (amber for the group
+      stage), and status at full width (WIN / LOSS + score once played);
+    - a full-width "დეტალები →".
+    The table rows are hidden at that width. The three filters stay on one row.
+  - **Teams on phones (14)**: below 760px each team is a `wt-tcard` (`TeamCard` in
+    `tournaments/[id].tsx`):
+    - number box, square logo, name, crown + captain / "Coach: …", member photos;
+    - status (shield-check, Verified / Pending), roster `n / size`, and the team's real match
+      count (links to its matches).
+  - **"You're registered" card (14)**: `wt-mine-card` replaces the register bar once the viewer is on
+    a team:
+    - the team name and a check (verified) or clock (pending);
+    - registered places `teams / max` with a progress bar;
+    - the entry fee as a pill;
+    - "ჩემი გუნდის ნახვა" → `/tournaments/hub`.
+    The mockup's second box looks like a status pill, but the brief asked for the entry fee.
+  - **Tabs (15)**: "ტურნირის ინფორმაცია", "საპრიზოები", "წესები", "გუნდები", in that order. On phones
+    they are four boxes with the first one wider, and words never break mid-word.
+  - **Matches card (17)**: under the register / registered card. It has the title with the count
+    as a pill, the owner's subtitle and a chevron. The old plain "მატჩები და შედეგები (n)" link is
+    removed.
+  - **Match stats (16)**: the table fits at 360 / 375px; a long team name in the card header now
+    wraps.
+  - **Home video hero (02)**, `BannerVideo bigPlay`:
+    - a large glowing centred play button. While the preview plays muted, it turns the sound on;
+      after that it pauses / plays, and it fades out while playing;
+    - for video banners, the CMS button is a purple "▶ label ›" pill;
+    - the dots are centred, and phones use a taller 1.43:1 frame.
+    **Not built: the mockup's "WAVEHUBX COACH INTERVIEWS" kicker and its featured coach (photo,
+    name, game).** A banner has only title / subtitle / button / link, so drawing them would mean
+    inventing a coach (rule #6). Showing them needs new banner fields (e.g. a linked coach) in
+    `backend/src/marketing/`.
+  - **Home services (02)**: on phones the row sits in a card with a "★ სერვისები · ყველას ნახვა ›"
+    header and neon icons.
+    - It keeps the same 8 real destinations. The mockup's VOD analysis, live viewing, settings
+      optimisation, account audit and team finder are not WaveHub categories, so they are not
+      shown.
+    - At ≤400px tile words stay whole.
+  - **Sweep fixes**:
+    - the matches page's "full tournament info" link had an unsized chevron that filled the phone
+      width;
+    - the desktop teams table's "Matches" link text sat in the top-left corner;
+    - "Marketplace" broke as "Marketplac / e" at 360px.
+    Missing English entries were added ("1. შექმენი განცხადება", the games-picker toggle, the
+    welcome notification title).
+  - **Subscriptions (`/plans`)**: unchanged. No subscription screenshot exists in
+    `docs/design-mockups` or on `origin/main`; only `premium-account.png`, which is listing art.
+

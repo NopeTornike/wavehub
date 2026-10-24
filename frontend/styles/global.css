@@ -22173,6 +22173,10 @@ body.ax-modal-open { overflow: hidden; }
 .sp-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .sp-live-cta { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px; background: linear-gradient(90deg, #ff2f8f, #7b3df5); color: #fff; font-weight: 800; font-size: 14px; text-decoration: none; box-shadow: 0 8px 22px rgba(255, 47, 143, .25); }
 .sp-live .chat-thread { min-height: min(640px, calc(100dvh - 220px)); }
+/* Round 4 (01.jpg): the greeting / "request received" are support bubbles with paragraph breaks, and
+   the "connecting…" line under them is plain small text with a spinner, not a pill. */
+.direct-message-bubble p + p { margin-top: 8px; }
+.chat-system.is-pending { padding: 4px 8px; border: 0; background: none; color: #a9a3bf; font-size: 13px; }
 .direct-message-form.has-attach { grid-template-columns: auto minmax(0, 1fr) auto; }
 @media (max-width: 720px) {
   .direct-message-form.has-attach { grid-template-columns: auto minmax(0, 1fr) minmax(76px, auto); }
@@ -22273,40 +22277,140 @@ body.ax-modal-open { overflow: hidden; }
 .prejoin-details nav button:last-child::before { content: none; display: none; }
 @media (max-width: 800px) {
   .prejoin-details nav { gap: 6px; padding: 10px; }
-  .prejoin-details nav button { flex-direction: column; gap: 5px; min-height: 64px; padding: 8px 4px; font-size: 11.5px; line-height: 1.2; }
-  .prejoin-details nav button span { display: block; text-align: center; overflow-wrap: anywhere; }
+  .prejoin-details nav button { flex-direction: column; gap: 5px; min-height: 64px; padding: 8px 4px; font-size: 11px; line-height: 1.2; }
+  .prejoin-details nav button span { display: block; text-align: center; overflow-wrap: normal; word-break: keep-all; }
+  /* 15.jpg: the first tab ("Tournament information", two lines) is the widest box. */
+  .prejoin-details nav { display: grid !important; grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr)); }
+  .prejoin-details nav button { min-width: 0; }
   .prejoin-details nav button svg { width: 22px; height: 22px; flex: 0 0 auto; }
 }
-/* Teams list on phones (owner screenshot 24): one card per team instead of a 900px table that had
-   to be scrolled sideways — number, logo + name + captain, status; members; size + matches. */
+/* Teams list on phones (round 4, 14.jpg): the 900px table row is replaced by a `wt-tcard` — number
+   box, square logo, name, crown + captain / coach, a row of member photos, then three bordered boxes
+   (status, roster, matches). Wider screens keep the table. */
+.wt-tcard { display: none; }
 @media (max-width: 760px) {
   .team-table { overflow: visible; border: 0; background: transparent; }
   .team-table-head { display: none; }
-  .team-list { min-width: 0 !important; display: grid; gap: 10px; }
-  .team-row { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "num id state" "members members members" "size size view"; align-items: center; gap: 10px 12px !important; min-height: 0; padding: 12px !important; border: 1px solid rgba(130, 151, 181, .2) !important; border-radius: 12px !important; }
-  .team-row > * { padding: 0 !important; }
-  .team-row .team-number { grid-area: num; color: #ff6fb5; font-weight: 900; }
-  .team-row .team-identity { grid-area: id; min-width: 0; }
-  .team-row .team-state { grid-area: state; justify-self: end; }
-  .team-row .team-members { grid-area: members; display: flex; flex-wrap: wrap; gap: 8px 10px !important; padding-top: 10px !important; border-top: 1px solid rgba(255, 255, 255, .07); }
-  .team-row .team-size { grid-area: size; display: flex; align-items: baseline; gap: 6px; }
-  .team-row .team-view { grid-area: view; justify-self: end; }
-  .team-row .team-name strong, .team-row .team-name small { overflow-wrap: anywhere; }
+  .team-list { min-width: 0 !important; display: grid; gap: 12px; }
+  .team-list > .team-row { display: none !important; }
+  .wt-tcard { display: grid; gap: 12px; padding: 12px; border: 1px solid rgba(255, 79, 159, .38); border-radius: 14px; background: linear-gradient(160deg, rgba(60, 14, 48, .35), rgba(12, 12, 28, .8)); }
+  .wt-tcard-top { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: start; gap: 12px; }
+  .wt-tcard-num { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid rgba(255, 79, 159, .5); border-radius: 10px; background: rgba(255, 47, 143, .08); color: #fff; font-size: 16px; font-weight: 900; }
+  .wt-tcard-logo { display: grid; place-items: center; width: 74px; height: 74px; border: 1px solid rgba(255, 79, 159, .55); border-radius: 10px; background: rgba(255, 47, 143, .1) center / cover no-repeat; color: #ff5fae; font-size: 20px; font-weight: 900; }
+  .wt-tcard-id { display: grid; gap: 6px; min-width: 0; }
+  .wt-tcard-id > strong { color: #fff; font-size: 16px; font-weight: 900; line-height: 1.2; text-transform: uppercase; overflow-wrap: anywhere; }
+  .wt-tcard-id > small { display: flex; align-items: flex-start; gap: 6px; color: #c5c9d8; font-size: 12px; line-height: 1.35; }
+  .wt-tcard-id > small svg { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; color: #ff5fae; fill: rgba(255, 95, 174, .25); }
+  .wt-tcard-id > small span { min-width: 0; overflow-wrap: anywhere; }
+  .wt-tcard-members { display: flex; flex-wrap: wrap; gap: 6px; }
+  .wt-tcard-members a, .wt-tcard-members span { display: block; text-decoration: none; }
+  .wt-tcard-members i { display: grid; place-items: center; width: 44px; height: 44px; border: 1.5px solid rgba(255, 79, 159, .6); border-radius: 50%; background: radial-gradient(circle, rgba(143, 69, 255, .45), rgba(30, 14, 60, .95)) center / cover no-repeat; color: #fff; font-size: 16px; font-style: normal; font-weight: 800; }
+  .wt-tcard-members i.has-photo { background-size: cover; background-position: center; }
+  .wt-tcard-boxes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .wt-tcard-boxes > * { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0; padding: 9px 6px; border: 1px solid rgba(130, 151, 181, .22); border-radius: 10px; background: rgba(255, 255, 255, .02); color: #fff; text-decoration: none; }
+  .wt-tcard-boxes svg { width: 19px; height: 19px; flex: 0 0 auto; color: #ff5fae; }
+  .wt-tcard-boxes span { display: grid; gap: 1px; min-width: 0; }
+  .wt-tcard-boxes small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #b9bfd0; font-size: 10px; letter-spacing: -.01em; }
+  .wt-tcard-boxes strong { font-size: 13.5px; font-weight: 800; }
+  .wt-tcard-boxes .is-verified svg, .wt-tcard-boxes .is-verified strong { color: #3ee08a; }
+  .wt-tcard-boxes .is-pending svg, .wt-tcard-boxes .is-pending strong { color: #ffb347; }
+  .wt-tcard-boxes a:hover, .wt-tcard-boxes a:focus-visible { border-color: #ff4f9f; outline: none; }
 }
-/* Match history on phones / narrow screens (owner screenshots 25–26): one card per match — stage and
-   result on top, the two teams facing each other, the facts row, then the details button — instead
-   of a 900px table row that broke apart. */
+@media (max-width: 380px) {
+  .wt-tcard-top { gap: 9px; }
+  .wt-tcard-num { width: 36px; height: 36px; font-size: 14px; }
+  .wt-tcard-logo { width: 58px; height: 58px; font-size: 16px; }
+  .wt-tcard-members i { width: 38px; height: 38px; }
+  .wt-tcard-boxes > * { flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px; }
+  .wt-tcard-boxes svg { width: 18px; height: 18px; }
+}
+/* "You're registered" card (round 4, 14.jpg) — replaces the register bar once the viewer is in. */
+.wt-mine-card { display: grid; gap: 14px; margin: 18px 18px 0; padding: 16px; border: 1.5px solid #ff3d8f; border-radius: 16px; background: linear-gradient(160deg, rgba(90, 14, 60, .4), rgba(14, 10, 30, .9)); box-shadow: 0 0 24px rgba(255, 47, 143, .18); }
+.wt-mine-card svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.wt-mine-card header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; }
+.wt-mine-icon { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid rgba(255, 79, 159, .45); border-radius: 12px; background: rgba(255, 47, 143, .12); color: #ff5fae; }
+.wt-mine-icon svg { width: 28px; height: 28px; }
+.wt-mine-copy { display: grid; gap: 4px; min-width: 0; }
+.wt-mine-copy strong { color: #fff; font-size: 18px; font-weight: 900; line-height: 1.2; }
+.wt-mine-copy small { color: #c9cddb; font-size: 13px; overflow-wrap: anywhere; }
+.wt-mine-copy small b { color: #fff; font-weight: 700; }
+.wt-mine-check { color: #3ee08a; }
+.wt-mine-check.is-pending { color: #ffb347; }
+.wt-mine-check svg { width: 30px; height: 30px; }
+.wt-mine-stats { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); border: 1px solid rgba(255, 79, 159, .25); border-radius: 12px; background: rgba(10, 8, 22, .55); }
+.wt-mine-stats > div { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 12px; }
+.wt-mine-stats > div + div { border-left: 1px solid rgba(255, 255, 255, .1); }
+.wt-mine-stats > div > svg { width: 24px; height: 24px; flex: 0 0 auto; color: #ff5fae; }
+.wt-mine-stats span { display: grid; gap: 6px; min-width: 0; flex: 1; }
+.wt-mine-stats small { color: #c9cddb; font-size: 12px; line-height: 1.25; }
+.wt-mine-stats strong { color: #ff4f9f; font-size: 24px; font-weight: 900; line-height: 1; }
+.wt-mine-bar { display: block; height: 7px; border-radius: 99px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.wt-mine-bar > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff2f8f, #ff6fb5); }
+.wt-mine-fee b { justify-self: start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 12px; border: 1px solid rgba(255, 79, 159, .55); border-radius: 999px; background: rgba(255, 47, 143, .14); color: #ff8cc4; font-size: 13px; font-weight: 800; overflow-wrap: anywhere; }
+.wt-mine-button { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 52px; padding: 0 16px; border-radius: 12px; background: linear-gradient(90deg, rgba(160, 20, 100, .55), #e0338e); color: #fff; font-size: 15px; font-weight: 800; text-decoration: none; }
+.wt-mine-button:hover, .wt-mine-button:focus-visible { filter: brightness(1.1); outline: none; }
+.wt-mine-button svg { width: 22px; height: 22px; }
+@media (max-width: 620px) {
+  .wt-mine-card { margin: 14px 10px 0; padding: 12px; gap: 12px; }
+  .wt-mine-card header { gap: 10px; }
+  .wt-mine-icon { width: 44px; height: 44px; }
+  .wt-mine-copy strong { font-size: 16px; }
+  .wt-mine-stats > div { padding: 10px; gap: 8px; }
+  .wt-mine-stats strong { font-size: 21px; }
+  /* The fee pill gets the column's full width under its icon + label. */
+  .wt-mine-fee { display: grid !important; grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .wt-mine-fee > span { display: contents; }
+  .wt-mine-fee b { grid-column: 1 / -1; }
+}
+/* The teams table's "Matches" control is a link, not the prototype's button: centre its text. */
+a.team-view { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+/* Matches card title row: the count is a pill right after the title (17.jpg). */
+.wt-matches-card { grid-template-columns: auto minmax(0, 1fr) auto; }
+.wt-matches-card-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.wt-matches-card-count { background: rgba(255, 47, 143, .22); color: #fff; }
+/* Match history on phones / narrow screens (round 4, 13.jpg): the table row is replaced by a
+   `wt-mcard` — teams facing each other (logo + name, VS, name + logo), a 2-column grid of bordered
+   info boxes (date & time, map, format, stage — amber for the group stage —, status full width) and
+   a full-width "details" button. Wider screens keep the table. */
+.wt-mcard { display: none; }
 @media (max-width: 860px) {
-  .wt-table { overflow: visible; display: grid; gap: 10px; }
-  .wt-table-head.wt-history-row { display: none; }
-  .wt-history-row { min-width: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "stage result" "vs vs" "info info" "btn btn"; gap: 12px; padding: 14px; border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px; background: rgba(10, 12, 26, .7); }
-  .wt-history-row > .wt-stage { grid-area: stage; min-width: 0; }
-  .wt-history-row > .wt-result { grid-area: result; justify-self: end; }
-  .wt-history-row > .wt-vs { grid-area: vs; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 10px; border-radius: 10px; background: rgba(255, 255, 255, .03); }
-  .wt-history-row > .wt-vs .wt-vs-team { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
-  .wt-history-row > .wt-vs .wt-vs-team strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-  .wt-history-row > .wt-match-info { grid-area: info; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; }
-  .wt-history-row > .wt-outline-btn { grid-area: btn; justify-content: center; width: 100%; }
+  .wt-table { overflow: visible; display: grid; gap: 12px; }
+  .wt-table > .wt-history-row { display: none !important; }
+  .wt-mcard { display: grid; gap: 12px; padding: 14px; border: 1px solid rgba(120, 130, 170, .2); border-radius: 14px; background: rgba(10, 12, 26, .7); }
+  .wt-mcard-teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+  .wt-mcard-team { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .wt-mcard-team.b { justify-content: flex-end; text-align: right; }
+  .wt-mcard-team strong { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; color: #fff; font-size: 14px; font-weight: 900; line-height: 1.2; text-transform: uppercase; }
+  .wt-mcard-team .wt-team-mark { width: 44px; height: 44px; border-color: rgba(255, 79, 159, .55); }
+  .wt-mcard-teams > em { color: #8f97b3; font-style: normal; font-size: 13px; font-weight: 800; letter-spacing: .08em; }
+  .wt-mcard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .wt-mcard-grid p { display: flex; align-items: center; gap: 10px; min-width: 0; margin: 0; padding: 10px 12px; border: 1px solid rgba(120, 130, 170, .2); border-radius: 10px; background: rgba(255, 255, 255, .02); }
+  .wt-mcard-grid p.wide { grid-column: 1 / -1; }
+  .wt-mcard-grid svg { width: 22px; height: 22px; flex: 0 0 auto; color: #c9cfe2; }
+  .wt-mcard-grid span { display: grid; gap: 2px; min-width: 0; }
+  .wt-mcard-grid small { color: #9aa1b8; font-size: 11px; }
+  .wt-mcard-grid strong { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; color: #fff; font-size: 13.5px; font-weight: 700; overflow-wrap: anywhere; }
+  .wt-mcard-grid strong b { color: #ff8cc4; font-weight: 900; }
+  .wt-mcard-grid p.is-group { border-color: rgba(255, 170, 60, .3); background: rgba(255, 160, 40, .07); }
+  .wt-mcard-grid p.is-group svg, .wt-mcard-grid p.is-group strong { color: #ffb347; }
+  .wt-mcard-grid p.is-win strong { color: #45e08c; }
+  .wt-mcard-grid p.is-loss strong { color: #ff6b81; }
+  .wt-mcard-btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px; border: 1.5px solid #ff3d8f; border-radius: 10px; background: rgba(255, 47, 143, .05); color: #fff; font-size: 15px; font-weight: 800; text-decoration: none; }
+  .wt-mcard-btn:hover, .wt-mcard-btn:focus-visible { background: rgba(255, 47, 143, .14); outline: none; }
+  .wt-mcard-btn svg { width: 20px; height: 20px; }
+  /* The three filters stay on one row, like the target. */
+  .wt-history .wt-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%; }
+  .wt-history .wt-seg button { min-width: 0; justify-content: center; gap: 6px; padding: 0 6px; font-size: 12px; line-height: 1.15; text-align: center; }
+  .wt-history .wt-seg button svg { width: 17px; height: 17px; flex: 0 0 auto; }
+}
+/* The "full tournament info" link's chevron had no size and filled the whole phone width. */
+.wt-tournament-info-link svg { width: 16px; height: 16px; flex: 0 0 auto; }
+@media (max-width: 360px) {
+  .wt-mcard { padding: 12px; }
+  .wt-mcard-grid p { gap: 8px; padding: 9px 10px; }
+  .wt-mcard-team { gap: 7px; }
+  .wt-mcard-team .wt-team-mark { width: 36px; height: 36px; }
+  .wt-mcard-team strong { font-size: 13px; }
 }
 /* Admin match stats: the team's players as @username chips (TournamentOps). */
 .to-player-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -22330,14 +22434,62 @@ body.ax-modal-open { overflow: hidden; }
   .wt-stat-row .wt-player > span { min-width: 0; }
   .wt-stat-row .wt-player strong { max-width: none !important; font-size: 12.5px; }
   .wt-stat-row .wt-player b { font-size: 9px; padding: 0 5px; }
-}
-@media (max-width: 760px) {
-  .team-row .team-name strong, .team-row .team-name small { max-width: none !important; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
-  .team-row .team-view { width: auto !important; min-width: 0 !important; min-height: 34px; display: inline-flex !important; align-items: center; justify-content: center; padding: 0 16px !important; border-radius: 8px; }
+  /* A long team name wraps instead of running past the card's edge. */
+  .wt-team-stats > header { gap: 10px; padding: 14px 12px; }
+  .wt-team-stats > header h2 { min-width: 0; font-size: 19px; overflow-wrap: anywhere; }
 }
 /* "ინდივიდუალური სერვისები" (owner screenshot 32) broke mid-word on phones: its first word is wider
    than the tile's text box. Give that label the tile's full width and a slightly smaller size so
    each word stays whole. */
 @media (max-width: 480px) {
   .home-explore-grid a[href="/services"] span { display: block; margin-inline: -5px; font-size: 10px; letter-spacing: -.01em; overflow-wrap: normal; word-break: keep-all; }
+}
+/* Home video hero (round 4, 02.jpg): a large glowing play button over the video, the button as a
+   purple "▶ label ›" pill, the dots centred under the copy. Video banners only; photo banners keep
+   the look above. The coach / kicker parts of the mockup have no banner fields and are not drawn. */
+.banner-video-play { position: absolute; z-index: 4; left: 62%; top: 46%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 86px; height: 86px; padding: 0; border: 2px solid rgba(255, 255, 255, .85); border-radius: 50%; background: rgba(40, 10, 70, .45); color: #fff; cursor: pointer; backdrop-filter: blur(4px); box-shadow: 0 0 0 6px rgba(170, 70, 255, .25), 0 0 30px rgba(190, 80, 255, .75), inset 0 0 18px rgba(190, 80, 255, .45); transition: opacity .2s ease, transform .2s ease; }
+.banner-video-play svg { width: 38px; height: 38px; margin-left: 4px; }
+.banner-video-play.is-playing svg { margin-left: 0; }
+.banner-video-play.is-playing { opacity: 0; }
+.hero-banner:hover .banner-video-play.is-playing, .banner-video-play.is-playing:focus-visible { opacity: .85; }
+.banner-video-play:hover, .banner-video-play:focus-visible { transform: translate(-50%, -50%) scale(1.06); outline: none; }
+.hero-banner.is-video .hero-banner-cta { gap: 10px; border-color: rgba(200, 140, 255, .55); background: linear-gradient(90deg, #8e2de2, #b02fd0); box-shadow: 0 8px 22px rgba(142, 45, 226, .4); }
+.hero-banner-cta-play { width: 15px; height: 15px; flex: 0 0 auto; }
+.hero-banner.is-video .hero-banner-cta b { font-size: 1.3em; line-height: 1; }
+.hero-banner.is-video .home-banner-dots { left: 50%; right: auto; bottom: 10px; transform: translateX(-50%); }
+.hero-banner.is-video .home-banner-dots button.active { width: 9px; background: #ff2f9a; box-shadow: 0 0 8px rgba(255, 47, 154, .8); }
+@media (max-width: 620px) {
+  .hero-banner.is-video { aspect-ratio: 1.43 / 1; }
+  .hero-banner.is-video .hero-banner-copy { width: 60%; padding: 0 12px 18px; }
+  .hero-banner.is-video .hero-banner-copy strong { font-size: 21px; line-height: 1.15; }
+  .banner-video-play { left: 73%; top: 44%; width: 58px; height: 58px; box-shadow: 0 0 0 4px rgba(170, 70, 255, .25), 0 0 22px rgba(190, 80, 255, .75), inset 0 0 12px rgba(190, 80, 255, .45); }
+  .banner-video-play svg { width: 26px; height: 26px; margin-left: 3px; }
+  .hero-banner.is-video .hero-banner-cta { padding: 8px 12px; font-size: 12.5px; }
+}
+/* Home services on phones (round 4, 02.jpg): the row sits in a card with a "★ Services · View all ›"
+   header (same destinations as before — only real pages), neon pink/purple icons. */
+.home-explore-head { display: none; }
+@media (max-width: 760px) {
+  .home-explore { padding: 14px 10px 10px; border: 1px solid rgba(120, 130, 170, .18); border-radius: 14px; background: rgba(10, 10, 24, .6); }
+  .home-explore > h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .home-explore-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 4px 12px; }
+  .home-explore-head strong { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 17px; font-weight: 800; }
+  .home-explore-head svg { width: 22px; height: 22px; fill: rgba(190, 80, 255, .25); stroke: #c35cff; stroke-width: 1.8; stroke-linejoin: round; }
+  .home-explore-head a { display: flex; align-items: center; gap: 6px; color: #ff2e9a; font-size: 12px; text-decoration: none; }
+  .home-explore-head a span { font-size: 18px; line-height: 1; }
+  .home-explore-grid { gap: 8px; }
+  .home-explore-grid svg { stroke: #e04bff; filter: drop-shadow(0 0 5px rgba(224, 75, 255, .45)); }
+}
+@media (max-width: 400px) {
+  /* Words stay whole in the 4-column tiles ("Tournaments" split as "Tournament / s" at 360px). */
+  .home-explore-grid > a, .home-explore-grid > span { padding-inline: 3px; font-size: 11px; }
+  .home-explore-grid > a > span, .home-explore-grid > span > span { overflow-wrap: normal; word-break: normal; }
+}
+@media (max-width: 400px) {
+  .home-explore-grid a[href="/services"] span { margin-inline: 0; font-size: 9px; letter-spacing: -.03em; }
+}
+/* "Marketplace" (the glossary's English title in Georgian mode too) broke as "Marketplac / e" beside
+   the count box at 360px: keep the word whole and size it to the space. */
+@media (max-width: 420px) {
+  .marketplace-head h1 { overflow-wrap: normal; word-break: normal; font-size: clamp(22px, 7.4vw, 30px); }
 }

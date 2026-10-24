@@ -53,6 +53,8 @@ export function useSwipe(onPrev: () => void, onNext: () => void) {
 
 // A video slide: autoplays muted inline, no photo behind it, only a pause / play control.
 // With a single banner it loops; otherwise the carousel moves on when it ends.
+// `bigPlay` (the home hero, round 4 02.jpg): the control is a large centred play button. While the
+// preview plays muted, it turns the sound on (watch the video); after that it pauses / plays.
 export function BannerVideo({
   src,
   className,
@@ -60,7 +62,9 @@ export function BannerVideo({
   paused,
   onPausedChange,
   onEnded,
+  bigPlay = false,
 }: {
+  bigPlay?: boolean
   src: string
   className?: string
   loop: boolean
@@ -69,6 +73,7 @@ export function BannerVideo({
   onEnded: () => void
 }) {
   const ref = useRef<HTMLVideoElement>(null)
+  const [muted, setMuted] = useState(true)
 
   useEffect(() => {
     const v = ref.current
@@ -84,7 +89,7 @@ export function BannerVideo({
         className={className}
         src={src}
         autoPlay
-        muted
+        muted={muted}
         playsInline
         loop={loop}
         preload="auto"
@@ -95,6 +100,38 @@ export function BannerVideo({
         // A file that can't play must not freeze the carousel.
         onError={onEnded}
       />
+      {bigPlay ? (
+        <button
+          type="button"
+          className={`banner-video-play${muted || paused ? '' : ' is-playing'}`}
+          aria-label={muted ? 'ვიდეოს ხმით ნახვა' : paused ? 'ვიდეოს გაგრძელება' : 'ვიდეოს პაუზა'}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (muted) {
+              const v = ref.current
+              if (v) {
+                v.muted = false
+                void v.play().catch(() => undefined)
+              }
+              setMuted(false)
+              onPausedChange(false)
+            } else {
+              onPausedChange(!paused)
+            }
+          }}
+        >
+          {muted || paused ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor" />
+            </svg>
+          )}
+        </button>
+      ) : (
       <button
         type="button"
         className="banner-video-toggle"
@@ -115,6 +152,7 @@ export function BannerVideo({
           </svg>
         )}
       </button>
+      )}
     </>
   )
 }

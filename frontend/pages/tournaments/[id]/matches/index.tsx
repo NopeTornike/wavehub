@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { MyTournamentEntry, PublicTournamentMatch, PublicTournamentSummary, PublicTournamentTeam } from '@wavehub/shared-types'
 import { TournamentMatchStage, TournamentMatchStatus } from '@wavehub/shared-types'
 import Layout from '../../../../components/Layout'
@@ -176,11 +176,13 @@ export default function MatchHistory() {
                 const focusSide = focusId ? (m.teamA?.id === focusId ? 'a' : m.teamB?.id === focusId ? 'b' : null) : null
                 const outcome = winner && focusSide ? (winner === focusSide ? 'win' : 'loss') : null
                 const score = m.scoreA !== null && m.scoreB !== null ? (focusSide === 'b' ? `${m.scoreB} - ${m.scoreA}` : `${m.scoreA} - ${m.scoreB}`) : null
+                const stageText = m.stage === TournamentMatchStage.Group ? `${STAGE_LABEL[m.stage]}${m.groupName ? ` ${m.groupName}` : ''}` : m.roundLabel || STAGE_LABEL[m.stage]
                 return (
-                  <article key={m.id} className="wt-history-row" role="row">
+                  <Fragment key={m.id}>
+                  <article className="wt-history-row" role="row">
                     <span className={`wt-stage ${m.stage}`}>
                       <TIcon name={m.stage === TournamentMatchStage.Group ? 'users' : 'trophy'} />
-                      {m.stage === TournamentMatchStage.Group ? `${STAGE_LABEL[m.stage]}${m.groupName ? ` ${m.groupName}` : ''}` : m.roundLabel || STAGE_LABEL[m.stage]}
+                      {stageText}
                     </span>
                     <span className="wt-vs">
                       <span className="wt-vs-team">
@@ -215,6 +217,66 @@ export default function MatchHistory() {
                       დეტალები <TIcon name="arrow" />
                     </Link>
                   </article>
+                  {/* Phones (round 4, 13.jpg): the two teams facing each other, then bordered info
+                      boxes — date & time, map, format, stage (amber for the group stage), status —
+                      and a full-width details button. */}
+                  <article className="wt-mcard">
+                    <div className="wt-mcard-teams">
+                      <span className="wt-mcard-team">
+                        <TeamMark team={m.teamA} />
+                        <strong>{m.teamA?.name ?? 'TBD'}</strong>
+                      </span>
+                      <em>VS</em>
+                      <span className="wt-mcard-team b">
+                        <strong>{m.teamB?.name ?? 'TBD'}</strong>
+                        <TeamMark team={m.teamB} />
+                      </span>
+                    </div>
+                    <div className="wt-mcard-grid">
+                      <p>
+                        <TIcon name="calendar" />
+                        <span>
+                          <small>თარიღი და დრო</small>
+                          <strong>{formatDateTime(m.scheduledAt) || 'დრო დაზუსტდება'}</strong>
+                        </span>
+                      </p>
+                      <p>
+                        <TIcon name="pin" />
+                        <span>
+                          <small>რუკა</small>
+                          <strong>{m.map || '—'}</strong>
+                        </span>
+                      </p>
+                      <p>
+                        <TIcon name="layers" />
+                        <span>
+                          <small>ფორმატი</small>
+                          <strong>Best of {m.bestOf}</strong>
+                        </span>
+                      </p>
+                      <p className={m.stage === TournamentMatchStage.Group ? 'is-group' : undefined}>
+                        <TIcon name={m.stage === TournamentMatchStage.Group ? 'users' : 'trophy'} />
+                        <span>
+                          <small>ეტაპი</small>
+                          <strong>{stageText}</strong>
+                        </span>
+                      </p>
+                      <p className={`wide${outcome ? ` is-${outcome}` : ''}`}>
+                        <TIcon name="calendarClock" />
+                        <span>
+                          <small>სტატუსი</small>
+                          <strong>
+                            {outcome ? (outcome === 'win' ? 'WIN' : 'LOSS') : MATCH_STATUS_LABEL[m.status]}
+                            {score && <b>{score}</b>}
+                          </strong>
+                        </span>
+                      </p>
+                    </div>
+                    <Link className="wt-mcard-btn" href={`/tournaments/${m.tournamentId}/matches/${m.id}`}>
+                      დეტალები <TIcon name="arrow" />
+                    </Link>
+                  </article>
+                  </Fragment>
                 )
               })}
             </div>

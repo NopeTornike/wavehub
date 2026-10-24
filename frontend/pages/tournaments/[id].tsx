@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type CSSProperties } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type CSSProperties } from 'react'
 import type { MyTournamentEntry, PublicTournamentMatch, PublicTournamentSummary, PublicTournamentTeam, TournamentPlayerLookup } from '@wavehub/shared-types'
 import { TOURNAMENT_DETAIL_KEYS, TournamentStatus, TournamentTeamStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
@@ -292,7 +292,80 @@ function RegistrationModal({
   )
 }
 
-const TAB_ORDER = ['teams', 'general', 'prize', 'rules']
+// A team on phones (round 4, 14.jpg): number, logo, name, captain + coach, member photos, then
+// status / roster / matches boxes. Wider screens keep the table row.
+function TeamCard({ team, index, squad, teamSize, matchCount, href }: { team: PublicTournamentTeam; index: number; squad: boolean; teamSize: number; matchCount: number; href: string }) {
+  const photo = team.logoUrl ?? (squad ? null : team.players[0]?.avatarUrl ?? null)
+  const verified = team.status === TournamentTeamStatus.Verified
+  return (
+    <article className="wt-tcard">
+      <div className="wt-tcard-top">
+        <span className="wt-tcard-num">{String(index + 1).padStart(2, '0')}</span>
+        <span className="wt-tcard-logo" style={photo ? { backgroundImage: `url("${photo}")` } : undefined} aria-hidden="true">
+          {photo ? '' : (team.tag || team.name).slice(0, 3).toUpperCase()}
+        </span>
+        <div className="wt-tcard-id">
+          <strong>{team.name}</strong>
+          <small>
+            <TIcon name="crown" />
+            <span>
+              კაპიტანი: @{team.captainUsername}
+              {team.coachName && <> · Coach: {team.coachName}</>}
+            </span>
+          </small>
+          <div className="wt-tcard-members">
+            {team.members.map((member, i) => {
+              const player = team.players.find((p) => p.inGameName === member) ?? (i === 0 ? team.players[0] : undefined)
+              const face = (
+                <i className={player?.avatarUrl ? 'has-photo' : undefined} style={player?.avatarUrl ? { backgroundImage: `url("${player.avatarUrl}")` } : undefined}>
+                  {player?.avatarUrl ? '' : member.slice(0, 1).toUpperCase()}
+                </i>
+              )
+              return player?.username ? (
+                <Link key={member} href={`/u/${encodeURIComponent(player.username)}`} title={`@${player.username}`} aria-label={member}>
+                  {face}
+                </Link>
+              ) : (
+                <span key={member} title={member}>
+                  {face}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+      <div className="wt-tcard-boxes">
+        <p className={verified ? 'is-verified' : 'is-pending'}>
+          <TIcon name="shieldCheck" />
+          <span>
+            <small>სტატუსი</small>
+            <strong>{verified ? 'Verified' : 'Pending'}</strong>
+          </span>
+        </p>
+        <p>
+          <TIcon name="users" />
+          <span>
+            <small>შემადგენლობა</small>
+            <strong>
+              {team.members.length} / {teamSize}
+            </strong>
+          </span>
+        </p>
+        <Link href={href}>
+          <TIcon name="gamepad" />
+          <span>
+            <small>მატჩები</small>
+            <strong>{matchCount}</strong>
+          </span>
+        </Link>
+      </div>
+    </article>
+  )
+}
+
+// The owner's order (round 4, 15.jpg): information, prizes, rules, teams. An open tournament still
+// opens on its Teams tab (see load()).
+const TAB_ORDER = ['general', 'prize', 'rules', 'teams']
 
 export default function TournamentDetail() {
   const router = useRouter()
@@ -414,15 +487,9 @@ export default function TournamentDetail() {
         : Number(b.status === TournamentTeamStatus.Verified) - Number(a.status === TournamentTeamStatus.Verified) || a.createdAt.localeCompare(b.createdAt),
     )
 
-  let registerButton: ReactNode
-  if (mine) {
-    registerButton = (
-      <Link id="tdRegisterNow" className="wt-register-link" href="/tournaments/hub">
-        {mine.team.status === TournamentTeamStatus.Pending ? 'მოლოდინში — ჰაბი' : 'დარეგისტრირებული ✓'} <TIcon name="chevron" />
-      </Link>
-    )
-  } else {
-    registerButton = (
+  const matchCount = (teamId: string) => matches.filter((m) => m.teamA?.id === teamId || m.teamB?.id === teamId).length
+
+  const registerButton: ReactNode = (
       <button id="tdRegisterNow" type="button" disabled={busy || full || !open} onClick={register}>
         {busy
           ? 'იგზავნება…'
@@ -437,8 +504,7 @@ export default function TournamentDetail() {
                 : 'რეგისტრაცია'}
         {open && !full && <TIcon name="chevron" />}
       </button>
-    )
-  }
+  )
 
   const scrollOthers = (dir: 1 | -1) => carousel.current?.scrollBy({ left: dir * carousel.current.clientWidth * 0.8, behavior: 'smooth' })
 
@@ -486,32 +552,18 @@ export default function TournamentDetail() {
           </section>
 
           <section className="prejoin-details">
-            {/* The matches card (owner screenshot 21): trophy, title + subtitle, match count, chevron. */}
-            <Link className="wt-matches-card" href={`/tournaments/${t.id}/matches`}>
-              <span className="wt-matches-card-icon" aria-hidden="true">
-                <TIcon name="trophy" />
-              </span>
-              <span className="wt-matches-card-copy">
-                <strong>მატჩები და შედეგები</strong>
-                <small>{matches.length > 0 ? 'ნახე ყველა მატჩი, ანგარიში და სტატისტიკა' : 'მატჩები გამოჩნდება ტურნირის დაწყების შემდეგ'}</small>
-              </span>
-              <b className="wt-matches-card-count">{matches.length}</b>
-              <span className="wt-matches-card-chevron" aria-hidden="true">
-                <TIcon name="chevron" />
-              </span>
-            </Link>
             <nav aria-label="ტურნირის განყოფილებები">
               {(
                 [
-                  ['general', 'info', 'ზოგადი'],
-                  ['prize', 'trophy', 'საპრიზო ფონდი'],
+                  ['general', 'info', 'ტურნირის ინფორმაცია'],
+                  ['prize', 'trophy', 'საპრიზოები'],
                   ['rules', 'layers', 'წესები'],
                   ['teams', 'users', squad ? 'გუნდები' : 'მოთამაშეები'],
                 ] as const
               )
                 .slice()
-                // Teams first (Tornike 5e343ab); a two-argument comparator — the one-argument form
-                // left the order to the browser's sort implementation.
+                // A two-argument comparator — the one-argument form left the order to the browser's
+                // sort implementation.
                 .sort(([a], [b]) => TAB_ORDER.indexOf(a) - TAB_ORDER.indexOf(b))
                 .map(([key, icon, label]) => (
                 <button key={key} type="button" className={tab === key ? 'active' : undefined} aria-pressed={tab === key} onClick={() => setTab(key)}>
@@ -663,7 +715,8 @@ export default function TournamentDetail() {
                       </div>
                       <div className="team-list">
                         {shownTeams.map((team, index) => (
-                          <article key={team.id} className="team-row">
+                          <Fragment key={team.id}>
+                          <article className="team-row">
                             <span className="team-number">{String(index + 1).padStart(2, '0')}</span>
                             <div className="team-identity">
                               <div
@@ -716,6 +769,8 @@ export default function TournamentDetail() {
                               მატჩები
                             </Link>
                           </article>
+                          <TeamCard team={team} index={index} squad={squad} teamSize={t.teamSize} matchCount={matchCount(team.id)} href={`/tournaments/${t.id}/matches?team=${team.id}`} />
+                          </Fragment>
                         ))}
                       </div>
                     </div>
@@ -725,28 +780,81 @@ export default function TournamentDetail() {
             </div>
           </section>
 
-          <section className="prejoin-register">
-            <div>
-              <strong>{mine ? 'შენ მონაწილეობ!' : 'მზად ხარ შეჯიბრისთვის?'}</strong>
-              <span>{mine ? `გუნდი: ${mine.team.name}` : 'დაიკავე ადგილი და იბრძოლე დიდებისთვის!'}</span>
-            </div>
-            <div>
-              <small>დარჩენილი ადგილები</small>
-              <strong>{squad ? `${Math.max(0, t.maxTeams - t.teamCount)} / ${t.maxTeams}` : `${spotsLeft} / ${t.maxPlayers}`}</strong>
-            </div>
-            <div>
-              <small>შესვლის საფასური</small>
-              <strong>{entryFee}</strong>
-            </div>
-            {registerButton}
-          </section>
-          {matches.length > 0 && (
-            <p className="wt-matches-link">
-              <Link href={`/tournaments/${t.id}/matches`}>
-                მატჩები და შედეგები ({matches.length}) <TIcon name="chevron" />
+          {mine ? (
+            // Round 4 (14.jpg): the registered team's card — real counts only.
+            <section className="wt-mine-card">
+              <header>
+                <span className="wt-mine-icon" aria-hidden="true">
+                  <TIcon name="users" />
+                </span>
+                <span className="wt-mine-copy">
+                  <strong>თქვენ დარეგისტრირებული ხართ!</strong>
+                  <small>
+                    თქვენი გუნდი: <b>{mine.team.name}</b>
+                  </small>
+                </span>
+                <span className={`wt-mine-check${mine.team.status === TournamentTeamStatus.Verified ? '' : ' is-pending'}`} title={mine.team.status === TournamentTeamStatus.Verified ? 'Verified' : 'Pending'}>
+                  <TIcon name={mine.team.status === TournamentTeamStatus.Verified ? 'checkCircle' : 'clock'} />
+                </span>
+              </header>
+              <div className="wt-mine-stats">
+                <div className="wt-mine-places">
+                  <TIcon name="users" />
+                  <span>
+                    <small>დარეგისტრირებული ადგილები</small>
+                    <strong>{squad ? `${t.teamCount} / ${t.maxTeams}` : `${t.registeredCount} / ${t.maxPlayers}`}</strong>
+                    <i className="wt-mine-bar" aria-hidden="true">
+                      <i style={{ width: `${Math.min(100, Math.round(((squad ? t.teamCount : t.registeredCount) / Math.max(1, squad ? t.maxTeams : t.maxPlayers)) * 100))}%` }}></i>
+                    </i>
+                  </span>
+                </div>
+                <div className="wt-mine-fee">
+                  <TIcon name="trophy" />
+                  <span>
+                    <small>შესვლის საფასური</small>
+                    <b>{entryFee}</b>
+                  </span>
+                </div>
+              </div>
+              <Link className="wt-mine-button" href="/tournaments/hub">
+                <TIcon name="eye" />
+                <span>ჩემი გუნდის ნახვა</span>
+                <TIcon name="chevron" />
               </Link>
-            </p>
+            </section>
+          ) : (
+            <section className="prejoin-register">
+              <div>
+                <strong>მზად ხარ შეჯიბრისთვის?</strong>
+                <span>დაიკავე ადგილი და იბრძოლე დიდებისთვის!</span>
+              </div>
+              <div>
+                <small>დარჩენილი ადგილები</small>
+                <strong>{squad ? `${Math.max(0, t.maxTeams - t.teamCount)} / ${t.maxTeams}` : `${spotsLeft} / ${t.maxPlayers}`}</strong>
+              </div>
+              <div>
+                <small>შესვლის საფასური</small>
+                <strong>{entryFee}</strong>
+              </div>
+              {registerButton}
+            </section>
           )}
+          {/* The matches card (round 4, 17.jpg): trophy, title with the count pill, subtitle, chevron. */}
+          <Link className="wt-matches-card" href={`/tournaments/${t.id}/matches`}>
+            <span className="wt-matches-card-icon" aria-hidden="true">
+              <TIcon name="trophy" />
+            </span>
+            <span className="wt-matches-card-copy">
+              <span className="wt-matches-card-title">
+                <strong>მატჩები და შედეგები</strong>
+                <b className="wt-matches-card-count">{matches.length}</b>
+              </span>
+              <small>ნახე მატჩების ინფორმაცია და შედეგები.</small>
+            </span>
+            <span className="wt-matches-card-chevron" aria-hidden="true">
+              <TIcon name="chevron" />
+            </span>
+          </Link>
           {(actionError || mine) && (
             <p className={`seller-status${actionError ? ' error' : ''} wt-register-note`} role={actionError ? 'alert' : undefined}>
               {actionError || (mine?.team.status === TournamentTeamStatus.Pending ? 'გუნდი ელოდება ადმინისტრაციის დადასტურებას. ' : 'რეგისტრაცია დადასტურებულია. ')}

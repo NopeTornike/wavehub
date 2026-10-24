@@ -415,6 +415,18 @@ export default function Home() {
             {/* The same services row on phones and desktop (owner 2026-10-15; phones had their own,
                 different list). */}
             <section className="home-explore" aria-labelledby="homeExploreTitle">
+              {/* Phones (round 4, 02.jpg): a card header — star, "Services", "View all". */}
+              <div className="home-explore-head">
+                <strong>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                  </svg>
+                  სერვისები
+                </strong>
+                <Link href="/services">
+                  ყველას ნახვა <span aria-hidden="true">›</span>
+                </Link>
+              </div>
               <h2 id="homeExploreTitle">
                 <i aria-hidden="true"></i> გაეცანი ჩვენს <b>სერვისებს</b> <i aria-hidden="true"></i>
               </h2>
@@ -997,7 +1009,9 @@ export default function Home() {
 // The home top banner from the CMS (owner 2026-10-07): the photo alone unless text was entered —
 // then a big title, the smaller subtitle and (only when button text is set) the button, on the
 // left like the previous banner. Without a button the whole banner is the link. A video banner
-// (2026-10-24) plays muted with only a pause control and no photo behind it.
+// (2026-10-24) plays muted with no photo behind it. Round 4 (02.jpg): a large centred play button
+// (turns the sound on, then pauses / plays), a "▶ label ›" button and the dots centred under it. The
+// mockup's "featured coach" block and kicker line are not shown: a banner has no such fields.
 function HeroBanner({ banner, banners, rotation }: { banner: PublicBanner; banners: PublicBanner[]; rotation: ReturnType<typeof useBannerRotation> }) {
   const swipe = useSwipe(rotation.prev, rotation.next)
   const title = banner.title?.trim()
@@ -1017,7 +1031,12 @@ function HeroBanner({ banner, banners, rotation }: { banner: PublicBanner; banne
             </a>
           ) : (
             <Link className="hero-banner-cta" href={link}>
-              {button} <b aria-hidden="true">→</b>
+              {banner.videoUrl && (
+                <svg className="hero-banner-cta-play" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 5v14l12-7z" fill="currentColor" />
+                </svg>
+              )}
+              {button} <b aria-hidden="true">{banner.videoUrl ? '›' : '→'}</b>
             </Link>
           ))}
       </span>
@@ -1034,6 +1053,7 @@ function HeroBanner({ banner, banners, rotation }: { banner: PublicBanner; banne
           paused={rotation.paused}
           onPausedChange={rotation.setPaused}
           onEnded={rotation.next}
+          bigPlay
         />
       ) : (
         <img src={banner.imageUrl ?? ''} alt={title || 'WaveHubX'} />

@@ -17,15 +17,25 @@ const LOCAL_ORIGIN_PATTERN = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
 
 // Everything that isn't the listen() call, shared by main.ts and the e2e harness (backend/test/
 // helpers.ts) so tests exercise the same middleware/pipes/filters the real process runs.
+// TRUST_PROXY as Express expects it. A hop count must be a number: Express reads the string '1' as
+// an IP address (0.0.0.1), trusts no proxy, and every visitor then shares the proxy's IP for the
+// per-IP rate limits. 'true' means one hop; anything else (addresses, subnets, 'loopback') is passed
+// through as written.
+export function trustProxySetting(value: string | undefined): number | string | undefined {
+  const raw = value?.trim();
+  if (!raw) return undefined;
+  if (raw === 'true') return 1;
+  return /^\d+$/.test(raw) ? Number(raw) : raw;
+}
+
 export function configureApp(app: NestExpressApplication): void {
   // Only trust X-Forwarded-* headers when explicitly told there's a real proxy in front (e.g. Caddy
   // in docker-compose.yml) — trusting them by default would let any client spoof its own IP address
   // via the header, which would silently defeat rate limiting (see ThrottlerModule in
   // app.module.ts) and corrupt secure-cookie detection. Production requires it (production-
   // config.ts); `1` = exactly one proxy hop.
-  if (process.env.TRUST_PROXY) {
-    app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : process.env.TRUST_PROXY);
-  }
+  const trustProxy = trustProxySetting(process.env.TRUST_PROXY);
+  if (trustProxy !== undefined) app.set('trust proxy', trustProxy);
 
   app.use(requestLogger());
 

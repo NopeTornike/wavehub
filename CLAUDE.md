@@ -113,6 +113,10 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
     front of a real reverse proxy/load balancer — see `app.setup.ts` and `.env.example`. Never set it
     without an actual trusted proxy in front; doing so lets any client spoof its own IP via
     `X-Forwarded-For` and silently defeats the rate limit.
+  - **Fixed 2026-10-24:** `TRUST_PROXY=1` (as `docker-compose.yml` sets it) reached Express as the
+    *string* `'1'`, which Express reads as an IP address, so no proxy was trusted and every visitor
+    shared Caddy's IP for the per-IP limits. `trustProxySetting()` in `app.setup.ts` now turns a hop
+    count into a number (`backend/src/common/CLAUDE.md`).
 - **Every mutating endpoint validates input via a `class-validator` DTO** under a global
   `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` — unexpected
   body fields are rejected outright, not silently ignored (defends against mass-assignment-style

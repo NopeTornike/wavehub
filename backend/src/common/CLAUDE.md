@@ -34,6 +34,10 @@ harness so tests run the same middleware/pipes/filters as production).
 - The global `ThrottlerGuard` keys on the client IP, which is only the real client IP when
   `TRUST_PROXY` matches the actual proxy chain (`1` behind Caddy) **and the backend port is not
   published to the internet** — `docker-compose.yml` publishes only Caddy for exactly that reason.
+- `TRUST_PROXY` goes through `trustProxySetting()` (`app.setup.ts`): a hop count like `1` becomes a
+  number. Before 2026-10-24 the string `'1'` reached Express as-is, and Express reads a string as
+  an IP address (`0.0.0.1`), so no proxy was trusted. Every visitor then shared Caddy's IP for the
+  per-IP limits (5 logins/min for the whole site). `'true'` still means one hop.
 - Add new cross-cutting middleware/filters in `app.setup.ts`, not `main.ts`, so the e2e harness
   covers them.
 - Graceful shutdown: `main.ts` calls `app.enableShutdownHooks()`; the compose file gives the backend a

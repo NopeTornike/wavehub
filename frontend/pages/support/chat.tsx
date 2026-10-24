@@ -88,17 +88,22 @@ export default function SupportLiveChat() {
   }
 
   const messages = useMemo<ChatThreadMessage[]>(() => {
-    const greeting: ChatThreadMessage = {
-      id: 'greeting',
+    const support = (id: string, body: string, at: string): ChatThreadMessage => ({
+      id,
       mine: false,
       name: 'WaveHubX Support',
       avatarUrl: null,
       avatarFallback: '/assets/whx-icon-192.png',
-      body: me?.firstName
-        ? `👋 გამარჯობა, ${me.firstName}! კეთილი იყოს შენი მობრძანება WaveHubX Support-ში. მოგვწერე, რით შეგვიძლია დაგეხმაროთ.`
-        : '👋 გამარჯობა! კეთილი იყოს შენი მობრძანება WaveHubX Support-ში. მოგვწერე, რით შეგვიძლია დაგეხმაროთ.',
-      createdAt: chat?.createdAt ?? new Date(now).toISOString(),
-    }
+      body,
+      createdAt: at,
+    })
+    // The owner's exact wording (round 4, 01.jpg). Each line is a separate paragraph so each has its
+    // own English entry.
+    const greeting = support(
+      'greeting',
+      '👋 გამარჯობა! კეთილი იყოს შენი მობრძანება WaveHubX-ის მხარდაჭერის ცენტრში.\nმოგვწერე, რაში გჭირდება დახმარება. ჩვენი გუნდი მზადაა დაგეხმაროს! 💜',
+      chat?.createdAt ?? new Date(now).toISOString(),
+    )
     if (!chat) return [greeting]
     const items: ChatThreadMessage[] = chat.messages.map((m) => ({
       id: m.id,
@@ -115,7 +120,7 @@ export default function SupportLiveChat() {
     const sys = (id: string, body: string, at: string, pending = false): ChatThreadMessage => ({ id, mine: false, name: '', avatarUrl: null, body, createdAt: at, system: true, pending })
     if (first) {
       const firstAt = new Date(first.createdAt).getTime()
-      system.push(sys('received', '✅ შენი მოთხოვნა მიღებულია. ვეძებთ თავისუფალ ოპერატორს.', new Date(firstAt + 1).toISOString()))
+      system.push(support('received', '✅ შენი მოთხოვნა მიღებულია. ამჟამად ვეძებთ თავისუფალ ოპერატორს. გთხოვ, დაელოდო მის ჩართვას.', new Date(firstAt + 1).toISOString()))
       if (chat.operator) {
         system.push(sys('joined', `🟢 WaveHubX-ის საფორთი ${chat.operator.firstName} შემოუერთდა საუბარს.`, chat.operator.joinedAt))
       } else if (now - firstAt >= WAIT_NOTICE_MS) {
