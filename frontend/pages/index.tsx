@@ -1019,9 +1019,11 @@ function HeroBanner({ banner, banners, rotation }: { banner: PublicBanner; banne
   const link = banner.linkUrl
   const external = !!link && !link.startsWith('/')
   const button = link && banner.buttonLabel?.trim()
+  const kicker = banner.kicker?.trim()
   const copy =
-    title || subtitle || button ? (
+    title || subtitle || button || kicker ? (
       <span className="hero-banner-copy">
+        {kicker && <em className="hero-banner-kicker">{kicker}</em>}
         {title && <strong>{title}</strong>}
         {subtitle && <small>{subtitle}</small>}
         {button &&
@@ -1065,6 +1067,18 @@ function HeroBanner({ banner, banners, rotation }: { banner: PublicBanner; banne
           <Link className="home-banner-link" href={wholeLink} aria-label={title || 'WaveHubX'} />
         ))}
       {copy}
+      {/* The featured coach (Admin → Banners, owner 2026-10-24 screenshot 02): their real photo, name
+          and game, linking to the coach profile. Only verified, active coaches are sent. */}
+      {banner.coach && (
+        <Link className="hero-banner-coach" href={`/coaching/${banner.coach.id}`}>
+          {banner.coach.avatarUrl ? <img src={banner.coach.avatarUrl} alt="" /> : <i aria-hidden="true">{banner.coach.name.slice(0, 1).toUpperCase()}</i>}
+          <span>
+            <small>რჩეული Coach</small>
+            <strong>{banner.coach.name}</strong>
+            {banner.coach.gameName && <em>{`${banner.coach.gameName} Coach`}</em>}
+          </span>
+        </Link>
+      )}
       {rotation.count > 1 && (
         <span className="home-banner-dots hero-banner-dots">
           {banners.map((x, i) => (

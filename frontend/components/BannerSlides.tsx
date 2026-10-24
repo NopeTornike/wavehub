@@ -75,6 +75,16 @@ export function BannerVideo({
   const ref = useRef<HTMLVideoElement>(null)
   const [muted, setMuted] = useState(true)
 
+  // The banner shows the whole video, never a zoomed crop (owner 2026-10-24: a vertical phone video
+  // filled the wide frame by cropping). The frame learns the video's orientation so phones can give
+  // a vertical video a taller (square) frame; the attribute is removed when the slide changes.
+  useEffect(() => {
+    const host = ref.current?.parentElement
+    return () => {
+      if (host) delete host.dataset.videoShape
+    }
+  }, [src])
+
   useEffect(() => {
     const v = ref.current
     if (!v) return
@@ -97,6 +107,11 @@ export function BannerVideo({
         controls={false}
         aria-hidden="true"
         onEnded={onEnded}
+        onLoadedMetadata={(e) => {
+          const v = e.currentTarget
+          const host = v.parentElement
+          if (host && v.videoWidth && v.videoHeight) host.dataset.videoShape = v.videoHeight > v.videoWidth ? 'portrait' : 'landscape'
+        }}
         // A file that can't play must not freeze the carousel.
         onError={onEnded}
       />

@@ -1102,7 +1102,7 @@ export const api = {
   adminCreateBanner: (payload: { placement?: BannerPlacement; title: string; subtitle?: string | null; linkUrl?: string | null; buttonLabel?: string | null; sortOrder?: number }) =>
     request<AdminBanner>('/admin/banners', { method: 'POST', body: JSON.stringify(payload) }),
 
-  adminUpdateBanner: (id: string, payload: Partial<{ placement: BannerPlacement; title: string; subtitle: string | null; linkUrl: string | null; buttonLabel: string | null; active: boolean; startsAt: string | null; endsAt: string | null; sortOrder: number }>) =>
+  adminUpdateBanner: (id: string, payload: Partial<{ placement: BannerPlacement; title: string; subtitle: string | null; linkUrl: string | null; buttonLabel: string | null; kicker: string | null; coachId: string | null; active: boolean; startsAt: string | null; endsAt: string | null; sortOrder: number }>) =>
     request<AdminBanner>(`/admin/banners/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
   adminUploadBannerImage: (id: string, file: File) => upload<AdminBanner>(`/admin/banners/${id}/image`, file),

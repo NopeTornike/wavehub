@@ -90,7 +90,7 @@ describe('marketing: promo codes + banners (e2e)', () => {
     expect((await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id)).toBeUndefined();
     await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { active: true });
     const pub = (await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id);
-    expect(pub).toEqual({ id: b.id, placement: 'home_strip', title: 'Coaching week', subtitle: 'Book a coach', imageUrl: withImage.body.imageUrl, videoUrl: null, linkUrl: '/coaching', buttonLabel: 'Book now' });
+    expect(pub).toEqual({ id: b.id, placement: 'home_strip', title: 'Coaching week', subtitle: 'Book a coach', imageUrl: withImage.body.imageUrl, videoUrl: null, linkUrl: '/coaching', buttonLabel: 'Book now', kicker: null, coach: null });
 
     await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { endsAt: new Date(Date.now() - 1000).toISOString(), startsAt: new Date(Date.now() - 86400_000).toISOString() });
     expect((await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id)).toBeUndefined();
@@ -119,6 +119,33 @@ describe('marketing: promo codes + banners (e2e)', () => {
     expect((await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id)).toBeUndefined();
     const actions = await ctx.dataSource.query(`SELECT action FROM audit_logs WHERE "entityType" = 'banner' AND "entityId" = $1`, [b.id]);
     expect(actions.map((a: { action: string }) => a.action)).toEqual(expect.arrayContaining(['banner.set_video', 'banner.clear_video']));
+    expect((await mainAdmin.client.request('DELETE', `/admin/banners/${b.id}`)).status).toBe(200);
+  });
+
+  it('banner label + featured coach: only a verified active coach, public shape is profile data only', async () => {
+    const coachUser = await registerUser(ctx, 'mkcoach');
+    const created = await superAdmin.client.post('/admin/coaches', {
+      username: coachUser.username, specialty: 'Rank pushing', bio: 'Ten years of competitive experience across several titles.', hourlyRateWaveCoin: 30,
+    });
+    expect(created.status).toBe(201);
+    const coachId = created.body.id as string;
+    const b = (await mainAdmin.client.post('/admin/banners', { placement: 'home_hero', title: 'Interview' })).body;
+    expect((await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { coachId: '00000000-0000-4000-8000-000000000000' })).status).toBe(400);
+    expect((await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { kicker: 'x'.repeat(61) })).status).toBe(400);
+    const set = await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { kicker: 'WaveHubX Coach Interview', coachId });
+    expect(set.status).toBe(200);
+    expect(set.body).toMatchObject({ kicker: 'WaveHubX Coach Interview', coachId, coach: { id: coachId, name: 'Test User', avatarUrl: null } });
+    await mainAdmin.client.upload(`/admin/banners/${b.id}/image`, PNG, 'banner.png', 'image/png');
+    await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { active: true });
+    const anon = new Client(ctx.baseUrl);
+    const pub = (await anon.get('/banners?placement=home_hero')).body.find((x: { id: string }) => x.id === b.id);
+    expect(pub.kicker).toBe('WaveHubX Coach Interview');
+    expect(pub.coach).toEqual({ id: coachId, name: 'Test User', avatarUrl: null, gameName: null });
+    expect(pub.coachId).toBeUndefined();
+    expect(JSON.stringify(pub)).not.toMatch(/email|username|wavecoinBalance|userId/);
+    // A suspended coach drops off the banner.
+    await ctx.dataSource.query(`UPDATE coaches SET status = 'suspended' WHERE id = $1`, [coachId]);
+    expect((await anon.get('/banners?placement=home_hero')).body.find((x: { id: string }) => x.id === b.id).coach).toBeNull();
     expect((await mainAdmin.client.request('DELETE', `/admin/banners/${b.id}`)).status).toBe(200);
   });
 });

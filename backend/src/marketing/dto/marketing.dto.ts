@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
 import { BannerPlacement } from '@wavehub/shared-types';
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf, IsUUID } from 'class-validator';
 
 const upper = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toUpperCase() : value);
 // An internal path ("/coaching") or an https URL — nothing else may become a banner link.
@@ -109,6 +109,19 @@ export class BannerDto {
   @IsString()
   @MaxLength(30)
   buttonLabel?: string | null;
+
+  // Small label above the title ("WaveHubX coach interview").
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(60)
+  kicker?: string | null;
+
+  // A verified, active coach to feature (photo, name, game). null clears it.
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsUUID()
+  coachId?: string | null;
 
   @IsOptional()
   @IsBoolean()

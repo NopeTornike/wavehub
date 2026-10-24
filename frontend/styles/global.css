@@ -22493,3 +22493,42 @@ a.team-view { display: inline-flex; align-items: center; justify-content: center
 @media (max-width: 420px) {
   .marketplace-head h1 { overflow-wrap: normal; word-break: normal; font-size: clamp(22px, 7.4vw, 30px); }
 }
+
+/* Video banners, owner 2026-10-24 ("zooms the video", "the stop / continue button isn't in its
+   place"): the whole video is shown — never cropped to fill — on a dark frame, and the play / pause
+   button sits in the middle. A vertical (phone) video gets a square frame on phones instead of the
+   wide one. Upload landscape video (16:9, or the banner's 1916×821) for edge-to-edge. */
+.home-banner-video, .hero-banner-video { object-fit: contain !important; background: #03030a; }
+.hero-banner.is-video, .home-banner.is-video { background: #03030a; }
+.banner-video-play, .banner-video-play:hover, .banner-video-play:focus-visible { left: 50% !important; top: 50% !important; }
+@media (max-width: 760px) {
+  .hero-banner.is-video[data-video-shape="portrait"] { aspect-ratio: 1 / 1; }
+  .hero-banner.is-video[data-video-shape="landscape"] { aspect-ratio: 16 / 9; }
+  .banner-video-play { left: 50% !important; top: 50% !important; }
+}
+/* Banner label + featured coach chip (Admin → Banners, screenshot 02). */
+.hero-banner-kicker { color: #ff6fb5; font-size: clamp(10px, 1.1vw, 13px); font-style: normal; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(0, 0, 0, .7); }
+.hero-banner-coach { position: absolute; z-index: 4; left: 16px; bottom: 14px; display: flex; align-items: center; gap: 10px; max-width: min(260px, 60%); padding: 6px 14px 6px 6px; border: 1px solid rgba(255, 255, 255, .18); border-radius: 999px; background: rgba(5, 4, 15, .62); backdrop-filter: blur(8px); color: #fff; text-decoration: none; }
+.hero-banner-coach img, .hero-banner-coach i { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #2a2f45; border: 2px solid #b44cff; font-style: normal; font-weight: 900; }
+.hero-banner-coach span { display: grid; min-width: 0; line-height: 1.2; }
+.hero-banner-coach small { color: #c9b8e8; font-size: 10px; }
+.hero-banner-coach strong, .hero-banner-coach em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hero-banner-coach strong { font-size: 13.5px; }
+.hero-banner-coach em { color: #ff8cc4; font-size: 11px; font-style: normal; }
+.hero-banner-coach:hover, .hero-banner-coach:focus-visible { border-color: #ff2f9a; outline: none; }
+/* With a coach chip, the copy and the video's play button stay clear of it. */
+.hero-banner:has(.hero-banner-coach) .hero-banner-copy { padding-bottom: 64px; }
+@media (max-width: 620px) {
+  .hero-banner-coach { left: 10px; bottom: 10px; gap: 7px; padding: 4px 10px 4px 4px; }
+  .hero-banner-coach img, .hero-banner-coach i { width: 30px; height: 30px; }
+  .hero-banner-coach strong { font-size: 12px; }
+  .hero-banner:has(.hero-banner-coach) .hero-banner-copy { padding-bottom: 50px; }
+}
+/* With a title / button on the left, the play button moves to the middle of the free right side so
+   it never covers the text; without text it stays dead centre. */
+.hero-banner:has(.hero-banner-copy) .banner-video-play, .hero-banner:has(.hero-banner-copy) .banner-video-play:hover { left: 80% !important; }
+@media (max-width: 760px) { .hero-banner:has(.hero-banner-copy) .banner-video-play { left: 82% !important; top: 42% !important; width: 52px; height: 52px; } }
+/* The pause button stays visible (dimmed) while the video plays — phones have no hover to reveal
+   it, so a hidden button meant nobody could find "stop". */
+.banner-video-play.is-playing { opacity: .55 !important; }
+.hero-banner:hover .banner-video-play.is-playing, .banner-video-play.is-playing:focus-visible { opacity: .95 !important; }

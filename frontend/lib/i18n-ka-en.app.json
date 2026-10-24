@@ -2713,5 +2713,14 @@
   "1. შექმენი განცხადება": "1. Create a listing",
   "თამაშების არჩევა": "Choose games",
   "თამაშების სიის აკეცვა": "Collapse the games list",
-  "კეთილი იყოს შენი მობრძანება WaveHubX-ზე!": "Welcome to WaveHubX!"
+  "კეთილი იყოს შენი მობრძანება WaveHubX-ზე!": "Welcome to WaveHubX!",
+  "რჩეული Coach": "Featured coach",
+  "{0} Coach": "{0} Coach",
+  "პატარა წარწერა სათაურის ზემოთ": "Small label above the title",
+  "არასავალდებულო — მაგ. „WaveHubX Coach Interview“": "optional — e.g. “WaveHubX Coach Interview”",
+  "რჩეული ქოუჩი": "Featured coach",
+  "არასავალდებულო — ბანერზე გამოჩნდება მისი ფოტო, სახელი და თამაში": "optional — the banner shows their photo, name and game",
+  "— არცერთი —": "— none —",
+  "არჩეული ქოუჩი აღარ არის აქტიური — ბანერზე არ ჩანს.": "The selected coach is no longer active — they don't show on the banner.",
+  "საუკეთესოა ჰორიზონტალური ვიდეო (16:9 ან 1916×821). ვერტიკალური ვიდეო მთლიანად ჩანს, გვერდებზე მუქი ფონით.": "Landscape video works best (16:9 or 1916×821). A vertical video is shown whole, with dark sides."
 }

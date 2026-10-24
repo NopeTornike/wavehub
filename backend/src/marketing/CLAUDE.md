@@ -74,3 +74,13 @@ A used code is deactivated (`PATCH … {active:false}`) instead. Audited (`promo
   behind it, and moves to the next slide when it ends (photos still rotate every 7s) — every
   placement (`components/BannerSlides.tsx`).
 - e2e: `test/marketing.e2e-spec.ts` ("banner video").
+
+## 2026-10-24 Banner label + featured coach (owner round 4, screenshot 02)
+- Migration `1784388000000-BannerKickerCoach`: `banners.kicker` varchar(60) (small label above the
+  title, e.g. "WaveHubX Coach Interview") and `banners.coachId` (FK coaches, ON DELETE SET NULL).
+- `BannerDto.kicker` / `coachId`. Picking a coach that isn't verified + active + not removed is a 400.
+- `PublicBanner.coach` = `{ id, name, avatarUrl, gameName }`, resolved on every read (`coachChips`):
+  first + last name, the user's photo, the coach's game. A coach suspended or removed later shows as
+  `null`, so the chip disappears. It carries no username, email or ids beyond the coach id.
+  `AdminBanner.coachId` keeps the stored pick, so Admin can see a coach that has dropped off.
+- e2e: `test/marketing.e2e-spec.ts` ("banner label + featured coach").

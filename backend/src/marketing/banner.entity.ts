@@ -28,6 +28,14 @@ export class Banner {
   @Column({ type: 'varchar', length: 300, nullable: true })
   linkUrl: string | null;
 
+  // Small label above the title, e.g. "WaveHubX coach interview" (migration 1784388000000).
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  kicker: string | null;
+
+  // A real coach featured on the banner (photo, name, game chip). ON DELETE SET NULL.
+  @Column({ type: 'uuid', nullable: true })
+  coachId: string | null;
+
   @Column({ type: 'varchar', length: 30, nullable: true })
   buttonLabel: string | null;
 

@@ -1278,4 +1278,14 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
     welcome notification title).
   - **Subscriptions (`/plans`)**: unchanged. No subscription screenshot exists in
     `docs/design-mockups` or on `origin/main`; only `premium-account.png`, which is listing art.
+- **Video banner fixes + featured coach (2026-10-24, later)**:
+  - The whole video is shown (`object-fit: contain` on a dark frame), never a zoomed crop. The live
+    hero video was vertical (720×1280) in a wide frame.
+  - `BannerVideo` tags its frame `data-video-shape="portrait|landscape"` on load, so phones give a
+    vertical video a square frame and a landscape one 16:9.
+  - The play / pause button sits in the centre, or in the middle of the free right side when the
+    banner has text. While playing it stays visible but dimmed, because phones have no hover.
+  - Admin → Banners has "small label above the title" (`kicker`) and "featured coach" (verified,
+    active coaches). The hero shows the label in pink caps, and a chip with the coach's real photo,
+    name and game that links to `/coaching/[id]`. An upload hint recommends landscape video.
 

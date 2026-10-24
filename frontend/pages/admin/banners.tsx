@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { AdminBanner } from '@wavehub/shared-types'
-import { BANNER_PLACEMENT_LABELS, BannerPlacement } from '@wavehub/shared-types'
+import type { AdminBanner, AdminCoachSummary } from '@wavehub/shared-types'
+import { BANNER_PLACEMENT_LABELS, BannerPlacement, CoachStatus, VerificationStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 
@@ -15,13 +15,15 @@ const MAX_BANNER_VIDEO_BYTES = 20 * 1024 * 1024
 const localInput = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() + 4 * 3600_000).toISOString().slice(0, 16) : '')
 const fromLocal = (value: string) => (value ? new Date(`${value}:00+04:00`).toISOString() : null)
 
-function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onChange: (b: AdminBanner) => void; onDelete: () => void }) {
+function BannerEditor({ banner, coaches, onChange, onDelete }: { banner: AdminBanner; coaches: AdminCoachSummary[]; onChange: (b: AdminBanner) => void; onDelete: () => void }) {
   const [draft, setDraft] = useState({
     placement: banner.placement,
     title: banner.title,
     subtitle: banner.subtitle ?? '',
     linkUrl: banner.linkUrl ?? '',
     buttonLabel: banner.buttonLabel ?? '',
+    kicker: banner.kicker ?? '',
+    coachId: banner.coachId ?? '',
     startsAt: localInput(banner.startsAt),
     endsAt: localInput(banner.endsAt),
     sortOrder: banner.sortOrder,
@@ -51,6 +53,8 @@ function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onC
           subtitle: draft.subtitle.trim() || null,
           linkUrl: draft.linkUrl.trim() || null,
           buttonLabel: draft.buttonLabel.trim() || null,
+          kicker: draft.kicker.trim() || null,
+          coachId: draft.coachId || null,
           startsAt: fromLocal(draft.startsAt),
           endsAt: fromLocal(draft.endsAt),
           sortOrder: draft.sortOrder,
@@ -108,6 +112,7 @@ function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onC
             </button>
           )}
           <small>MP4 ან WebM, მაქს. 20MB. ვიდეო ჩაანაცვლებს ფოტოს და ავტომატურად ჩაირთვება.</small>
+          <small>საუკეთესოა ჰორიზონტალური ვიდეო (16:9 ან 1916×821). ვერტიკალური ვიდეო მთლიანად ჩანს, გვერდებზე მუქი ფონით.</small>
         </div>
       </div>
       <div className="ab-fields">
@@ -124,6 +129,22 @@ function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onC
         <label className="field">
           სათაური <small>არასავალდებულო — სათაურის, ქვესათაურის და ღილაკის გარეშე ჩანს მხოლოდ ფოტო</small>
           <input maxLength={80} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+        </label>
+        <label className="field">
+          პატარა წარწერა სათაურის ზემოთ <small>არასავალდებულო — მაგ. „WaveHubX Coach Interview“</small>
+          <input maxLength={60} value={draft.kicker} onChange={(e) => setDraft({ ...draft, kicker: e.target.value })} />
+        </label>
+        <label className="field">
+          რჩეული ქოუჩი <small>არასავალდებულო — ბანერზე გამოჩნდება მისი ფოტო, სახელი და თამაში</small>
+          <select value={draft.coachId} onChange={(e) => setDraft({ ...draft, coachId: e.target.value })}>
+            <option value="">— არცერთი —</option>
+            {coaches.map((c) => (
+              <option key={c.id} value={c.id}>
+                {`@${c.username}${c.gameName ? ` · ${c.gameName}` : ''}`}
+              </option>
+            ))}
+          </select>
+          {banner.coachId && !banner.coach && <small className="status-error">არჩეული ქოუჩი აღარ არის აქტიური — ბანერზე არ ჩანს.</small>}
         </label>
         <label className="field">
           ქვესათაური
@@ -187,8 +208,14 @@ export default function AdminBanners() {
   const [title, setTitle] = useState('')
   const [placement, setPlacement] = useState<BannerPlacement>(BannerPlacement.HomeHero)
   const [error, setError] = useState('')
+  // Coaches that can be featured: verified, active, not removed.
+  const [coaches, setCoaches] = useState<AdminCoachSummary[]>([])
 
   useEffect(() => {
+    api
+      .adminListAllCoaches()
+      .then((list) => setCoaches(list.filter((c) => c.verificationStatus === VerificationStatus.Verified && c.status === CoachStatus.Active && !c.removedAt)))
+      .catch(() => setCoaches([]))
     api
       .adminListBanners()
       .then(setItems)
@@ -258,7 +285,7 @@ export default function AdminBanners() {
               {items
                 .filter((b) => b.placement === p)
                 .map((b) => (
-                  <BannerEditor key={b.id} banner={b} onChange={(next) => setItems((list) => list?.map((x) => (x.id === next.id ? next : x)) ?? null)} onDelete={() => void remove(b.id)} />
+                  <BannerEditor key={b.id} banner={b} coaches={coaches} onChange={(next) => setItems((list) => list?.map((x) => (x.id === next.id ? next : x)) ?? null)} onDelete={() => void remove(b.id)} />
                 ))}
             </section>
           ))

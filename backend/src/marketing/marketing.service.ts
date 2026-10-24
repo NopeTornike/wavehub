@@ -2,9 +2,10 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, Repository } from 'typeorm';
 import type { AdminBanner, AdminPromoCode, PromoRedemptionResult, PublicBanner } from '@wavehub/shared-types';
-import { BannerPlacement } from '@wavehub/shared-types';
+import { BannerPlacement, CoachStatus, VerificationStatus } from '@wavehub/shared-types';
 import { PromoCode, PromoRedemption } from './promo-code.entity';
 import { Banner } from './banner.entity';
+import { Coach } from '../coaching/coach.entity';
 import { BannerDto, CreateBannerDto, CreatePromoCodeDto, UpdatePromoCodeDto } from './dto/marketing.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { StorageService } from '../storage/storage.service';
@@ -112,7 +113,32 @@ export class MarketingService {
 
   // --- Banners ---
 
-  private toAdminBanner(b: Banner): AdminBanner {
+  // Featured coaches by id, only while verified, active and not removed (real profile data only).
+  private async coachChips(ids: Array<string | null>): Promise<Map<string, NonNullable<PublicBanner['coach']>>> {
+    const wanted = [...new Set(ids.filter((x): x is string => !!x))];
+    if (!wanted.length) return new Map();
+    const rows = await this.dataSource
+      .getRepository(Coach)
+      .createQueryBuilder('c')
+      .innerJoinAndSelect('c.user', 'u')
+      .leftJoinAndSelect('c.game', 'g')
+      .where('c.id IN (:...wanted)', { wanted })
+      .andWhere('c.verificationStatus = :verified AND c.status = :active AND c.removedAt IS NULL', { verified: VerificationStatus.Verified, active: CoachStatus.Active })
+      .andWhere(`u.status = 'active'`)
+      .getMany();
+    return new Map(
+      rows.map((c) => [
+        c.id,
+        { id: c.id, name: [c.user.firstName, c.user.lastName].filter(Boolean).join(' ').trim() || c.user.username, avatarUrl: c.user.avatarUrl ?? null, gameName: c.game?.name ?? null },
+      ]),
+    );
+  }
+
+  private async adminOut(b: Banner): Promise<AdminBanner> {
+    return this.toAdminBanner(b, await this.coachChips([b.coachId]));
+  }
+
+  private toAdminBanner(b: Banner, chips: Map<string, NonNullable<PublicBanner['coach']>>): AdminBanner {
     return {
       id: b.id,
       placement: b.placement,
@@ -122,6 +148,9 @@ export class MarketingService {
       videoUrl: b.videoUrl,
       linkUrl: b.linkUrl,
       buttonLabel: b.buttonLabel,
+      kicker: b.kicker,
+      coachId: b.coachId,
+      coach: b.coachId ? (chips.get(b.coachId) ?? null) : null,
       active: b.active,
       startsAt: iso(b.startsAt),
       endsAt: iso(b.endsAt),
@@ -142,11 +171,25 @@ export class MarketingService {
       .addOrderBy('b.createdAt', 'DESC')
       .take(10)
       .getMany();
-    return rows.map((b) => ({ id: b.id, placement: b.placement, title: b.title, subtitle: b.subtitle, imageUrl: b.imageUrl, videoUrl: b.videoUrl, linkUrl: b.linkUrl, buttonLabel: b.buttonLabel }));
+    const chips = await this.coachChips(rows.map((b) => b.coachId));
+    return rows.map((b) => ({
+      id: b.id,
+      placement: b.placement,
+      title: b.title,
+      subtitle: b.subtitle,
+      imageUrl: b.imageUrl,
+      videoUrl: b.videoUrl,
+      linkUrl: b.linkUrl,
+      buttonLabel: b.buttonLabel,
+      kicker: b.kicker,
+      coach: b.coachId ? (chips.get(b.coachId) ?? null) : null,
+    }));
   }
 
   async listBanners(): Promise<AdminBanner[]> {
-    return (await this.banners.find({ order: { sortOrder: 'ASC', createdAt: 'DESC' } })).map((b) => this.toAdminBanner(b));
+    const rows = await this.banners.find({ order: { sortOrder: 'ASC', createdAt: 'DESC' } });
+    const chips = await this.coachChips(rows.map((b) => b.coachId));
+    return rows.map((b) => this.toAdminBanner(b, chips));
   }
 
   private bannerPatch(dto: BannerDto, current?: Banner): Partial<Banner> {
@@ -156,6 +199,8 @@ export class MarketingService {
     if (dto.subtitle !== undefined) patch.subtitle = dto.subtitle?.trim() || null;
     if (dto.linkUrl !== undefined) patch.linkUrl = dto.linkUrl?.trim() || null;
     if (dto.buttonLabel !== undefined) patch.buttonLabel = dto.buttonLabel?.trim() || null;
+    if (dto.kicker !== undefined) patch.kicker = dto.kicker?.trim() || null;
+    if (dto.coachId !== undefined) patch.coachId = dto.coachId;
     if (dto.active !== undefined) patch.active = dto.active;
     if (dto.sortOrder !== undefined) patch.sortOrder = dto.sortOrder;
     const w = this.window(dto.startsAt, dto.endsAt, current ? { startsAt: current.startsAt, expiresAt: current.endsAt } : undefined);
@@ -164,17 +209,25 @@ export class MarketingService {
     return patch;
   }
 
+  // Only a verified, active, non-removed coach can be featured.
+  private async assertFeaturableCoach(coachId: string | null | undefined) {
+    if (!coachId) return;
+    if (!(await this.coachChips([coachId])).has(coachId)) throw new BadRequestException('Pick a verified, active coach to feature');
+  }
+
   async createBanner(dto: CreateBannerDto): Promise<AdminBanner> {
+    await this.assertFeaturableCoach(dto.coachId);
     const saved = await this.banners.save(this.banners.create({ title: '', ...this.bannerPatch(dto), active: dto.active ?? false }));
-    return this.toAdminBanner(saved);
+    return this.adminOut(saved);
   }
 
   async updateBanner(id: string, dto: BannerDto): Promise<AdminBanner> {
     const b = await this.banners.findOne({ where: { id } });
     if (!b) throw new NotFoundException('Banner not found');
     if (dto.active === true && !b.imageUrl && !b.videoUrl) throw new BadRequestException('Upload an image or a video before publishing the banner');
+    if (dto.coachId !== undefined && dto.coachId !== b.coachId) await this.assertFeaturableCoach(dto.coachId);
     await this.banners.update(id, this.bannerPatch(dto, b));
-    return this.toAdminBanner(await this.banners.findOneOrFail({ where: { id } }));
+    return this.adminOut(await this.banners.findOneOrFail({ where: { id } }));
   }
 
   async setBannerImage(id: string, file: { buffer: Buffer; originalname: string } | undefined): Promise<AdminBanner> {
@@ -184,7 +237,7 @@ export class MarketingService {
     // Byte-sniffed: only real images are accepted (StorageService refuses anything else).
     const stored = await this.storage.save(file.buffer, file.originalname, 'image');
     await this.banners.update(id, { imageUrl: stored.url });
-    return this.toAdminBanner(await this.banners.findOneOrFail({ where: { id } }));
+    return this.adminOut(await this.banners.findOneOrFail({ where: { id } }));
   }
 
   async setBannerVideo(id: string, file: { buffer: Buffer; originalname: string } | undefined): Promise<AdminBanner> {
@@ -194,7 +247,7 @@ export class MarketingService {
     // Byte-sniffed: only real MP4/WebM files are accepted.
     const stored = await this.storage.save(file.buffer, file.originalname, 'video');
     await this.banners.update(id, { videoUrl: stored.url });
-    return this.toAdminBanner(await this.banners.findOneOrFail({ where: { id } }));
+    return this.adminOut(await this.banners.findOneOrFail({ where: { id } }));
   }
 
   // Removing the video of a live banner with no photo would leave it empty, so it goes offline too.
@@ -202,7 +255,7 @@ export class MarketingService {
     const b = await this.banners.findOne({ where: { id } });
     if (!b) throw new NotFoundException('Banner not found');
     await this.banners.update(id, { videoUrl: null, ...(b.imageUrl ? {} : { active: false }) });
-    return this.toAdminBanner(await this.banners.findOneOrFail({ where: { id } }));
+    return this.adminOut(await this.banners.findOneOrFail({ where: { id } }));
   }
 
   // Delete a promo code nobody has redeemed (a typo, a test). A used code is only deactivated —

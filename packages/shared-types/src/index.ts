@@ -1878,9 +1878,14 @@ export interface PublicBanner {
   videoUrl: string | null;
   linkUrl: string | null;
   buttonLabel: string | null;
+  // Small label above the title ("WaveHubX coach interview").
+  kicker: string | null;
+  // The featured coach, only while verified, active and not removed — real profile data only.
+  coach: { id: string; name: string; avatarUrl: string | null; gameName: string | null } | null;
 }
 
 export interface AdminBanner extends PublicBanner {
+  coachId: string | null;
   active: boolean;
   startsAt: string | null;
   endsAt: string | null;
