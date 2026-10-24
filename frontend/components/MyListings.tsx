@@ -115,15 +115,15 @@ export default function MyListings({
             </li>
             <li>
               <span>
-                <img src="/assets/ui/chat-light.png" alt="" aria-hidden="true" />
+                <img src="/assets/ui/clock.png" alt="" aria-hidden="true" />
               </span>
-              2. მოლაპარაკე მყიდველთან
+              2. დაელოდე დამტკიცებას
             </li>
             <li>
               <span>
                 <img src="/assets/ui/check-circle-light.png" alt="" aria-hidden="true" />
               </span>
-              3. დაადასტურე შეკვეთა
+              3. მიაწოდე შეკვეთა და მიიღე თანხა
             </li>
           </ol>
         </div>

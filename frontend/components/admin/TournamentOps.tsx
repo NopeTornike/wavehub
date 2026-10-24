@@ -8,7 +8,10 @@ import { MATCH_STATUS_LABEL, STAGE_LABEL } from '../../lib/tournaments'
 // or reject registered teams, and record matches — stage, teams, map, best-of, time, status, score
 // and per-player stats. Stats are typed one player per line:
 //   name | kills | K/D | damage | rating | assists | mvp
-// (empty cells stay empty; "mvp" / "*" in the last cell marks the MVP).
+// (empty cells stay empty; "mvp" / "*" in the last cell marks the MVP). A name written as
+// @username links the player's WaveHub account, so the match page shows their profile photo
+// (owner 2026-10-24); the team's players are offered as chips that insert that line.
+// The in-game name is taken from the team roster when the account is on it.
 
 const TEAM_STATUS_LABEL: Record<TournamentTeamStatus, string> = {
   [TournamentTeamStatus.Pending]: 'მოლოდინში',
@@ -60,28 +63,34 @@ const numOrNull = (value: string | undefined, int: boolean) => {
   return int ? Math.round(n) : Math.round(n * 100) / 100
 }
 
-function parsePlayers(text: string, coach: string): MatchTeamStats | null {
+type RosterNames = Map<string, string>
+
+function parsePlayers(text: string, coach: string, roster: RosterNames): MatchTeamStats | null {
   const players = text
     .split('\n')
     .map((line) => line.split('|').map((c) => c.trim()))
     .filter((cells) => cells[0])
     .slice(0, 10)
-    .map(([name, kills, kd, damage, rating, assists, mvp]) => ({
-      name: name.slice(0, 30),
+    .map(([name, kills, kd, damage, rating, assists, mvp]) => {
+      const username = name.startsWith('@') ? name.slice(1).trim().slice(0, 40) : null
+      return {
+      name: (username ? roster.get(username.toLowerCase()) ?? username : name).slice(0, 30),
+      ...(username ? { username } : {}),
       kills: numOrNull(kills, true),
       kd: numOrNull(kd, false),
       damage: numOrNull(damage, true),
       rating: numOrNull(rating, false),
       assists: numOrNull(assists, true),
       mvp: /^(mvp|\*|yes|1)$/i.test(mvp ?? ''),
-    }))
+      }
+    })
   if (players.length === 0 && !coach.trim()) return null
   return { coach: coach.trim() || null, players }
 }
 
 function playersToText(stats: MatchTeamStats | null): string {
   return (stats?.players ?? [])
-    .map((p) => [p.name, p.kills, p.kd, p.damage, p.rating, p.assists, p.mvp ? 'mvp' : ''].map((v) => (v === null || v === undefined ? '' : String(v))).join(' | ').replace(/( \| )+$/, ''))
+    .map((p) => [p.username ? `@${p.username}` : p.name, p.kills, p.kd, p.damage, p.rating, p.assists, p.mvp ? 'mvp' : ''].map((v) => (v === null || v === undefined ? '' : String(v))).join(' | ').replace(/( \| )+$/, ''))
     .join('\n')
 }
 
@@ -112,7 +121,7 @@ function formFromMatch(m: PublicTournamentMatch): MatchForm {
   }
 }
 
-function payload(form: MatchForm): TournamentMatchInput | string {
+function payload(form: MatchForm, roster: RosterNames): TournamentMatchInput | string {
   if (form.teamAId && form.teamAId === form.teamBId) return 'გუნდი საკუთარ თავს ვერ ეთამაშება.'
   const scoreA = numOrNull(form.scoreA, true)
   const scoreB = numOrNull(form.scoreB, true)
@@ -129,8 +138,38 @@ function payload(form: MatchForm): TournamentMatchInput | string {
     status: form.status,
     scoreA,
     scoreB,
-    stats: { a: parsePlayers(form.playersA, form.coachA), b: parsePlayers(form.playersB, form.coachB) },
+    stats: { a: parsePlayers(form.playersA, form.coachA, roster), b: parsePlayers(form.playersB, form.coachB, roster) },
   }
+}
+
+// username (lower-case) → in-game name, from every team's linked roster.
+function rosterNames(teams: PublicTournamentTeam[]): RosterNames {
+  const map: RosterNames = new Map()
+  for (const team of teams) for (const p of team.players) if (p.username) map.set(p.username.toLowerCase(), p.inGameName)
+  return map
+}
+
+const appendLine = (text: string, line: string) => (text.trim() ? `${text.replace(/\s+$/, '')}\n${line}` : line)
+
+// The team's linked players as chips: a click adds "@username | " for that player.
+function PlayerChips({ team, onPick }: { team: PublicTournamentTeam | undefined; onPick: (line: string) => void }) {
+  const players = team?.players.filter((p) => p.username) ?? []
+  if (players.length === 0) return null
+  return (
+    <span className="to-player-chips">
+      {players.map((p) => (
+        <button key={p.username} type="button" onClick={() => onPick(`@${p.username} | `)} title={`@${p.username}`}>
+          {p.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.avatarUrl} alt="" aria-hidden="true" />
+          ) : (
+            <i aria-hidden="true">{p.inGameName.slice(0, 1).toUpperCase()}</i>
+          )}
+          @{p.username}
+        </button>
+      ))}
+    </span>
+  )
 }
 
 export default function TournamentOps({ tournament, onChanged }: { tournament: PublicTournamentSummary; onChanged: () => void }) {
@@ -169,7 +208,7 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
 
   const saveMatch = async (event: FormEvent) => {
     event.preventDefault()
-    const body = payload(form)
+    const body = payload(form, rosterNames(teams))
     if (typeof body === 'string') return setError(body)
     setBusy(true)
     setError('')
@@ -372,7 +411,7 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
           </div>
           <details className="field">
             <summary>მოთამაშეების სტატისტიკა (არასავალდებულო)</summary>
-            <p className="note">თითო ხაზზე: სახელი | kills | K/D | damage | rating | assists | mvp</p>
+            <p className="note">თითო ხაზზე: სახელი ან @username | kills | K/D | damage | rating | assists | mvp. @username-ით მითითებულ მოთამაშეს პროფილის ფოტო გამოუჩნდება.</p>
             <div className="stack-form-grid">
               <label className="field">
                 ქოუჩი A
@@ -385,10 +424,12 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
               <label className="field">
                 გუნდი A — მოთამაშეები
                 <textarea rows={5} value={form.playersA} onChange={(e) => setForm({ ...form, playersA: e.target.value })} />
+                <PlayerChips team={teams.find((t) => t.id === form.teamAId)} onPick={(line) => setForm((f) => ({ ...f, playersA: appendLine(f.playersA, line) }))} />
               </label>
               <label className="field">
                 გუნდი B — მოთამაშეები
                 <textarea rows={5} value={form.playersB} onChange={(e) => setForm({ ...form, playersB: e.target.value })} />
+                <PlayerChips team={teams.find((t) => t.id === form.teamBId)} onPick={(line) => setForm((f) => ({ ...f, playersB: appendLine(f.playersB, line) }))} />
               </label>
             </div>
           </details>

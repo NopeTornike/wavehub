@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
-import { NotificationType } from '@wavehub/shared-types';
+import { In, IsNull, Repository } from 'typeorm';
+import { AdminRole, NotificationType } from '@wavehub/shared-types';
 import type { PublicNotification } from '@wavehub/shared-types';
 import { Notification } from './notification.entity';
 import { EmailService } from '../email/email.service';
@@ -108,6 +108,41 @@ export class NotificationsService {
       await this.emit(userId, type, title, body, metadata);
     } catch (err) {
       this.logger.error(`Failed to notify user ${userId} (${type})`, err as Error);
+    }
+  }
+
+  // A queue item for staff (2026-10-24): every active account holding one of `roles` gets an
+  // in-app `staff_task` notification — Super Admin always, since it sees every queue. `key` (e.g.
+  // `listing:<id>`) dedupes: a staff member with an *unread* notification for the same key isn't
+  // sent another, so ten replies on one ticket are one bell item until it's opened.
+  // `onlyUserId` targets one staff member (a ticket's assignee); `exceptUserId` skips whoever
+  // caused it. Best-effort like tryEmit: never throws.
+  async notifyStaff(
+    roles: AdminRole[],
+    title: string,
+    body: string,
+    link: string,
+    key: string,
+    opts: { exceptUserId?: string; onlyUserId?: string | null } = {},
+  ): Promise<void> {
+    try {
+      const wanted = Array.from(new Set([AdminRole.SuperAdmin, ...roles]));
+      const staff = await this.users.find({
+        where: opts.onlyUserId ? { id: opts.onlyUserId, status: UserStatus.Active } : { adminRole: In(wanted), status: UserStatus.Active },
+        select: { id: true, adminRole: true },
+      });
+      for (const member of staff) {
+        if (!member.adminRole || member.id === opts.exceptUserId) continue;
+        const pending = await this.notifications
+          .createQueryBuilder('n')
+          .where('n.userId = :userId AND n.type = :type AND n.readAt IS NULL', { userId: member.id, type: NotificationType.StaffTask })
+          .andWhere(`n.metadata ->> 'key' = :key`, { key })
+          .getCount();
+        if (pending > 0) continue;
+        await this.emit(member.id, NotificationType.StaffTask, title, body, { link, key });
+      }
+    } catch (err) {
+      this.logger.error(`Failed to notify staff (${key})`, err as Error);
     }
   }
 

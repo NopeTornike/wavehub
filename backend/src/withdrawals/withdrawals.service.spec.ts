@@ -54,7 +54,7 @@ describe('WithdrawalsService', () => {
       reverseWithdrawal: jest.fn(),
     } as any;
 
-    const notifications = { emit: jest.fn() } as any;
+    const notifications = { emit: jest.fn(), notifyStaff: jest.fn(async () => undefined) } as any;
     const platformSettings = { getMinWithdrawalWaveCoin: jest.fn(async () => 20) } as any;
 
     const service = new WithdrawalsService(withdrawals, disputes, dataSource, wallet, notifications, platformSettings);

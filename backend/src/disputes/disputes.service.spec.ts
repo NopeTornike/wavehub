@@ -45,7 +45,7 @@ describe('DisputesService', () => {
     const wallet = { releaseSellerEarnings: jest.fn(), refundBuyer: jest.fn() } as any;
     const storage = { save: jest.fn(async () => ({ url: 'http://x/file.png' })) } as any;
     const chat = { postSystemMessage: jest.fn() } as any;
-    const notifications = { emit: jest.fn() } as any;
+    const notifications = { emit: jest.fn(), notifyStaff: jest.fn(async () => undefined) } as any;
 
     const service = new DisputesService(disputes, messages, evidence, orders, dataSource, wallet, storage, chat, notifications);
     return { service, manager, disputes, messages, evidence, wallet, storage, chat, notifications };
@@ -125,7 +125,7 @@ describe('DisputesService', () => {
         {} as any,
         {} as any,
         { postSystemMessage: jest.fn() } as any,
-        { emit: jest.fn() } as any,
+        { emit: jest.fn(), notifyStaff: jest.fn(async () => undefined) } as any,
       );
 
       await expect(service.open(buyerId, orderId, 'Item never arrived')).rejects.toThrow(
@@ -179,7 +179,7 @@ describe('DisputesService', () => {
       const evidence = { find: jest.fn(async () => []) } as any;
       const wallet = { releaseSellerEarnings: jest.fn(), refundBuyer: jest.fn() } as any;
       const chat = { postSystemMessage: jest.fn() } as any;
-      const notifications = { emit: jest.fn() } as any;
+      const notifications = { emit: jest.fn(), notifyStaff: jest.fn(async () => undefined) } as any;
 
       const service = new DisputesService(disputes, messages, evidence, orders, dataSource, wallet, {} as any, chat, notifications);
       return { service, manager, wallet, chat, notifications };

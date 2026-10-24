@@ -412,7 +412,7 @@ export default function Topbar({
                   <span>My Tournaments</span>
                   <i aria-hidden="true">›</i>
                 </Link>
-                <Link href={signedIn ? '/support' : loginHref} onClick={closeMenu}>
+                <Link href={signedIn ? '/support/chat' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.support} />
                   <span>Contact Support</span>
                   <i aria-hidden="true">›</i>

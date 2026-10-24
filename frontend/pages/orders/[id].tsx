@@ -624,7 +624,7 @@ export default function OrderDetail() {
               {isBuyer ? 'გამყიდველისთვის მესიჯის გაგზავნა' : 'მყიდველისთვის მესიჯის გაგზავნა'}
               <span aria-hidden="true">›</span>
             </button>
-            <Link className="od-cta ghost" href="/support">
+            <Link className="od-cta ghost" href="/support/chat">
               <img src="/assets/ui/headset.png" alt="" aria-hidden="true" />
               მხარდაჭერა
               <span aria-hidden="true">›</span>

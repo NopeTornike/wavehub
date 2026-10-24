@@ -1,4 +1,7 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { UPLOAD_THROTTLE } from '../common/throttle';
+import { TICKET_ATTACHMENT } from './support.controller';
 import { IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { AdminRole, TicketPriority, TicketStatus } from '@wavehub/shared-types';
 import { SupportService } from './support.service';
@@ -68,6 +71,27 @@ export class AdminTicketsController {
   ) {
     const ticket = await this.support.staffReply(adminId, id, dto.body);
     await this.audit.log({ adminId, adminRole, action: 'ticket.reply', entityType: 'ticket', entityId: id });
+    return ticket;
+  }
+
+  // Live chat: this staff member joins (or takes over) the conversation.
+  @Post(':id/join')
+  @HttpCode(HttpStatus.OK)
+  @RequireAdminRole(...TICKET_REPLY_ROLES)
+  async join(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string) {
+    const ticket = await this.support.joinChat(adminId, id);
+    await this.audit.log({ adminId, adminRole, action: 'ticket.join_chat', entityType: 'ticket', entityId: id });
+    return ticket;
+  }
+
+  @Post(':id/attachment')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(UPLOAD_THROTTLE)
+  @RequireAdminRole(...TICKET_REPLY_ROLES)
+  @UseInterceptors(TICKET_ATTACHMENT)
+  async attach(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string, @UploadedFile() file: Express.Multer.File | undefined) {
+    const ticket = await this.support.staffAttachment(adminId, id, file);
+    await this.audit.log({ adminId, adminRole, action: 'ticket.attachment', entityType: 'ticket', entityId: id });
     return ticket;
   }
 

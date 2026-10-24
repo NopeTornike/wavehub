@@ -402,7 +402,7 @@ export default function TournamentHub() {
         )}
 
         <p className="wt-hub-help">
-          კითხვები გაქვს? <Link href="/support">დაუკავშირდი მხარდაჭერას</Link>.
+          კითხვები გაქვს? <Link href="/support/chat">დაუკავშირდი მხარდაჭერას</Link>.
         </p>
       </section>
     </Layout>

@@ -127,6 +127,8 @@ export class DisputesService {
       `დავა გაიხსნა შეკვეთაზე #${order.orderNumber}: ${reason}`,
       saved.id,
     );
+    // Only Super Admin resolves disputes (admin-disputes.controller).
+    await this.notifications.notifyStaff([], 'ახალი დავა', `შეკვეთა #${order.orderNumber}: ${reason.slice(0, 140)}`, `/orders/${orderId}`, `dispute:${saved.id}`);
     return this.toPublic(saved, [], []);
   }
 

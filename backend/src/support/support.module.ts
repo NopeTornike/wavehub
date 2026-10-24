@@ -1,3 +1,4 @@
+import { StorageModule } from '../storage/storage.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Ticket } from './ticket.entity';
@@ -13,7 +14,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Ticket, TicketMessage, SavedReply, Order]), AuthModule, AdminModule, NotificationsModule, SubscriptionsModule],
+  imports: [TypeOrmModule.forFeature([Ticket, TicketMessage, SavedReply, Order]), AuthModule, AdminModule, NotificationsModule, SubscriptionsModule, StorageModule],
   controllers: [SupportController, AdminTicketsController, AdminSavedRepliesController],
   providers: [SupportService],
   exports: [SupportService],

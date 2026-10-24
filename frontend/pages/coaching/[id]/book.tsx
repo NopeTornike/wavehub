@@ -1163,7 +1163,7 @@ export default function CoachBooking() {
           </Link>
           <div className="booking-header-actions">
             <LanguageSwitcher />
-            <Link className="booking-help" href="/support">
+            <Link className="booking-help" href="/support/chat">
               <Icon name="help" />
               <span>დახმარება გჭირდება?</span>
             </Link>

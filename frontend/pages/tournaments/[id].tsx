@@ -292,6 +292,8 @@ function RegistrationModal({
   )
 }
 
+const TAB_ORDER = ['teams', 'general', 'prize', 'rules']
+
 export default function TournamentDetail() {
   const router = useRouter()
   const { id } = router.query as { id?: string }
@@ -484,11 +486,20 @@ export default function TournamentDetail() {
           </section>
 
           <section className="prejoin-details">
-            <p className="wt-matches-link wt-matches-link-prominent">
-              <Link href={`/tournaments/${t.id}/matches`}>
-                მატჩები და შედეგები{matches.length > 0 ? ` (${matches.length})` : ''} <TIcon name="chevron" />
-              </Link>
-            </p>
+            {/* The matches card (owner screenshot 21): trophy, title + subtitle, match count, chevron. */}
+            <Link className="wt-matches-card" href={`/tournaments/${t.id}/matches`}>
+              <span className="wt-matches-card-icon" aria-hidden="true">
+                <TIcon name="trophy" />
+              </span>
+              <span className="wt-matches-card-copy">
+                <strong>მატჩები და შედეგები</strong>
+                <small>{matches.length > 0 ? 'ნახე ყველა მატჩი, ანგარიში და სტატისტიკა' : 'მატჩები გამოჩნდება ტურნირის დაწყების შემდეგ'}</small>
+              </span>
+              <b className="wt-matches-card-count">{matches.length}</b>
+              <span className="wt-matches-card-chevron" aria-hidden="true">
+                <TIcon name="chevron" />
+              </span>
+            </Link>
             <nav aria-label="ტურნირის განყოფილებები">
               {(
                 [
@@ -499,7 +510,9 @@ export default function TournamentDetail() {
                 ] as const
               )
                 .slice()
-                .sort(([key]) => ['teams', 'general', 'prize', 'rules'].indexOf(key))
+                // Teams first (Tornike 5e343ab); a two-argument comparator — the one-argument form
+                // left the order to the browser's sort implementation.
+                .sort(([a], [b]) => TAB_ORDER.indexOf(a) - TAB_ORDER.indexOf(b))
                 .map(([key, icon, label]) => (
                 <button key={key} type="button" className={tab === key ? 'active' : undefined} aria-pressed={tab === key} onClick={() => setTab(key)}>
                   <TIcon name={icon} />

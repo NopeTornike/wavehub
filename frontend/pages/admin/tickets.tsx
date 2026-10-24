@@ -101,7 +101,7 @@ export default function AdminTickets() {
           {tickets.map((ticket) => (
             <Link key={ticket.id} href={`/admin/tickets/${ticket.id}`} className="legacy-order-card">
               <div className="order-card-main">
-                <strong>{ticket.subject}</strong>
+                <strong>{ticket.channel === 'chat' ? '💬 ლაივ ჩატი' : ticket.subject}</strong>
                 <span className="note" style={{ margin: 0 }}>
                   @{ticket.requesterUsername} · {PRIORITY_LABELS[ticket.priority]}
                   {ticket.assignedToUsername ? ` · @${ticket.assignedToUsername}` : ''}

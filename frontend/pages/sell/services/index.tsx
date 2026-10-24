@@ -45,7 +45,8 @@ export default function SellServices() {
   }, [checked, user, router])
 
   useEffect(() => {
-    api.listCategories().then((rows) => setCategories(rows.filter((c) => c.type === 'service' || c.type === 'both'))).catch(() => undefined)
+    // Coaching is sold through coach profiles, never as a service (owner 2026-10-24).
+    api.listCategories().then((rows) => setCategories(rows.filter((c) => (c.type === 'service' || c.type === 'both') && c.slug !== 'coaching'))).catch(() => undefined)
     api.listGames().then(setGames).catch(() => undefined)
   }, [])
 

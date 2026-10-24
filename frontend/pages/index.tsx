@@ -11,6 +11,7 @@ import { listingKind, normalizeAccountStatus } from '../components/ProductCard'
 import RankIcon from '../components/RankIcon'
 import { useCoachingFromPrice } from '../lib/coaching-price'
 import HomeBanners, { useBanners } from '../components/HomeBanners'
+import { BannerVideo, useBannerRotation, useSwipe } from '../components/BannerSlides'
 import { useFavorites } from '../lib/favorites'
 import { gel } from '../lib/money'
 import { kaDayMonth } from '../lib/dates'
@@ -160,21 +161,29 @@ export default function Home() {
   const [featured, setFeatured] = useState<PublicListingSummary[] | null>(null)
   const [keys, setKeys] = useState<PublicListingSummary[]>([])
   const [coaches, setCoaches] = useState<PublicCoachSummary[]>([])
-  const [tournament, setTournament] = useState<PublicTournamentSummary | null>(null)
+  // Featured tournaments (owner 2026-10-24): up to three open / upcoming ones rotate every 6 seconds,
+  // swipe or dots switch them, each card links to its own tournament.
+  const [tournaments, setTournaments] = useState<PublicTournamentSummary[]>([])
+  const [tourIndex, setTourIndex] = useState(0)
+  const [tourHover, setTourHover] = useState(false)
+  const tournament = tournaments.length ? tournaments[tourIndex % tournaments.length] : null
+  const nextTour = useCallback(() => setTourIndex((i) => (tournaments.length ? (i + 1) % tournaments.length : 0)), [tournaments.length])
+  const prevTour = useCallback(() => setTourIndex((i) => (tournaments.length ? (i - 1 + tournaments.length) % tournaments.length : 0)), [tournaments.length])
+  const tourSwipe = useSwipe(prevTour, nextTour)
+  useEffect(() => {
+    if (tournaments.length < 2 || tourHover) return
+    const timer = window.setTimeout(nextTour, 6000)
+    return () => window.clearTimeout(timer)
+  }, [tournaments.length, tourHover, tourIndex, nextTour])
   const [howStep, setHowStep] = useState(0)
   const steamTrack = useRef<HTMLDivElement>(null)
   const coachTrack = useRef<HTMLDivElement>(null)
   const [steamState, setSteamState] = useState({ atStart: true, atEnd: false, dot: 0 })
   const [coachDot, setCoachDot] = useState(0)
-  // Home top hero from the CMS; several published ones rotate every 7 seconds.
+  // Home top hero from the CMS; several published ones rotate (photos 7s, videos to their end).
   const heroBanners = useBanners(BannerPlacement.HomeHero)
-  const [heroIndex, setHeroIndex] = useState(0)
-  const hero = heroBanners.length ? heroBanners[heroIndex % heroBanners.length] : null
-  useEffect(() => {
-    if (heroBanners.length < 2) return
-    const timer = window.setInterval(() => setHeroIndex((i) => i + 1), 7000)
-    return () => window.clearInterval(timer)
-  }, [heroBanners.length])
+  const heroRotation = useBannerRotation(heroBanners)
+  const hero = heroRotation.current
   const touchStartX = useRef(0)
 
   const slugByName = useMemo(() => new Map(games.map((g) => [g.name, g.slug])), [games])
@@ -221,11 +230,14 @@ export default function Home() {
       .then((items) => setCoaches(items))
       .catch(() => setCoaches([]))
     Promise.all([
-      api.browseTournaments({ status: TournamentStatus.Open, limit: 1 }),
-      api.browseTournaments({ status: TournamentStatus.Upcoming, limit: 1 }),
+      api.browseTournaments({ status: TournamentStatus.Open, limit: 3 }),
+      api.browseTournaments({ status: TournamentStatus.Upcoming, limit: 3 }),
     ])
-      .then(([open, upcoming]) => setTournament(open.items[0] ?? upcoming.items[0] ?? null))
-      .catch(() => setTournament(null))
+      .then(([open, upcoming]) => {
+        const seen = new Set<string>()
+        setTournaments([...open.items, ...upcoming.items].filter((t) => !seen.has(t.id) && !!seen.add(t.id)).slice(0, 3))
+      })
+      .catch(() => setTournaments([]))
   }, [])
 
   // featured-items-fallback: set on <body> by the prototype when there are no listings to feature.
@@ -390,7 +402,7 @@ export default function Home() {
             {/* The top hero is a CMS banner when one is published at "home_hero" (owner 2026-10-07:
                 every banner editable from Admin → Banners); the built-in marketplace cover otherwise. */}
             {hero ? (
-              <HeroBanner banner={hero} />
+              <HeroBanner banner={hero} rotation={heroRotation} banners={heroBanners} />
             ) : (
               <Link className="home-marketplace-cover" href="/marketplace" aria-label="Explore the WaveHubX marketplace">
                 <img src="/assets/home-marketplace-cover.png" alt="WaveHubX neon gaming marketplace" />
@@ -653,9 +665,12 @@ export default function Home() {
             </header>
 
             {tournament ? (
-              <div className="featured-tournament">
-                <div
-                  className={`tournament-cover${tournament.coverImageUrl ? ' has-photo' : ''}`}
+              <div className="featured-tournament" {...tourSwipe} onMouseEnter={() => setTourHover(true)} onMouseLeave={() => setTourHover(false)} aria-roledescription="carousel">
+                <Link
+                  key={tournament.id}
+                  href={tournamentPrimaryHref(tournament)}
+                  aria-label={tournament.name}
+                  className={`tournament-cover tour-slide${tournament.coverImageUrl ? ' has-photo' : ''}`}
                   data-title={tournament.coverImageUrl ? undefined : (() => {
                     // The cover's big two-line title (the design's "WAVE / CUP") is the real name.
                     const words = tournament.name.toUpperCase().split(/\s+/)
@@ -665,7 +680,21 @@ export default function Home() {
                   style={{
                     backgroundImage: `linear-gradient(0deg, rgba(9, 1, 18, .62), rgba(9, 4, 25, .08)), url("${tournament.coverImageUrl ?? gameCover(slugById.get(tournament.gameId)) ?? '/assets/cs2-marketplace-cover.png'}")`,
                   }}
-                ></div>
+                />
+                {tournaments.length > 1 && (
+                  <span className="tour-dots">
+                    {tournaments.map((t, i) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        aria-label={t.name}
+                        aria-current={i === tourIndex % tournaments.length}
+                        className={i === tourIndex % tournaments.length ? 'active' : undefined}
+                        onClick={() => setTourIndex(i)}
+                      />
+                    ))}
+                  </span>
+                )}
                 <div className="tournament-copy">
                   <h4>{tournament.name}</h4>
                   <p>
@@ -955,7 +984,7 @@ export default function Home() {
               <h2 id="faqSupportTitle">კითხვები კვლავ გაქვთ?</h2>
               <p>ჩვენი მხარდაჭერის გუნდი მზად არის დაგეხმაროთ.</p>
             </div>
-            <Link href={user ? '/support' : '/login?next=/support'}>
+            <Link href={user ? '/support/chat' : '/login?next=/support/chat'}>
               დაუკავშირდი საფორთს <strong aria-hidden="true">→</strong>
             </Link>
           </section>
@@ -967,8 +996,10 @@ export default function Home() {
 
 // The home top banner from the CMS (owner 2026-10-07): the photo alone unless text was entered —
 // then a big title, the smaller subtitle and (only when button text is set) the button, on the
-// left like the previous banner. Without a button the whole banner is the link.
-function HeroBanner({ banner }: { banner: PublicBanner }) {
+// left like the previous banner. Without a button the whole banner is the link. A video banner
+// (2026-10-24) plays muted with only a pause control and no photo behind it.
+function HeroBanner({ banner, banners, rotation }: { banner: PublicBanner; banners: PublicBanner[]; rotation: ReturnType<typeof useBannerRotation> }) {
+  const swipe = useSwipe(rotation.prev, rotation.next)
   const title = banner.title?.trim()
   const subtitle = banner.subtitle?.trim()
   const link = banner.linkUrl
@@ -991,24 +1022,36 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
           ))}
       </span>
     ) : null
-  const image = <img src={banner.imageUrl ?? ''} alt={title || 'WaveHubX'} />
-  if (link && !button) {
-    return external ? (
-      <a className="home-marketplace-cover hero-banner" href={link} target="_blank" rel="noopener noreferrer">
-        {image}
-        {copy}
-      </a>
-    ) : (
-      <Link className="home-marketplace-cover hero-banner" href={link}>
-        {image}
-        {copy}
-      </Link>
-    )
-  }
+  const wholeLink = link && !button ? link : null
   return (
-    <div className="home-marketplace-cover hero-banner">
-      {image}
+    <div className={`home-marketplace-cover hero-banner${banner.videoUrl ? ' is-video' : ''}`} {...swipe}>
+      {banner.videoUrl ? (
+        <BannerVideo
+          key={banner.id}
+          src={banner.videoUrl}
+          className="hero-banner-video"
+          loop={rotation.count < 2}
+          paused={rotation.paused}
+          onPausedChange={rotation.setPaused}
+          onEnded={rotation.next}
+        />
+      ) : (
+        <img src={banner.imageUrl ?? ''} alt={title || 'WaveHubX'} />
+      )}
+      {wholeLink &&
+        (external ? (
+          <a className="home-banner-link" href={wholeLink} target="_blank" rel="noopener noreferrer" aria-label={title || 'WaveHubX'} />
+        ) : (
+          <Link className="home-banner-link" href={wholeLink} aria-label={title || 'WaveHubX'} />
+        ))}
       {copy}
+      {rotation.count > 1 && (
+        <span className="home-banner-dots hero-banner-dots">
+          {banners.map((x, i) => (
+            <button key={x.id} type="button" aria-label={`ბანერი ${i + 1}`} aria-current={i === rotation.index} className={i === rotation.index ? 'active' : undefined} onClick={() => rotation.setIndex(i)} />
+          ))}
+        </span>
+      )}
     </div>
   )
 }

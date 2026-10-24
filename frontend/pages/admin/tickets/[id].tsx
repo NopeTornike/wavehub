@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { PublicSavedReply, PublicTicket } from '@wavehub/shared-types'
 import { TicketPriority, TicketStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../../components/AdminLayout'
-import ChatThread from '../../../components/ChatThread'
+import ChatThread, { AttachButton, CHAT_FILE_MAX_BYTES } from '../../../components/ChatThread'
 import { displayName } from '../../../components/Avatar'
 import { api, errorMessage } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
@@ -104,6 +104,50 @@ export default function AdminTicketDetail() {
     }
   }
 
+  // Live chat: join (become the operator the user sees) and files.
+  const joinChat = async () => {
+    if (!id) return
+    setBusy(true)
+    setError('')
+    try {
+      setTicket(await api.adminJoinTicketChat(id))
+    } catch (err) {
+      setError(errorMessage(err, 'ჩატში შესვლა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const attach = async (file: File) => {
+    if (!id) return
+    if (file.size > CHAT_FILE_MAX_BYTES) {
+      setError('ფაილი 10MB-ზე დიდი არ უნდა იყოს.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      setTicket(await api.adminAttachToTicket(id, file))
+    } catch (err) {
+      setError(errorMessage(err, 'ფაილის ატვირთვა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // A live chat refreshes every 5 seconds while open.
+  const isChat = ticket?.channel === 'chat'
+  useEffect(() => {
+    if (!id || !isChat) return
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      api
+        .adminGetTicket(id)
+        .then(setTicket)
+        .catch(() => undefined)
+    }, 5000)
+    return () => window.clearInterval(timer)
+  }, [id, isChat])
+
   // The requester, from their own messages (the thread header).
   const requesterMsg = ticket?.messages.find((m) => !m.fromSupport) ?? null
   const requester = requesterMsg
@@ -168,7 +212,8 @@ export default function AdminTicketDetail() {
         )}
       </div>
       {mode === 'note' && <p className="atk-note-hint">შიდა შენიშვნას მომხმარებელი ვერ ხედავს — მხოლოდ პერსონალისთვისაა.</p>}
-      <div className="direct-message-form atk-form">
+      <div className="direct-message-form atk-form has-attach">
+        {mode === 'reply' && <AttachButton onFile={(file) => void attach(file)} disabled={busy} />}
         <textarea
           maxLength={5000}
           placeholder={mode === 'note' ? 'დაწერეთ შიდა შენიშვნა...' : 'დაწერეთ პასუხი...'}
@@ -202,7 +247,7 @@ export default function AdminTicketDetail() {
             <div className="atk-title">
               <h1>{ticket.subject}</h1>
               <p>
-                <span>{TICKET_CATEGORY_LABELS[ticket.category]}</span>
+                <span>{ticket.channel === 'chat' ? (ticket.operator ? `💬 ლაივ ჩატი · ${ticket.operator.firstName}` : '💬 ლაივ ჩატი · ოპერატორი არ არის') : TICKET_CATEGORY_LABELS[ticket.category]}</span>
                 <span>{`გახსნილია ${formatTicketDate(ticket.createdAt)}`}</span>
                 <span>{ticket.assignedToId ? (ticket.assignedToId === me?.id ? 'შენზეა მინიჭებული' : 'მინიჭებულია') : 'არავისზეა მინიჭებული'}</span>
               </p>
@@ -232,7 +277,12 @@ export default function AdminTicketDetail() {
                   ))}
                 </select>
               </label>
-              {ticket.assignedToId !== me?.id && (
+              {ticket.channel === 'chat' && ticket.operator == null && (
+                <button type="button" className="button atk-assign" disabled={busy} onClick={joinChat}>
+                  ჩატში შესვლა
+                </button>
+              )}
+              {ticket.assignedToId !== me?.id && ticket.channel !== 'chat' && (
                 <button type="button" className="button atk-assign" disabled={busy} onClick={assignToMe}>
                   ჩემზე აღება
                 </button>
@@ -263,6 +313,7 @@ export default function AdminTicketDetail() {
                 body: m.body,
                 createdAt: m.createdAt,
                 note: m.isInternalNote,
+                file: m.fileUrl ? { url: m.fileUrl, type: m.fileType, name: m.fileName } : null,
               }
             })}
             draft={draft}

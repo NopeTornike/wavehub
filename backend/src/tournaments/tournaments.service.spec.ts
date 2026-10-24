@@ -94,7 +94,7 @@ describe('TournamentsService', () => {
     } as any;
     const storage = { save: jest.fn(async () => ({ url: 'http://x/uploads/file.png' })) } as any;
     const members = { find: jest.fn(async () => []) } as any;
-    const notifications = { emit: jest.fn(async () => ({})) } as any;
+    const notifications = { emit: jest.fn(async () => ({})), notifyStaff: jest.fn(async () => undefined) } as any;
 
     const service = new TournamentsService(tournaments, registrations, teams, matches, members, dataSource, storage, notifications);
     return { service, saved, tournaments, teams, matches, notifications };

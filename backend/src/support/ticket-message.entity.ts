@@ -21,8 +21,19 @@ export class TicketMessage {
   @JoinColumn({ name: 'senderId' })
   sender: User;
 
+  // '' for a file-only message.
   @Column({ type: 'text' })
   body: string;
+
+  // An attached file (screenshot, PDF, Word .docx) — byte-checked by StorageService.
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  fileUrl: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  fileType: string | null;
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  fileName: string | null;
 
   // Staff-only visibility — SupportService#getMine (the requester's own view) filters these out
   // server-side; never rely on the frontend to hide them. A user reply and a staff internal note

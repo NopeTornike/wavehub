@@ -1141,8 +1141,9 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - **Wallet**:
   - The four cards in the owner's wording, all from the server (`inEscrow`, `availableToWithdraw`,
     `totalToppedUp` — see `backend/src/withdrawals/CLAUDE.md`).
-  - The `wb-` top-up card follows the Bank of Georgia design. `public/assets/ui/bog-mark.png` is
-    cropped from the owner's screenshot.
+  - The `wb-` top-up card follows the Bank of Georgia design. The bank is named in a text badge;
+    the cropped `bog-mark.png` was removed on 2026-10-24, and only the bank's official logo file
+    may replace the badge.
 - **Auth** (`components/auth/*`, `ax-` CSS):
   - `/register` and `/login` use `AuthShell` (neon X + waves, top bar, centred card).
   - Register asks for first / last name, username, email, password + confirm (show / hide) and the
@@ -1177,3 +1178,48 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   - `SellerModal` copies picked photos right away (`materializeFiles`).
 - **Coach profile games card**: tiles are ≥150px with names breaking between words (three fixed
   columns squeezed names letter by letter on phones).
+
+## 2026-10-24 Owner round 4 (video banners, live support chat, staff bell, tournaments)
+- **Banners** (`components/BannerSlides.tsx`):
+  - `useBannerRotation` drives the home hero, `HomeBanners` and every `*_top` placement. Photos
+    stay 7s; a video slide plays to its end and then moves on.
+  - `BannerVideo` is muted, autoplays inline, and loops when it is the only banner. Its only
+    control is a pause / play button, and nothing is painted behind it.
+  - `useSwipe` handles phone swipes.
+  - Admin → Banners has video upload / replace / remove (MP4/WebM ≤20MB, checked client-side
+    too).
+- **Home featured tournament**: up to three open / upcoming tournaments rotate every 6s. Rotation
+  pauses on hover; swipe or dots switch, and each cover links to its tournament (`tour-` CSS).
+- **Live support chat** (`pages/support/chat.tsx`, `sp-live`):
+  - "Contact Support" (profile menu, home FAQ, order / session / booking help links, tournament
+    hub) opens it. `/support` keeps tickets and has a "Live chat" button.
+  - The automatic lines are derived from the chat state, not stored. They are:
+    - the greeting;
+    - "request received" plus the "Connecting you to an operator…" spinner while nobody has
+      joined;
+    - the owner's ⏳ line 75s after the first message;
+    - "🟢 … <first name> joined", at the join time.
+  - It polls every 5s. `ChatThread` gained `system` / `pending` lines, `file` attachments (images
+    inline, other files as chips) and `onAttach` / `AttachButton` (paperclip).
+  - Ticket pages accept files too. Admin → ticket has "Join chat", a paperclip in the reply box,
+    and 5s polling for chats.
+- **Followers**: the follower / following counts on `/u/[username]` open `FollowListModal`
+  (tabs, search, rows link to profiles; a bottom sheet on phones).
+- **Tournament detail**:
+  - The matches link is a card (trophy, subtitle, count, chevron).
+  - Tabs are labelled boxes at every width. The prototype's last-tab icon swap is undone, because
+    it showed the teams picture on "Rules" after the tab re-order.
+  - The teams list and match history become cards on phones instead of sideways-scrolling
+    tables.
+  - The match stats table fits a phone, and linked players show their photo and link the
+    profile.
+- **Admin match entry**: write `@username | kills | …` lines, or tap the team's player chips.
+- **Small fixes**:
+  - wallet summary icons are from the owner's set (wallet / shield-check / card / plus-circle);
+  - SellerPreview sub-lines are no longer letter-spaced like stars;
+  - the order page shows one "Review" heading and no empty card;
+  - the coach "completed sessions" metric icon is drawn like the other three;
+  - the session button reads "Message the coach";
+  - My Listings steps say "wait for approval" / "deliver and get paid";
+  - `/sell/services` hides the Coaching category;
+  - the phone sidebar scrolls to its last link (`100dvh`, padded past the bottom nav).

@@ -906,6 +906,14 @@ export const api = {
   replyToTicket: (id: string, body: string) =>
     request<PublicTicket>(`/tickets/mine/${id}/reply`, { method: 'POST', body: JSON.stringify({ body }) }),
 
+  // Live support chat ("Contact support"): null until the first message opens it.
+  getLiveChat: () => request<PublicTicket | null>('/tickets/live'),
+  sendLiveChat: (body: string) => request<PublicTicket>('/tickets/live', { method: 'POST', body: JSON.stringify({ body }) }),
+  // Screenshot / PDF / Word file on the user's ticket or chat (≤10MB, byte-checked).
+  attachToTicket: async (id: string, file: File) => upload<PublicTicket>(`/tickets/mine/${id}/attachment`, file.type.startsWith('image/') ? await shrinkPhoto(file) : file),
+  adminJoinTicketChat: (id: string) => request<PublicTicket>(`/admin/tickets/${id}/join`, { method: 'POST' }),
+  adminAttachToTicket: async (id: string, file: File) => upload<PublicTicket>(`/admin/tickets/${id}/attachment`, file.type.startsWith('image/') ? await shrinkPhoto(file) : file),
+
   adminListTickets: (filters: { status?: TicketStatus; priority?: TicketPriority; assignedToId?: string } = {}) => {
     const params = new URLSearchParams()
     Object.entries(filters).forEach(([key, value]) => {
@@ -1027,6 +1035,9 @@ export const api = {
   // The viewer's own follow lists (client feedback #15).
   listMyFollowing: () => request<PublicFollowEntry[]>('/me/following'),
   listMyFollowers: () => request<PublicFollowEntry[]>('/me/followers'),
+  // Anyone's lists, from their public profile (signed in).
+  listUserFollowers: (username: string) => request<PublicFollowEntry[]>(`/users/${encodeURIComponent(username)}/followers`),
+  listUserFollowing: (username: string) => request<PublicFollowEntry[]>(`/users/${encodeURIComponent(username)}/following`),
   getFollowStatus: (username: string) => request<{ following: boolean }>(`/users/${encodeURIComponent(username)}/follow-status`),
 
   followUser: (username: string) => request<{ following: boolean; followers: number }>(`/users/${encodeURIComponent(username)}/follow`, { method: 'POST' }),
@@ -1095,6 +1106,9 @@ export const api = {
     request<AdminBanner>(`/admin/banners/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
   adminUploadBannerImage: (id: string, file: File) => upload<AdminBanner>(`/admin/banners/${id}/image`, file),
+  // MP4/WebM ≤20MB; replaces the photo on the site.
+  adminUploadBannerVideo: (id: string, file: File) => upload<AdminBanner>(`/admin/banners/${id}/video`, file),
+  adminClearBannerVideo: (id: string) => request<AdminBanner>(`/admin/banners/${id}/video`, { method: 'DELETE' }),
 
   // Only an unused code can be deleted (409 once redeemed — deactivate it instead).
   adminDeletePromoCode: (id: string) => request<{ ok: true }>(`/admin/promo-codes/${id}`, { method: 'DELETE' }),

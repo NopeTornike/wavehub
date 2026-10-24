@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, IsNull, Repository } from 'typeorm';
-import { CoachStatus, DEFAULT_COACH_AVAILABILITY, NotificationType, SubscriptionAudience, UserStatus, VerificationStatus } from '@wavehub/shared-types';
+import { AdminRole, CoachStatus, DEFAULT_COACH_AVAILABILITY, NotificationType, SubscriptionAudience, UserStatus, VerificationStatus } from '@wavehub/shared-types';
 import type { AdminCoachSummary, CoachAvailability, MyCoachProfile, PublicCoachDetail, PublicCoachReview, PublicCoachSummary } from '@wavehub/shared-types';
 import { Coach } from './coach.entity';
 import { ApplyCoachDto } from './dto/apply-coach.dto';
@@ -130,7 +130,21 @@ export class CoachesService {
   // since `userId` is unique. Rejects outright if the user already has a Pending or Verified
   // application; there's no "edit while pending" flow yet (matches Listings' own lack of an
   // edit-after-submit path for the same reason — see listings/CLAUDE.md).
+  // A coach application (new, re-applied or after removal) — staff who verify coaches are told.
   async apply(userId: string, dto: ApplyCoachDto): Promise<Coach> {
+    const coach = await this.applyInner(userId, dto);
+    await this.notifications.notifyStaff(
+      [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager],
+      'ახალი Coach-ის განაცხადი',
+      dto.specialty?.slice(0, 120) || 'Coach-ის განაცხადი ელოდება განხილვას.',
+      '/admin/coaches',
+      `coach:${coach.id}`,
+      { exceptUserId: userId },
+    );
+    return coach;
+  }
+
+  private async applyInner(userId: string, dto: ApplyCoachDto): Promise<Coach> {
     const existing = await this.coaches.findOne({ where: { userId } });
     if (existing?.removedAt) {
       // Removed by staff earlier: the same row (userId is unique) starts over as a new application.

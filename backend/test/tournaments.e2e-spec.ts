@@ -141,8 +141,14 @@ describe('tournament teams + matches (e2e)', () => {
       stats: { a: { coach: 'Luna', players: [{ name: 'GG', kills: 12, kd: 2.4, damage: 2856, rating: 8.9, mvp: true }, { name: 'Zero', kills: 6 }] } },
     });
     expect(updated.status).toBe(200);
-    expect(updated.body.stats.a.players[1]).toEqual({ name: 'Zero', kills: 6, kd: null, damage: null, rating: null, assists: null, mvp: false });
+    expect(updated.body.stats.a.players[1]).toEqual({ name: 'Zero', kills: 6, kd: null, damage: null, rating: null, assists: null, mvp: false, userId: null, username: null, avatarUrl: null });
     expect(updated.body.stats.b).toBeNull();
+    // Players picked by @username are linked to their account (photo + profile); unknown ones are refused.
+    expect((await admin.client.post(`/admin/tournaments/${id}/matches/${matchId}`, { stats: { b: { players: [{ name: 'Storm', username: '@nobody-xyz-404' }] } } })).status).toBe(400);
+    const linked = await admin.client.post(`/admin/tournaments/${id}/matches/${matchId}`, { stats: { b: { players: [{ name: 'Storm', username: `@${b.username}`, kills: 9 }] } } });
+    expect(linked.status).toBe(200);
+    expect(linked.body.stats.b.players[0]).toMatchObject({ name: 'Storm', userId: b.id, username: b.username, avatarUrl: null, kills: 9 });
+    expect(JSON.stringify(linked.body.stats)).not.toMatch(/email|passwordHash|wavecoinBalance/);
     // Out-of-range stats are rejected.
     expect((await admin.client.post(`/admin/tournaments/${id}/matches/${matchId}`, { scoreA: -1 })).status).toBe(400);
 

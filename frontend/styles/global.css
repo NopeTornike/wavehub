@@ -22115,3 +22115,229 @@ body.ax-modal-open { overflow: hidden; }
    2026-10-15). */
 .coach-info-card.coach-games-card > div { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .coach-info-card.coach-games-card .coach-game-name { overflow-wrap: break-word; word-break: normal; font-size: 12px; }
+
+/* Auth form fits its card at every width (2026-10-15 fix): an input's default size (~20ch) made the
+   first-name / last-name pair wider than the card, and the whole form grew past its right edge. */
+.ax-form > * { min-width: 0; }
+.ax-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.ax-field { min-width: 0; }
+.ax-field input { width: 100%; min-width: 0; }
+@media (max-width: 520px) {
+  .ax-split { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Video banners (owner 2026-10-24): an MP4/WebM fills the banner instead of the photo — nothing
+   is painted behind it — autoplays muted with only a pause / play button, and the carousel moves
+   on when it ends (components/BannerSlides.tsx). */
+.home-banner.is-video { overflow: hidden; background: #03030a; }
+.home-banner-video, .hero-banner-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; pointer-events: none; }
+.home-banner.is-video.has-text::before { content: ''; position: absolute; inset: 0; z-index: 1; border-radius: inherit; background: linear-gradient(90deg, rgba(5, 4, 15, .82), rgba(5, 4, 15, .2) 70%); pointer-events: none; }
+.banner-video-toggle { position: absolute; z-index: 4; left: 14px; bottom: 12px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid rgba(255, 255, 255, .28); border-radius: 50%; background: rgba(5, 4, 15, .6); color: #fff; cursor: pointer; backdrop-filter: blur(6px); }
+.banner-video-toggle:hover, .banner-video-toggle:focus-visible { border-color: #ff2f9a; background: rgba(255, 47, 154, .35); outline: none; }
+.hero-banner .hero-banner-copy { pointer-events: none; }
+.hero-banner .hero-banner-copy a { pointer-events: auto; }
+.hero-banner .home-banner-dots { z-index: 4; }
+.hero-banner .home-banner-dots button { pointer-events: auto; }
+@media (max-width: 620px) {
+  .banner-video-toggle { left: 10px; bottom: 9px; width: 28px; height: 28px; }
+  .banner-video-toggle svg { width: 13px; height: 13px; }
+}
+/* Admin → Banners video controls. */
+.ab-media { display: grid; gap: 8px; min-width: 0; }
+.ab-preview { overflow: hidden; }
+.ab-preview-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.ab-preview .ab-upload { z-index: 1; }
+.ab-video-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ab-video-actions .button { width: auto !important; cursor: pointer; }
+.ab-video-actions .button.disabled { opacity: .5; pointer-events: none; }
+.ab-video-actions small { flex-basis: 100%; color: var(--adm-muted, #9aa1b3); font-size: 12px; }
+
+/* Live support chat + chat files (2026-10-24, pages/support/chat.tsx, components/ChatThread.tsx).
+   Automatic lines are centred pills in the thread, the "connecting…" one with a spinner; images
+   show inline, other files as a paperclip chip; the paperclip sits left of the textarea. */
+.chat-system { align-self: center; max-width: min(520px, 92%); margin: 4px auto; padding: 9px 14px; border: 1px solid rgba(160, 120, 255, .22); border-radius: 12px; background: rgba(123, 61, 245, .1); color: #e4defa; font-size: 13.5px; line-height: 1.45; text-align: center; }
+.chat-system.is-pending { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-style: dashed; color: #cfc6ee; }
+.chat-spinner { width: 14px; height: 14px; flex: 0 0 auto; border: 2px solid rgba(255, 255, 255, .25); border-top-color: #ff2f9a; border-radius: 50%; animation: chat-spin .8s linear infinite; }
+@keyframes chat-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .chat-spinner { animation-duration: 2.4s; } }
+.chat-file-image { display: block; margin-top: 6px; max-width: min(260px, 100%); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255, 255, 255, .12); }
+.chat-file-image img { display: block; width: 100%; height: auto; max-height: 260px; object-fit: cover; }
+.chat-file { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 6px; padding: 8px 12px; border: 1px solid rgba(255, 255, 255, .16); border-radius: 10px; background: rgba(255, 255, 255, .05); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
+.chat-file img { width: 16px; height: 16px; flex: 0 0 auto; }
+.chat-file span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.direct-message-form.has-attach { align-items: center; }
+.chat-attach { display: grid; place-items: center; flex: 0 0 auto; width: 40px; height: 40px; border: 1px solid rgba(255, 255, 255, .16); border-radius: 10px; background: rgba(255, 255, 255, .04); cursor: pointer; }
+.chat-attach:hover, .chat-attach:focus-within { border-color: #ff2f9a; }
+.chat-attach img { width: 18px; height: 18px; }
+.chat-attach.disabled { opacity: .5; pointer-events: none; }
+.sp-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.sp-live-cta { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px; background: linear-gradient(90deg, #ff2f8f, #7b3df5); color: #fff; font-weight: 800; font-size: 14px; text-decoration: none; box-shadow: 0 8px 22px rgba(255, 47, 143, .25); }
+.sp-live .chat-thread { min-height: min(640px, calc(100dvh - 220px)); }
+.direct-message-form.has-attach { grid-template-columns: auto minmax(0, 1fr) auto; }
+@media (max-width: 720px) {
+  .direct-message-form.has-attach { grid-template-columns: auto minmax(0, 1fr) minmax(76px, auto); }
+  .chat-attach { width: 40px; height: 46px; }
+}
+/* Wallet summary icons from the owner's set; BOG as a text badge (no cropped logo). */
+.wallet-summary-card > i img { width: 24px; height: 24px; object-fit: contain; display: block; }
+.wb-bank { padding: 7px 11px; border: 1px solid rgba(255, 120, 40, .45); border-radius: 10px; background: rgba(255, 102, 0, .08); }
+.wb-bank > span { display: block; }
+@media (max-width: 620px) { .wb-bank > span { display: block; } .wb-bank { padding: 6px 8px; font-size: 8.5px; } }
+/* Seller preview stats: only the rating column is stars; the other sub-lines are plain text
+   (they inherited the stars' 3px letter-spacing and wrapped, owner screenshot 29). */
+.seller-profile-stats > div { min-width: 0; padding: 0 6px; text-align: center; }
+.seller-profile-stats div > small { line-height: 1.3; }
+.seller-profile-stats div > span.sps-sub { color: #cdb9da; font-size: 11.5px; letter-spacing: 0; line-height: 1.3; }
+@media (max-width: 620px) { .seller-profile-stats div > span.sps-sub { font-size: 10.5px; letter-spacing: 0; } }
+.od-review-body { display: grid; gap: 12px; }
+/* Phone sidebar reaches its last links (owner 2026-10-24: "doesn't scroll to the bottom"): it was
+   100vh tall, which on phones is taller than the visible area (browser bars), and the fixed bottom
+   nav covered the end of the list. Pin it to the dynamic viewport and pad past the bottom nav. */
+@media (max-width: 920px) {
+  .app-shell > .sidebar, .sidebar {
+    top: 0;
+    bottom: 0;
+    height: auto;
+    max-height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Profile follower / following counts open FollowListModal (2026-10-24). The two buttons copy the
+   stat tiles' layout; the modal is a centred card on desktop and a bottom sheet on phones. */
+.up-stats > .up-stat-link { display: flex; align-items: center; justify-content: center; gap: 16px; min-width: 0; padding: 16px 10px; border: 0; border-right: 1px solid rgba(255, 255, 255, .08); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background .15s ease; }
+.up-stats > .up-stat-link:hover, .up-stats > .up-stat-link:focus-visible { background: rgba(255, 47, 143, .08); outline: none; }
+@media (max-width: 900px) { .up-stats > .up-stat-link { border-bottom: 1px solid rgba(255, 255, 255, .06); } }
+@media (max-width: 620px) { .up-stats > .up-stat-link { gap: 10px; padding: 12px 8px; } }
+.flm-modal { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 16px; }
+.flm-backdrop { position: absolute; inset: 0; background: rgba(2, 2, 8, .72); backdrop-filter: blur(3px); }
+.flm-dialog { position: relative; display: grid; grid-template-rows: auto auto minmax(0, 1fr); width: min(440px, 100%); max-height: min(620px, calc(100dvh - 32px)); border: 1px solid rgba(160, 120, 255, .25); border-radius: 16px; background: linear-gradient(160deg, #110e24, #080712); color: #eef0f6; box-shadow: 0 24px 60px rgba(0, 0, 0, .55); overflow: hidden; }
+.flm-head { display: flex; align-items: center; gap: 8px; padding: 10px 10px 0 14px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.flm-tabs { display: flex; flex: 1 1 auto; min-width: 0; }
+.flm-tabs button { flex: 1 1 0; min-width: 0; padding: 12px 6px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #aeb4c4; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.flm-tabs button strong { color: #fff; margin-right: 4px; }
+.flm-tabs button.active { border-bottom-color: #ff2f9a; color: #fff; }
+.flm-close { flex: 0 0 auto; width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .06); color: #fff; font-size: 22px; line-height: 1; cursor: pointer; }
+.flm-search { display: block; padding: 12px 14px 6px; }
+.flm-search input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 10px; background: rgba(255, 255, 255, .05); color: #fff; font: inherit; font-size: 14px; }
+.flm-list { overflow-y: auto; overscroll-behavior: contain; padding: 4px 6px 12px; }
+.flm-list ul { margin: 0; padding: 0; list-style: none; }
+.flm-row { display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 10px; color: inherit; text-decoration: none; }
+.flm-row:hover, .flm-row:focus-visible { background: rgba(255, 255, 255, .05); outline: none; }
+.flm-row > span:last-child { display: grid; min-width: 0; }
+.flm-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; }
+.flm-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #9aa1b3; font-size: 12.5px; }
+.flm-empty { margin: 18px 10px; color: #9aa1b3; text-align: center; font-size: 14px; }
+@media (max-width: 620px) {
+  .flm-modal { place-items: end center; padding: 0; }
+  .flm-dialog { width: 100%; max-height: 82dvh; border-radius: 18px 18px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+/* Home featured-tournament carousel (2026-10-24): the cover links to its tournament, dots sit
+   on the cover's top-right, a short fade between slides. */
+.featured-tournament { position: relative; }
+.featured-tournament .tour-slide { text-decoration: none; animation: tour-fade .45s ease; }
+@keyframes tour-fade { from { opacity: .35; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .featured-tournament .tour-slide { animation: none; } }
+.tour-dots { position: absolute; z-index: 5; top: 12px; right: 14px; display: flex; gap: 6px; padding: 5px 8px; border-radius: 999px; background: rgba(5, 4, 15, .55); }
+.tour-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .4); cursor: pointer; }
+.tour-dots button.active { width: 20px; border-radius: 6px; background: #ff2f9a; }
+
+/* Tournament detail (owner screenshots 21–27, 2026-10-24). */
+/* The matches card: trophy tile, title + subtitle, count badge, chevron. */
+.wt-matches-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 14px; margin: 16px 18px 4px; padding: 14px 16px; border: 1px solid rgba(255, 86, 168, .42); border-radius: 12px; background: linear-gradient(100deg, rgba(120, 20, 80, .3), rgba(30, 14, 60, .35)); color: #fff; text-decoration: none; transition: border-color .15s ease, background .15s ease; }
+.wt-matches-card:hover, .wt-matches-card:focus-visible { border-color: #ff59ad; background: linear-gradient(100deg, rgba(160, 25, 100, .38), rgba(40, 16, 80, .42)); outline: none; }
+.wt-matches-card-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: rgba(255, 47, 143, .16); border: 1px solid rgba(255, 86, 168, .4); color: #ff6fb5; }
+.wt-matches-card-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.wt-matches-card-copy { display: grid; gap: 3px; min-width: 0; }
+.wt-matches-card-copy strong { font-size: 16px; font-weight: 900; }
+.wt-matches-card-copy small { color: #c6bcd6; font-size: 13px; line-height: 1.35; }
+.wt-matches-card-count { min-width: 30px; height: 26px; display: grid; place-items: center; padding: 0 8px; border-radius: 999px; background: #ff2f9a; color: #fff; font-size: 13px; font-weight: 900; }
+.wt-matches-card-chevron svg { width: 20px; height: 20px; fill: none; stroke: #ffb8db; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 620px) {
+  .wt-matches-card { gap: 10px; margin: 12px 10px 2px; padding: 12px; }
+  .wt-matches-card-icon { width: 40px; height: 40px; }
+  .wt-matches-card-copy strong { font-size: 14.5px; }
+  .wt-matches-card-copy small { font-size: 12px; }
+}
+/* Tabs as labelled boxes at every width (phones showed icons only). Every tab keeps its own icon —
+   a prototype rule swapped the last tab's icon for the teams picture, which became "Rules" after
+   the tab re-order. */
+.prejoin-details nav { gap: 8px; padding: 14px 18px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.prejoin-details nav button { min-height: 56px; gap: 10px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; background: rgba(255, 255, 255, .03); text-transform: none; font-size: 14px; }
+.prejoin-details nav button.active { border-color: #ff4f9f; background: rgba(255, 47, 143, .12); color: #fff; }
+.prejoin-details nav button.active svg { stroke: #ff4f9f !important; }
+.prejoin-details nav button:last-child > svg { display: block; }
+.prejoin-details nav button:last-child::before { content: none; display: none; }
+@media (max-width: 800px) {
+  .prejoin-details nav { gap: 6px; padding: 10px; }
+  .prejoin-details nav button { flex-direction: column; gap: 5px; min-height: 64px; padding: 8px 4px; font-size: 11.5px; line-height: 1.2; }
+  .prejoin-details nav button span { display: block; text-align: center; overflow-wrap: anywhere; }
+  .prejoin-details nav button svg { width: 22px; height: 22px; flex: 0 0 auto; }
+}
+/* Teams list on phones (owner screenshot 24): one card per team instead of a 900px table that had
+   to be scrolled sideways — number, logo + name + captain, status; members; size + matches. */
+@media (max-width: 760px) {
+  .team-table { overflow: visible; border: 0; background: transparent; }
+  .team-table-head { display: none; }
+  .team-list { min-width: 0 !important; display: grid; gap: 10px; }
+  .team-row { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "num id state" "members members members" "size size view"; align-items: center; gap: 10px 12px !important; min-height: 0; padding: 12px !important; border: 1px solid rgba(130, 151, 181, .2) !important; border-radius: 12px !important; }
+  .team-row > * { padding: 0 !important; }
+  .team-row .team-number { grid-area: num; color: #ff6fb5; font-weight: 900; }
+  .team-row .team-identity { grid-area: id; min-width: 0; }
+  .team-row .team-state { grid-area: state; justify-self: end; }
+  .team-row .team-members { grid-area: members; display: flex; flex-wrap: wrap; gap: 8px 10px !important; padding-top: 10px !important; border-top: 1px solid rgba(255, 255, 255, .07); }
+  .team-row .team-size { grid-area: size; display: flex; align-items: baseline; gap: 6px; }
+  .team-row .team-view { grid-area: view; justify-self: end; }
+  .team-row .team-name strong, .team-row .team-name small { overflow-wrap: anywhere; }
+}
+/* Match history on phones / narrow screens (owner screenshots 25–26): one card per match — stage and
+   result on top, the two teams facing each other, the facts row, then the details button — instead
+   of a 900px table row that broke apart. */
+@media (max-width: 860px) {
+  .wt-table { overflow: visible; display: grid; gap: 10px; }
+  .wt-table-head.wt-history-row { display: none; }
+  .wt-history-row { min-width: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "stage result" "vs vs" "info info" "btn btn"; gap: 12px; padding: 14px; border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px; background: rgba(10, 12, 26, .7); }
+  .wt-history-row > .wt-stage { grid-area: stage; min-width: 0; }
+  .wt-history-row > .wt-result { grid-area: result; justify-self: end; }
+  .wt-history-row > .wt-vs { grid-area: vs; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 10px; border-radius: 10px; background: rgba(255, 255, 255, .03); }
+  .wt-history-row > .wt-vs .wt-vs-team { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
+  .wt-history-row > .wt-vs .wt-vs-team strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  .wt-history-row > .wt-match-info { grid-area: info; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; }
+  .wt-history-row > .wt-outline-btn { grid-area: btn; justify-content: center; width: 100%; }
+}
+/* Admin match stats: the team's players as @username chips (TournamentOps). */
+.to-player-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.to-player-chips button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 999px; background: rgba(255, 255, 255, .04); color: inherit; font-size: 12.5px; cursor: pointer; }
+.to-player-chips button:hover { border-color: #ff2f9a; }
+.to-player-chips img, .to-player-chips i { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #2a2f45; font-style: normal; font-size: 11px; font-weight: 800; }
+/* Match stats: linked players' photos; the table fits a phone without clipping or overlap (owner
+   screenshot 22) — one team per row, a narrower name column, smaller numbers. */
+.wt-player > i.has-photo, .wt-performer > i.has-photo { background: center / cover no-repeat; }
+.wt-player strong a, .wt-performer strong a { color: inherit; text-decoration: none; }
+.wt-player strong a:hover, .wt-performer strong a:hover { color: #ff8cc4; }
+@media (max-width: 620px) {
+  .wt-team-stats-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .wt-team-stats { min-width: 0; overflow: hidden; }
+  .wt-stat-table { overflow-x: visible; }
+  .wt-stat-row { min-width: 0 !important; grid-template-columns: minmax(0, 1.5fr) repeat(4, minmax(34px, .5fr)) !important; gap: 4px; padding: 0 10px !important; font-size: 12.5px; min-height: 46px; }
+  .wt-stat-row.head { font-size: 9.5px; letter-spacing: 0; }
+  .wt-stat-row.total > span:first-child { font-size: 10.5px; }
+  .wt-stat-row .wt-player { gap: 7px; }
+  .wt-stat-row .wt-player > i { width: 26px; height: 26px; font-size: 11px; }
+  .wt-stat-row .wt-player > span { min-width: 0; }
+  .wt-stat-row .wt-player strong { max-width: none !important; font-size: 12.5px; }
+  .wt-stat-row .wt-player b { font-size: 9px; padding: 0 5px; }
+}
+@media (max-width: 760px) {
+  .team-row .team-name strong, .team-row .team-name small { max-width: none !important; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+  .team-row .team-view { width: auto !important; min-width: 0 !important; min-height: 34px; display: inline-flex !important; align-items: center; justify-content: center; padding: 0 16px !important; border-radius: 8px; }
+}
+/* "ინდივიდუალური სერვისები" (owner screenshot 32) broke mid-word on phones: its first word is wider
+   than the tile's text box. Give that label the tile's full width and a slightly smaller size so
+   each word stays whole. */
+@media (max-width: 480px) {
+  .home-explore-grid a[href="/services"] span { display: block; margin-inline: -5px; font-size: 10px; letter-spacing: -.01em; overflow-wrap: normal; word-break: keep-all; }
+}

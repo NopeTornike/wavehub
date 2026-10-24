@@ -28,6 +28,25 @@ function totals(stats: MatchTeamStats | null) {
   return { kills: sum('kills'), damage: sum('damage'), kd: avg('kd'), rating: avg('rating') }
 }
 
+// A stat line's face: the linked account's photo, else the first letter (owner 2026-10-24).
+function PlayerFace({ p }: { p: MatchPlayerStat }) {
+  return p.avatarUrl ? (
+    <i aria-hidden="true" className="has-photo" style={{ backgroundImage: `url("${p.avatarUrl}")` }} />
+  ) : (
+    <i aria-hidden="true">{p.name.slice(0, 1).toUpperCase()}</i>
+  )
+}
+
+function PlayerName({ p }: { p: MatchPlayerStat }) {
+  return p.username ? (
+    <Link href={`/u/${encodeURIComponent(p.username)}`} title={`@${p.username}`}>
+      {p.name}
+    </Link>
+  ) : (
+    <>{p.name}</>
+  )
+}
+
 function TeamTable({ team, stats, side }: { team: TournamentTeamRef | null; stats: MatchTeamStats | null; side: 'a' | 'b' }) {
   const t = totals(stats)
   return (
@@ -57,10 +76,12 @@ function TeamTable({ team, stats, side }: { team: TournamentTeamRef | null; stat
           {stats.players.map((p) => (
             <div key={p.name} className={`wt-stat-row${p.mvp ? ' mvp' : ''}`} role="row">
               <span className="wt-player">
-                <i aria-hidden="true">{p.name.slice(0, 1).toUpperCase()}</i>
+                <PlayerFace p={p} />
                 <span>
                   {p.mvp && <b>★ MVP</b>}
-                  <strong>{p.name}</strong>
+                  <strong>
+                    <PlayerName p={p} />
+                  </strong>
                 </span>
               </span>
               <span className="accent">{num(p.kills)}</span>
@@ -200,9 +221,11 @@ export default function MatchDetails() {
                       <TIcon name={icon} />
                       {label}
                     </small>
-                    <i aria-hidden="true">{line.name.slice(0, 1).toUpperCase()}</i>
+                    <PlayerFace p={line} />
                     <span>
-                      <strong>{line.name}</strong>
+                      <strong>
+                        <PlayerName p={line} />
+                      </strong>
                       <em>{line.team?.name ?? ''}</em>
                     </span>
                     <b>

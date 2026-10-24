@@ -339,7 +339,7 @@ export default function CoachingSessionDetail() {
                 </button>
               )}
               {session.status === S.AwaitingConfirmation && isBuyer && (
-                <Link className="ss-link" href="/support">
+                <Link className="ss-link" href="/support/chat">
                   პრობლემის შეტყობინება
                 </Link>
               )}
@@ -408,9 +408,9 @@ export default function CoachingSessionDetail() {
           {(isCoach || isBuyer) && (
             <button type="button" className="ss-contact" disabled={busy} onClick={messageOtherParty}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+                <path fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" d="M4 5h16v11H8l-4 4z" />
               </svg>
-              {isCoach ? 'მიწერე სტუდენტს' : 'მიერთე ქოუჩს'}
+              {isCoach ? 'მიწერე სტუდენტს' : 'მიწერე ქოუჩს'}
               <span aria-hidden="true">›</span>
             </button>
           )}

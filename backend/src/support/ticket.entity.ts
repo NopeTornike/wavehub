@@ -48,6 +48,23 @@ export class Ticket {
   @JoinColumn({ name: 'assignedToId' })
   assignedTo: User | null;
 
+  // 'ticket' = a classic ticket (subject + category); 'chat' = the live support chat opened by
+  // "Contact support" (migration 1784387000000-SupportLiveChat).
+  @Column({ type: 'varchar', length: 10, default: 'ticket' })
+  channel: 'ticket' | 'chat';
+
+  // The staff member who joined a live chat (first reply or "join") and when — shown to the user
+  // as "<first name> joined the conversation".
+  @Column({ type: 'uuid', nullable: true })
+  operatorId: string | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'operatorId' })
+  operator: User | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  operatorJoinedAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

@@ -113,17 +113,17 @@ export default function SellerPreview({ username, onClose }: { username: string;
               <div>
                 <strong>{rating !== null && rating !== undefined ? rating.toFixed(1) : '—'}</strong>
                 <small>რეიტინგი</small>
-                <span>{'★'.repeat(Math.round(rating ?? 0)).padEnd(5, '☆')}</span>
+                <span className="sps-stars">{'★'.repeat(Math.round(rating ?? 0)).padEnd(5, '☆')}</span>
               </div>
               <div>
                 <strong>{profile.completedDeals}</strong>
                 <small>დასრულებული გარიგება</small>
-                <span>{`${profile.activeListingCount} აქტიური განცხადება`}</span>
+                <span className="sps-sub">{`${profile.activeListingCount} აქტიური განცხადება`}</span>
               </div>
               <div>
                 <strong>{profile.followers}</strong>
                 <small>გამომწერი</small>
-                <span>{`${profile.reviews.count} შეფასება`}</span>
+                <span className="sps-sub">{`${profile.reviews.count} შეფასება`}</span>
               </div>
             </div>
             <section className="seller-profile-reviews">

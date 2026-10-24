@@ -385,3 +385,12 @@ change otherwise; the marketplace filters by category id. Listing photos are cap
   also showed 68 refused re-creates in 4 minutes and 55 throttled edits in one minute from one
   seller pressing Publish repeatedly; uploads now read the photo into memory first (see
   `frontend/CLAUDE.md`).
+
+## 2026-10-24
+- **Coaching is not a service category.** `assertServiceCategory` refuses slug `coaching` for a
+  new service listing (403). Coaching is sold through coach profiles. `/sell/services` hides it.
+- Every path that puts a listing into `pending_review` notifies the listing moderators
+  (`notifyReviewers` → `notifyStaff`, key `listing:<id>`). The paths are:
+  - `submitForReview`;
+  - `update` of a live listing;
+  - `backToReviewIfLive` (new photo / package change).

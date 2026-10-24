@@ -21,6 +21,10 @@ export class Banner {
   @Column({ type: 'varchar', length: 300, nullable: true })
   imageUrl: string | null;
 
+  // A video banner (migration 1784386000000-BannerVideo). When set it replaces the photo.
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  videoUrl: string | null;
+
   @Column({ type: 'varchar', length: 300, nullable: true })
   linkUrl: string | null;
 

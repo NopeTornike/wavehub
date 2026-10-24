@@ -90,11 +90,35 @@ describe('marketing: promo codes + banners (e2e)', () => {
     expect((await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id)).toBeUndefined();
     await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { active: true });
     const pub = (await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id);
-    expect(pub).toEqual({ id: b.id, placement: 'home_strip', title: 'Coaching week', subtitle: 'Book a coach', imageUrl: withImage.body.imageUrl, linkUrl: '/coaching', buttonLabel: 'Book now' });
+    expect(pub).toEqual({ id: b.id, placement: 'home_strip', title: 'Coaching week', subtitle: 'Book a coach', imageUrl: withImage.body.imageUrl, videoUrl: null, linkUrl: '/coaching', buttonLabel: 'Book now' });
 
     await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { endsAt: new Date(Date.now() - 1000).toISOString(), startsAt: new Date(Date.now() - 86400_000).toISOString() });
     expect((await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id)).toBeUndefined();
     expect((await mainAdmin.client.request('DELETE', `/admin/banners/${b.id}`)).status).toBe(200);
     expect(await ctx.dataSource.query(`SELECT 1 FROM audit_logs WHERE "entityType" = 'banner' AND "entityId" = $1`, [b.id])).toHaveLength(5);
+  });
+
+  it('banner video: byte-checked MP4/WebM replaces the photo, publishes without one, removing it unpublishes', async () => {
+    const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x20]), Buffer.from('ftypisom'), Buffer.alloc(200)]);
+    const anon = new Client(ctx.baseUrl);
+    const b = (await mainAdmin.client.post('/admin/banners', { placement: 'tournaments_top', title: '' })).body;
+    expect((await ops.client.upload(`/admin/banners/${b.id}/video`, MP4, 'v.mp4', 'video/mp4')).status).toBe(403);
+    expect((await mainAdmin.client.upload(`/admin/banners/${b.id}/video`, Buffer.from('<html><script>alert(1)</script></html>'), 'v.mp4', 'video/mp4')).status).toBe(415);
+    expect((await mainAdmin.client.upload(`/admin/banners/${b.id}/video`, PNG, 'v.mp4', 'video/mp4')).status).toBe(415);
+    const up = await mainAdmin.client.upload(`/admin/banners/${b.id}/video`, MP4, 'v.mp4', 'video/mp4');
+    expect(up.status).toBe(200);
+    expect(up.body.videoUrl).toMatch(/\/uploads\/[0-9a-f-]{36}\.mp4$/);
+    expect((await mainAdmin.client.request('PATCH', `/admin/banners/${b.id}`, { active: true })).status).toBe(200);
+    const pub = (await anon.get('/banners?placement=tournaments_top')).body.find((x: { id: string }) => x.id === b.id);
+    expect(pub.videoUrl).toBe(up.body.videoUrl);
+    expect(pub.imageUrl).toBeNull();
+    const cleared = await mainAdmin.client.request('DELETE', `/admin/banners/${b.id}/video`);
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.videoUrl).toBeNull();
+    expect(cleared.body.active).toBe(false);
+    expect((await anon.get('/banners')).body.find((x: { id: string }) => x.id === b.id)).toBeUndefined();
+    const actions = await ctx.dataSource.query(`SELECT action FROM audit_logs WHERE "entityType" = 'banner' AND "entityId" = $1`, [b.id]);
+    expect(actions.map((a: { action: string }) => a.action)).toEqual(expect.arrayContaining(['banner.set_video', 'banner.clear_video']));
+    expect((await mainAdmin.client.request('DELETE', `/admin/banners/${b.id}`)).status).toBe(200);
   });
 });

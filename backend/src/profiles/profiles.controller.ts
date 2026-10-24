@@ -26,6 +26,17 @@ export class ProfilesController {
   unfollow(@CurrentUserId() userId: string, @Param('username') username: string) {
     return this.profiles.unfollow(userId, username);
   }
+
+  // The lists behind a profile's follower / following counts (signed-in viewers).
+  @Get('followers')
+  followers(@CurrentUserId() userId: string, @Param('username') username: string) {
+    return this.profiles.listPublicFollows(userId, username, 'followers');
+  }
+
+  @Get('following')
+  following(@CurrentUserId() userId: string, @Param('username') username: string) {
+    return this.profiles.listPublicFollows(userId, username, 'following');
+  }
 }
 
 // The viewer's own follow lists (client feedback #15): who I follow — to unfollow later — and who

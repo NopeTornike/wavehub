@@ -79,6 +79,9 @@ export default function SupportIndex() {
             <h1>დახმარება</h1>
             <p>გახსენით ბილეთი ან ნახეთ თქვენი წინა მიმოწერა</p>
           </div>
+          <Link className="sp-live-cta" href="/support/chat">
+            💬 ლაივ ჩატი Support-თან
+          </Link>
         </header>
 
         <div className="sp-layout">
@@ -142,14 +145,14 @@ export default function SupportIndex() {
               <ul className="sp-ticket-list">
                 {tickets.map((ticket) => (
                   <li key={ticket.id}>
-                    <Link href={`/support/${ticket.id}`} className="sp-ticket">
+                    <Link href={ticket.channel === 'chat' && ticket.status !== TicketStatus.Closed ? '/support/chat' : `/support/${ticket.id}`} className="sp-ticket">
                       <span className="sp-ticket-icon">
                         <CategoryIcon category={ticket.category} />
                       </span>
                       <span className="sp-ticket-copy">
-                        <strong>{ticket.subject}</strong>
+                        <strong>{ticket.channel === 'chat' ? 'ლაივ ჩატი' : ticket.subject}</strong>
                         <small>
-                          <span>{TICKET_CATEGORY_LABELS[ticket.category]}</span> · {formatTicketDate(ticket.updatedAt)}
+                          <span>{ticket.channel === 'chat' ? '💬 ჩატი' : TICKET_CATEGORY_LABELS[ticket.category]}</span> · {formatTicketDate(ticket.updatedAt)}
                         </small>
                       </span>
                       <em className={`sp-status ${ticket.status}`}>{TICKET_STATUS_LABELS[ticket.status]}</em>

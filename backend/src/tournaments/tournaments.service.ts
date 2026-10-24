@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
-import { NotificationType, TournamentMatchStage, TournamentMatchStatus, TournamentStatus, TournamentTeamStatus, UserStatus } from '@wavehub/shared-types';
+import { AdminRole, NotificationType, TournamentMatchStage, TournamentMatchStatus, TournamentStatus, TournamentTeamStatus, UserStatus } from '@wavehub/shared-types';
 import type {
   MatchTeamStats,
   MyTournamentEntry,
@@ -41,12 +41,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Relations every team read needs: the captain (username) and the linked roster with accounts.
 const TEAM_RELATIONS = { captain: true, roster: { user: true } } as const;
 
-function normalizeStats(stats: MatchTeamStatsDto | null | undefined): MatchTeamStats | null {
+function normalizeStats(stats: MatchTeamStatsDto | null | undefined, accounts: Map<string, string>): MatchTeamStats | null {
   if (!stats) return null;
   return {
     coach: stats.coach?.trim() || null,
     players: stats.players.map((p) => ({
       name: p.name.trim(),
+      userId: p.username ? (accounts.get(p.username.trim().replace(/^@/, '').toLowerCase()) ?? null) : null,
       kills: p.kills ?? null,
       kd: p.kd ?? null,
       damage: p.damage ?? null,
@@ -56,6 +57,10 @@ function normalizeStats(stats: MatchTeamStatsDto | null | undefined): MatchTeamS
     })),
   };
 }
+
+// Staff who manage tournaments (SPECIFICATION.md §5.13); the controller guards its admin routes
+// with the same list.
+export const TOURNAMENT_MANAGEMENT_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];
 
 @Injectable()
 export class TournamentsService {
@@ -139,6 +144,44 @@ export class TournamentsService {
 
   private teamRef(team: TournamentTeam | null): TournamentTeamRef | null {
     return team ? { id: team.id, name: team.name, tag: team.tag, logoUrl: team.logoUrl } : null;
+  }
+
+  // Fresh username + photo for stat lines linked to an account (stored as userId only, so a renamed
+  // user or new photo shows up). Inactive accounts show as plain names.
+  private async withPlayerAccounts(rows: TournamentMatch[]): Promise<PublicTournamentMatch[]> {
+    const ids = new Set<string>();
+    for (const row of rows) for (const side of [row.stats?.a, row.stats?.b]) for (const p of side?.players ?? []) if (p.userId) ids.add(p.userId);
+    const users = ids.size
+      ? await this.dataSource.getRepository(User).find({ where: { id: In([...ids]), status: UserStatus.Active }, select: { id: true, username: true, avatarUrl: true } })
+      : [];
+    const byId = new Map(users.map((u) => [u.id, u]));
+    const link = (side: MatchTeamStats | null | undefined): MatchTeamStats | null =>
+      side
+        ? {
+            ...side,
+            players: side.players.map(({ userId, ...p }) => {
+              const u = userId ? byId.get(userId) : undefined;
+              return u ? { ...p, userId: u.id, username: u.username, avatarUrl: u.avatarUrl ?? null } : { ...p, userId: null, username: null, avatarUrl: null };
+            }),
+          }
+        : null;
+    return rows.map((row) => {
+      const pub = this.toPublicMatch(row);
+      return { ...pub, stats: { a: link(row.stats?.a), b: link(row.stats?.b) } };
+    });
+  }
+
+  // `@username` entries on a stat sheet → account ids; an unknown one is refused.
+  private async resolveStatAccounts(stats: MatchDto['stats']): Promise<Map<string, string>> {
+    const wanted = new Set<string>();
+    for (const side of [stats?.a, stats?.b]) for (const p of side?.players ?? []) if (p.username?.trim()) wanted.add(p.username.trim().replace(/^@/, '').toLowerCase());
+    const map = new Map<string, string>();
+    for (const key of wanted) {
+      const user = await this.findPlayer(this.dataSource.manager, key);
+      if (!user) throw new BadRequestException(`No active WaveHub account "${key.slice(0, 40)}"`);
+      map.set(key, user.id);
+    }
+    return map;
   }
 
   private toPublicMatch(match: TournamentMatch): PublicTournamentMatch {
@@ -419,6 +462,14 @@ export class TournamentsService {
     });
     const team = await this.teams.findOneOrFail({ where: { id: teamId }, relations: TEAM_RELATIONS });
     await this.notifyTeammates(tournament, team, teammates);
+    // The team waits for staff verification — tell the tournament staff (notifications/CLAUDE.md).
+    await this.notifications.notifyStaff(
+      TOURNAMENT_MANAGEMENT_ROLES,
+      'ახალი გუნდი დასადასტურებლად',
+      `გუნდი „${team.name}“ დარეგისტრირდა ტურნირზე „${tournament.name}“.`,
+      '/admin/tournaments',
+      `team:${team.id}`,
+    );
     return this.toPublicTeam(team, true);
   }
 
@@ -508,14 +559,14 @@ export class TournamentsService {
       .orderBy('m.scheduledAt', 'DESC', 'NULLS LAST')
       .addOrderBy('m.createdAt', 'DESC')
       .getMany();
-    return rows.map((row) => this.toPublicMatch(row));
+    return this.withPlayerAccounts(rows);
   }
 
   async getMatch(tournamentId: string, matchId: string): Promise<PublicTournamentMatch> {
     await this.getPublishedOrThrow(tournamentId);
     const row = await this.matchQuery().where('m.id = :matchId AND m.tournamentId = :tournamentId', { matchId, tournamentId }).getOne();
     if (!row) throw new NotFoundException('Match not found');
-    return this.toPublicMatch(row);
+    return (await this.withPlayerAccounts([row]))[0];
   }
 
   private async assertTeamsBelong(tournamentId: string, teamAId: string | null | undefined, teamBId: string | null | undefined) {
@@ -526,7 +577,7 @@ export class TournamentsService {
     if (found !== ids.length) throw new BadRequestException('Both teams must be registered in this tournament');
   }
 
-  private applyMatchDto(match: TournamentMatch, dto: MatchDto) {
+  private applyMatchDto(match: TournamentMatch, dto: MatchDto, accounts: Map<string, string>) {
     if (dto.stage !== undefined) match.stage = dto.stage;
     if (dto.groupName !== undefined) match.groupName = dto.groupName?.trim() || null;
     if (dto.roundLabel !== undefined) match.roundLabel = dto.roundLabel?.trim() || null;
@@ -540,8 +591,8 @@ export class TournamentsService {
     if (dto.scoreB !== undefined) match.scoreB = dto.scoreB;
     if (dto.stats !== undefined) {
       match.stats = {
-        a: dto.stats.a !== undefined ? normalizeStats(dto.stats.a) : (match.stats?.a ?? null),
-        b: dto.stats.b !== undefined ? normalizeStats(dto.stats.b) : (match.stats?.b ?? null),
+        a: dto.stats.a !== undefined ? normalizeStats(dto.stats.a, accounts) : (match.stats?.a ?? null),
+        b: dto.stats.b !== undefined ? normalizeStats(dto.stats.b, accounts) : (match.stats?.b ?? null),
       };
     }
   }
@@ -556,7 +607,7 @@ export class TournamentsService {
       status: TournamentMatchStatus.Scheduled,
       stats: {},
     });
-    this.applyMatchDto(match, dto);
+    this.applyMatchDto(match, dto, await this.resolveStatAccounts(dto.stats));
     const saved = await this.matches.save(match);
     return this.getMatch(tournamentId, saved.id);
   }
@@ -564,7 +615,7 @@ export class TournamentsService {
   async adminUpdateMatch(tournamentId: string, matchId: string, dto: MatchDto): Promise<PublicTournamentMatch> {
     const match = await this.matches.findOne({ where: { id: matchId, tournamentId } });
     if (!match) throw new NotFoundException('Match not found');
-    this.applyMatchDto(match, dto);
+    this.applyMatchDto(match, dto, await this.resolveStatAccounts(dto.stats));
     await this.assertTeamsBelong(tournamentId, match.teamAId, match.teamBId);
     await this.matches.save(match);
     return this.getMatch(tournamentId, matchId);
@@ -614,6 +665,6 @@ export class TournamentsService {
       .orderBy('m.scheduledAt', 'DESC', 'NULLS LAST')
       .addOrderBy('m.createdAt', 'DESC')
       .getMany();
-    return rows.map((row) => this.toPublicMatch(row));
+    return this.withPlayerAccounts(rows);
   }
 }

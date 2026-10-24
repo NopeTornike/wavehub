@@ -75,6 +75,8 @@ export class WithdrawalsService {
       return savedRequest;
     }));
 
+    // Payouts are processed by Super Admin only (withdrawals.controller).
+    await this.notifications.notifyStaff([], 'გატანის ახალი მოთხოვნა', `${saved.amountWaveCoin} GEL`, '/admin/withdrawals', `withdrawal:${saved.id}`);
     return this.toPublic(saved);
   }
 

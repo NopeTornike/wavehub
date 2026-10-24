@@ -68,9 +68,9 @@ describe('SupportService', () => {
 
     const savedReplies = { find: jest.fn(async () => []) } as any;
     const orders = { findOne: jest.fn(async () => options.order ?? null) } as any;
-    const notifications = { emit: jest.fn() } as any;
+    const notifications = { emit: jest.fn(), notifyStaff: jest.fn(async () => undefined) } as any;
 
-    const service = new SupportService(tickets, messages, savedReplies, orders, notifications, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any);
+    const service = new SupportService(tickets, messages, savedReplies, orders, notifications, { getActivePerks: jest.fn(async () => null), getActivePerksForUsers: jest.fn(async () => new Map()), effectiveFeePercent: jest.fn(async (_id: string, base: number) => base) } as any, {} as any);
     return { service, tickets, messages, orders, ticketRow, ticketUpdates, savedMessages };
   }
 

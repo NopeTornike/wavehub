@@ -233,7 +233,13 @@ export default function CoachProfile() {
               <div key={label} className="coach-profile-metric">
                 <span className={icon === 'SE' ? 'coach-profile-metric-icon-plain coach-profile-metric-icon-sessions' : 'coach-profile-metric-icon-plain'} aria-hidden="true">
                   {icon === 'SE' ? (
-                    <img className="coach-highest-rank-icon" src="/assets/sessions-icon.png" alt="" />
+                    // Drawn like the other three metric icons (owner screenshot 33: the old bitmap
+                    // didn't match them).
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffb547" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
+                      <path d="M8 2.5v4M16 2.5v4M3 9.5h18" />
+                      <path d="m8.5 15 2.2 2.2 4.8-4.7" />
+                    </svg>
                   ) : icon === 'ST' ? (
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff5bb3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />

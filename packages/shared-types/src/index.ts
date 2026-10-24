@@ -212,6 +212,10 @@ export enum NotificationType {
   BadgeGranted = 'badge_granted',
   // An official warning from Trust & Safety (trust/).
   AccountWarning = 'account_warning',
+  // 2026-10-24 (client: "admin/support get no notifications"): a queue item for staff — a listing
+  // to review, a team to verify, a ticket or reply, a dispute, a coach application, a withdrawal,
+  // a report. metadata.link is the admin page.
+  StaffTask = 'staff_task',
 }
 
 // Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
@@ -922,6 +926,10 @@ export interface PublicTicketMessage {
   senderAvatarUrl: string | null;
   fromSupport: boolean;
   body: string;
+  // An attached file (2026-10-24): screenshot / PDF / Word. Images render inline.
+  fileUrl: string | null;
+  fileType: string | null;
+  fileName: string | null;
   // Internal notes are staff-only — never present in a response returned to the ticket's
   // requester (see SupportService#getMine, which filters these out server-side rather than
   // relying on the frontend to hide them).
@@ -938,6 +946,10 @@ export interface PublicTicket {
   status: TicketStatus;
   orderId: string | null;
   assignedToId: string | null;
+  // 'chat' = the live support chat (2026-10-24).
+  channel: 'ticket' | 'chat';
+  // The staff member who joined a live chat — first name + photo only (no username / role).
+  operator: { firstName: string; avatarUrl: string | null; joinedAt: string } | null;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
@@ -955,6 +967,7 @@ export interface AdminTicketSummary {
   priority: TicketPriority;
   status: TicketStatus;
   assignedToId: string | null;
+  channel: 'ticket' | 'chat';
   assignedToUsername: string | null;
   createdAt: string;
   updatedAt: string;
@@ -1491,6 +1504,11 @@ export interface TournamentTeamRef {
 // Admin-entered per-player match line. Any stat may be missing (null) — the page shows "—".
 export interface MatchPlayerStat {
   name: string;
+  // The player's WaveHub account when staff entered them by @username (2026-10-24) — the page
+  // shows their profile photo and links the profile. Public profile data only.
+  userId?: string | null;
+  username?: string | null;
+  avatarUrl?: string | null;
   kills: number | null;
   kd: number | null;
   damage: number | null;
@@ -1856,6 +1874,8 @@ export interface PublicBanner {
   title: string;
   subtitle: string | null;
   imageUrl: string | null;
+  // MP4/WebM; when set the banner is a video slide (no photo behind it).
+  videoUrl: string | null;
   linkUrl: string | null;
   buttonLabel: string | null;
 }

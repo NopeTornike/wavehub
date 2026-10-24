@@ -124,3 +124,28 @@ sessions, listing/coach decisions, top-ups, balance changes, ticket replies, acc
 switch emails off). Fire-and-forget: never delays or fails the action; only active accounts with
 `users.emailNotifications` on (migration `1784372000000`, toggle on `/profile`). Messages, followers,
 reminders and review prompts stay in-app only. Test: `test/notification-events.e2e-spec.ts`.
+
+## 2026-10-24 Staff notifications (`staff_task`)
+Client: "admin/support get no notifications at all".
+- `NotificationsService.notifyStaff(roles, title, body, link, key, { onlyUserId?, exceptUserId? })`
+  sends an in-app `staff_task` row with `metadata = { link, key }`.
+  - It goes to every **active** account holding one of `roles`. Super Admin always gets it,
+    because it sees every queue.
+  - It is best-effort and never throws.
+- **Dedupe**: a staff member who already has an *unread* `staff_task` with the same `key` is
+  skipped. Ten replies on one ticket make one bell item until it is opened.
+- Hook sites:
+
+  | Event | key | Roles | Link |
+  |---|---|---|---|
+  | listing sent for review (submit, edit of a live listing, new photo) | `listing:<id>` | Marketplace & Coaching Ops | `/admin/listings` |
+  | squad team registered (pending verification) | `team:<id>` | tournament management | `/admin/tournaments` |
+  | ticket / live chat opened, user reply or file | `ticket:<id>` | support roles, or the assignee only | `/admin/tickets/<id>` |
+  | order dispute opened | `dispute:<id>` | Super Admin | `/orders/<orderId>` |
+  | session dispute opened | `session-dispute:<id>` | Super Admin | `/admin/session-disputes/<id>` |
+  | coach application (not to the applicant) | `coach:<id>` | coach management | `/admin/coaches` |
+  | withdrawal requested | `withdrawal:<id>` | Super Admin | `/admin/withdrawals` |
+  | user report | `report:<id>` | Trust & Safety roles | `/admin/trust` |
+
+- Direct messages to staff were already notified (`new_message`).
+- e2e: `test/client-round-4.e2e-spec.ts`.

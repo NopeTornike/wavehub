@@ -206,3 +206,16 @@ harmless (no pollution), just clears the details.
   (`GET me/tournaments`). It never appears on the public Teams tab.
 - After registering, the frontend goes to `/tournaments/[id]/registered`: success, start, the
   community Discord, and a button to the hub.
+
+## 2026-10-24 Staff notification + linked stat players
+- A squad registration (team `pending`) notifies the tournament staff (`notifyStaff`, key
+  `team:<id>`). `TOURNAMENT_MANAGEMENT_ROLES` now lives in `tournaments.service.ts`; the controller
+  imports it.
+- **Match stat lines can name a WaveHub account**: `MatchPlayerStatDto.username` (a username, a
+  leading `@`, or an account id).
+  - It is resolved on save to `userId`, stored in the `stats` jsonb. An unknown or inactive
+    account is a 400.
+  - Every public match read (`withPlayerAccounts`) adds the account's current `username` and
+    `avatarUrl`; inactive accounts fall back to the plain name.
+  - Admin entry: `@username | kills | …` lines, plus chips for the team's linked players
+    (`components/admin/TournamentOps.tsx`). The match page shows the photo and links the profile.

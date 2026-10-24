@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react'
 import type { PublicBanner } from '@wavehub/shared-types'
 import { BannerPlacement } from '@wavehub/shared-types'
 import { api } from '../lib/api'
+import { BannerVideo, useBannerRotation, useSwipe } from './BannerSlides'
 
-// Live CMS banners for one placement (Admin → Banners, backend/src/marketing/) — only ones with an
-// image. Shared by the strips below and the home page's top hero.
+// Live CMS banners for one placement (Admin → Banners, backend/src/marketing/) — only ones with a
+// photo or a video. Shared by the strips below and the home page's top hero.
 export function useBanners(placement: BannerPlacement): PublicBanner[] {
   const [banners, setBanners] = useState<PublicBanner[]>([])
   useEffect(() => {
@@ -13,7 +14,7 @@ export function useBanners(placement: BannerPlacement): PublicBanner[] {
     api
       .listBanners(placement)
       .then((list) => {
-        if (!cancelled) setBanners(list.filter((b) => b.imageUrl))
+        if (!cancelled) setBanners(list.filter((b) => b.imageUrl || b.videoUrl))
       })
       .catch(() => {
         if (!cancelled) setBanners([])
@@ -28,33 +29,43 @@ export function useBanners(placement: BannerPlacement): PublicBanner[] {
 // Admin-managed banners at one placement: the homepage strip (default) or the top of a page
 // (`*_top`, owner 2026-10-07: every banner is editable from the CMS). Renders nothing until at
 // least one banner is published, so there is never placeholder promo content (rule #6).
-// Several banners rotate every 7 seconds; dots switch manually.
+// Photos rotate every 7 seconds, a video plays to its end first (BannerSlides); dots and swipe
+// switch manually.
 export default function HomeBanners({ placement = BannerPlacement.HomeStrip }: { placement?: BannerPlacement }) {
   const banners = useBanners(placement)
-  const [index, setIndex] = useState(0)
+  const { index, current: b, setIndex, next, prev, paused, setPaused, count } = useBannerRotation(banners)
+  const swipe = useSwipe(prev, next)
 
-  useEffect(() => {
-    if (banners.length < 2) return
-    const timer = window.setInterval(() => setIndex((i) => (i + 1) % banners.length), 7000)
-    return () => window.clearInterval(timer)
-  }, [banners.length])
-
-  if (banners.length === 0) return null
-  const b = banners[Math.min(index, banners.length - 1)]
+  if (!b) return null
   const internal = b.linkUrl?.startsWith('/')
   // A button only when button text was entered; a link without one makes the whole banner a link.
   const cta = b.linkUrl && b.buttonLabel?.trim()
   const wholeLink = b.linkUrl && !cta ? b.linkUrl : null
   const hasText = !!(b.title?.trim() || b.subtitle?.trim() || cta)
+  const video = b.videoUrl
 
   return (
     <section className={`home-banners${placement === BannerPlacement.HomeStrip ? '' : ' page-top-banners'}`} aria-label="აქციები და სიახლეები">
       <div
-        className="home-banner"
-        style={{
-          backgroundImage: hasText ? `linear-gradient(90deg, rgba(5, 4, 15, .82), rgba(5, 4, 15, .2) 70%), url("${b.imageUrl}")` : `url("${b.imageUrl}")`,
-        }}
+        className={`home-banner${video ? ' is-video' : ''}${hasText ? ' has-text' : ''}`}
+        style={
+          video
+            ? undefined
+            : { backgroundImage: hasText ? `linear-gradient(90deg, rgba(5, 4, 15, .82), rgba(5, 4, 15, .2) 70%), url("${b.imageUrl}")` : `url("${b.imageUrl}")` }
+        }
+        {...swipe}
       >
+        {video && (
+          <BannerVideo
+            key={b.id}
+            src={video}
+            className="home-banner-video"
+            loop={count < 2}
+            paused={paused}
+            onPausedChange={setPaused}
+            onEnded={next}
+          />
+        )}
         {wholeLink &&
           (internal ? (
             <Link className="home-banner-link" href={wholeLink} aria-label={b.title || 'ბანერი'} />
@@ -76,7 +87,7 @@ export default function HomeBanners({ placement = BannerPlacement.HomeStrip }: {
             ))}
         </div>
       </div>
-      {banners.length > 1 && (
+      {count > 1 && (
         <div className="home-banner-dots">
           {banners.map((x, i) => (
             <button key={x.id} type="button" aria-label={`ბანერი ${i + 1}`} aria-current={i === index} className={i === index ? 'active' : undefined} onClick={() => setIndex(i)} />

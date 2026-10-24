@@ -7,7 +7,7 @@ import Layout from '../../components/Layout'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { displayName } from '../../components/Avatar'
-import ChatThread from '../../components/ChatThread'
+import ChatThread, { CHAT_FILE_MAX_BYTES } from '../../components/ChatThread'
 import { CategoryIcon, TICKET_CATEGORY_LABELS, TICKET_STATUS_LABELS, formatTicketDate } from '../../lib/support'
 
 export default function SupportTicketDetail() {
@@ -64,6 +64,23 @@ export default function SupportTicketDetail() {
     }
   }
 
+  const attach = async (file: File) => {
+    if (!id) return
+    if (file.size > CHAT_FILE_MAX_BYTES) {
+      setError('ფაილი 10MB-ზე დიდი არ უნდა იყოს.')
+      return
+    }
+    setSending(true)
+    setError('')
+    try {
+      setTicket(await api.attachToTicket(id, file))
+    } catch (err) {
+      setError(errorMessage(err, 'ფაილის ატვირთვა ვერ მოხერხდა.'))
+    } finally {
+      setSending(false)
+    }
+  }
+
   const closed = ticket?.status === TicketStatus.Closed
   // The header shows whoever from support answered last.
   const lastStaff = ticket ? [...ticket.messages].reverse().find((m) => m.fromSupport) ?? null : null
@@ -108,7 +125,9 @@ export default function SupportTicketDetail() {
                 avatarFallback: m.fromSupport ? '/assets/whx-icon-192.png' : undefined,
                 body: m.body,
                 createdAt: m.createdAt,
+                file: m.fileUrl ? { url: m.fileUrl, type: m.fileType, name: m.fileName } : null,
               }))}
+              onAttach={closed ? undefined : (file) => void attach(file)}
               draft={draft}
               onDraft={setDraft}
               onSend={() => void sendReply()}

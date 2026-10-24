@@ -60,3 +60,11 @@ Self-entered profile fields live on `users` (migration `1784356000000-ProfilesAn
   fall back to seller / player).
 - `eligibleTitles(userId)` / `effectiveTitle(user, role)` back the profile title — see
   `backend/src/users/CLAUDE.md`.
+
+## 2026-10-24 Public follow lists
+- `GET users/:username/followers` and `GET users/:username/following` (`AuthGuard`) return
+  `PublicFollowEntry[]` for anyone's profile. `/u/[username]` opens them Instagram-style from the
+  follower / following counts (`components/FollowListModal.tsx`).
+- **Staff accounts are left out for non-staff viewers.** A staff username is a login name
+  (`backend/src/chat/CLAUDE.md`).
+- e2e: `test/client-round-4.e2e-spec.ts`.

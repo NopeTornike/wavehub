@@ -17,6 +17,9 @@ import { BannerDto, CreateBannerDto, CreatePromoCodeDto, PublicBannersQueryDto, 
 // Guessing codes is the abuse surface: 5 tries a minute per IP, verified accounts only.
 const REDEEM_THROTTLE = { default: { limit: 5, ttl: 60_000 } };
 const BANNER_IMAGE = FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
+// Banner videos: 20MB, under Caddy's 22MB request body limit (deploy/Caddyfile).
+export const MAX_BANNER_VIDEO_BYTES = 20 * 1024 * 1024;
+const BANNER_VIDEO = FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_BANNER_VIDEO_BYTES } });
 // SPECIFICATION.md §5.13: banners are Content Management (Super Admin + Main Administrator);
 // promo codes are Marketing (Super Admin only — they create spendable balance).
 const CONTENT_ROLES = [AdminRole.MainAdministrator];
@@ -116,6 +119,28 @@ export class MarketingController {
   async bannerImage(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string, @UploadedFile() file: Express.Multer.File | undefined) {
     const banner = await this.marketing.setBannerImage(id, file);
     await this.audit.log({ adminId, adminRole, action: 'banner.set_image', entityType: 'banner', entityId: id });
+    return banner;
+  }
+
+  @Post('admin/banners/:id/video')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(UPLOAD_THROTTLE)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...CONTENT_ROLES)
+  @UseInterceptors(BANNER_VIDEO)
+  async bannerVideo(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string, @UploadedFile() file: Express.Multer.File | undefined) {
+    const banner = await this.marketing.setBannerVideo(id, file);
+    await this.audit.log({ adminId, adminRole, action: 'banner.set_video', entityType: 'banner', entityId: id });
+    return banner;
+  }
+
+  @Delete('admin/banners/:id/video')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...CONTENT_ROLES)
+  async clearBannerVideo(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string) {
+    const banner = await this.marketing.clearBannerVideo(id);
+    await this.audit.log({ adminId, adminRole, action: 'banner.clear_video', entityType: 'banner', entityId: id });
     return banner;
   }
 

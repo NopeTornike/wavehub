@@ -1,0 +1,120 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { PublicBanner } from '@wavehub/shared-types'
+
+// Shared rotation for every CMS banner carousel (home hero, home strip, page tops).
+// Photos stay 7 seconds; a video slide plays to its end and then moves on (owner 2026-10-24).
+// Pausing a video also stops the rotation until it is played again.
+export const BANNER_PHOTO_MS = 7000
+
+export function useBannerRotation(banners: PublicBanner[]) {
+  const [index, setIndexState] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const count = banners.length
+  const current = count ? banners[index % count] : null
+  const isVideo = !!current?.videoUrl
+
+  const setIndex = useCallback((i: number) => {
+    setIndexState(i)
+    setPaused(false)
+  }, [])
+  const next = useCallback(() => {
+    if (count > 1) setIndexState((i) => (i + 1) % count)
+  }, [count])
+  const prev = useCallback(() => {
+    if (count > 1) setIndexState((i) => (i - 1 + count) % count)
+  }, [count])
+
+  useEffect(() => {
+    if (count < 2 || isVideo || paused) return
+    const timer = window.setTimeout(next, BANNER_PHOTO_MS)
+    return () => window.clearTimeout(timer)
+  }, [count, isVideo, paused, index, next])
+
+  return { index: count ? index % count : 0, current, setIndex, next, prev, paused, setPaused, count }
+}
+
+// Swipe left/right on phones (and touch screens) to change slides.
+export function useSwipe(onPrev: () => void, onNext: () => void) {
+  const startX = useRef<number | null>(null)
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      startX.current = e.touches[0]?.clientX ?? null
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      const from = startX.current
+      startX.current = null
+      const to = e.changedTouches[0]?.clientX
+      if (from == null || to == null || Math.abs(to - from) < 40) return
+      if (to < from) onNext()
+      else onPrev()
+    },
+  }
+}
+
+// A video slide: autoplays muted inline, no photo behind it, only a pause / play control.
+// With a single banner it loops; otherwise the carousel moves on when it ends.
+export function BannerVideo({
+  src,
+  className,
+  loop,
+  paused,
+  onPausedChange,
+  onEnded,
+}: {
+  src: string
+  className?: string
+  loop: boolean
+  paused: boolean
+  onPausedChange: (paused: boolean) => void
+  onEnded: () => void
+}) {
+  const ref = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const v = ref.current
+    if (!v) return
+    if (paused) v.pause()
+    else void v.play().catch(() => undefined)
+  }, [paused, src])
+
+  return (
+    <>
+      <video
+        ref={ref}
+        className={className}
+        src={src}
+        autoPlay
+        muted
+        playsInline
+        loop={loop}
+        preload="auto"
+        disablePictureInPicture
+        controls={false}
+        aria-hidden="true"
+        onEnded={onEnded}
+        // A file that can't play must not freeze the carousel.
+        onError={onEnded}
+      />
+      <button
+        type="button"
+        className="banner-video-toggle"
+        aria-label={paused ? 'ვიდეოს გაგრძელება' : 'ვიდეოს პაუზა'}
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onPausedChange(!paused)
+        }}
+      >
+        {paused ? (
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M8 5v14l11-7z" fill="currentColor" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor" />
+          </svg>
+        )}
+      </button>
+    </>
+  )
+}

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { PublicUserProfile } from '@wavehub/shared-types'
 import { PROFILE_TITLE_LABELS } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
@@ -13,6 +13,7 @@ import ImageLightbox from '../../components/ImageLightbox'
 import { BadgeKey, badgeIcon } from '@wavehub/shared-types'
 import { kaDate } from '../../lib/dates'
 import ReviewCard from '../../components/ReviewCard'
+import FollowListModal from '../../components/FollowListModal'
 
 // docs/design-mockups/12-public-profile.jpg: hero (photo with real online dot, name, @handle,
 // WaveHubX ID with copy, role, location, join date, tagline, Message / Follow), the Wave Rank panel,
@@ -44,6 +45,8 @@ export default function PublicProfile() {
   const [following, setFollowing] = useState(false)
   const [status, setStatus] = useState('')
   const [copied, setCopied] = useState(false)
+  const [followList, setFollowList] = useState<'followers' | 'following' | null>(null)
+  const closeFollowList = useCallback(() => setFollowList(null), [])
 
   useEffect(() => {
     if (!username) return
@@ -140,6 +143,7 @@ export default function PublicProfile() {
       <section className="up-page">
         <header className="up-hero">
           <ImageLightbox images={p.avatarUrl ? [{ url: p.avatarUrl, alt: p.username }] : []} index={zoom} onClose={() => setZoom(null)} />
+          {followList && <FollowListModal username={p.username} initialTab={followList} counts={{ followers: p.followers, following: p.following }} onClose={closeFollowList} />}
           <div className="up-avatar-wrap">
             <div
               className={`up-avatar${p.avatarUrl ? ' is-zoomable' : ''}`}
@@ -272,31 +276,42 @@ export default function PublicProfile() {
               ['chart', String(Math.round(p.waveRank.score)), 'Wave ქულა'],
               ['star', rating === null ? '—' : rating.toFixed(1), 'რეიტინგი'],
             ] as const
-          ).map(([icon, value, label]) => (
-            <div key={label}>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                {icon === 'users' ? (
-                  <>
-                    <circle cx="9" cy="8" r="3.5" />
-                    <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6" />
-                  </>
-                ) : icon === 'user' ? (
-                  <>
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21a8 8 0 0 1 16 0" />
-                  </>
-                ) : icon === 'chart' ? (
-                  <path d="M5 20V12m5 8V6m5 14v-9m5 9V4" />
-                ) : (
-                  <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
-                )}
-              </svg>
-              <span>
-                <strong>{value}</strong>
-                <small>{label}</small>
-              </span>
-            </div>
-          ))}
+          ).map(([icon, value, label]) => {
+            const list = icon === 'users' ? 'followers' : icon === 'user' ? 'following' : null
+            const body = (
+              <>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  {icon === 'users' ? (
+                    <>
+                      <circle cx="9" cy="8" r="3.5" />
+                      <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6" />
+                    </>
+                  ) : icon === 'user' ? (
+                    <>
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 21a8 8 0 0 1 16 0" />
+                    </>
+                  ) : icon === 'chart' ? (
+                    <path d="M5 20V12m5 8V6m5 14v-9m5 9V4" />
+                  ) : (
+                    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                  )}
+                </svg>
+                <span>
+                  <strong>{value}</strong>
+                  <small>{label}</small>
+                </span>
+              </>
+            )
+            // Followers / following open the list (owner 2026-10-24, Instagram-style).
+            return list ? (
+              <button key={label} type="button" className="up-stat-link" onClick={() => (me ? setFollowList(list) : router.push(`/login?next=/u/${encodeURIComponent(p.username)}`))}>
+                {body}
+              </button>
+            ) : (
+              <div key={label}>{body}</div>
+            )
+          })}
           <div>
             <i className={`up-dot${p.online ? ' on' : ''}`} aria-hidden="true"></i>
             <span>

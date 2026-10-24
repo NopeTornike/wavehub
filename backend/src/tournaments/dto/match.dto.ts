@@ -23,6 +23,12 @@ export class MatchPlayerStatDto {
   @Length(1, 30)
   name: string;
 
+  // Optional WaveHub account (username, leading @ ok, or account id) — linked server-side.
+  @IsOptional()
+  @IsString()
+  @Length(1, 40)
+  username?: string | null;
+
   @IsOptional()
   @IsInt()
   @Min(0)

@@ -131,3 +131,34 @@ plan (either audience) with `perks.prioritySupport`; otherwise the entity defaul
   - the DM-look `ChatThread`;
   - one composer switching between "reply to user" and "🔒 internal note" (amber), with the
     saved replies beside it.
+
+## 2026-10-24 Live support chat + files
+Migration `1784387000000-SupportLiveChat`.
+- **Channel**: `support_tickets.channel` is `'ticket'` (classic) or `'chat'`. "Contact support"
+  opens `/support/chat`, a live chat with support. It is one open chat ticket per user:
+  - `GET tickets/live` returns it, or `null` before the first message;
+  - `POST tickets/live {body}` opens it (subject "Live chat", category other, priority from the
+    perk) or appends to it;
+  - a closed chat stays closed, and the next message starts a new one.
+- **Operator**: `operatorId` / `operatorJoinedAt`.
+  - Set when a staff member calls `POST admin/tickets/:id/join` (reply roles, audited
+    `ticket.join_chat`, also assigns it to them, 400 on a classic ticket), or sends the first
+    staff reply or file on an unjoined chat.
+  - `PublicTicket.operator` = `{ firstName, avatarUrl, joinedAt }` only. No username or role,
+    the same rule as message senders.
+- **Automatic lines**: the greeting, "request received" with the "connecting…" spinner, the 75s
+  "thanks for waiting" line and "<name> joined" are rendered by the frontend from that state. They
+  are not stored as messages.
+- **Files**: `support_ticket_messages.fileUrl / fileType / fileName`, and `body` is `''` for a
+  file-only message.
+  - `POST tickets/mine/:id/attachment` is for the owner only; it is refused (409) on a closed
+    ticket.
+  - `POST admin/tickets/:id/attachment` is for reply roles and is audited `ticket.attachment`.
+  - Both take multipart `file` up to 10MB with `UPLOAD_THROTTLE`. StorageService's
+    `'attachment'` kind byte-sniffs them (JPG/PNG/WEBP/PDF/ZIP, which includes `.docx`); legacy
+    `.doc` is refused.
+- **Staff notifications**: a new ticket, a new chat, a user reply and a user file call
+  `NotificationsService.notifyStaff` (see `backend/src/notifications/CLAUDE.md`). The assignee
+  gets it if there is one; otherwise Main Admin, Support Specialist, Operation Lead and Super
+  Admin do. This replaced the old reply notification, which put the user's id in its text.
+- e2e: `test/client-round-4.e2e-spec.ts`.

@@ -119,6 +119,7 @@ export class MarketingService {
       title: b.title,
       subtitle: b.subtitle,
       imageUrl: b.imageUrl,
+      videoUrl: b.videoUrl,
       linkUrl: b.linkUrl,
       buttonLabel: b.buttonLabel,
       active: b.active,
@@ -141,7 +142,7 @@ export class MarketingService {
       .addOrderBy('b.createdAt', 'DESC')
       .take(10)
       .getMany();
-    return rows.map((b) => ({ id: b.id, placement: b.placement, title: b.title, subtitle: b.subtitle, imageUrl: b.imageUrl, linkUrl: b.linkUrl, buttonLabel: b.buttonLabel }));
+    return rows.map((b) => ({ id: b.id, placement: b.placement, title: b.title, subtitle: b.subtitle, imageUrl: b.imageUrl, videoUrl: b.videoUrl, linkUrl: b.linkUrl, buttonLabel: b.buttonLabel }));
   }
 
   async listBanners(): Promise<AdminBanner[]> {
@@ -171,7 +172,7 @@ export class MarketingService {
   async updateBanner(id: string, dto: BannerDto): Promise<AdminBanner> {
     const b = await this.banners.findOne({ where: { id } });
     if (!b) throw new NotFoundException('Banner not found');
-    if (dto.active === true && !b.imageUrl) throw new BadRequestException('Upload an image before publishing the banner');
+    if (dto.active === true && !b.imageUrl && !b.videoUrl) throw new BadRequestException('Upload an image or a video before publishing the banner');
     await this.banners.update(id, this.bannerPatch(dto, b));
     return this.toAdminBanner(await this.banners.findOneOrFail({ where: { id } }));
   }
@@ -183,6 +184,24 @@ export class MarketingService {
     // Byte-sniffed: only real images are accepted (StorageService refuses anything else).
     const stored = await this.storage.save(file.buffer, file.originalname, 'image');
     await this.banners.update(id, { imageUrl: stored.url });
+    return this.toAdminBanner(await this.banners.findOneOrFail({ where: { id } }));
+  }
+
+  async setBannerVideo(id: string, file: { buffer: Buffer; originalname: string } | undefined): Promise<AdminBanner> {
+    if (!file) throw new BadRequestException('No file uploaded');
+    const b = await this.banners.findOne({ where: { id } });
+    if (!b) throw new NotFoundException('Banner not found');
+    // Byte-sniffed: only real MP4/WebM files are accepted.
+    const stored = await this.storage.save(file.buffer, file.originalname, 'video');
+    await this.banners.update(id, { videoUrl: stored.url });
+    return this.toAdminBanner(await this.banners.findOneOrFail({ where: { id } }));
+  }
+
+  // Removing the video of a live banner with no photo would leave it empty, so it goes offline too.
+  async clearBannerVideo(id: string): Promise<AdminBanner> {
+    const b = await this.banners.findOne({ where: { id } });
+    if (!b) throw new NotFoundException('Banner not found');
+    await this.banners.update(id, { videoUrl: null, ...(b.imageUrl ? {} : { active: false }) });
     return this.toAdminBanner(await this.banners.findOneOrFail({ where: { id } }));
   }
 

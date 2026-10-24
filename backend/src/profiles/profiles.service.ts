@@ -53,12 +53,21 @@ export class ProfilesService {
     return { following: false, followers: await this.follows.count({ where: { followeeId } }) };
   }
 
-  async listFollows(userId: string, direction: 'following' | 'followers'): Promise<PublicFollowEntry[]> {
+  // Anyone's lists, from their public profile (owner 2026-10-24: Instagram-style). Staff accounts
+  // are left out for non-staff viewers — a staff username is a login name and is never shown
+  // (backend/src/chat/CLAUDE.md "Staff messaging").
+  async listPublicFollows(viewerId: string, username: string, direction: 'following' | 'followers'): Promise<PublicFollowEntry[]> {
+    const userId = await this.targetId(username);
+    const viewer = await this.users.findById(viewerId);
+    return this.listFollows(userId, direction, { hideStaff: !viewer?.adminRole });
+  }
+
+  async listFollows(userId: string, direction: 'following' | 'followers', opts: { hideStaff?: boolean } = {}): Promise<PublicFollowEntry[]> {
     const [mine, other] = direction === 'following' ? ['followerId', 'followeeId'] : ['followeeId', 'followerId'];
     const rows: Array<{ id: string; username: string; firstName: string; lastName: string; avatarUrl: string | null; followedAt: Date }> = await this.db.query(
       `SELECT u."id", u."username", u."firstName", u."lastName", u."avatarUrl", f."createdAt" AS "followedAt"
          FROM "user_follows" f JOIN "users" u ON u."id" = f."${other}"
-        WHERE f."${mine}" = $1 AND u."status" IN ('active', 'pending_verification')
+        WHERE f."${mine}" = $1 AND u."status" IN ('active', 'pending_verification')${opts.hideStaff ? ` AND u."adminRole" IS NULL` : ''}
         ORDER BY f."createdAt" DESC LIMIT 1000`,
       [userId],
     );

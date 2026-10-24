@@ -55,8 +55,9 @@ export default function OrderReview({ orderId, isBuyer, isSeller }: { orderId: s
   }
 
   return (
-    <div className="order-section order-review" id="review">
-      <h2>{review ? 'შეფასება' : isBuyer ? 'შეაფასე შეკვეთა' : 'შეფასება'}</h2>
+    // Rendered inside the order page's own "Review" section (its heading and card), so no second
+    // heading or card here (owner screenshot 35: "Reviews" twice and an empty box).
+    <div className="order-review od-review-body">
       {review ? (
         <>
           <div className="order-review-card">
@@ -107,7 +108,13 @@ export default function OrderReview({ orderId, isBuyer, isSeller }: { orderId: s
           </button>
         </form>
       ) : (
-        <p className="note">მყიდველს შეფასება ჯერ არ დაუტოვებია.</p>
+        <div className="od-review-empty">
+          <span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/assets/ui/star-notify.png" alt="" aria-hidden="true" />
+          </span>
+          <strong>მყიდველს შეფასება ჯერ არ დაუტოვებია.</strong>
+        </div>
       )}
       {error && (
         <p className="seller-status error" role="alert">

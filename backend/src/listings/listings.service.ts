@@ -693,7 +693,19 @@ export class ListingsService {
       assertValidTransition(listing.status, ListingStatus.PendingReview);
       listing.status = ListingStatus.PendingReview;
       await this.listings.save(listing);
+      await this.notifyReviewers(listing);
     }
+  }
+
+  // Staff who approve listings hear about each one waiting for review (notifications/CLAUDE.md).
+  private async notifyReviewers(listing: Listing) {
+    await this.notifications.notifyStaff(
+      [AdminRole.MarketplaceCoachingOpsManager],
+      'ახალი განცხადება შესამოწმებლად',
+      `„${listing.title}“ ელოდება დამტკიცებას.`,
+      '/admin/listings',
+      `listing:${listing.id}`,
+    );
   }
 
   private async assertServiceCategory(categoryId: string) {
@@ -701,6 +713,9 @@ export class ListingsService {
     if (!category || (category.type !== 'service' && category.type !== 'both')) {
       throw new ForbiddenException('Choose a service category for a service listing');
     }
+    // Coaching is sold through coach profiles and the booking flow, never as a marketplace service
+    // (owner 2026-10-24) — new service listings can't pick it.
+    if (category.slug === 'coaching') throw new ForbiddenException('Coaching is offered through coach profiles, not as a service listing');
   }
 
   // A seller's new photo is unmoderated content: on a live (Active/Paused) listing it sends the
@@ -756,11 +771,14 @@ export class ListingsService {
     if (dto.title !== undefined) listing.title = dto.title;
     if (dto.description !== undefined) listing.description = dto.description;
     if (dto.priceWaveCoin !== undefined) listing.priceWaveCoin = dto.priceWaveCoin;
+    let sentToReview = false;
     if (!staff && (listing.status === ListingStatus.Active || listing.status === ListingStatus.Paused)) {
       assertValidTransition(listing.status, ListingStatus.PendingReview);
       listing.status = ListingStatus.PendingReview;
+      sentToReview = true;
     }
     const saved = await this.listings.save(listing);
+    if (sentToReview) await this.notifyReviewers(saved);
     if (dto.requirementsSchema !== undefined || dto.faq !== undefined) {
       const patch: Partial<ServiceDetails> = {};
       if (dto.requirementsSchema !== undefined) patch.requirementsSchema = dto.requirementsSchema;
@@ -806,7 +824,9 @@ export class ListingsService {
     }
     listing.status = ListingStatus.PendingReview;
     listing.rejectionReason = null;
-    return this.listings.save(listing);
+    const saved = await this.listings.save(listing);
+    await this.notifyReviewers(saved);
+    return saved;
   }
 
   async pause(sellerId: string, listingId: string): Promise<Listing> {

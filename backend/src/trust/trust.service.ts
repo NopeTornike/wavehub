@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
 import { DataSource, In, LessThan, Repository } from 'typeorm';
-import { NotificationType, UserStatus } from '@wavehub/shared-types';
+import { AdminRole, NotificationType, UserStatus } from '@wavehub/shared-types';
 import type { AdminUserReport, ReportStatus, RiskAssessment, RiskFactor, TrustOverview, TrustUserDetail, TrustUserSummary } from '@wavehub/shared-types';
 import { LoginEvent, UserReport, UserStaffNote } from './trust.entities';
 import { CreateReportDto } from './dto/trust.dto';
@@ -90,6 +90,13 @@ export class TrustService {
     try {
       const saved = await this.reports.save(
         this.reports.create({ reporterId, targetType: dto.targetType, targetId: dto.targetId, targetUserId, reason: dto.reason, details: dto.details?.trim() || null, evidence, status: 'open' }),
+      );
+      await this.notifications.notifyStaff(
+        [AdminRole.TrustSafetyOfficer, AdminRole.OperationLead, AdminRole.MainAdministrator],
+        'ახალი საჩივარი',
+        dto.reason.slice(0, 140),
+        '/admin/trust',
+        `report:${saved.id}`,
       );
       return { id: saved.id, status: saved.status };
     } catch (err) {

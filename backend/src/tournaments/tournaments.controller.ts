@@ -2,8 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { AdminRole } from '@wavehub/shared-types';
-import { TournamentsService } from './tournaments.service';
+import { TOURNAMENT_MANAGEMENT_ROLES, TournamentsService } from './tournaments.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { BrowseTournamentsDto } from './dto/browse-tournaments.dto';
@@ -24,7 +23,6 @@ import { MatchDto } from './dto/match.dto';
 // aren't in SPECIFICATION.md at all (genuinely new scope, see LAUNCH_PLAN.md §2b), so there's no
 // spec section to read a role list from; reused the closest existing precedent (a
 // marketplace-adjacent, admin-curated content/event type) rather than inventing a new permission.
-const TOURNAMENT_MANAGEMENT_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];
 
 @Controller()
 export class TournamentsController {

@@ -62,3 +62,15 @@ A used code is deactivated (`PATCH … {active:false}`) instead. Audited (`promo
   - The home hero (`HeroBanner` in `pages/index.tsx`) lays text out left: title, subtitle, then
     the button.
   - Covered by `test/client-round-2.e2e-spec.ts`.
+
+## 2026-10-24 Video banners
+- `banners.videoUrl` (migration `1784386000000-BannerVideo`). `POST admin/banners/:id/video`
+  (multipart `file`, byte-sniffed MP4/WebM via `StorageService` kind `'video'`, ≤20MB —
+  `MAX_BANNER_VIDEO_BYTES`, kept under Caddy's 22MB body limit) and `DELETE admin/banners/:id/video`.
+  Both content roles, `UPLOAD_THROTTLE`d, audit-logged (`banner.set_video` / `banner.clear_video`).
+- A banner can be published with a photo **or** a video. Removing the video of a banner that has no
+  photo also takes it offline (it would be empty).
+- `PublicBanner.videoUrl`: the frontend plays it muted/inline with only a pause button, no photo
+  behind it, and moves to the next slide when it ends (photos still rotate every 7s) — every
+  placement (`components/BannerSlides.tsx`).
+- e2e: `test/marketing.e2e-spec.ts` ("banner video").

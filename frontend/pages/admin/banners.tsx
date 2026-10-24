@@ -9,6 +9,9 @@ import { api, errorMessage } from '../../lib/api'
 // Services, Steam games, Coaching and Tournaments. A banner needs an
 // image (byte-checked by the server) before it can be published; links are a site path (/coaching)
 // or an https:// address. Optional start/end dates. Audit-logged.
+// A banner can instead be a video (MP4/WebM, ≤20MB — 2026-10-24): it replaces the photo, plays
+// muted with only a pause button, and the carousel moves on when it ends.
+const MAX_BANNER_VIDEO_BYTES = 20 * 1024 * 1024
 const localInput = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() + 4 * 3600_000).toISOString().slice(0, 16) : '')
 const fromLocal = (value: string) => (value ? new Date(`${value}:00+04:00`).toISOString() : null)
 
@@ -57,22 +60,55 @@ function BannerEditor({ banner, onChange, onDelete }: { banner: AdminBanner; onC
 
   return (
     <section className="card ab-row">
-      <div className="ab-preview" style={banner.imageUrl ? { backgroundImage: `url(${banner.imageUrl})` } : undefined}>
-        {!banner.imageUrl && <span>სურათი არ არის</span>}
-        <label className={`button ghost ab-upload${busy ? ' disabled' : ''}`}>
-          {banner.imageUrl ? 'სურათის შეცვლა' : 'სურათის ატვირთვა'}
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            disabled={busy}
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              e.target.value = ''
-              if (file) void run(() => api.adminUploadBannerImage(banner.id, file), 'სურათი აიტვირთა.')
-            }}
-          />
-        </label>
+      <div className="ab-media">
+        <div className="ab-preview" style={banner.imageUrl && !banner.videoUrl ? { backgroundImage: `url(${banner.imageUrl})` } : undefined}>
+          {banner.videoUrl ? (
+            <video className="ab-preview-video" src={banner.videoUrl} muted loop autoPlay playsInline aria-label="ბანერის ვიდეო" />
+          ) : (
+            !banner.imageUrl && <span>სურათი არ არის</span>
+          )}
+          <label className={`button ghost ab-upload${busy ? ' disabled' : ''}`}>
+            {banner.imageUrl ? 'სურათის შეცვლა' : 'სურათის ატვირთვა'}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) void run(() => api.adminUploadBannerImage(banner.id, file), 'სურათი აიტვირთა.')
+              }}
+            />
+          </label>
+        </div>
+        <div className="ab-video-actions">
+          <label className={`button ghost${busy ? ' disabled' : ''}`}>
+            {banner.videoUrl ? 'ვიდეოს შეცვლა' : 'ვიდეოს ატვირთვა'}
+            <input
+              type="file"
+              accept="video/mp4,video/webm"
+              className="sr-only"
+              disabled={busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (!file) return
+                if (file.size > MAX_BANNER_VIDEO_BYTES) {
+                  setStatus({ kind: 'error', text: 'ვიდეო 20MB-ზე დიდი არ უნდა იყოს.' })
+                  return
+                }
+                void run(() => api.adminUploadBannerVideo(banner.id, file), 'ვიდეო აიტვირთა.')
+              }}
+            />
+          </label>
+          {banner.videoUrl && (
+            <button type="button" className="button ghost" disabled={busy} onClick={() => void run(() => api.adminClearBannerVideo(banner.id), 'ვიდეო წაიშალა.')}>
+              ვიდეოს წაშლა
+            </button>
+          )}
+          <small>MP4 ან WebM, მაქს. 20MB. ვიდეო ჩაანაცვლებს ფოტოს და ავტომატურად ჩაირთვება.</small>
+        </div>
       </div>
       <div className="ab-fields">
         <label className="field">

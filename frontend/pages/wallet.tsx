@@ -229,10 +229,10 @@ export default function Wallet() {
   // The four cards in the owner's wording (2026-10-15), every number from the server: spendable
   // balance; what's held for open orders / sessions; what can be withdrawn now; every top-up.
   const summary: Array<[string, string, string, number, string]> = [
-    ['available', '▣', 'ხელმისაწვდომი ბალანსი', walletBalance, 'WaveHubX-ზე გამოსაყენებელი თანხა'],
-    ['escrow', '◇', 'ესქროუში გაყინული', balance?.inEscrow ?? escrow, 'აქტიურ შეკვეთებში დროებით დაბლოკილი თანხა'],
-    ['pending', '◷', 'გასატანი თანხა', balance?.availableToWithdraw ?? 0, 'თანხა, რომლის გატანაც შეგიძლია'],
-    ['purchased', '↥', 'სულ შეტანილი თანხა', balance?.totalToppedUp ?? purchased, 'ჯამურად ანგარიშზე შეტანილი თანხა'],
+    ['available', '/assets/ui/wallet.png', 'ხელმისაწვდომი ბალანსი', walletBalance, 'WaveHubX-ზე გამოსაყენებელი თანხა'],
+    ['escrow', '/assets/ui/shield-check.png', 'ესქროუში გაყინული', balance?.inEscrow ?? escrow, 'აქტიურ შეკვეთებში დროებით დაბლოკილი თანხა'],
+    ['pending', '/assets/ui/card.png', 'გასატანი თანხა', balance?.availableToWithdraw ?? 0, 'თანხა, რომლის გატანაც შეგიძლია'],
+    ['purchased', '/assets/ui/plus-circle.png', 'სულ შეტანილი თანხა', balance?.totalToppedUp ?? purchased, 'ჯამურად ანგარიშზე შეტანილი თანხა'],
   ]
 
   return (
@@ -285,7 +285,10 @@ export default function Wallet() {
       <section className="wallet-summary-grid" aria-label="საფულის შეჯამება">
         {summary.map(([key, icon, label, value, note]) => (
           <article key={key} className={`wallet-summary-card ${key}`}>
-            <i>{icon}</i>
+            {/* The owner's icon set (public/assets/ui), 2026-10-24. */}
+            <i aria-hidden="true">
+              <img src={icon} alt="" />
+            </i>
             <div>
               <span>{label}</span>
               <strong>{gel(value)} GEL</strong>
@@ -308,8 +311,9 @@ export default function Wallet() {
               <h2>ბალანსის შევსება</h2>
               <small>Bank of Georgia / საქართველოს ბანკი</small>
             </div>
+            {/* A text badge, not a logo: the screenshot crop looked nothing like the bank's mark, and
+                only the official file may stand in for it (owner 2026-10-24). */}
             <span className="wb-bank" aria-label="Bank of Georgia">
-              <img src="/assets/ui/bog-mark.png" alt="" aria-hidden="true" />
               <span>
                 საქართველოს ბანკი
                 <b>BANK OF GEORGIA</b>

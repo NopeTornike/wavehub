@@ -111,6 +111,7 @@ export class CoachingSessionDisputesService {
       sessionId,
       id,
     );
+    await this.notifications.notifyStaff([], 'ახალი დავა სესიაზე', reason.trim().slice(0, 140), `/admin/session-disputes/${id}`, `session-dispute:${id}`);
     return this.toPublic(await this.disputes.findOneOrFail({ where: { id }, relations: { opener: true } }));
   }
 
