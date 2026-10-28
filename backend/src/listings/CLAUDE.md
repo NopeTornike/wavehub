@@ -394,3 +394,35 @@ change otherwise; the marketplace filters by category id. Listing photos are cap
   - `submitForReview`;
   - `update` of a live listing;
   - `backToReviewIfLive` (new photo / package change).
+
+## 2026-10-28 Automatic badges (`listing-badges.service.ts`)
+Migration `1784390000000-ListingBadges`.
+- **New data**:
+  - `listing_view_hours`: views per listing per hour. It is written by `recordView` from
+    `GET listings/:id`, counting one visitor at most once per listing per hour (an in-memory key
+    from a hash of IP + user agent; nothing is stored about the visitor).
+  - `listings.previousPriceWaveCoin` and `priceDroppedAt`: a cut of ≥10% in `update()` records
+    them; raising the price back to or above the old price clears them.
+  - `contentUpdatedAt`: a changed title or description, or any attributes, in `update()`.
+  - `verifiedAt`: `POST admin/listings/:id/verified {verified}`, Marketplace Ops / Super Admin,
+    audited as `listing.verify|unverify`. It is shown in Admin → Listings → all.
+- **Rules** (badges are computed per read, never stored):
+
+  | Badge | Rule |
+  |---|---|
+  | HOT | ≥100 views and ≥5 new favourites in 48h |
+  | MOST POPULAR | top 10 by views + 3×favourites + 10×orders in 30 days, score ≥50 |
+  | MOST VIEWED | top 10 by 30-day views, ≥50 views |
+  | TRENDING | ≥20 views in 24h and ≥1.5× the previous 24h |
+  | PRICE DROP | a ≥10% cut within 7 days |
+  | JUST UPDATED | content edited within 48h |
+  | VERIFIED | `verifiedAt` set |
+
+  - The minimums on the two top-10 lists stop a small marketplace from badging everything.
+  - The two top-10 lists are cached for 5 minutes (`resetCache()` for tests).
+  - The owner's PREMIUM, BEST DEAL, RARE and FEATURED rows were removed by the owner.
+- **Output**: `PublicListingSummary.badges` and detail `badges` are in `LISTING_BADGE_ORDER`.
+  - A failure returns no badges rather than breaking browse.
+  - Frontend: `components/ListingBadges.tsx` shows up to 2 on product cards and all on the listing
+    and Steam pages.
+- e2e: `test/client-round-5.e2e-spec.ts`.

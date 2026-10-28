@@ -66,6 +66,7 @@ runbook is `docs/DEPLOY.md` and the go-live checklist is `docs/LAUNCH_CHECKLIST.
 | `backend/src/analytics/` | Super-Admin-only statistics: sales, games, types, top listings/sellers, subscriptions, coaching, money flow | `backend/src/analytics/CLAUDE.md` |
 | `backend/src/community/` | Public shell aggregates (online count, per-game listing counts, seller ranks) + the user's Wave rank | `backend/src/community/CLAUDE.md` |
 | `backend/src/marketing/` | Promo codes (spendable, non-withdrawable WaveCoin credit) and homepage banners | `backend/src/marketing/CLAUDE.md` |
+| `backend/src/translations/` | Staff edits of UI text (English + Georgian) over the built-in dictionary, Admin → Translations | `backend/src/translations/CLAUDE.md` |
 | `backend/src/trust/` | Trust & Safety: user reports, explained risk score, hashed login history, warnings/notes/watchlist | `backend/src/trust/CLAUDE.md` |
 | `backend/src/common/` | Cross-cutting runtime: global exception filter, PII-free request log, `/health`, throttle presets | `backend/src/common/CLAUDE.md` |
 | `backend/src/config/` | Production boot-time config validation (refuses dev defaults in `NODE_ENV=production`) | `backend/src/config/CLAUDE.md` |

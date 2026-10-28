@@ -21,6 +21,7 @@ import FeeBreakdown from '../../components/FeeBreakdown'
 import { gel } from '../../lib/money'
 import { deliveryTimeLabel } from '../../lib/labels'
 import { canPublishSteam } from '../../lib/roles'
+import ListingBadges from '../../components/ListingBadges'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
 // the game's title icon, About card, the game-specific details grid, Access & Delivery, Linked
@@ -341,6 +342,7 @@ export default function ListingDetail() {
                 {gameIcon(slug) && <img className="detail-title-game-icon" id="detailTitleGameIcon" src={gameIcon(slug) ?? undefined} alt={`${listing.game?.name} icon`} />}
                 <h1 id="detailTitle">{listing.title}</h1>
               </div>
+              <ListingBadges badges={listing.badges} className="detail-lb" />
               <p className="detail-lead" id="detailDescription">
                 {listing.description}
               </p>

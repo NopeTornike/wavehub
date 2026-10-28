@@ -42,6 +42,11 @@ export enum VerificationStatus {
   Rejected = 'rejected',
 }
 
+// Automatic listing badges (owner 2026-10-28), each from real data — see
+// backend/src/listings/listing-badges.service.ts for the exact rules.
+export type ListingBadge = 'hot' | 'most_popular' | 'most_viewed' | 'trending' | 'price_drop' | 'just_updated' | 'verified';
+export const LISTING_BADGE_ORDER: ListingBadge[] = ['hot', 'trending', 'price_drop', 'most_popular', 'most_viewed', 'just_updated', 'verified'];
+
 export enum ListingType {
   Service = 'service',
   Item = 'item',
@@ -347,6 +352,8 @@ export interface PublicListingSummary {
   ratingCount: number;
   priceWaveCoin: number | null;
   stockQuantity: number | null;
+  // Earned automatic badges, most important first (LISTING_BADGE_ORDER).
+  badges?: ListingBadge[];
   // Always populated for a card display: the item's own `priceWaveCoin` for item listings, or the
   // cheapest package's price for service listings (which price via packages, not the listing
   // itself). Null only if a service listing somehow has zero packages. See
@@ -1001,6 +1008,8 @@ export interface AdminListingSummary {
   // Admin-chosen "Featured Items" (home page rail). Optional so older callers keep compiling.
   isFeatured?: boolean;
   priceWaveCoin?: number | null;
+  // Staff-checked account / details → the listing's VERIFIED badge.
+  verified?: boolean;
 }
 
 // Admin → Steam (GET admin/steam-games): every Steam game whoever created it, with live key stock.
@@ -2060,4 +2069,16 @@ export interface PublicBadge {
 export interface AdminBadgeGrant extends PublicBadge {
   source: 'system' | 'admin' | 'coach';
   grantedByUsername: string | null;
+}
+
+// --- UI translations (backend/src/translations/, owner 2026-10-28) ---
+// GET /translations: staff edits over the built-in texts, keyed by the Georgian source string.
+export type PublicUiTranslations = Record<string, { en?: string; ka?: string }>;
+
+export interface AdminUiTranslation {
+  id: string;
+  key: string;
+  en: string | null;
+  ka: string | null;
+  updatedAt: string;
 }

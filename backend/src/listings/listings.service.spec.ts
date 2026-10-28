@@ -62,6 +62,7 @@ describe('ListingsService.createDraft', () => {
       createFakeRepo() as any,
       storage as any,
       { tryEmit: jest.fn(async () => undefined), notifyStaff: jest.fn(async () => undefined) } as any,
+      { badgesFor: jest.fn(async () => new Map()), recordView: jest.fn() } as any,
     );
 
     return { service, listings, serviceDetails, itemDetails, keyInventory, twin };
@@ -244,6 +245,7 @@ describe('ListingsService key inventory', () => {
       createFakeRepo() as any,
       storage as any,
       { tryEmit: jest.fn(async () => undefined), notifyStaff: jest.fn(async () => undefined) } as any,
+      { badgesFor: jest.fn(async () => new Map()), recordView: jest.fn() } as any,
     );
 
     return { service, listings, keyInventory };

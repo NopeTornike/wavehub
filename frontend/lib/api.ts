@@ -51,6 +51,10 @@ import type {
   AdminPromoCode,
   PromoRedemptionResult,
   PublicBanner,
+  AdminTournamentMatch,
+  AdminUiTranslation,
+  MatchRoomSide,
+  MatchRoomView,
   AdminSteamGameSummary,
   PlatformTimings,
   BannerPlacement,
@@ -421,7 +425,7 @@ export const api = {
   adminListGames: () => request<AdminGame[]>('/admin/games'),
   adminCreateGame: (payload: { name: string; slug: string; sortOrder?: number }) =>
     request<AdminGame>('/admin/games', { method: 'POST', body: JSON.stringify(payload) }),
-  adminUpdateGame: (id: string, payload: { name?: string; isActive?: boolean; sortOrder?: number }) =>
+  adminUpdateGame: (id: string, payload: { name?: string; isActive?: boolean; sortOrder?: number; launchUrl?: string | null }) =>
     request<AdminGame>(`/admin/games/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
   adminUploadGameImage: (id: string, kind: GameImageKind, file: File) => upload<AdminGame>(`/admin/games/${id}/images/${kind}`, file),
   adminClearGameImage: (id: string, kind: GameImageKind) => request<AdminGame>(`/admin/games/${id}/images/${kind}`, { method: 'DELETE' }),
@@ -525,6 +529,9 @@ export const api = {
     request<unknown>(`/admin/listings/${id}/take-down`, { method: 'POST', body: JSON.stringify({ reason }) }),
   adminRestoreListing: (id: string) => request<unknown>(`/admin/listings/${id}/restore`, { method: 'POST' }),
   adminDeleteListing: (id: string) => request<{ ok: true }>(`/admin/listings/${id}`, { method: 'DELETE' }),
+  // The listing's VERIFIED badge (staff checked the account and its details).
+  adminSetListingVerified: (id: string, verified: boolean) =>
+    request<{ id: string; verified: boolean }>(`/admin/listings/${id}/verified`, { method: 'POST', body: JSON.stringify({ verified }) }),
   adminSetListingFeatured: (id: string, isFeatured: boolean) =>
     request<{ id: string; isFeatured: boolean }>(`/admin/listings/${id}/featured`, { method: 'POST', body: JSON.stringify({ isFeatured }) }),
   addListingPackage: (id: string, payload: PackageInput) => request<PublicPackage>(`/listings/${id}/packages`, { method: 'POST', body: JSON.stringify(payload) }),
@@ -1098,6 +1105,10 @@ export const api = {
   listBanners: (placement?: BannerPlacement) => request<PublicBanner[]>(placement ? `/banners?placement=${placement}` : '/banners'),
 
   adminListBanners: () => request<AdminBanner[]>('/admin/banners'),
+  // Admin → Translations: staff edits of UI text (English and Georgian).
+  adminListTranslations: () => request<AdminUiTranslation[]>('/admin/translations'),
+  adminSaveTranslation: (payload: { key: string; en: string | null; ka: string | null }) =>
+    request<AdminUiTranslation>('/admin/translations', { method: 'POST', body: JSON.stringify(payload) }),
 
   adminCreateBanner: (payload: { placement?: BannerPlacement; title: string; subtitle?: string | null; linkUrl?: string | null; buttonLabel?: string | null; sortOrder?: number }) =>
     request<AdminBanner>('/admin/banners', { method: 'POST', body: JSON.stringify(payload) }),
@@ -1165,7 +1176,10 @@ export const api = {
   // --- Tournaments --- (backend/src/tournaments/tournaments.controller.ts)
   // Staff views that include draft tournaments (backend/src/tournaments/tournaments.controller.ts).
   adminBrowseTournaments: (limit = 100) => request<{ items: PublicTournamentSummary[]; total: number }>(`/admin/tournaments?limit=${limit}`),
-  adminListTournamentMatches: (id: string) => request<PublicTournamentMatch[]>(`/admin/tournaments/${id}/matches`),
+  adminListTournamentMatches: (id: string) => request<AdminTournamentMatch[]>(`/admin/tournaments/${id}/matches`),
+  // Open / lock each team's game room and set its details (owner 2026-10-28).
+  adminSetMatchRoom: (id: string, matchId: string, payload: { a?: MatchRoomSide; b?: MatchRoomSide }) =>
+    request<AdminTournamentMatch>(`/admin/tournaments/${id}/matches/${matchId}/room`, { method: 'POST', body: JSON.stringify(payload) }),
   browseTournaments: (filters: { gameId?: string; status?: TournamentStatus; limit?: number; offset?: number } = {}) => {
     const params = new URLSearchParams()
     Object.entries(filters).forEach(([key, value]) => {
@@ -1205,6 +1219,8 @@ export const api = {
   listMyTournaments: () => request<MyTournamentEntry[]>('/me/tournaments'),
 
   listMyTournamentMatches: () => request<PublicTournamentMatch[]>('/me/tournament-matches'),
+  // The caller's own game-room card (players of a verified team only; 403 otherwise).
+  getMyMatchRoom: (matchId: string) => request<MatchRoomView>(`/me/tournament-matches/${matchId}/room`),
 
   adminListTournamentTeams: (id: string) => request<PublicTournamentTeam[]>(`/admin/tournaments/${id}/teams`),
 

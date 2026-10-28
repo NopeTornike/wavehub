@@ -11,6 +11,7 @@ import { Package } from './package.entity';
 import { Category } from './category.entity';
 import { Game } from './game.entity';
 import { ListingFavorite } from './listing-favorite.entity';
+import { ListingBadgesService } from './listing-badges.service';
 import { ListingsService } from './listings.service';
 import { ListingsController } from './listings.controller';
 import { StorageModule } from '../storage/storage.module';
@@ -51,7 +52,7 @@ import { SteamAdminController } from './steam-admin.controller';
   // itself — it needs both UsersService and ListingsService, and UsersModule must stay a leaf
   // module (see users.module.ts's own comment) since AuthModule already imports it.
   controllers: [ListingsController, UsersController, ProfileController, AdminGamesController, SteamAdminController],
-  providers: [ListingsService, GamesService],
+  providers: [ListingsService, GamesService, ListingBadgesService],
   exports: [ListingsService],
 })
 export class ListingsModule {}

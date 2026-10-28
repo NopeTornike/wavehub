@@ -31,6 +31,11 @@ export class AdminListingSearchDto {
 }
 
 // POST admin/listings/:id/featured — pick/unpick a listing for the home "Featured Items" rail.
+export class SetVerifiedDto {
+  @IsBoolean()
+  verified: boolean;
+}
+
 export class SetFeaturedDto {
   @IsBoolean()
   isFeatured: boolean;

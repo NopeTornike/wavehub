@@ -219,3 +219,34 @@ harmless (no pollution), just clears the details.
     `avatarUrl`; inactive accounts fall back to the plain name.
   - Admin entry: `@username | kills | …` lines, plus chips for the team's linked players
     (`components/admin/TournamentOps.tsx`). The match page shows the photo and links the profile.
+
+## 2026-10-28 Game room (tournament dashboard)
+Migration `1784389000000-TournamentGameRoom`.
+- **Room details**: `tournament_matches.room` jsonb holds `{ a?, b? }`. Each side is a
+  `MatchRoomSide`: `{ open, roomId, password, slot, serverUrl }`.
+  - PUBG-style lobbies use roomId / password / slot.
+  - CS2-style matches use `serverUrl`.
+  - `ROOM_SERVER_URL` in `dto/match.dto.ts` allows only `steam://connect/host[:port]` or `https://`.
+- **Staff**:
+  - `POST admin/tournaments/:id/matches/:matchId/room` (`MatchRoomDto`) sets the sides. It is
+    audited as `tournament.match_room`, with only open flags in the metadata and never the
+    passwords.
+  - `GET admin/tournaments/:id/matches` now returns `AdminTournamentMatch` (the public match plus
+    `room`).
+- **Players**: `GET me/tournament-matches/:matchId/room` returns `MatchRoomView`.
+  - 403 unless the caller is a member of team A or B and that team is **verified**. A rejected or
+    removed team loses access.
+  - 404 for a draft tournament.
+  - `status: 'available'` only when staff opened that side and it has details. Otherwise it is
+    `'locked'`, with no details at all.
+  - It carries `gameName` and the game's `launchUrl`.
+- **The room is never part of a public or "my matches" response** (`toPublicMatch` doesn't read it;
+  e2e-checked).
+- **Launch link**: `games.launchUrl`, editable in Admin → Games (`UpdateGameDto.launchUrl`, https
+  only). PUBG Mobile is seeded with the owner's universal link.
+- Frontend:
+  - `components/GameRoomCard.tsx` sits on `/tournaments/hub` under "Upcoming match". It is
+    available (tap to open) or "დაბლოკილია 🔒", has copy buttons and an "Open <game>" /
+    "Go to server" button, and polls every 30s.
+  - Admin → Tournaments → match → "თამაშის ოთახი" is the per-team editor.
+- e2e: `test/client-round-5.e2e-spec.ts`.

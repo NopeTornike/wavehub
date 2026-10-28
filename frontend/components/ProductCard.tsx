@@ -7,6 +7,7 @@ import { useFavorites } from '../lib/favorites'
 import { gameCover } from '../lib/games'
 import { deliveryTimeLabel } from '../lib/labels'
 import SellerPreview from './SellerPreview'
+import ListingBadges from './ListingBadges'
 
 // The prototype's marketplace showcase card (marketplace.js#createProductShowcaseCard), used for
 // every listing type, on real listing data:
@@ -146,6 +147,8 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
           </span>
         </div>
         <SaveButton listing={listing} className="pc-heart" onCount={setFavoriteCount} />
+        {/* Up to two earned badges on the cover (owner 2026-10-28). */}
+        <ListingBadges badges={listing.badges} max={2} className="pc-lb" />
       </div>
 
       <div className="pc-body">

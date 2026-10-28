@@ -10,6 +10,7 @@ import { useCart } from '../lib/cart'
 import { gameCover } from '../lib/games'
 import ImageLightbox from './ImageLightbox'
 import FeeBreakdown from './FeeBreakdown'
+import ListingBadges from './ListingBadges'
 
 // docs/design-mockups/05-steam-game-detail.jpg for a digital-key listing: breadcrumb, gallery
 // (arrows, counter, thumbnails, trailer link), buy box (badges, title, tagline, rating + sold, price
@@ -210,6 +211,7 @@ export default function SteamGameDetail({
               {genre && <span>{GENRE_LABEL[genre] ?? genre}</span>}
             </div>
             <h1>{listing.title}</h1>
+            <ListingBadges badges={listing.badges} className="detail-lb" />
             <p className="sd-tagline">{text('tagline') ?? listing.game?.name ?? 'Steam'}</p>
             <p className="sd-rating">
               {rating !== null ? (

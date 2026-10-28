@@ -55,6 +55,8 @@ import { CoachFavorite } from './coaching/coach-favorite.entity';
 import { CoachingPackage } from './coaching/coaching-package.entity';
 import { PromoCode, PromoRedemption } from './marketing/promo-code.entity';
 import { Banner } from './marketing/banner.entity';
+import { UiTranslation } from './translations/ui-translation.entity';
+import { TranslationsModule } from './translations/translations.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { TrustModule } from './trust/trust.module';
 import { LoginEvent, UserReport, UserStaffNote } from './trust/trust.entities';
@@ -140,6 +142,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
         PromoCode,
         PromoRedemption,
         Banner,
+        UiTranslation,
         UserReport,
         UserStaffNote,
         LoginEvent,
@@ -177,6 +180,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
     CoachingModule,
     ContentModule,
     MarketingModule,
+    TranslationsModule,
     TrustModule,
     TournamentsModule,
     ProfilesModule,

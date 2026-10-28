@@ -21,6 +21,7 @@ import { BrowseListingsDto } from './dto/browse-listings.dto';
 import { StorageService } from '../storage/storage.service';
 import { encryptKeyValue } from './key-encryption.util';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ListingBadgesService } from './listing-badges.service';
 
 // The joined `seller` relation is a full User row (email, wallet balance, admin role, moderation
 // reason...). Anything public must go through this projection — the shared `PublicSeller` type
@@ -59,6 +60,7 @@ export class ListingsService {
     @InjectRepository(ListingFavorite) private readonly favorites: Repository<ListingFavorite>,
     private readonly storage: StorageService,
     private readonly notifications: NotificationsService,
+    private readonly badges: ListingBadgesService,
   ) {}
 
   listCategories() {
@@ -324,7 +326,15 @@ export class ListingsService {
       createdAt: row.createdAt.toISOString(),
       isFeatured: row.isFeatured,
       priceWaveCoin: row.priceWaveCoin,
+      verified: !!row.verifiedAt,
     }));
+  }
+
+  // VERIFIED badge: staff checked the account's ownership and the stated details (owner 2026-10-28).
+  async setVerified(listingId: string, verified: boolean): Promise<{ id: string; verified: boolean }> {
+    const listing = await this.getListingOrThrow(listingId);
+    await this.listings.update(listing.id, { verifiedAt: verified ? new Date() : null });
+    return { id: listing.id, verified };
   }
 
   async setFeatured(listingId: string, isFeatured: boolean): Promise<{ id: string; isFeatured: boolean }> {
@@ -520,8 +530,10 @@ export class ListingsService {
     const attributesByListing = new Map(attributeRows.map((row) => [row.listingId, row.attributes]));
     const favoritesByListing = new Map(favoriteRows.map((row) => [row.listingId, Number(row.count)]));
 
+    const badgeMap = await this.badges.badgesFor(items.map((i) => i.id));
     return items.map((item) => ({
       ...item,
+      badges: badgeMap.get(item.id) ?? [],
       seller: toPublicSeller(item.seller),
       stockQuantity: item.type === ListingType.DigitalKey ? availableCountByListing.get(item.id) ?? 0 : item.stockQuantity,
       startingPriceWaveCoin:
@@ -585,7 +597,7 @@ export class ListingsService {
   // item-attributes are fetched separately (they don't join cleanly via `relations` because of the
   // sort-order and type-branching) and attached to the response. There's no shared response DTO for
   // this shape yet — see packages/shared-types/CLAUDE.md if that becomes worth formalizing.
-  async findPublicById(id: string) {
+  async findPublicById(id: string, viewer?: string) {
     const listing = await this.listings.findOne({
       where: { id, status: ListingStatus.Active, seller: { status: UserStatus.Active } },
       relations: ['seller', 'category', 'game', 'images'],
@@ -595,6 +607,8 @@ export class ListingsService {
     }
     sortImages(listing);
     void this.listings.increment({ id }, 'viewsCount', 1);
+    this.badges.recordView(id, viewer);
+    const badges = (await this.badges.badgesFor([id])).get(id) ?? [];
     const [favoriteCount, [{ sellerCompletedOrders }]] = await Promise.all([
       this.favorites.count({ where: { listingId: id } }),
       this.listings.query(
@@ -622,6 +636,7 @@ export class ListingsService {
         itemAttributes: null,
         favoriteCount,
         sellerCompletedOrders,
+        badges,
       };
     }
 
@@ -638,11 +653,12 @@ export class ListingsService {
         itemAttributes: keyDetails?.attributes ?? {},
         favoriteCount,
         sellerCompletedOrders,
+        badges,
       };
     }
 
     const itemDetails = await this.itemDetails.findOne({ where: { listingId: id } });
-    return { ...listing, seller: toPublicSeller(listing.seller, sellerVerified), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount, sellerCompletedOrders };
+    return { ...listing, seller: toPublicSeller(listing.seller, sellerVerified), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount, sellerCompletedOrders, badges };
   }
 
   // Packages are what a buyer pays for, so changing them on a live (Active/Paused) service sends it
@@ -768,6 +784,21 @@ export class ListingsService {
     }
     if (dto.requirementsSchema !== undefined) assertRequirementsSchema(dto.requirementsSchema);
     assertCompareAtPrice(dto.attributes, dto.priceWaveCoin ?? listing.priceWaveCoin);
+    // PRICE DROP: remember the price before a cut of 10% or more; a raise back above it clears it.
+    if (dto.priceWaveCoin !== undefined && listing.priceWaveCoin !== null && dto.priceWaveCoin !== listing.priceWaveCoin) {
+      const base = listing.previousPriceWaveCoin && listing.priceDroppedAt ? Math.max(listing.previousPriceWaveCoin, listing.priceWaveCoin) : listing.priceWaveCoin;
+      if (dto.priceWaveCoin <= base * 0.9) {
+        listing.previousPriceWaveCoin = base;
+        listing.priceDroppedAt = new Date();
+      } else if (dto.priceWaveCoin >= base) {
+        listing.previousPriceWaveCoin = null;
+        listing.priceDroppedAt = null;
+      }
+    }
+    // JUST UPDATED: a real change to what buyers read (title / description / details).
+    if ((dto.title !== undefined && dto.title !== listing.title) || (dto.description !== undefined && dto.description !== listing.description) || dto.attributes !== undefined) {
+      listing.contentUpdatedAt = new Date();
+    }
     if (dto.title !== undefined) listing.title = dto.title;
     if (dto.description !== undefined) listing.description = dto.description;
     if (dto.priceWaveCoin !== undefined) listing.priceWaveCoin = dto.priceWaveCoin;

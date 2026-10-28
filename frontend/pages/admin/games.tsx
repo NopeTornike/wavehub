@@ -39,7 +39,7 @@ export default function AdminGames() {
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', slug: '', slugTouched: false })
-  const [edits, setEdits] = useState<Record<string, { name: string; sortOrder: number }>>({})
+  const [edits, setEdits] = useState<Record<string, { name: string; sortOrder: number; launchUrl: string }>>({})
 
   useEffect(() => {
     api
@@ -87,10 +87,12 @@ export default function AdminGames() {
     const name = edit.name.trim()
     if (name.length < 2 || name.length > 40) return setError('სახელი: 2–40 სიმბოლო.')
     if (!Number.isInteger(edit.sortOrder) || edit.sortOrder < 0 || edit.sortOrder > 999) return setError('რიგითობა: 0–999.')
+    const launchUrl = edit.launchUrl.trim()
+    if (launchUrl && !/^https:\/\/\S+$/.test(launchUrl)) return setError('თამაშის გახსნის ბმული: https:// მისამართი.')
     void run(
       game.id,
       async () => {
-        replace(await api.adminUpdateGame(game.id, { name, sortOrder: edit.sortOrder }))
+        replace(await api.adminUpdateGame(game.id, { name, sortOrder: edit.sortOrder, launchUrl: launchUrl || null }))
         setEdits(({ [game.id]: _dropped, ...rest }) => rest)
       },
       'შენახულია.',
@@ -154,8 +156,8 @@ export default function AdminGames() {
       ) : (
         <div className="ag-list">
           {games.map((game) => {
-            const edit = edits[game.id] ?? { name: game.name, sortOrder: game.sortOrder }
-            const dirty = edit.name !== game.name || edit.sortOrder !== game.sortOrder
+            const edit = edits[game.id] ?? { name: game.name, sortOrder: game.sortOrder, launchUrl: game.launchUrl ?? '' }
+            const dirty = edit.name !== game.name || edit.sortOrder !== game.sortOrder || edit.launchUrl !== (game.launchUrl ?? '')
             return (
               <article key={game.id} className={`ag-card${game.isActive ? '' : ' hidden-game'}`}>
                 <header>
@@ -171,6 +173,11 @@ export default function AdminGames() {
                   </label>
                   <em className={`ag-status ${game.isActive ? 'on' : 'off'}`}>{game.isActive ? 'ჩანს' : 'დამალულია'}</em>
                 </header>
+                {/* Tournament game rooms show "Open <game>" with this link (owner 2026-10-28). */}
+                <label className="field ag-launch">
+                  თამაშის გახსნის ბმული <small>ტურნირის „თამაშის ოთახში“ ღილაკი — https://…</small>
+                  <input maxLength={500} placeholder="https://" value={edit.launchUrl} onChange={(e) => setEdits((all) => ({ ...all, [game.id]: { ...edit, launchUrl: e.target.value } }))} />
+                </label>
                 <div className="ag-art">
                   {ART.map(({ kind, label, hint }) => {
                     const art = currentArt(game, kind)

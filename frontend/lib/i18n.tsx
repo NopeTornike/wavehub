@@ -33,15 +33,53 @@ const ORIGINAL_ATTR_PREFIX = 'data-i18n-original-'
 // Entries whose key contains {0}, {1}… are patterns for text rendered from a template string
 // (e.g. `{0} აქტიური შეკვეთა`): the placeholders match the interpolated values and are carried
 // into the English value.
-const PATTERNS: Array<{ regex: RegExp; english: string; literal: number }> = Object.entries(DICTIONARY)
-  .filter(([key]) => /\{\d\}/.test(key))
-  .map(([key, english]) => ({
-    regex: new RegExp(`^${key.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\?\{(\d)\\?\}/g, '(?<p$1>[\\s\\S]+?)')}$`),
-    english,
-    literal: key.replace(/\{\d\}/g, '').length,
-  }))
-  // Most specific first, so a short generic pattern ("{0} დღე") can't shadow a longer one.
-  .sort((a, b) => b.literal - a.literal)
+function buildPatterns(): Array<{ regex: RegExp; english: string; literal: number }> {
+  return (
+    Object.entries(DICTIONARY)
+      .filter(([key]) => /\{\d\}/.test(key))
+      .map(([key, english]) => ({
+        regex: new RegExp(`^${key.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\?\{(\d)\\?\}/g, '(?<p$1>[\\s\\S]+?)')}$`),
+        english,
+        literal: key.replace(/\{\d\}/g, '').length,
+      }))
+      // Most specific first, so a short generic pattern ("{0} დღე") can't shadow a longer one.
+      .sort((a, b) => b.literal - a.literal)
+  )
+}
+let PATTERNS = buildPatterns()
+
+// Staff edits from Admin → Translations (backend/src/translations/, owner 2026-10-28), loaded once per
+// page load: `en` replaces a string's English, `ka` replaces the Georgian shown. The built-in
+// dictionary stays the fallback, so removing an edit restores the original.
+const BUILT_IN: Record<string, string> = { ...DICTIONARY }
+const KA_OVERRIDES: Record<string, string> = {}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+export const TRANSLATIONS_CHANGED = 'wavehub:translations'
+
+function applyOverrides(map: Record<string, { en?: string; ka?: string }>) {
+  for (const key of Object.keys(DICTIONARY)) if (!(key in BUILT_IN)) delete DICTIONARY[key]
+  Object.assign(DICTIONARY, BUILT_IN)
+  for (const key of Object.keys(KA_OVERRIDES)) delete KA_OVERRIDES[key]
+  for (const [key, value] of Object.entries(map)) {
+    if (value.en) DICTIONARY[key] = value.en
+    if (value.ka) KA_OVERRIDES[key] = value.ka
+  }
+  PATTERNS = buildPatterns()
+}
+
+export async function loadTranslationOverrides(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/translations`, { credentials: 'omit' })
+    if (!res.ok) return false
+    const map = (await res.json()) as Record<string, { en?: string; ka?: string }>
+    if (!map || typeof map !== 'object') return false
+    applyOverrides(map)
+    return true
+  } catch {
+    // Offline / API down: the built-in texts keep working.
+    return false
+  }
+}
 
 // Dates are formatted with the `ka-GE` locale, which renders Georgian month/day names.
 const GEORGIAN_DATE_WORDS: Array<[RegExp, string]> = [
@@ -168,6 +206,9 @@ function termCase(match: string): string {
 
 // The Georgian string with the glossary terms in English, or null when nothing changes.
 function glossaryTrimmed(trimmed: string): string | null {
+  // A staff edit of the Georgian text wins and is shown exactly as typed.
+  const edited = KA_OVERRIDES[trimmed]
+  if (edited) return edited === trimmed ? null : edited
   if (!GEORGIAN.test(trimmed)) return null
   const english = translateTrimmed(trimmed)
   if (!english) return null
@@ -261,6 +302,18 @@ function translateTitle(language: Language) {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('ka')
+  // Bumped when staff edits arrive, so the page is re-translated with them.
+  const [overridesVersion, setOverridesVersion] = useState(0)
+
+  useEffect(() => {
+    const load = () =>
+      void loadTranslationOverrides().then((changed) => {
+        if (changed) setOverridesVersion((v) => v + 1)
+      })
+    load()
+    window.addEventListener(TRANSLATIONS_CHANGED, load)
+    return () => window.removeEventListener(TRANSLATIONS_CHANGED, load)
+  }, [])
 
   useEffect(() => {
     try {
@@ -317,7 +370,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       observer.disconnect()
       titleObserver.disconnect()
     }
-  }, [language])
+  }, [language, overridesVersion])
 
   const value = useMemo(() => ({ language, setLanguage }), [language, setLanguage])
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
@@ -325,4 +378,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
 export function useLanguage() {
   return useContext(LanguageContext)
+}
+
+// The built-in Georgian → English pairs (Admin → Translations lists them for editing).
+export function builtInTranslations(): Record<string, string> {
+  return BUILT_IN
 }

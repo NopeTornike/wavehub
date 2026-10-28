@@ -1,6 +1,9 @@
+import { createHash } from 'crypto';
+import type { Request } from 'express';
 import { CREATE_THROTTLE, LISTING_PHOTO_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
 import {
+  Req,
   Body,
   Controller,
   Delete,
@@ -33,7 +36,13 @@ import { AdminGuard } from '../admin/admin-role.guard';
 import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
-import { AdminListingSearchDto, SetFeaturedDto } from './dto/admin-listings.dto';
+import { AdminListingSearchDto, SetFeaturedDto, SetVerifiedDto } from './dto/admin-listings.dto';
+
+
+// A short hash of the visitor's IP + user agent: enough to tell visitors apart for view counting.
+function viewerKey(req: Request): string {
+  return createHash('sha256').update(`${req.ip ?? ''}|${req.headers['user-agent'] ?? ''}`).digest('base64url').slice(0, 22);
+}
 
 @Controller()
 export class ListingsController {
@@ -76,6 +85,17 @@ export class ListingsController {
   @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
   adminSearch(@Query() query: AdminListingSearchDto) {
     return this.listings.adminSearch(query);
+  }
+
+  // The listing's VERIFIED badge (owner 2026-10-28): staff checked the account and its details.
+  @Post('admin/listings/:id/verified')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  async setVerified(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SetVerifiedDto) {
+    const result = await this.listings.setVerified(id, dto.verified);
+    await this.audit.log({ adminId, adminRole, action: dto.verified ? 'listing.verify' : 'listing.unverify', entityType: 'listing', entityId: id });
+    return result;
   }
 
   // Pick/unpick for the home page's "Featured Items" (shown via GET listings?featured=true).
@@ -272,8 +292,10 @@ export class ListingsController {
   }
 
   @Get('listings/:id')
-  findOne(@Param('id') id: string) {
-    return this.listings.findPublicById(id);
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    // The viewer key only dedupes badge view counts (one per visitor per listing per hour); it's a
+    // hash, never stored or logged.
+    return this.listings.findPublicById(id, viewerKey(req));
   }
 
   // --- Favourites --- (`me/favorites*` rather than `listings/favorites` so nothing can collide

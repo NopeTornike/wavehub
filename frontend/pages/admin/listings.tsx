@@ -89,6 +89,19 @@ function AllListings() {
     }
   }
 
+  const toggleVerified = async (item: AdminListingSummary) => {
+    setBusyId(item.id)
+    setError('')
+    try {
+      const res = await api.adminSetListingVerified(item.id, !item.verified)
+      setItems((prev) => (prev ?? []).map((row) => (row.id === item.id ? { ...row, verified: res.verified } : row)))
+    } catch (err) {
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   // Take down (→ rejected with a reason the seller sees), restore, delete (Super Admin; refused
   // with 409 when the listing has orders — take it down instead).
   const moderate = async (item: AdminListingSummary, action: 'take-down' | 'restore' | 'delete') => {
@@ -157,9 +170,14 @@ function AllListings() {
                 </a>
                 {canEdit && <EditLink id={item.id} />}
                 {item.status === ListingStatus.Active && (
+                  <>
+                  <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.verified)} onClick={() => void toggleVerified(item)} title="VERIFIED ბეიჯი: აქაუნთის საკუთრება და მონაცემები შემოწმებულია">
+                    {item.verified ? 'VERIFIED ✓ — მოხსნა' : 'VERIFIED-ად მონიშვნა'}
+                  </button>
                   <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.isFeatured)} onClick={() => void toggle(item)}>
                     {item.isFeatured ? 'რჩეულიდან ამოღება' : 'რჩეულად მონიშვნა'}
                   </button>
+                  </>
                 )}
                 {[ListingStatus.Active, ListingStatus.Paused].includes(item.status) && (
                   <button type="button" className="button ghost" disabled={busyId === item.id} onClick={() => void moderate(item, 'take-down')}>

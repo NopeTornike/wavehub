@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import type { MatchTeamStats, PublicTournamentMatch, PublicTournamentSummary, PublicTournamentTeam } from '@wavehub/shared-types'
+import type { AdminTournamentMatch, MatchRoomSide, MatchTeamStats, PublicTournamentMatch, PublicTournamentSummary, PublicTournamentTeam } from '@wavehub/shared-types'
 import { TournamentMatchStage, TournamentMatchStatus, TournamentTeamStatus } from '@wavehub/shared-types'
 import { api, errorMessage, type TournamentMatchInput } from '../../lib/api'
 import { MATCH_STATUS_LABEL, STAGE_LABEL } from '../../lib/tournaments'
@@ -172,9 +172,80 @@ function PlayerChips({ team, onPick }: { team: PublicTournamentTeam | undefined;
   )
 }
 
+// Each team's game room for one match (owner 2026-10-28): open / locked, and that team's details —
+// Room ID / password / slot for a lobby game (PUBG), or a server link for CS2 (steam://connect/…).
+// Only that team's players see them, on their tournament dashboard; locked shows "დაბლოკილია".
+const EMPTY_SIDE: MatchRoomSide = { open: false, roomId: null, password: null, slot: null, serverUrl: null }
+
+function RoomEditor({ match, tournamentId, onSaved }: { match: AdminTournamentMatch; tournamentId: string; onSaved: (m: AdminTournamentMatch) => void }) {
+  const [sides, setSides] = useState({ a: { ...EMPTY_SIDE, ...(match.room.a ?? {}) }, b: { ...EMPTY_SIDE, ...(match.room.b ?? {}) } })
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const set = (side: 'a' | 'b', patch: Partial<MatchRoomSide>) => setSides((s) => ({ ...s, [side]: { ...s[side], ...patch } }))
+  const save = async (event: FormEvent) => {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      const clean = (x: MatchRoomSide): MatchRoomSide => ({ open: x.open, roomId: x.roomId?.trim() || null, password: x.password?.trim() || null, slot: x.slot?.trim() || null, serverUrl: x.serverUrl?.trim() || null })
+      onSaved(await api.adminSetMatchRoom(tournamentId, match.id, { a: clean(sides.a), b: clean(sides.b) }))
+    } catch (err) {
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <form className="stack-form to-room" onSubmit={save}>
+      <p className="note">თითო გუნდს ცალკე: ჩართეთ „ხელმისაწვდომია“ და შეავსეთ მონაცემები. PUBG — Room ID, პაროლი, ადგილი; CS2 — სერვერის ბმული (steam://connect/…). ცარიელი ან გამორთული = „დაბლოკილია“.</p>
+      <div className="stack-form-grid">
+        {(['a', 'b'] as const).map((side) => {
+          const team = side === 'a' ? match.teamA : match.teamB
+          const v = sides[side]
+          return (
+            <fieldset key={side} className="to-room-side" disabled={!team}>
+              <legend>{team ? `გუნდი ${side.toUpperCase()} — ${team.name}` : `გუნდი ${side.toUpperCase()} — TBD`}</legend>
+              <label className="to-room-open">
+                <input type="checkbox" checked={v.open} onChange={(e) => set(side, { open: e.target.checked })} /> ხელმისაწვდომია
+              </label>
+              <label className="field">
+                Room ID
+                <input maxLength={40} value={v.roomId ?? ''} onChange={(e) => set(side, { roomId: e.target.value })} />
+              </label>
+              <label className="field">
+                პაროლი
+                <input maxLength={40} value={v.password ?? ''} onChange={(e) => set(side, { password: e.target.value })} />
+              </label>
+              <label className="field">
+                ადგილი (მაგ. #4)
+                <input maxLength={20} value={v.slot ?? ''} onChange={(e) => set(side, { slot: e.target.value })} />
+              </label>
+              <label className="field">
+                სერვერის ბმული (CS2)
+                <input maxLength={300} placeholder="steam://connect/123.45.67.89:27015" value={v.serverUrl ?? ''} onChange={(e) => set(side, { serverUrl: e.target.value })} />
+              </label>
+            </fieldset>
+          )
+        })}
+      </div>
+      {error && (
+        <p className="status-text status-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="admin-row-actions">
+        <button type="submit" className="button" disabled={busy}>
+          {busy ? 'ინახება…' : 'ოთახის შენახვა'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
 export default function TournamentOps({ tournament, onChanged }: { tournament: PublicTournamentSummary; onChanged: () => void }) {
   const [teams, setTeams] = useState<PublicTournamentTeam[]>([])
-  const [matches, setMatches] = useState<PublicTournamentMatch[]>([])
+  const [matches, setMatches] = useState<AdminTournamentMatch[]>([])
+  const [roomFor, setRoomFor] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState<string | 'new' | null>(null)
@@ -336,10 +407,23 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
               >
                 რედაქტირება
               </button>
+              <button type="button" className="button" onClick={() => setRoomFor((id) => (id === m.id ? null : m.id))}>
+                {`თამაშის ოთახი${m.room.a?.open || m.room.b?.open ? ' · ღიაა' : ''}`}
+              </button>
               <button type="button" className="button" disabled={busy} onClick={() => void deleteMatch(m)}>
                 წაშლა
               </button>
             </div>
+            {roomFor === m.id && (
+              <RoomEditor
+                match={m}
+                onSaved={(next) => {
+                  setMatches((list) => list.map((x) => (x.id === next.id ? next : x)))
+                  setRoomFor(null)
+                }}
+                tournamentId={tournament.id}
+              />
+            )}
           </div>
         ),
       )}

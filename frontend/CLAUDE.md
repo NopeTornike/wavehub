@@ -1289,3 +1289,38 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
     active coaches). The hero shows the label in pink caps, and a chip with the coach's real photo,
     name and game that links to `/coaching/[id]`. An upload hint recommends landscape video.
 
+## 2026-10-28 Owner round 5 (27 screenshots + the game-room / badges / translations specs)
+- **Tournament dashboard game room**: `components/GameRoomCard.tsx` under "Upcoming match" on
+  `/tournaments/hub`.
+  - It shows the room and a "PUBG MOBILE-ის გახსნა" button, or a CS2 server link with
+    "სერვერზე გადასვლა".
+  - Admin → Tournaments → match → "თამაშის ოთახი" edits each team's room. Admin → Games has the
+    launch-link field.
+  - Backend: `backend/src/tournaments/CLAUDE.md`.
+- **Listing badges**: `components/ListingBadges.tsx` (`lb-` CSS, the owner's colours). Labels are
+  English in both languages, and the hover title gives the rule in Georgian. Admin → Listings has a
+  VERIFIED toggle. Rules: `backend/src/listings/CLAUDE.md`.
+- **Admin → Translations** (`pages/admin/translations.tsx`) plus override loading in
+  `lib/i18n.tsx`: see `backend/src/translations/CLAUDE.md`.
+- **Visual fixes**:
+  - **Listing page**:
+    - long unbroken words no longer widen the column (`.detail-main` zero-minimum track +
+      `overflow-wrap`);
+    - the bottom seller strip is removed, since it duplicated the buy panel's seller card;
+    - "WaveHubX-ის დაცვა".
+  - **Cart**: the checkout label is white, the disabled button is a readable grey, and the secure
+    note wraps.
+  - **Marketplace**: the type chips wrap on phones, and "How Escrow works" is a numbered vertical
+    list below 620px.
+  - **Hub "Upcoming match" on phones**: team · VS · team in one row, and the three facts in one row.
+  - **Match details on phones**: both teams have the logo above the name, centred.
+  - **Public profile**: one "მიწერა" button (staff saw two).
+  - **Profile record cards on phones**: a 64px photo beside the text. Session cards show the other
+    person's photo and use `kaDateTime`.
+  - **Tournament cards**: the format text is clamped to two lines, and cards in a row share one
+    height.
+  - **Phone top bar**: every control is 40px and centred, "Sign In" is not squeezed, and signed-out
+    visitors no longer see "0 GEL" or a "?" avatar (`GuestIcon`).
+  - **Home banner photo on phones**: the frame takes the photo's shape (no crop).
+  - **Footer**: the language control is the top bar's EN / ქა pill.
+

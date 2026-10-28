@@ -76,6 +76,21 @@ export class Listing {
   @Column({ type: 'integer', nullable: true })
   priceWaveCoin: number | null;
 
+  // Badges (migration 1784390000000, listing-badges.service.ts): the price before a cut of 10%+ and
+  // when it happened (PRICE DROP), the last real content edit (JUST UPDATED), and the staff account
+  // check (VERIFIED).
+  @Column({ type: 'integer', nullable: true })
+  previousPriceWaveCoin: number | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  priceDroppedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  contentUpdatedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  verifiedAt: Date | null;
+
   @Column({ type: 'integer', nullable: true })
   stockQuantity: number | null;
 

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { MyTournamentEntry, PublicTournamentMatch, TournamentTeamRef } from '@wavehub/shared-types'
 import { TournamentMatchStage, TournamentMatchStatus, TournamentStatus, TournamentTeamStatus } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
+import GameRoomCard from '../../components/GameRoomCard'
+import { kaDate, kaTime } from '../../lib/dates'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { useShell } from '../../lib/shell'
@@ -299,11 +301,11 @@ export default function TournamentHub() {
                   <p className="wt-next-meta">
                     <span>
                       <TIcon name="calendar" />
-                      {next.scheduledAt ? new Date(next.scheduledAt).toLocaleDateString('ka-GE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                      {next.scheduledAt ? kaDate(next.scheduledAt) : '—'}
                     </span>
                     <span>
                       <TIcon name="clock" />
-                      {next.scheduledAt ? new Date(next.scheduledAt).toLocaleTimeString('ka-GE', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                      {next.scheduledAt ? kaTime(next.scheduledAt) : '—'}
                     </span>
                     <span>
                       <TIcon name="pin" />
@@ -340,6 +342,9 @@ export default function TournamentHub() {
                 <p className="rules-pending">დაგეგმილი მატჩი ჯერ არ არის — განრიგს ტურნირის ადმინისტრაცია გამოაქვეყნებს.</p>
               )}
             </section>
+
+            {/* The match's game room for its players (owner 2026-10-28). */}
+            {next && <GameRoomCard key={next.id} matchId={next.id} />}
 
             <section className="wt-panel wt-bracket" id="bracket">
               <header className="wt-panel-head">

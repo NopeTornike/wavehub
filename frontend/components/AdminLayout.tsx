@@ -78,6 +78,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
       { href: '/admin/tournaments', label: 'ტურნირები', icon: 'trophy' },
       { href: '/admin/content', label: 'გვერდები', icon: 'doc' },
       { href: '/admin/banners', label: 'ბანერები', icon: 'image' },
+      { href: '/admin/translations', label: 'თარგმანები', icon: 'doc' },
     ],
   },
   {
