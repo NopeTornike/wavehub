@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsOptional, IsString, Length, Matches, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 // Admin game catalogue (games.service.ts). The slug is set once: lowercase words joined by '-'.
 export const GAME_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -35,4 +35,12 @@ export class UpdateGameDto {
   @Min(0)
   @Max(999)
   sortOrder?: number;
+
+  // "Open <game>" link for tournament players: https only; null / '' clears it.
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== '')
+  @IsString()
+  @MaxLength(500)
+  @Matches(/^https:\/\/[^\s<>"']+$/, { message: 'Launch link: an https:// address' })
+  launchUrl?: string | null;
 }

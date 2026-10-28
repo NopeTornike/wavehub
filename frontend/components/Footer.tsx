@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { useLanguage, type Language } from '../lib/i18n'
+import LanguageSwitcher from './LanguageSwitcher'
 
 // site-footer.js's footer, markup-for-markup. Policy links point at the admin-editable CMS pages
 // (backend/src/content/ — /pages/[slug]), including the payment and wallet policies (the prototype
@@ -14,7 +14,6 @@ const Svg = ({ children }: { children: React.ReactNode }) => (
 )
 
 export default function Footer() {
-  const { language, setLanguage } = useLanguage()
   return (
     <footer className="site-footer" aria-label="WaveHubX footer">
       <div className="site-footer-main">
@@ -102,13 +101,10 @@ export default function Footer() {
             </Svg>
           </a>
         </div>
-        <label className="site-footer-language">
-          <Svg><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></Svg>
-          <select data-language-select="" aria-label="ენა" value={language} onChange={(event) => setLanguage(event.target.value as Language)}>
-            <option value="en">EN</option>
-            <option value="ka">ქა</option>
-          </select>
-        </label>
+        {/* The top bar's EN / ქა pill (owner 2026-10-28: the native dropdown looked out of place). */}
+        <div className="site-footer-language-pill">
+          <LanguageSwitcher />
+        </div>
       </div>
     </footer>
   )

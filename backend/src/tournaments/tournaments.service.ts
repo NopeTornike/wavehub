@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { AdminRole, NotificationType, TournamentMatchStage, TournamentMatchStatus, TournamentStatus, TournamentTeamStatus, UserStatus } from '@wavehub/shared-types';
 import type {
+  AdminTournamentMatch,
+  MatchRoomSide,
+  MatchRoomView,
   MatchTeamStats,
   MyTournamentEntry,
   PublicTournamentMatch,
@@ -22,7 +25,7 @@ import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { BrowseTournamentsDto } from './dto/browse-tournaments.dto';
 import { RegisterSoloDto, RegisterTeamDto } from './dto/register-team.dto';
-import { MatchDto, MatchTeamStatsDto } from './dto/match.dto';
+import { MatchDto, MatchRoomDto, MatchRoomSideDto, MatchTeamStatsDto } from './dto/match.dto';
 import { StorageService } from '../storage/storage.service';
 import { User } from '../users/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -654,6 +657,63 @@ export class TournamentsService {
   }
 
   // Every match any of the caller's teams plays or played (newest first).
+  // --- Game room (owner 2026-10-28) ---
+
+  private static roomSide(dto: MatchRoomSideDto): MatchRoomSide {
+    const clean = (v: string | null | undefined) => (v ?? '').trim() || null;
+    return { open: dto.open, roomId: clean(dto.roomId), password: clean(dto.password), slot: clean(dto.slot), serverUrl: clean(dto.serverUrl) };
+  }
+
+  // Staff list: the public matches plus each side's room details.
+  async adminListMatches(tournamentId: string): Promise<AdminTournamentMatch[]> {
+    await this.getOrThrow(tournamentId);
+    const rows = await this.matchQuery()
+      .where('m.tournamentId = :tournamentId', { tournamentId })
+      .orderBy('m.scheduledAt', 'DESC', 'NULLS LAST')
+      .addOrderBy('m.createdAt', 'DESC')
+      .getMany();
+    const pub = await this.withPlayerAccounts(rows);
+    return pub.map((m, i) => ({ ...m, room: { a: rows[i].room?.a ?? null, b: rows[i].room?.b ?? null } }));
+  }
+
+  async adminSetRoom(tournamentId: string, matchId: string, dto: MatchRoomDto): Promise<AdminTournamentMatch> {
+    const match = await this.matches.findOne({ where: { id: matchId, tournamentId } });
+    if (!match) throw new NotFoundException('Match not found');
+    match.room = {
+      a: dto.a !== undefined ? TournamentsService.roomSide(dto.a) : (match.room?.a ?? null),
+      b: dto.b !== undefined ? TournamentsService.roomSide(dto.b) : (match.room?.b ?? null),
+    };
+    await this.matches.save(match);
+    const all = await this.adminListMatches(tournamentId);
+    return all.find((m) => m.id === matchId)!;
+  }
+
+  // A player's own room card. Only a member of one of the match's teams, while that team is verified
+  // and the tournament is published, gets an answer; details only when staff opened that side.
+  async myMatchRoom(userId: string, matchId: string): Promise<MatchRoomView> {
+    const match = await this.matches.findOne({ where: { id: matchId }, relations: { tournament: { game: true }, teamA: true, teamB: true } });
+    if (!match || match.tournament.status === TournamentStatus.Draft) throw new NotFoundException('Match not found');
+    const teamIds = [match.teamAId, match.teamBId].filter((x): x is string => !!x);
+    const membership = teamIds.length
+      ? await this.members.findOne({ where: { userId, teamId: In(teamIds) } })
+      : null;
+    const side: 'a' | 'b' | null = membership ? (membership.teamId === match.teamAId ? 'a' : 'b') : null;
+    const team = side === 'a' ? match.teamA : side === 'b' ? match.teamB : null;
+    // Not on either team, or the team was rejected / removed: no access at all.
+    if (!side || !team || team.status !== TournamentTeamStatus.Verified) throw new ForbiddenException('You are not a player in this match');
+    const info = match.room?.[side] ?? null;
+    const hasDetails = !!info && !!(info.roomId || info.password || info.slot || info.serverUrl);
+    const open = !!info?.open && hasDetails;
+    return {
+      matchId: match.id,
+      status: open ? 'available' : 'locked',
+      side,
+      room: open && info ? { roomId: info.roomId, password: info.password, slot: info.slot, serverUrl: info.serverUrl } : null,
+      gameName: match.tournament.game?.name ?? '',
+      launchUrl: match.tournament.game?.launchUrl ?? null,
+    };
+  }
+
   async myMatches(userId: string): Promise<PublicTournamentMatch[]> {
     const captained = await this.teams.find({ where: { captainUserId: userId }, select: { id: true } });
     const playing = await this.members.find({ where: { userId }, select: { teamId: true } });

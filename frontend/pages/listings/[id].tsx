@@ -741,26 +741,13 @@ export default function ListingDetail() {
               {status.text}
             </p>
             <div className="detail-protection">
-              <strong>WaveHub-ის დაცვა</strong>
+              <strong>WaveHubX-ის დაცვა</strong>
               <span>შეკვეთა დაცულია: თანხა გამყიდველს მხოლოდ თქვენი დადასტურების შემდეგ ერიცხება.</span>
             </div>
           </aside>
 
-          <section className="detail-seller-strip" id="detailSellerStrip">
-            <span className="detail-seller-avatar" id="detailSellerAvatar">
-              {initials(listing.seller.firstName, listing.seller.lastName)}
-            </span>
-            <div>
-              <strong id="detailSellerStripName">{sellerName}</strong>
-              <small id="detailSellerStripMeta">
-                {listing.sellerCompletedOrders} completed orders ·{' '}
-                {listing.seller.sellerRatingCount > 0 ? `★ ${Number(listing.seller.sellerRatingAvg).toFixed(1)} (${listing.seller.sellerRatingCount} შეფასება)` : 'შეფასებები ჯერ არ არის'}
-              </small>
-            </div>
-            <Link id="detailSellerProfileButton" href={`/u/${listing.seller.username}`}>
-              View Seller Profile →
-            </Link>
-          </section>
+          {/* The bottom seller strip was removed (owner screenshot 15): the buy panel's seller card already
+              shows the seller, their orders and rating. */}
         </article>
       </section>
     </Layout>

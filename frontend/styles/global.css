@@ -22532,3 +22532,96 @@ a.team-view { display: inline-flex; align-items: center; justify-content: center
    it, so a hidden button meant nobody could find "stop". */
 .banner-video-play.is-playing { opacity: .55 !important; }
 .hero-banner:hover .banner-video-play.is-playing, .banner-video-play.is-playing:focus-visible { opacity: .95 !important; }
+
+/* Round 5 (owner screenshots 2026-10-24..27). */
+/* A long unbroken word in a listing's title / description (sellers type them) stretched the listing
+   column to 700px+ on phones, pushing the Escrow box and the description off the screen. The column
+   may now shrink below its content, and any overflowing word wraps. */
+.detail-main, .detail-layout > * { min-width: 0; }
+.detail-main { grid-template-columns: minmax(0, 1fr); }
+main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word; }
+.detail-page :is(h1, p, li, dd, span, small, strong), .pc-card :is(h3, strong, p), .up-tagline, .direct-message-bubble p, .chat-thread p { overflow-wrap: anywhere; }
+/* Cart (owner screenshot 14): the checkout button's label was pink on pink and, when there is nothing
+   to pay, the faded button looked broken; the "secure payment" note was cut off on narrow phones. */
+.cart-checkout-button, .cart-checkout-button span { color: #fff !important; text-shadow: 0 1px 6px rgba(0, 0, 0, .35); }
+.cart-checkout-button:disabled { opacity: 1 !important; background: rgba(255, 255, 255, .08) !important; border: 1px solid rgba(255, 255, 255, .16) !important; box-shadow: none !important; cursor: not-allowed; }
+.cart-checkout-button:disabled, .cart-checkout-button:disabled span { color: rgba(255, 255, 255, .62) !important; text-shadow: none; }
+.cart-secure-note p, .cart-secure-note small, .cart-secure-note strong { min-width: 0; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere; }
+.cart-secure-note { align-items: flex-start; }
+/* Marketplace type chips (owner screenshots 11 / 17): the row was cut off at the right edge on phones.
+   They wrap onto a second line instead of scrolling out of sight. */
+@media (max-width: 620px) {
+  .marketplace-kinds { flex-wrap: wrap; overflow: visible; }
+  .marketplace-kinds button { flex: 1 1 auto; min-width: 0; padding: 0 12px; }
+}
+/* "How Escrow works" (owner screenshot 02): five 10px columns were unreadable on phones. Below 620px
+   it is a numbered vertical list — number, icon, text in one row each. */
+@media (max-width: 620px) {
+  .ex-box .ex-steps { grid-template-columns: minmax(0, 1fr) !important; gap: 8px; padding-top: 4px; }
+  .ex-box .ex-steps li { grid-template-columns: auto auto minmax(0, 1fr); justify-items: start; align-items: center; gap: 12px; padding: 10px 12px !important; font-size: 13.5px !important; text-align: left; overflow-wrap: break-word; }
+  .ex-box .ex-steps li:not(:last-child)::after { content: none; }
+  .ex-box .ex-steps b { position: static; width: 26px; height: 26px; font-size: 12px; }
+}
+/* Hub "Upcoming match" on phones (owner screenshots 18 / target 1): team · VS · team stay in ONE row
+   (logo + name on each side), the three facts in one row of equal boxes — instead of everything stacked. */
+@media (max-width: 600px) {
+  .wt-next-vs { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important; justify-items: stretch !important; gap: 8px !important; }
+  .wt-next-team { gap: 8px !important; justify-content: flex-start !important; text-align: left !important; flex-direction: row !important; }
+  .wt-next-team.right { justify-content: flex-end !important; text-align: right !important; }
+  .wt-next-team .wt-mark, .wt-next-team .lg { width: 46px !important; height: 46px !important; flex: 0 0 auto; font-size: 13px !important; }
+  .wt-next-team strong { font-size: 12.5px !important; line-height: 1.2; text-transform: uppercase; overflow-wrap: anywhere; }
+  .wt-next-team > span { min-width: 0; }
+  .wt-next-mid strong { font-size: 22px !important; }
+  .wt-next-mid small { font-size: 10.5px !important; }
+  .wt-next-meta { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px !important; }
+  .wt-next-meta span { justify-content: center; padding: 8px 4px !important; font-size: 12px !important; gap: 5px !important; min-width: 0; }
+  .wt-next-meta svg { width: 14px; height: 14px; flex: 0 0 auto; }
+}
+/* Match details on phones (owner screenshot 20): both teams the same way round — logo on top, name
+   under it, centred in two equal columns (team B had its name above its logo). */
+@media (max-width: 900px) {
+  .wt-scoreboard .wt-score-team, .wt-scoreboard .wt-score-team.side-b { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: flex-start !important; gap: 10px !important; text-align: center !important; }
+  .wt-scoreboard .wt-score-team > .wt-team-mark { order: 1 !important; }
+  .wt-scoreboard .wt-score-team > span { order: 2 !important; min-width: 0; max-width: 100%; }
+  .wt-scoreboard .wt-score-team strong { font-size: clamp(15px, 4.4vw, 22px) !important; line-height: 1.2; overflow-wrap: anywhere; }
+}
+/* Profile record cards (sessions / purchases) on phones (owner screenshot 8): a 64px photo beside the
+   text instead of a 240px empty box above it. Sessions now show the other person's photo. */
+@media (max-width: 620px) {
+  .profile-record-card { display: grid !important; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px !important; }
+  .profile-record-card .profile-record-thumb { width: 64px !important; height: 64px !important; min-height: 0 !important; aspect-ratio: 1 / 1; border-radius: 12px; font-size: 16px; background-size: cover; background-position: center; }
+  .profile-record-card .profile-record-copy { min-width: 0; gap: 3px; }
+  .profile-record-card .profile-record-copy strong { font-size: 14.5px; overflow-wrap: anywhere; }
+  .profile-record-card .profile-record-actions { grid-column: 1 / -1; }
+}
+/* Tournament list cards (owner screenshot 13): a long staff-typed format no longer makes one card much
+   taller than its neighbour — two lines, then "…"; cards in a row share one height. */
+.wt-card-format { min-width: 0; max-width: 100%; align-items: flex-start !important; }
+.wt-card-format em { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-style: normal; overflow-wrap: anywhere; }
+.wt-card-format svg { flex: 0 0 auto; margin-top: 2px; }
+.wt-card-lg { align-items: stretch; height: 100%; }
+.wt-card-lg .wt-card-body { display: flex; flex-direction: column; }
+.wt-card-lg .wt-card-button { margin-top: auto; }
+/* Phone top bar (owner screenshots 06 / 07 / 21): every control is the same 40px height and lined up
+   on one centre line — menu, search, language, bell, Sign In / avatar. "Sign In" keeps its full
+   label (it was squeezed into 47px and wrapped). */
+@media (max-width: 620px) {
+  .topbar .menu-toggle { width: 40px !important; height: 40px !important; min-height: 40px; padding: 0 !important; display: grid !important; place-items: center; align-self: center; }
+  .topbar .search-box { width: 40px !important; height: 40px !important; min-height: 40px; align-self: center; }
+  .mobile-header-auth { display: flex !important; align-items: center; gap: 8px; }
+  .mobile-header-auth .mobile-sign-in { height: 40px; min-height: 40px; width: auto !important; padding: 0 14px !important; white-space: nowrap; font-size: 13px; font-weight: 700; }
+  .mobile-header-auth .mobile-user-profile, .mobile-header-auth .mobile-user-profile .avatar { width: 40px !important; height: 40px !important; }
+  .topbar .language-switcher { height: 40px; align-self: center; }
+  .topbar .icon-button, .topbar #notificationButton { width: 40px; height: 40px; min-height: 40px; align-self: center; }
+  .avatar svg { width: 55%; height: 55%; }
+}
+/* Home banner photo on phones (owner screenshots 12 / 16: "the photo is cut off"): the frame takes the
+   photo's own shape, so the whole picture shows (it was cropped to a taller 1.64:1 box). */
+@media (max-width: 760px) {
+  .home-marketplace-cover.hero-banner:not(.is-video) { aspect-ratio: auto !important; height: auto !important; }
+  .home-marketplace-cover.hero-banner:not(.is-video) > img { width: 100%; height: auto !important; aspect-ratio: auto; object-fit: contain !important; }
+  .home-marketplace-cover:not(.hero-banner) > img { object-fit: contain !important; height: auto !important; }
+  .home-marketplace-cover:not(.hero-banner) { aspect-ratio: auto !important; }
+}
+.site-footer-language-pill { display: flex; justify-content: center; margin-top: 14px; }
+.site-footer-language-pill .language-switcher { height: 40px; }

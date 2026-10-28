@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { kaDateTime } from '../lib/dates'
 import { useEffect, useState, type FormEvent } from 'react'
 import { PROFILE_TITLE_LABELS, ProfileTitle, type MyProfile, type PublicCoachingSession, type PublicOrderSummary } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
@@ -386,10 +387,11 @@ export default function Profile() {
                   <RecordCard
                     key={session.id}
                     href={`/coaching-sessions/${session.id}`}
-                    fallback="CS"
+                    image={asCoach ? session.buyerAvatarUrl : session.coachAvatarUrl}
+                    fallback={(asCoach ? session.buyerFirstName || session.buyerUsername : session.coachFirstName || session.coachUsername).slice(0, 2).toUpperCase()}
                     title={asCoach ? `სესია — ${[session.buyerFirstName, session.buyerLastName].filter(Boolean).join(' ') || session.buyerUsername}` : `სესია — ${session.coachFirstName} ${session.coachLastName}`}
                     meta={`${asCoach ? 'ქოუჩი' : 'მყიდველი'} / ${SESSION_STATUS_LABELS[session.status]}`}
-                    footer={`${new Date(session.scheduledAt).toLocaleString('ka-GE', { dateStyle: 'medium', timeStyle: 'short' })} / ${session.durationMinutes} წთ / ${session.priceWaveCoin} GEL`}
+                    footer={`${kaDateTime(session.scheduledAt)} / ${session.durationMinutes} წთ / ${session.priceWaveCoin} GEL`}
                   />
                 )
               })}

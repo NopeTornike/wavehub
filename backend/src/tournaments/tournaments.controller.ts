@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { VerifiedEmailGuard } from '../auth/verified-email.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -17,7 +17,7 @@ import { CREATE_THROTTLE, LOOKUP_THROTTLE, UPLOAD_THROTTLE } from '../common/thr
 import { RegisterSoloDto, RegisterTeamDto } from './dto/register-team.dto';
 import { PlayerLookupDto } from './dto/player-lookup.dto';
 import { TeamStatusDto } from './dto/team-status.dto';
-import { MatchDto } from './dto/match.dto';
+import { MatchDto, MatchRoomDto } from './dto/match.dto';
 
 // Same trio as backend/src/coaching/coaches.controller.ts's COACH_MANAGEMENT_ROLES — tournaments
 // aren't in SPECIFICATION.md at all (genuinely new scope, see LAUNCH_PLAN.md §2b), so there's no
@@ -119,6 +119,13 @@ export class TournamentsController {
     return this.tournaments.myMatches(userId);
   }
 
+  // The caller's game-room card for one of their matches (players of a verified team only).
+  @Get('me/tournament-matches/:matchId/room')
+  @UseGuards(AuthGuard)
+  myMatchRoom(@CurrentUserId() userId: string, @Param('matchId', ParseUUIDPipe) matchId: string) {
+    return this.tournaments.myMatchRoom(userId, matchId);
+  }
+
   // Staff list: every tournament including drafts (the public GET tournaments hides drafts).
   @Get('admin/tournaments')
   @UseGuards(AuthGuard, AdminGuard)
@@ -131,7 +138,7 @@ export class TournamentsController {
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
   adminListMatches(@Param('id') id: string) {
-    return this.tournaments.listMatches(id, true);
+    return this.tournaments.adminListMatches(id);
   }
 
   @Post('admin/tournaments')
@@ -218,6 +225,30 @@ export class TournamentsController {
   ) {
     const match = await this.tournaments.adminUpdateMatch(id, matchId, dto);
     await this.audit.log({ adminId, adminRole, action: 'tournament.match_update', entityType: 'tournament_match', entityId: matchId, metadata: { tournamentId: id } });
+    return match;
+  }
+
+  // Open / lock each team's game room and type its details. Audited without the secrets themselves.
+  @Post('admin/tournaments/:id/matches/:matchId/room')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async setRoom(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('matchId', ParseUUIDPipe) matchId: string,
+    @Body() dto: MatchRoomDto,
+  ) {
+    const match = await this.tournaments.adminSetRoom(id, matchId, dto);
+    await this.audit.log({
+      adminId,
+      adminRole,
+      action: 'tournament.match_room',
+      entityType: 'tournament_match',
+      entityId: matchId,
+      metadata: { tournamentId: id, aOpen: match.room.a?.open ?? false, bOpen: match.room.b?.open ?? false },
+    });
     return match;
   }
 

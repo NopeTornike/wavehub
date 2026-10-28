@@ -35,6 +35,7 @@ export class GamesService {
       isActive: g.isActive,
       sortOrder: g.sortOrder,
       listingCount: g.listingCount,
+      launchUrl: g.launchUrl ?? null,
     }));
   }
 
@@ -54,6 +55,7 @@ export class GamesService {
     }
     if (dto.isActive !== undefined) game.isActive = dto.isActive;
     if (dto.sortOrder !== undefined) game.sortOrder = dto.sortOrder;
+    if (dto.launchUrl !== undefined) game.launchUrl = dto.launchUrl?.trim() || null;
     return this.games.save(game);
   }
 

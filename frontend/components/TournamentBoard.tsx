@@ -17,9 +17,11 @@ function Meta({ t }: { t: PublicTournamentSummary }) {
   return (
     <>
       <p className="wt-card-meta">
-        <span>
+        {/* Staff can type a long format ("Battle Royale | Squad TPP | 25 Teams × 4 …", owner
+            screenshot 13): the card shows two lines, the full text is on the tournament page. */}
+        <span className="wt-card-format" title={tournamentFormat(t)}>
           <TIcon name="users" />
-          {tournamentFormat(t)}
+          <em>{tournamentFormat(t)}</em>
         </span>
         <i aria-hidden="true"></i>
         <span>

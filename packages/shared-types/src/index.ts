@@ -300,6 +300,8 @@ export interface AdminGame {
   isActive: boolean;
   sortOrder: number;
   listingCount: number;
+  // "Open <game>" link shown to tournament players (https only).
+  launchUrl: string | null;
 }
 
 export type GameImageKind = 'icon' | 'cover' | 'tile';
@@ -1517,6 +1519,27 @@ export interface MatchPlayerStat {
   mvp: boolean;
 }
 
+// One team's game-room details for a match (owner 2026-10-28). Staff open it per team; PUBG-style
+// lobbies use roomId / password / slot, CS2-style servers use serverUrl (steam://connect/… or https).
+export interface MatchRoomSide {
+  open: boolean;
+  roomId: string | null;
+  password: string | null;
+  slot: string | null;
+  serverUrl: string | null;
+}
+
+// GET me/tournament-matches/:id/room — only for a player on one of the match's (verified) teams.
+// `locked` carries no details at all.
+export interface MatchRoomView {
+  matchId: string;
+  status: 'available' | 'locked';
+  side: 'a' | 'b';
+  room: Omit<MatchRoomSide, 'open'> | null;
+  gameName: string;
+  launchUrl: string | null;
+}
+
 export interface MatchTeamStats {
   coach: string | null;
   players: MatchPlayerStat[];
@@ -1538,6 +1561,11 @@ export interface PublicTournamentMatch {
   scoreA: number | null;
   scoreB: number | null;
   stats: { a: MatchTeamStats | null; b: MatchTeamStats | null };
+}
+
+// GET admin/tournaments/:id/matches — the public match plus the game-room details staff entered.
+export interface AdminTournamentMatch extends PublicTournamentMatch {
+  room: { a: MatchRoomSide | null; b: MatchRoomSide | null };
 }
 
 // GET /me/tournaments — one row per tournament the caller registered a team for.

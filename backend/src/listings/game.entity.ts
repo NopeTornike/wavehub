@@ -24,6 +24,10 @@ export class Game {
   @Column({ type: 'varchar', length: 500, nullable: true })
   tileUrl: string | null;
 
+  // "Open <game>" link for tournament players (Admin → Games; migration 1784389000000).
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  launchUrl: string | null;
+
   @Column({ default: true })
   isActive: boolean;
 

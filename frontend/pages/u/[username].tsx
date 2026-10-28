@@ -200,30 +200,26 @@ export default function PublicProfile() {
                 </Link>
               ) : (
                 <>
-                  <button type="button" className="up-btn primary" onClick={() => void message()}>
+                  {/* One message button (owner screenshot 19 showed two for staff): staff can open a chat
+                      with anyone (owner 2026-10-07), everyone else goes through the usual rules. */}
+                  <button
+                    type="button"
+                    className="up-btn primary"
+                    onClick={async () => {
+                      if (!me?.adminRole) return void message()
+                      try {
+                        const conversation = await api.startDirectConversation(p.userId)
+                        void router.push(`/messages?conversation=${conversation.id}`)
+                      } catch {
+                        void router.push('/messages')
+                      }
+                    }}
+                  >
                     მიწერა
                   </button>
                   <button type="button" className={`up-btn${following ? ' on' : ''}`} aria-pressed={following} onClick={() => void toggleFollow()}>
                     {following ? 'გამოწერილია ✓' : '+ გამოწერა'}
                   </button>
-                  {me?.adminRole && (
-                    // Staff can open a chat with anyone (owner 2026-10-07).
-                    <button
-                      type="button"
-                      className="up-btn"
-                      onClick={async () => {
-                        try {
-                          const conversation = await api.startDirectConversation(p.userId)
-                          void router.push(`/messages?conversation=${conversation.id}`)
-                        } catch {
-                          // The backend explains (e.g. unverified email) via the messages page.
-                          void router.push('/messages')
-                        }
-                      }}
-                    >
-                      მიწერა
-                    </button>
-                  )}
                   <ReportButton targetType="user" targetId={p.userId} className="up-btn" />
                 </>
               )}

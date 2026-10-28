@@ -11,9 +11,11 @@ import {
   IsString,
   IsUUID,
   Length,
+  Matches,
   Max,
   MaxLength,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { TournamentMatchStage, TournamentMatchStatus } from '@wavehub/shared-types';
@@ -149,4 +151,50 @@ export class MatchDto {
   @ValidateNested()
   @Type(() => MatchStatsDto)
   stats?: MatchStatsDto;
+}
+
+// A team's game-room details (owner 2026-10-28). Links are checked so nothing but a Steam connect
+// link or an https page can be stored (no javascript: or other schemes reach a player's tap).
+export const ROOM_SERVER_URL = /^(steam:\/\/connect\/[A-Za-z0-9.\-]+(:\d{1,5})?(\/[^\s<>"']*)?|https:\/\/[^\s<>"']+)$/;
+
+export class MatchRoomSideDto {
+  @IsBoolean()
+  open: boolean;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(40)
+  roomId?: string | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(40)
+  password?: string | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(20)
+  slot?: string | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== '')
+  @IsString()
+  @MaxLength(300)
+  @Matches(ROOM_SERVER_URL, { message: 'Server link: steam://connect/… or an https:// address' })
+  serverUrl?: string | null;
+}
+
+export class MatchRoomDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MatchRoomSideDto)
+  a?: MatchRoomSideDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MatchRoomSideDto)
+  b?: MatchRoomSideDto;
 }

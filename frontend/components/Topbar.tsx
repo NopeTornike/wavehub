@@ -22,6 +22,16 @@ import { gel } from '../lib/money'
 // CSS sizes directly, and next/image's wrapper spans would change the selectors' structure.
 /* eslint-disable @next/next/no-img-element */
 
+// A plain person outline for a visitor who isn't signed in (instead of a "?" in the avatar circle).
+function GuestIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </svg>
+  )
+}
+
 function initials(firstName?: string, lastName?: string, username?: string) {
   const source = [firstName, lastName].filter(Boolean).join(' ') || username || '?'
   return source
@@ -332,9 +342,12 @@ export default function Topbar({
             {unreadNotifications > 99 ? '99+' : unreadNotifications}
           </span>
         </button>
-        <Link className="home-top-wallet" href={signedIn ? '/wallet' : loginHref} aria-label="Wallet balance">
-          <span id="homeTopWalletBalance">{gel(user?.wavecoinBalance)}</span> GEL
-        </Link>
+        {/* Signed out there is no balance to show (owner screenshot 07: "0 GEL" + "?"). */}
+        {signedIn && (
+          <Link className="home-top-wallet" href="/wallet" aria-label="Wallet balance">
+            <span id="homeTopWalletBalance">{gel(user?.wavecoinBalance)}</span> GEL
+          </Link>
+        )}
 
         {action}
         <div className="profile-menu" id="profileMenu" ref={menuRef}>
@@ -348,7 +361,7 @@ export default function Topbar({
             onClick={() => setProfileOpen((open) => !open)}
           >
             <span className={avatarClass} id="profileAvatar" style={avatarStyle}>
-              {avatarText}
+              {user ? avatarText : <GuestIcon />}
             </span>
           </button>
 
@@ -488,7 +501,7 @@ export default function Topbar({
         </Link>
         <Link className="mobile-user-profile" id="mobileUserProfile" href={user ? `/u/${user.username}` : loginHref} aria-label="Open profile">
           <span className={avatarClass} id="mobileHeaderAvatar" style={avatarStyle}>
-            {avatarText}
+            {user ? avatarText : <GuestIcon />}
           </span>
         </Link>
       </div>

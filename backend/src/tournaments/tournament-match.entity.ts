@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { TournamentMatchStage, TournamentMatchStatus } from '@wavehub/shared-types';
-import type { MatchTeamStats } from '@wavehub/shared-types';
+import type { MatchRoomSide, MatchTeamStats } from '@wavehub/shared-types';
 import { Tournament } from './tournament.entity';
 import { TournamentTeam } from './tournament-team.entity';
 
@@ -61,6 +61,11 @@ export class TournamentMatch {
 
   @Column({ type: 'jsonb', default: {} })
   stats: { a?: MatchTeamStats | null; b?: MatchTeamStats | null };
+
+  // The game-room details per side (migration 1784389000000). Never part of a public match response —
+  // only GET me/tournament-matches/:id/room for that side's own players, and the admin match list.
+  @Column({ type: 'jsonb', default: {} })
+  room: { a?: MatchRoomSide | null; b?: MatchRoomSide | null };
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
