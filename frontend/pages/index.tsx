@@ -374,18 +374,9 @@ export default function Home() {
       <div className="home-dashboard-grid">
         <div className="home-dashboard-main">
           <section className="content-section home-marketplace-showcase" aria-labelledby="home-marketplace-title">
-            {/* The top hero is a CMS banner when one is published at "home_hero" (owner 2026-10-07:
-                every banner editable from Admin → Banners); the built-in marketplace cover otherwise. */}
-            {hero ? (
-              <HeroBanner banner={hero} />
-            ) : (
-              <Link className="home-marketplace-cover" href="/marketplace" aria-label="Explore the WaveHubX marketplace">
-                <img src="/assets/home-marketplace-cover.png" alt="WaveHubX neon gaming marketplace" />
-                <span className="mobile-cover-cta">
-                  დაათვალიერე <b aria-hidden="true">→</b>
-                </span>
-              </Link>
-            )}
+            {/* The top hero only renders a published CMS banner. The former static marketplace-cover
+                fallback was removed at the owner's request. */}
+            {hero && <HeroBanner banner={hero} />}
 
             <section className="home-explore" aria-labelledby="homeExploreTitle">
               <h2 id="homeExploreTitle">
