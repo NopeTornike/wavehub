@@ -851,7 +851,7 @@ export default function Home() {
           <header className="how-hero">
             <p className="how-eyebrow">როგორ მუშაობს</p>
             <h1 id="howTitle">
-              ნახეთ, როგორ <em>WaveHubX</em> მუშაობს
+              ნახეთ როგორ მუშაობს <em>WaveHubX</em>.
             </h1>
             <p>შეეხეთ ეტაპს, რომ მეტი გაიგოთ თითოეულის შესახებ.</p>
           </header>
