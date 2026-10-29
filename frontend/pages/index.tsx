@@ -967,6 +967,34 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
   // Video links use the entire banner as their trigger, without a persistent CTA on top.
   const isVideoLink = !!link && /(?:youtu\.be\/|youtube\.com\/|vimeo\.com\/|\.(?:mp4|webm)(?:[?#]|$))/i.test(link)
   const button = !isVideoLink && link && banner.buttonLabel?.trim()
+  const [videoOpen, setVideoOpen] = useState(false)
+  const [muted, setMuted] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  const videoEmbed = (() => {
+    if (!link || !isVideoLink) return null
+    const youtube = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/.exec(link)
+    if (youtube) return { provider: 'youtube' as const, src: `https://www.youtube.com/embed/${youtube[1]}?autoplay=1&mute=1&playsinline=1&enablejsapi=1&rel=0` }
+    const vimeo = /vimeo\.com\/(?:video\/)?(\d+)/.exec(link)
+    if (vimeo) return { provider: 'vimeo' as const, src: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&playsinline=1` }
+    return { provider: 'file' as const, src: link }
+  })()
+
+  const toggleMute = () => {
+    const nextMuted = !muted
+    setMuted(nextMuted)
+    if (videoRef.current instanceof HTMLVideoElement) {
+      videoRef.current.muted = nextMuted
+      return
+    }
+    if (videoEmbed?.provider === 'youtube') {
+      iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: nextMuted ? 'mute' : 'unMute', args: [] }), '*')
+    }
+    if (videoEmbed?.provider === 'vimeo') {
+      iframeRef.current?.contentWindow?.postMessage({ method: 'setVolume', value: nextMuted ? 0 : 1 }, '*')
+    }
+  }
   const copy =
     title || subtitle || button ? (
       <span className="hero-banner-copy">
@@ -985,6 +1013,34 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
       </span>
     ) : null
   const image = <img src={banner.imageUrl ?? ''} alt={title || 'WaveHubX'} />
+  if (videoEmbed) {
+    return (
+      <div className={`home-marketplace-cover hero-banner hero-video-banner${videoOpen ? ' is-playing' : ''}`}>
+        {videoOpen ? (
+          videoEmbed.provider === 'file' ? (
+            <video ref={videoRef} className="hero-banner-video" src={videoEmbed.src} autoPlay muted={muted} loop playsInline controls />
+          ) : (
+            <iframe ref={iframeRef} className="hero-banner-video" src={videoEmbed.src} title={title || 'WaveHubX video'} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
+          )
+        ) : (
+          <button
+            type="button"
+            className="hero-video-launch"
+            aria-label={`${title || 'ვიდეო'} გახსნა`}
+            onClick={() => setVideoOpen(true)}
+          >
+            {image}
+            <span className="hero-video-play" aria-hidden="true">▶</span>
+          </button>
+        )}
+        {videoOpen && (
+          <button type="button" className="hero-video-sound" aria-label={muted ? 'ხმის ჩართვა' : 'ხმის გამორთვა'} onClick={toggleMute}>
+            {muted ? '🔇' : '🔊'}
+          </button>
+        )}
+      </div>
+    )
+  }
   if (link && !button) {
     return external ? (
       <a className="home-marketplace-cover hero-banner" href={link} target="_blank" rel="noopener noreferrer">
