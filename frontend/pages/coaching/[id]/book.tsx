@@ -963,7 +963,10 @@ export default function CoachBooking() {
             <em>{shortBy > 0 ? `აკლია ${shortBy} GEL` : 'საკმარისია'}</em>
           </div>
           <p>
-            <Icon name="lock" /> ბალანსის შევსება ხდება საქართველოს ბანკის უსაფრთხო გადახდით.
+            <Icon name="lock" />
+            <span>ბალანსის შევსება ხდება</span>
+            <img className="bog-payment-logo" src="/assets/bog-logo.png" alt="საქართველოს ბანკი" />
+            <span>უსაფრთხო გადახდით.</span>
           </p>
         </section>
         <section className="booking-how">

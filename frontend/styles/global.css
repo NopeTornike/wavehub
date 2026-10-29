@@ -3159,8 +3159,10 @@ button {
 .booking-bank-option strong { font-size: 19px; }
 .booking-bank-option small { color: #c3c1c7; font-size: 14px; }
 .booking-bank-option em { border: 1px solid #8e164f; border-radius: 14px; color: var(--bk-pink); padding: 7px 14px; font-size: 12px; font-style: normal; }
-.booking-payment-method > p { display: flex; align-items: center; gap: 12px; margin: 0; border: 1px solid #1d2737; border-radius: 6px; color: #aaa8b0; background: #060e1c; padding: 13px 20px; font-size: 12px; }
+.booking-payment-method > p { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0; border: 1px solid #1d2737; border-radius: 6px; color: #aaa8b0; background: #060e1c; padding: 13px 20px; font-size: 12px; }
 .booking-payment-method > p svg { width: 24px; color: #a34ddc; background: #271142; padding: 4px; border-radius: 50%; }
+.booking-payment-method > p > span { flex: 0 1 auto; }
+.bog-payment-logo { width: min(145px, 42vw); height: 26px; flex: 0 1 145px; object-fit: contain; object-position: center; }
 .booking-how { grid-template-columns: minmax(0, 1fr) 310px; align-items: stretch; padding: 26px 40px; }
 .booking-how ol { position: relative; display: grid; gap: 21px; margin: 19px 0 0; padding: 0; list-style: none; }
 .booking-how li { display: flex; align-items: center; gap: 16px; color: #c6c4ca; font-size: 13px; }
@@ -21812,3 +21814,7 @@ body.modal-open { overflow: hidden; }
 }
 /* A WaveHubX team member in direct messages (their username isn't sent to non-staff). */
 .dm-handle.dm-staff, .dm-head-person small.dm-staff { color: #ff6fb5; font-style: normal; font-weight: 800; }
+
+/* Bank of Georgia payment branding: constrained so it remains legible without crowding payment CTAs. */
+.bog-checkout-brand { display: inline-flex; align-items: center; justify-content: center; gap: 9px; max-width: 100%; vertical-align: middle; }
+.bog-checkout-brand img { width: min(148px, 42vw); height: 25px; border-radius: 4px; object-fit: contain; }
