@@ -76,7 +76,7 @@ export default function MyListings({
   )
 
   return (
-    <section className={`ml-panel ${className}`.trim()} aria-labelledby={`${gridId ?? 'myListings'}Title`}>
+    <section id={gridId} className={`ml-panel ${className}`.trim()} aria-labelledby={`${gridId ?? 'myListings'}Title`}>
       <header className="ml-head">
         <div>
           <p className="section-kicker">გამყიდველის პანელი</p>

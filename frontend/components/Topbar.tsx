@@ -35,12 +35,10 @@ function initials(firstName?: string, lastName?: string, username?: string) {
 const ICONS = {
   services: 'M4 8h16v11H4z|M9 8V5h6v3|M4 13h16',
   orders: 'm4 7 8-4 8 4-8 4-8-4Z|M4 7v10l8 4 8-4V7M12 11v10',
-  favorites: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.5 5.5 0 0 0 0-7.8Z',
   support: 'M4 13v-2a8 8 0 0 1 16 0v2|M4 12H2v5a2 2 0 0 0 2 2h2v-7H4Zm16 0h2v5a2 2 0 0 1-2 2h-2v-7h2ZM18 19c0 2-2 2-4 2',
   profile: 'M4 21v-2a8 8 0 0 1 16 0v2',
-  verified: 'm12 3 7 3v5c0 4.6-2.9 8.2-7 10-4.1-1.8-7-5.4-7-10V6l7-3Z|m9 12 2 2 4-4',
   plans: 'M4 7h16v12H4zM4 11h16M8 3v4M16 3v4',
-  admin: 'M12 3 20 6v6c0 5-3.2 8.2-8 10-4.8-1.8-8-5-8-10V6l8-3Z',
+  wallet: 'M4 7h16v12H4z|M4 10h16|M15 15h3',
 }
 
 function MenuIcon({ paths, circle }: { paths: string; circle?: [number, number, number] }) {
@@ -55,9 +53,6 @@ function MenuIcon({ paths, circle }: { paths: string; circle?: [number, number, 
     </span>
   )
 }
-
-const SETTINGS_PATH =
-  'M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z'
 
 // A page that filters its own content from the topbar search box (orders.html's "Search orders,
 // games or users..."): the box then drives that page's filter live instead of submitting to
@@ -395,58 +390,49 @@ export default function Topbar({
               <div className="profile-dropdown-group">
                 <Link href={signedIn ? '/orders' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.orders} />
-                  <span>ჩემი შეკვეთები</span>
+                  <span>My Orders</span>
+                  <i aria-hidden="true">›</i>
+                </Link>
+                <Link href={signedIn ? '/profile#profileListings' : loginHref} onClick={closeMenu}>
+                  <MenuIcon paths={ICONS.orders} />
+                  <span>My Listings</span>
+                  <i aria-hidden="true">›</i>
+                </Link>
+                <Link href={signedIn ? '/tournaments/mine' : loginHref} onClick={closeMenu}>
+                  <MenuIcon paths={ICONS.plans} />
+                  <span>My Tourtaments</span>
+                  <i aria-hidden="true">›</i>
+                </Link>
+                <Link href={signedIn ? '/marketplace?sell=1' : loginHref} onClick={closeMenu}>
+                  <MenuIcon paths={ICONS.orders} />
+                  <span>Sell</span>
                   <i aria-hidden="true">›</i>
                 </Link>
                 <Link href={signedIn ? '/sell/services' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.services} />
-                  <span>ჩემი სერვისები</span>
-                  <i aria-hidden="true">›</i>
-                </Link>
-                <Link id="profileFavoritesLink" href="/favorites" onClick={closeMenu}>
-                  <MenuIcon paths={ICONS.favorites} />
-                  <span>რჩეულები</span>
+                  <span>Sell Service</span>
                   <i aria-hidden="true">›</i>
                 </Link>
                 <Link href={signedIn ? '/support' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.support} />
-                  <span>Support</span>
+                  <span>Contact Support</span>
                   <i aria-hidden="true">›</i>
                 </Link>
-                {user?.adminRole && (
-                  <Link href="/admin" onClick={closeMenu}>
-                    <MenuIcon paths={ICONS.verified} />
-                    <span>ადმინ პანელი</span>
-                    <i aria-hidden="true">›</i>
-                  </Link>
-                )}
+                <Link href={signedIn ? '/wallet' : loginHref} onClick={closeMenu}>
+                  <MenuIcon paths={ICONS.wallet} />
+                  <span>Wallet</span>
+                  <i aria-hidden="true">›</i>
+                </Link>
                 <Link href={signedIn ? '/profile' : loginHref} onClick={closeMenu}>
-                  <MenuIcon paths={SETTINGS_PATH} circle={[12, 12, 3]} />
-                  <span>პარამეტრები</span>
+                  <MenuIcon paths={ICONS.profile} circle={[12, 8, 4]} />
+                  <span>My Profile</span>
                   <i aria-hidden="true">›</i>
                 </Link>
-              </div>
-              <div className="profile-dropdown-group">
-                <Link id="profilePublicLink" href={user ? `/u/${user.username}` : loginHref} onClick={closeMenu}>
-                  <MenuIcon paths={ICONS.profile} circle={[12, 8, 4]} />
-                  <span>View Profile</span>
+                <Link href={signedIn ? '/plans' : loginHref} onClick={closeMenu}>
+                  <MenuIcon paths={ICONS.plans} />
+                  <span>WavehubX Subscriptions</span>
+                  <i aria-hidden="true">›</i>
                 </Link>
-                <Link href={signedIn ? '/profile#verification' : loginHref} onClick={closeMenu}>
-                  <MenuIcon paths={ICONS.verified} />
-                  <span>Verified Status</span>
-                </Link>
-                {signedIn && (
-                  <Link href="/plans" onClick={closeMenu}>
-                    <MenuIcon paths={ICONS.plans} />
-                    <span>გამოწერები</span>
-                  </Link>
-                )}
-                {user?.adminRole && (
-                  <Link href="/admin" onClick={closeMenu}>
-                    <MenuIcon paths={ICONS.admin} />
-                    <span>ადმინ პანელი</span>
-                  </Link>
-                )}
               </div>
             </nav>
 
