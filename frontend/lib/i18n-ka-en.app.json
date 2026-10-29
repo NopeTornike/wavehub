@@ -2771,5 +2771,11 @@
   "ძიება ქართულად ან ინგლისურად…": "Search in Georgian or English…",
   "— (თარგმანი არ აქვს)": "— (no translation)",
   "მოძებნეთ ნებისმიერი ტექსტი საიტზე და შეცვალეთ ქართული ან ინგლისური ვერსია. ცვლილება ყველა ვიზიტორთან გვერდის შემდეგ ჩატვირთვაზე გამოჩნდება. ორივე ველის გასუფთავება საწყის ტექსტს აბრუნებს. ტექსტში": "Find any text on the site and change its Georgian or English version. Changes reach every visitor on their next page load. Clearing both fields restores the original text. In the text",
-  "ნიშნები ცვლადებია (რიცხვი, სახელი) — დატოვეთ ისინი.": "marks are variables (a number, a name) — keep them."
+  "ნიშნები ცვლადებია (რიცხვი, სახელი) — დატოვეთ ისინი.": "marks are variables (a number, a name) — keep them.",
+  "ნაბიჯი": "Step",
+  "გამოაქვეყნე შენი პირველი განცხადება 5 მარტივ ნაბიჯში": "Publish your first listing in 5 easy steps",
+  "გამოაქვეყნე შენი სერვისი 5 მარტივ ნაბიჯში": "Publish your service in 5 easy steps",
+  "გადახდა იყინება და გამყიდველთან მხოლოდ მყიდველის დადასტურების შემდეგ გადადის.": "Payment is held and only goes to the seller after the buyer confirms.",
+  "დაჯავშნე სესია 5 მარტივ ნაბიჯში": "Book a session in 5 easy steps",
+  "გადახდა ინახება და ქოუჩთან სესიის დასრულების შემდეგ გადადის.": "Payment is held and goes to the coach after the session is completed."
 }

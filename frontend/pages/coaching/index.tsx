@@ -145,7 +145,15 @@ export default function CoachingDirectory() {
         id="coachStepsTitle"
         title="როგორ მუშაობს"
         accent="ქოუჩინგი"
-        steps={['აირჩიე ქოუჩი', 'დაჯავშნე სესია', 'დაადასტურე გადახდა', 'დაელოდე ქოუჩს', 'ჩაატარე და შეაფასე']}
+        subtitle="დაჯავშნე სესია 5 მარტივ ნაბიჯში"
+        note="გადახდა ინახება და ქოუჩთან სესიის დასრულების შემდეგ გადადის."
+        steps={[
+          { text: 'აირჩიე ქოუჩი', icon: 'search' },
+          { text: 'დაჯავშნე სესია', icon: 'calendar' },
+          { text: 'დაადასტურე გადახდა', icon: 'card' },
+          { text: 'დაელოდე ქოუჩს', icon: 'wait' },
+          { text: 'ჩაატარე და შეაფასე', icon: 'star' },
+        ]}
       />
       {/* .coaching-body scopes coaching.html's --coach-* variables (it's the prototype's <body> class). */}
       <div className="coaching-body">

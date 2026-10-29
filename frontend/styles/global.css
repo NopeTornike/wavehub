@@ -22792,3 +22792,63 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .home-marketplace-game-info strong { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.15; overflow-wrap: anywhere; }
   .competition-panel-title :is(h3, p) { white-space: normal; text-overflow: clip; overflow: visible; }
 }
+
+/* "How it works" steps, redesigned 2026-10-29 (components/StepsGuide.tsx): icon tiles joined by a
+   glowing pink → violet line; a row on desktop, a vertical timeline on phones. */
+.how-steps { position: relative; isolation: isolate; overflow: hidden; margin: 0 0 18px; border: 1px solid rgba(255, 79, 171, .22); border-radius: 18px; background: radial-gradient(120% 140% at 0% 0%, rgba(255, 47, 143, .16), transparent 45%), radial-gradient(120% 140% at 100% 100%, rgba(123, 61, 245, .2), transparent 50%), linear-gradient(160deg, rgba(20, 14, 38, .96), rgba(9, 8, 20, .98)); padding: 22px 24px 20px; box-shadow: 0 18px 40px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .04); }
+.how-steps::before { content: ""; position: absolute; z-index: -1; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px); background-size: 28px 28px; mask-image: linear-gradient(180deg, #000, transparent 85%); pointer-events: none; }
+.how-steps svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.how-head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.how-badge { flex: 0 0 auto; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; color: #fff; background: linear-gradient(135deg, #ff2f8f, #7b3df5); box-shadow: 0 8px 22px rgba(255, 47, 143, .35); }
+.how-badge svg { width: 24px; height: 24px; }
+.how-head h2 { margin: 0; color: #f6f2fb; font-size: clamp(19px, 2vw, 24px); font-weight: 900; line-height: 1.15; }
+.how-head h2 span { background: linear-gradient(90deg, #ff4fab, #a77bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.how-head p { margin: 4px 0 0; color: #b9b3c9; font-size: 13.5px; }
+.how-list { position: relative; display: grid; grid-template-columns: repeat(var(--how-count, 5), minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.how-list li { position: relative; display: grid; justify-items: center; align-content: start; gap: 12px; text-align: center; min-width: 0; }
+/* The line to the next step, through the middle of the icon tiles. */
+.how-list li:not(:last-child)::after { content: ""; position: absolute; z-index: 0; top: 29px; left: calc(50% + 36px); right: calc(-50% + 30px); height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(255, 79, 171, .75), rgba(167, 123, 255, .45)); box-shadow: 0 0 10px rgba(255, 47, 143, .35); }
+.how-icon { position: relative; z-index: 1; width: 60px; height: 60px; display: grid; place-items: center; border: 1px solid rgba(255, 79, 171, .45); border-radius: 18px; color: #ff6fb8; background: linear-gradient(160deg, rgba(255, 47, 143, .2), rgba(123, 61, 245, .14)), #120d22; box-shadow: 0 0 0 4px rgba(255, 47, 143, .05), 0 10px 24px rgba(0, 0, 0, .35); transition: transform .2s, box-shadow .2s, border-color .2s; }
+.how-icon svg { width: 28px; height: 28px; }
+.how-icon b { position: absolute; top: -8px; right: -8px; min-width: 22px; height: 22px; display: grid; place-items: center; border: 2px solid #120d22; border-radius: 999px; color: #fff; background: linear-gradient(135deg, #ff2f8f, #7b3df5); font-size: 11px; font-weight: 900; line-height: 1; padding: 0 5px; }
+.how-list li:last-child .how-icon { color: #4ce39b; border-color: rgba(76, 227, 155, .5); background: linear-gradient(160deg, rgba(76, 227, 155, .18), rgba(123, 61, 245, .1)), #0f1620; }
+@media (hover: hover) {
+  .how-list li:hover .how-icon { transform: translateY(-2px); border-color: rgba(255, 79, 171, .85); box-shadow: 0 0 0 4px rgba(255, 47, 143, .1), 0 0 26px rgba(255, 47, 143, .35); }
+}
+.how-text { display: grid; gap: 3px; min-width: 0; }
+.how-text small { color: #ff6fb8; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.how-text strong { color: #eee9f5; font-size: 13.5px; font-weight: 700; line-height: 1.35; overflow-wrap: break-word; }
+.how-note { display: flex; align-items: center; gap: 10px; margin: 20px 0 0; border: 1px solid rgba(76, 227, 155, .22); border-radius: 12px; background: rgba(76, 227, 155, .07); padding: 10px 14px; color: #cfeee0; font-size: 13px; line-height: 1.4; }
+.how-note svg { flex: 0 0 auto; width: 20px; height: 20px; color: #4ce39b; }
+@media (max-width: 900px) and (min-width: 621px) {
+  .how-icon { width: 50px; height: 50px; border-radius: 15px; }
+  .how-icon svg { width: 24px; height: 24px; }
+  .how-list li:not(:last-child)::after { top: 24px; left: calc(50% + 30px); right: calc(-50% + 26px); }
+  .how-text strong { font-size: 12px; }
+}
+/* Phones: a vertical timeline. */
+@media (max-width: 620px) {
+  .how-steps { padding: 16px 14px 14px; border-radius: 16px; }
+  .how-head { gap: 12px; margin-bottom: 16px; }
+  .how-badge { width: 40px; height: 40px; border-radius: 12px; }
+  .how-badge svg { width: 21px; height: 21px; }
+  .how-head p { font-size: 12.5px; }
+  .how-list { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .how-list li { grid-template-columns: 48px minmax(0, 1fr); justify-items: start; align-items: center; gap: 14px; text-align: left; padding-bottom: 14px; }
+  .how-list li:last-child { padding-bottom: 0; }
+  .how-list li:not(:last-child)::after { top: 50px; bottom: 2px; left: 23px; right: auto; width: 2px; height: auto; background: linear-gradient(180deg, rgba(255, 79, 171, .7), rgba(167, 123, 255, .35)); }
+  .how-icon { width: 48px; height: 48px; border-radius: 14px; }
+  .how-icon svg { width: 23px; height: 23px; }
+  .how-icon b { top: -6px; right: -6px; min-width: 19px; height: 19px; font-size: 10px; }
+  .how-text strong { font-size: 14px; }
+  .how-note { margin-top: 16px; font-size: 12.5px; padding: 10px 12px; }
+}
+
+/* Home cards on phones (owner 2026-10-29): a tap left the card "hovered", lifting it into the top
+   edge of its scrolling row, where its top border was cut off. Touch screens get a press effect
+   instead of the lift, and the rows get headroom for the desktop hover lift. */
+.home-marketplace-game-grid, .home-steam-track, .featured-coaches { padding-top: 6px; margin-top: -6px; }
+@media (hover: none) {
+  :is(.about-explore-button, .cl-card, .coach-card, .coach-similar-card, .competition-button, .contact-details-grid > a, .faq-support-banner a, .featured-coach, .featured-item-card, .game-card, .home-explore-grid > a, .home-featured-card, .home-marketplace-game-card, .home-steam-card, .listing-card, .marketplace-card, .product-showcase-card, .public-review-card, .service-card, .sg-card, .tournament-card, .save-button, .profile-record-card):hover { transform: none !important; }
+  :is(.cl-card, .coach-card, .featured-coach, .featured-item-card, .game-card, .home-explore-grid > a, .home-featured-card, .home-marketplace-game-card, .home-steam-card, .listing-card, .marketplace-card, .product-showcase-card, .service-card, .sg-card, .tournament-card):active { transform: scale(.98) !important; transition: transform .12s; }
+}

@@ -1340,3 +1340,11 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   images. Fixed in the same sweep: the home "Level ასაწევად?" card's column was sized by its heading
   and ran past the card edge (`minmax(0,1fr)`), and long game names / the Coaches + Tournament panel
   headings were cut with "…" on phones (now wrap to two lines).
+- **"How it works" steps redesigned** (`components/StepsGuide.tsx`, `.how-*` CSS; Marketplace,
+  Services, Coaching): `steps` is now `{ text, icon }[]` (icon names in `StepIcon`), plus optional
+  `subtitle` and `note` (a factual escrow line: payment held until the buyer confirms / the session
+  completes). Icon tiles joined by a gradient line — a row on desktop, a vertical timeline on phones.
+  The old `.escrow-steps` CSS is now unused.
+- **Card tap on phones**: under `(hover: none)` the hover lift (`translateY`) on cards is off (a tap
+  left it "stuck" and the lifted card's top border was clipped by its scrolling row); cards scale
+  to .98 while pressed instead. The home game / Steam / coach rows got 6px headroom for desktop lifts.

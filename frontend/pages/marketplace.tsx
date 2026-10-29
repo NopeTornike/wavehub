@@ -9,7 +9,7 @@ import { api, errorMessage } from '../lib/api'
 import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
 import { gel } from '../lib/money'
-import StepsGuide from '../components/StepsGuide'
+import StepsGuide, { type StepIcon } from '../components/StepsGuide'
 import HomeBanners from '../components/HomeBanners'
 import { BannerPlacement } from '@wavehub/shared-types'
 import { restoreScroll, saveSnapshot, takeSnapshot } from '../lib/scroll-memory'
@@ -37,8 +37,20 @@ function queryString(value: string | string[] | undefined): string {
 }
 
 // Seller steps shown under the header (design 2026-10-04, "როგორ მუშაობს Escrow?").
-const SELLER_STEPS = ['დააჭირე „გახდი გამყიდველი“', 'შეავსე ინფორმაცია', 'შეამოწმე', 'გამოაქვეყნე', 'დაელოდე დადასტურებას']
-const SERVICE_STEPS = ['დააჭირე „გაყიდე სერვისი“', 'აღწერე სერვისი და ფოტოები', 'დაამატე პაკეტები', 'გამოაქვეყნე', 'დაელოდე დადასტურებას']
+const SELLER_STEPS: Array<{ text: string; icon: StepIcon }> = [
+  { text: 'დააჭირე „გახდი გამყიდველი“', icon: 'click' },
+  { text: 'შეავსე ინფორმაცია', icon: 'form' },
+  { text: 'შეამოწმე', icon: 'review' },
+  { text: 'გამოაქვეყნე', icon: 'publish' },
+  { text: 'დაელოდე დადასტურებას', icon: 'wait' },
+]
+const SERVICE_STEPS: Array<{ text: string; icon: StepIcon }> = [
+  { text: 'დააჭირე „გაყიდე სერვისი“', icon: 'click' },
+  { text: 'აღწერე სერვისი და ფოტოები', icon: 'image' },
+  { text: 'დაამატე პაკეტები', icon: 'package' },
+  { text: 'გამოაქვეყნე', icon: 'publish' },
+  { text: 'დაელოდე დადასტურებას', icon: 'wait' },
+]
 
 export default function Marketplace() {
   return <MarketplaceView />
@@ -223,7 +235,14 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
       }
     >
       <HomeBanners placement={servicesOnly ? BannerPlacement.ServicesTop : BannerPlacement.MarketplaceTop} />
-      <StepsGuide id="escrowStepsTitle" title="როგორ მუშაობს" accent="Escrow" steps={steps} />
+      <StepsGuide
+        id="escrowStepsTitle"
+        title="როგორ მუშაობს"
+        accent="Escrow"
+        subtitle={servicesOnly ? 'გამოაქვეყნე შენი სერვისი 5 მარტივ ნაბიჯში' : 'გამოაქვეყნე შენი პირველი განცხადება 5 მარტივ ნაბიჯში'}
+        note="გადახდა იყინება და გამყიდველთან მხოლოდ მყიდველის დადასტურების შემდეგ გადადის."
+        steps={steps}
+      />
 
       <section className="marketplace-head" aria-labelledby="marketplaceTitle">
         <div>
