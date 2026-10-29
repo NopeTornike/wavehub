@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { MyReviewLikes, OrderQuote, PublicListingDetail, PublicReview } from '@wavehub/shared-types'
 import { AdminRole, ListingType } from '@wavehub/shared-types'
 import Layout from '../../components/Layout'
+import PurchaseConfirmModal from '../../components/PurchaseConfirmModal'
 import SteamGameDetail from '../../components/SteamGameDetail'
 import { accountStatusLabel, listingKind } from '../../components/ProductCard'
 import { api, errorMessage } from '../../lib/api'
@@ -73,6 +74,7 @@ export default function ListingDetail() {
   const [requirementAnswers, setRequirementAnswers] = useState<Record<string, string>>({})
   const [status, setStatus] = useState<{ kind: '' | 'error' | 'success'; text: string }>({ kind: '', text: '' })
   const [purchasing, setPurchasing] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [imageIndex, setImageIndex] = useState(0)
   const [lightbox, setLightbox] = useState<number | null>(null)
   const [favoriteCount, setFavoriteCount] = useState(0)
@@ -223,16 +225,8 @@ export default function ListingDetail() {
   const gameSpecific = detailForm ? detailForm.fields.filter((f) => attrs[f.id] !== undefined && attrs[f.id] !== '').map((f) => [f.label, attrs[f.id]] as const) : []
   const platformRegion = [attrs.platform, attrs.region].filter(Boolean).join(' / ')
 
-  const buy = async () => {
-    setStatus({ kind: '', text: '' })
-    if (!me) {
-      router.push(`/login?next=/listings/${listing.id}`)
-      return
-    }
-    if (missingRequirement) {
-      setStatus({ kind: 'error', text: `შეავსეთ სავალდებულო ველი: ${missingRequirement.label}` })
-      return
-    }
+  const completePurchase = async () => {
+    setConfirmOpen(false)
     setPurchasing(true)
     try {
       const order = await api.purchase({
@@ -247,6 +241,19 @@ export default function ListingDetail() {
       setStatus({ kind: 'error', text: errorMessage(err, 'შეკვეთის გაფორმება ვერ მოხერხდა.') })
       setPurchasing(false)
     }
+  }
+
+  const requestPurchase = () => {
+    setStatus({ kind: '', text: '' })
+    if (!me) {
+      router.push(`/login?next=/listings/${listing.id}`)
+      return
+    }
+    if (missingRequirement) {
+      setStatus({ kind: 'error', text: `შეავსეთ სავალდებულო ველი: ${missingRequirement.label}` })
+      return
+    }
+    setConfirmOpen(true)
   }
 
   const toggleFavorite = async () => {
@@ -282,21 +289,24 @@ export default function ListingDetail() {
 
   if (listing.type === ListingType.DigitalKey) {
     return (
-      <SteamGameDetail
-        listing={listing}
-        reviews={reviews}
-        writeReviewHref={reviewOrderId ? `/orders/${reviewOrderId}#review` : null}
-        saved={saved}
-        purchasing={purchasing}
-        status={status}
-        isOwnListing={isOwnListing}
-        editHref={me && canPublishSteam(me) ? `/admin/steam/${listing.id}` : null}
-        notEnoughBalance={notEnoughBalance}
-        quote={quote}
-        onBuy={() => void buy()}
-        onFavorite={() => void toggleFavorite()}
-        onShare={() => void share()}
-      />
+      <>
+        <SteamGameDetail
+          listing={listing}
+          reviews={reviews}
+          writeReviewHref={reviewOrderId ? `/orders/${reviewOrderId}#review` : null}
+          saved={saved}
+          purchasing={purchasing}
+          status={status}
+          isOwnListing={isOwnListing}
+          editHref={me && canPublishSteam(me) ? `/admin/steam/${listing.id}` : null}
+          notEnoughBalance={notEnoughBalance}
+          quote={quote}
+          onBuy={requestPurchase}
+          onFavorite={() => void toggleFavorite()}
+          onShare={() => void share()}
+        />
+        <PurchaseConfirmModal open={confirmOpen} items={[{ title: listing.title, imageUrl: hero?.url, detail: [listing.game?.name, selectedPackage?.name].filter(Boolean).join(' · ') }]} subtotal={quote?.priceWaveCoin ?? price ?? 0} fee={quote?.feeWaveCoin ?? 0} feePercent={quote?.feePercent} total={payTotal ?? 0} busy={purchasing} onCancel={() => setConfirmOpen(false)} onConfirm={() => void completePurchase()} />
+      </>
     )
   }
 
@@ -694,7 +704,7 @@ export default function ListingDetail() {
                   id="buyButton"
                   type="button"
                   disabled={purchasing || !inStock || (kind === 'service' && !selectedPackageId)}
-                  onClick={buy}
+                  onClick={requestPurchase}
                 >
                   {purchasing ? 'მიმდინარეობს…' : 'ახლავე ყიდვა'}
                 </button>
@@ -742,6 +752,7 @@ export default function ListingDetail() {
           </section>
         </article>
       </section>
+      <PurchaseConfirmModal open={confirmOpen} items={[{ title: listing.title, imageUrl: hero?.url, detail: [listing.game?.name, selectedPackage?.name].filter(Boolean).join(' · ') }]} subtotal={quote?.priceWaveCoin ?? price ?? 0} fee={quote?.feeWaveCoin ?? 0} feePercent={quote?.feePercent} total={payTotal ?? 0} busy={purchasing} onCancel={() => setConfirmOpen(false)} onConfirm={() => void completePurchase()} />
     </Layout>
   )
 }
