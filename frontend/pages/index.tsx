@@ -964,10 +964,13 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
   const subtitle = banner.subtitle?.trim()
   const link = banner.linkUrl
   const external = !!link && !link.startsWith('/')
-  // Video links use the entire banner as their trigger, without a persistent CTA on top.
+  // Video links use the entire banner as their trigger; their CMS CTA becomes a resume action
+  // only while the video is paused, so it never obscures active playback.
   const isVideoLink = !!link && /(?:youtu\.be\/|youtube\.com\/|vimeo\.com\/|\.(?:mp4|webm)(?:[?#]|$))/i.test(link)
   const button = !isVideoLink && link && banner.buttonLabel?.trim()
+  const videoCtaLabel = banner.buttonLabel?.trim() || 'ვიდეოს გაგრძელება'
   const [videoOpen, setVideoOpen] = useState(false)
+  const [videoPlaying, setVideoPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -995,6 +998,48 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
       iframeRef.current?.contentWindow?.postMessage({ method: 'setVolume', value: nextMuted ? 0 : 1 }, '*')
     }
   }
+  const resumeVideo = () => {
+    setVideoPlaying(true)
+    if (videoRef.current instanceof HTMLVideoElement) {
+      void videoRef.current.play()
+      return
+    }
+    if (videoEmbed?.provider === 'youtube') iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*')
+    if (videoEmbed?.provider === 'vimeo') iframeRef.current?.contentWindow?.postMessage({ method: 'play' }, '*')
+  }
+
+  // Native video reports its state directly. YouTube and Vimeo expose the same state through
+  // postMessage, allowing their pause controls to restore the banner CTA as well.
+  useEffect(() => {
+    if (!videoOpen || !videoEmbed || videoEmbed.provider === 'file') return
+    const onMessage = (event: MessageEvent) => {
+      if (videoEmbed.provider === 'youtube' && /youtube\.com$/.test(new URL(event.origin).hostname)) {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+          if (data?.event === 'onStateChange') setVideoPlaying(data.info === 1)
+        } catch {
+          // Ignore messages unrelated to the YouTube player.
+        }
+      }
+      if (videoEmbed.provider === 'vimeo' && /vimeo\.com$/.test(new URL(event.origin).hostname) && event.data?.event) {
+        if (event.data.event === 'play') setVideoPlaying(true)
+        if (event.data.event === 'pause' || event.data.event === 'ended') setVideoPlaying(false)
+      }
+    }
+    window.addEventListener('message', onMessage)
+    const timer = window.setTimeout(() => {
+      if (videoEmbed.provider === 'youtube') iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), '*')
+      if (videoEmbed.provider === 'vimeo') {
+        iframeRef.current?.contentWindow?.postMessage({ method: 'addEventListener', value: 'play' }, '*')
+        iframeRef.current?.contentWindow?.postMessage({ method: 'addEventListener', value: 'pause' }, '*')
+        iframeRef.current?.contentWindow?.postMessage({ method: 'addEventListener', value: 'ended' }, '*')
+      }
+    }, 0)
+    return () => {
+      window.removeEventListener('message', onMessage)
+      window.clearTimeout(timer)
+    }
+  }, [videoOpen, videoEmbed?.provider])
   const copy =
     title || subtitle || button ? (
       <span className="hero-banner-copy">
@@ -1018,7 +1063,7 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
       <div className={`home-marketplace-cover hero-banner hero-video-banner${videoOpen ? ' is-playing' : ''}`}>
         {videoOpen ? (
           videoEmbed.provider === 'file' ? (
-            <video ref={videoRef} className="hero-banner-video" src={videoEmbed.src} autoPlay muted={muted} loop playsInline controls />
+            <video ref={videoRef} className="hero-banner-video" src={videoEmbed.src} autoPlay muted={muted} loop playsInline controls onPlay={() => setVideoPlaying(true)} onPause={() => setVideoPlaying(false)} onEnded={() => setVideoPlaying(false)} />
           ) : (
             <iframe ref={iframeRef} className="hero-banner-video" src={videoEmbed.src} title={title || 'WaveHubX video'} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
           )
@@ -1027,7 +1072,10 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
             type="button"
             className="hero-video-launch"
             aria-label={`${title || 'ვიდეო'} გახსნა`}
-            onClick={() => setVideoOpen(true)}
+            onClick={() => {
+              setVideoPlaying(true)
+              setVideoOpen(true)
+            }}
           >
             {image}
             <span className="hero-video-play" aria-hidden="true">▶</span>
@@ -1036,6 +1084,11 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
         {videoOpen && (
           <button type="button" className="hero-video-sound" aria-label={muted ? 'ხმის ჩართვა' : 'ხმის გამორთვა'} onClick={toggleMute}>
             {muted ? '🔇' : '🔊'}
+          </button>
+        )}
+        {videoOpen && !videoPlaying && (
+          <button type="button" className="hero-video-resume" onClick={resumeVideo}>
+            {videoCtaLabel} <span aria-hidden="true">▶</span>
           </button>
         )}
       </div>
