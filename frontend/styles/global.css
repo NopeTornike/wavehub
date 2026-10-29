@@ -21696,10 +21696,13 @@ body.modal-open { overflow: hidden; }
 @media (max-width: 620px) {
   .home-page .search-box { position: relative; }
   .home-page .search-box:not(.is-open) .search-open-btn { display: block; position: absolute; inset: 0; z-index: 2; border: 0; background: transparent; cursor: pointer; }
-  .home-page .search-box.is-open { position: fixed; z-index: 80; top: 12px; left: 10px; right: 10px; width: auto; height: 48px; display: flex; align-items: center; border-color: rgba(255, 79, 171, .55); background: #0b0a16; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
+  .home-page .search-box.is-open { position: fixed; z-index: 80; top: 12px; left: 10px; right: 10px; width: auto; height: 48px; display: flex; align-items: center; overflow: visible; border-color: rgba(255, 79, 171, .55); background: #0b0a16; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
   .home-page .search-box.is-open .search-icon { flex: 0 0 auto; }
   .home-page .search-box.is-open input { display: block; flex: 1; min-width: 0; height: 100%; padding-right: 8px; font-size: 16px; }
   .home-page .search-box.is-open .search-close-btn { display: block; order: 3; flex: 0 0 auto; width: 40px; height: 40px; border: 0; color: #c9c4d6; background: transparent; font-size: 24px; cursor: pointer; }
+  /* Keep type-ahead results anchored to the expanded field.  Without an explicit mobile
+     width the original 40px collapsed box could still size this panel on some browsers. */
+  .home-page .search-box.is-open .search-suggest { top: calc(100% + 8px); left: 0; right: 0; width: auto; max-height: min(360px, calc(100vh - 80px)); }
 }
 
 /* Home top banner from the CMS (owner 2026-10-07): the photo alone, or — when text was entered —
