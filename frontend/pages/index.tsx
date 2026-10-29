@@ -199,9 +199,9 @@ export default function Home() {
     // Staff-featured coaches (Admin → Coaches, client feedback #2); the top-rated ones until staff
     // feature anyone.
     api
-      .browseCoaches({ featured: true, limit: 12 })
+      .browseCoaches({ featured: true, limit: 3 })
       .then(async (featuredRes) => {
-        if (featuredRes.items.length > 0) return featuredRes.items
+        if (featuredRes.items.length > 0) return featuredRes.items.slice(0, 3)
         const res = await api.browseCoaches({ limit: 12 })
         return [...res.items].sort((a, b) => Number(b.ratingAvg ?? 0) - Number(a.ratingAvg ?? 0) || b.ratingCount - a.ratingCount).slice(0, 3)
       })

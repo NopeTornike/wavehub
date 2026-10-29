@@ -171,6 +171,7 @@ export default function AdminCoaches() {
   const [creating, setCreating] = useState(false)
   const [notice, setNotice] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const featuredCount = all.filter((coach) => coach.isFeatured && coach.verificationStatus === VerificationStatus.Verified && coach.status !== 'suspended').length
 
   // Silent refresh (no loading state) so an open edit panel stays mounted.
   const reload = () => {
@@ -354,6 +355,7 @@ export default function AdminCoaches() {
           )}
 
           <h2 style={{ fontSize: '1rem' }}>ყველა მწვრთნელი</h2>
+          <p className="ce-hint">მთავარ გვერდზე ჩანს <strong>{featuredCount}/3</strong> არჩეული ქოუჩი. შესაძლებელია მაქსიმუმ სამის მონიშვნა.</p>
           {all.length === 0 ? (
             <div className="empty-state">მწვრთნელები არ არის.</div>
           ) : (
@@ -377,8 +379,8 @@ export default function AdminCoaches() {
                         </button>
                       )}
                       {coach.verificationStatus === VerificationStatus.Verified && coach.status !== 'suspended' && (
-                        <button type="button" className={`button${coach.isFeatured ? ' is-on' : ''}`} aria-pressed={coach.isFeatured} disabled={busyId === coach.id} onClick={() => void toggleFeatured(coach)}>
-                          {coach.isFeatured ? '★ მთავარზე ჩანს' : 'მთავარზე ჩვენება'}
+                        <button type="button" className={`button${coach.isFeatured ? ' is-on' : ''}`} aria-pressed={coach.isFeatured} disabled={busyId === coach.id || (!coach.isFeatured && featuredCount >= 3)} title={!coach.isFeatured && featuredCount >= 3 ? 'მაქსიმუმ 3 ქოუჩის არჩევა შეიძლება' : undefined} onClick={() => void toggleFeatured(coach)}>
+                          {coach.isFeatured ? '★ მთავარზე ჩანს' : featuredCount >= 3 ? 'არჩევა შევსებულია' : 'მთავარზე ჩვენება'}
                         </button>
                       )}
                       {isSuperAdmin && (
