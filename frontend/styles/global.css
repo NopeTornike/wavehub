@@ -22608,7 +22608,7 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 @media (max-width: 620px) {
   .topbar .menu-toggle { width: 40px !important; height: 40px !important; min-height: 40px; padding: 0 !important; display: grid !important; place-items: center; align-self: center; }
   .topbar .search-box { width: 40px !important; height: 40px !important; min-height: 40px; align-self: center; }
-  .mobile-header-auth { display: flex !important; align-items: center; gap: 8px; }
+  .mobile-header-auth { align-items: center; gap: 8px; }
   .mobile-header-auth .mobile-sign-in { height: 40px; min-height: 40px; width: auto !important; padding: 0 14px !important; white-space: nowrap; font-size: 13px; font-weight: 700; }
   .mobile-header-auth .mobile-user-profile, .mobile-header-auth .mobile-user-profile .avatar { width: 40px !important; height: 40px !important; }
   .topbar .language-switcher { height: 40px; align-self: center; }
@@ -22707,3 +22707,88 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 @media (max-width: 900px) { .tr-row { grid-template-columns: minmax(0, 1fr); } }
 .gr-chev svg { stroke-width: 2.4 !important; }
 @media (max-width: 620px) { .gr-head strong { font-size: 15.5px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+
+/* ==========================================================================
+   One phone header for every page (owner screenshots 2026-10-29): it used to differ per page —
+   the home page had its own layout, other pages an empty search box plus a wrapping row of
+   language / messages / cart / bell / seller button / avatar, and the signed-out "Sign In" cluster
+   leaked under the logo for signed-in users. Now, on every page:
+     [menu] [logo ……] [search] [EN|ქა] [bell] [avatar]        (signed in)
+     [menu] [logo ……] [search] [EN|ქა] [Sign In]              (signed out)
+   A page's own action (e.g. Marketplace "გახდი Seller") is a full-width button on a second row.
+   Messages, cart and the wallet pill live in the sidebar / bottom nav on phones.
+   ========================================================================== */
+@media (max-width: 620px) {
+  .app-shell .topbar { display: flex !important; flex-wrap: wrap; align-items: center; gap: 6px !important; min-height: 56px; padding: 8px 4px !important; grid-template-columns: none !important; }
+  .app-shell .topbar > .menu-toggle { order: 1; flex: 0 0 40px; width: 40px !important; height: 40px !important; display: grid !important; place-items: center; margin: 0; }
+  .app-shell .topbar > .mobile-header-brand { order: 2; display: block !important; flex: 1 1 auto; min-width: 0; }
+  .app-shell .topbar > .mobile-header-brand img { width: auto; max-width: 100%; height: 36px; object-fit: contain; object-position: left center; display: block; }
+  .app-shell .topbar > .search-box:not(.is-open) { order: 3; flex: 0 0 40px; width: 40px !important; height: 40px !important; min-width: 0; margin: 0; display: block !important; border-radius: 10px; }
+  .app-shell .topbar > .search-box:not(.is-open) input { display: none !important; }
+  .app-shell .topbar > .top-actions { display: contents !important; }
+  .app-shell .topbar .top-actions > * { margin: 0 !important; }
+  .app-shell .topbar .top-actions > .language-switcher { order: 4; flex: 0 0 auto; height: 40px; }
+  .app-shell .topbar .top-actions > .icon-button:not(.has-alert),
+  .app-shell .topbar .top-actions > .home-top-wallet { display: none !important; }
+  .app-shell .topbar .top-actions > .icon-button.has-alert { order: 5; flex: 0 0 40px; width: 40px !important; height: 40px !important; display: grid !important; place-items: center; }
+  .app-shell .topbar .top-actions > .profile-menu { order: 6; flex: 0 0 40px; display: block !important; }
+  .app-shell .topbar .top-actions > .profile-menu .profile-chip { width: 40px; height: 40px; padding: 0; border: 0; background: transparent; }
+  .app-shell .topbar .top-actions > .profile-menu .avatar { width: 40px !important; height: 40px !important; }
+  /* Signed out: no bell / guest avatar — the Sign In button takes their place. */
+  .app-shell .topbar .top-actions:not(.is-signed-in) > .icon-button.has-alert,
+  .app-shell .topbar .top-actions:not(.is-signed-in) > .profile-menu { display: none !important; }
+  .app-shell .topbar > .mobile-header-auth { order: 7; display: flex !important; align-items: center; gap: 6px; flex: 0 0 auto; }
+  .app-shell .topbar > .mobile-header-auth.is-signed-in,
+  .app-shell .topbar > .mobile-header-auth .join,
+  .app-shell .topbar > .mobile-header-auth .mobile-user-profile { display: none !important; }
+  .app-shell .topbar > .mobile-header-auth .mobile-sign-in { height: 40px; min-height: 40px; padding: 0 14px !important; white-space: nowrap; font-size: 13px; font-weight: 700; border-radius: 10px; }
+  /* The page's own action button gets its own full-width row. */
+  .app-shell .topbar .top-actions > :is(.seller-button, a.button, button.button) { order: 9; flex: 1 0 100%; width: 100%; min-height: 44px; display: grid !important; place-items: center; margin-top: 2px !important; border-radius: 12px; }
+}
+@media (max-width: 370px) {
+  .app-shell .topbar { gap: 4px !important; }
+  .app-shell .topbar > .mobile-header-brand img { height: 30px; }
+  .app-shell .topbar .top-actions > .language-switcher button { padding-inline: 6px; }
+}
+@media (max-width: 620px) {
+  /* A page filter box (orders / wallet / coaching) can't collapse to an icon — it gets its own row. */
+  .app-shell .topbar > .search-box:has(#pageSearch) { order: 8; flex: 1 0 100%; width: 100% !important; height: 42px !important; }
+  .app-shell .topbar > .search-box:has(#pageSearch) input { display: block !important; width: 100%; height: 100%; }
+}
+
+/* Phone header, every page (owner 2026-10-29: the market header wrapped into a second row of
+   EN/ქა, icons, avatar and a "/" search box). One row: menu, logo (shrinks), search icon, a compact
+   EN/ქა pill, then the bell + avatar (signed in) or Sign In. The seller button gets its own row. */
+@media (max-width: 620px) {
+  .app-shell .topbar > .mobile-header-brand { flex: 1 1 0; overflow: hidden; }
+  .app-shell .topbar > .search-box:not(.is-open) { position: relative; padding: 0; border: 1px solid rgba(116, 135, 174, 0.22); background: rgba(8, 13, 25, 0.82); overflow: hidden; }
+  .app-shell .topbar > .search-box .search-icon { position: relative; width: 38px; height: 38px; display: block; overflow: hidden; color: transparent; font-size: 0; }
+  .app-shell .topbar > .search-box .search-icon::before { content: ""; position: absolute; left: 11px; top: 10px; width: 12px; height: 12px; border: 2px solid #aeb6ca; border-radius: 50%; }
+  .app-shell .topbar > .search-box .search-icon::after { content: ""; position: absolute; left: 23px; top: 24px; width: 7px; height: 2px; border-radius: 999px; background: #aeb6ca; transform: rotate(47deg); transform-origin: left center; }
+  .app-shell .topbar > .search-box:not(.is-open) .search-open-btn { display: block; position: absolute; inset: 0; z-index: 2; border: 0; background: transparent; cursor: pointer; }
+  .app-shell .topbar > .search-box.is-open { position: fixed; z-index: 80; top: 12px; left: 10px; right: 10px; width: auto; height: 48px; display: flex; align-items: center; border: 1px solid rgba(255, 79, 171, .55); border-radius: 11px; background: #0b0a16; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
+  .app-shell .topbar > .search-box.is-open input { display: block; flex: 1; min-width: 0; height: 100%; padding-right: 8px; font-size: 16px; }
+  .app-shell .topbar > .search-box.is-open .search-close-btn { display: block; order: 3; flex: 0 0 auto; width: 40px; height: 40px; border: 0; color: #c9c4d6; background: transparent; font-size: 24px; cursor: pointer; }
+  /* Compact language pill: text only, no flags. */
+  .app-shell .topbar .top-actions > .language-switcher { gap: 2px; padding: 3px; }
+  .app-shell .topbar .top-actions > .language-switcher img { display: none !important; }
+  .app-shell .topbar .top-actions > .language-switcher button { min-width: 0; height: 32px; padding: 0 7px; gap: 0; font-size: 12px; }
+  .app-shell .topbar .top-actions > :is(.seller-button, a.button, button.button) { max-width: none; }
+  .app-shell .topbar > .mobile-header-auth .mobile-sign-in { padding: 0 10px !important; font-size: 12px; }
+}
+@media (max-width: 620px) {
+  .app-shell .topbar .top-actions > .language-switcher button { width: auto !important; flex: 0 0 auto; }
+}
+/* Home "Ready to level up" card: on phones its single column was sized by the heading's widest line,
+   pushing the text and button past the card's right edge (2026-10-29 sweep). */
+@media (max-width: 900px) {
+  .home-cta { grid-template-columns: minmax(0, 1fr); }
+  .home-cta > * { min-width: 0; max-width: 100%; }
+  .home-cta h2 { overflow-wrap: break-word; }
+}
+/* Phones: long game names ("CALL OF DUTY MOBILE") and the Coaches / Tournament panel headings were
+   cut to "PUBG…" / "საუკეთესო COAC…" — let them wrap onto a second line instead. */
+@media (max-width: 620px) {
+  .home-marketplace-game-info strong { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.15; overflow-wrap: anywhere; }
+  .competition-panel-title :is(h3, p) { white-space: normal; text-overflow: clip; overflow: visible; }
+}

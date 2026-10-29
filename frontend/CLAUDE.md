@@ -1324,3 +1324,19 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   - **Home banner photo on phones**: the frame takes the photo's shape (no crop).
   - **Footer**: the language control is the top bar's EN / ქა pill.
 
+
+## 2026-10-29 Phone header + visual sweep
+
+- **One phone header for every page (≤620px)**, at the end of `styles/global.css`: the topbar becomes
+  a single flex row — menu, logo (shrinks, `flex: 1 1 0`), a 40px search icon (tap opens the
+  full-width search overlay that used to exist only on home), a compact text-only EN/ქა pill, then
+  bell + avatar (signed in) or Sign In (signed out). Messages/cart/wallet icons are hidden there
+  (the bottom nav and menu carry them). The seller button and a page search (`#pageSearch`, e.g.
+  Orders/Wallet/Coaching) each take their own full-width second row. Bug that prompted it: the market
+  header wrapped into a second row of icons + avatar with a "/" text search box, and a round-5
+  `display:flex !important` on `.mobile-header-auth` showed a duplicate Sign In + avatar row for
+  signed-in users — don't force `.mobile-header-auth` visible; the block hides it when `.is-signed-in`.
+- Checked at 360/375 signed in and out on 19 pages: one header row, no horizontal overflow, no broken
+  images. Fixed in the same sweep: the home "Level ასაწევად?" card's column was sized by its heading
+  and ran past the card edge (`minmax(0,1fr)`), and long game names / the Coaches + Tournament panel
+  headings were cut with "…" on phones (now wrap to two lines).
