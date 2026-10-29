@@ -21475,6 +21475,96 @@ body.modal-open { overflow: hidden; }
   box-shadow: 0 0 28px rgba(229, 21, 127, .42);
 }
 
+/* Featured tournament: keep live tournament data visually consistent with the showcase. */
+.home-competition-section .featured-tournament {
+  border-color: rgba(211, 77, 185, .42);
+  background: linear-gradient(155deg, rgba(17, 12, 31, .98), rgba(5, 8, 18, .99));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 18px 42px rgba(0, 0, 0, .22);
+}
+.home-competition-section .featured-tournament:hover {
+  border-color: rgba(255, 75, 173, .72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 22px 48px rgba(0, 0, 0, .3), 0 0 24px rgba(203, 48, 182, .1);
+}
+.home-competition-section .tournament-cover {
+  background-position: center;
+  border-bottom: 1px solid rgba(202, 105, 206, .2);
+}
+.home-competition-section .tournament-copy > p {
+  max-width: calc(100% - 52px);
+  min-height: 27px;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 8px;
+  background: rgba(7, 8, 19, .62);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+  backdrop-filter: blur(7px);
+}
+.home-competition-section .featured-tournament-game {
+  flex: 0 1 auto;
+  overflow: hidden;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .7);
+  white-space: nowrap;
+}
+.home-competition-section .featured-tournament-tag {
+  flex: 0 0 auto;
+  margin-left: 0;
+  border-color: rgba(244, 152, 222, .42);
+  border-radius: 5px;
+  background: rgba(105, 38, 125, .35);
+  color: #f8eafa;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.home-competition-section .tournament-copy dl > div {
+  position: relative;
+}
+.home-competition-section .tournament-copy dd {
+  overflow: hidden;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-competition-section .tournament-copy .tour-register {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100% - 54px);
+  overflow: hidden;
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 560px) {
+  .home-page .featured-tournament { overflow: hidden; }
+  .home-page .home-competition-section .tournament-copy > p {
+    box-sizing: border-box;
+    max-width: calc(100% - 20px);
+    min-height: 25px;
+    padding: 4px 6px;
+  }
+  .home-page .featured-tournament-game { font-size: 12px; }
+  .home-page .featured-tournament-tag { padding: 3px 6px; font-size: 9px; }
+  .home-page .tournament-copy dl > div { min-width: 0; }
+  .home-page .tournament-copy dd { font-size: 11px; }
+  .home-page .home-competition-section .tournament-copy .tour-register {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 14px;
+  }
+}
+
 /* Admin → Banners grouped by placement (2026-10-07). */
 .ab-group { display: grid; gap: 12px; margin-top: 18px; }
 .ab-group > h2 { margin: 0; color: #f3eff8; font-size: 16px; }
