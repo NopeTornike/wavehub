@@ -340,8 +340,6 @@ export default function ListingDetail() {
               / {kindLabel} / {listing.title}
             </nav>
 
-            <EscrowExplainer kind={kind} />
-
             <div className="detail-title-block">
               <p className="section-kicker" id="detailKicker">
                 {`${kindLabel} — დეტალები`}
@@ -751,6 +749,7 @@ export default function ListingDetail() {
             </Link>
           </section>
         </article>
+        <EscrowExplainer kind={kind} />
       </section>
       <PurchaseConfirmModal open={confirmOpen} items={[{ title: listing.title, imageUrl: hero?.url, detail: [listing.game?.name, selectedPackage?.name].filter(Boolean).join(' · ') }]} subtotal={quote?.priceWaveCoin ?? price ?? 0} fee={quote?.feeWaveCoin ?? 0} feePercent={quote?.feePercent} total={payTotal ?? 0} busy={purchasing} onCancel={() => setConfirmOpen(false)} onConfirm={() => void completePurchase()} />
     </Layout>

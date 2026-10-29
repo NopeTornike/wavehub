@@ -9,9 +9,11 @@ export const ONLINE_WINDOW_MINUTES = 5;
 // Mirrors the static prototype's profile-nav.js `getWaveRankMetrics` weights exactly — the only
 // difference is the inputs: real listings/orders/reviews rows instead of localStorage.
 const WEIGHTS = { listing: 15, sold: 60, bought: 20, review: 25, recentEvent: 75 };
-const PROGRESS_CAP = 500;
-const ACTIVITY_CAP = 500;
-const SCORE_CAP = 1000;
+// Promotion now needs three times the earned activity. The underlying actions retain their
+// readable weights; tier thresholds and their matching caps are tripled instead.
+const PROGRESS_CAP = 1500;
+const ACTIVITY_CAP = 1500;
+const SCORE_CAP = 3000;
 
 export function computeWaveRank(counts: {
   listings: number;

@@ -1637,7 +1637,7 @@ export interface GameListingCount {
 }
 
 export interface WaveRank {
-  score: number; // 0..1000
+  score: number; // 0..3000
   tierIndex: number; // 0..9, index into WAVE_RANK_TIERS
   name: string;
   nextName: string;
@@ -1649,9 +1649,9 @@ export interface WaveRank {
 // `waveRanks`). Each tier has an icon: /assets/rank-icons/rank-<n>.png, n = tier index + 1
 // (Tornike's rank-icon art, in the same order).
 export const WAVE_RANK_TIERS: ReadonlyArray<readonly [string, number]> = [
-  ['Starter', 0], ['Bronze Core', 70], ['Silver Vanguard', 140], ['Gold Sovereign', 220],
-  ['Platinum Sentinel', 320], ['Diamond Ascendant', 440], ['Obsidian Warlord', 580],
-  ['Crimson Monarch', 720], ['Mythic Prime', 860], ['WaveHub Apex', 1000],
+  ['Starter', 0], ['Bronze Core', 210], ['Silver Vanguard', 420], ['Gold Sovereign', 660],
+  ['Platinum Sentinel', 960], ['Diamond Ascendant', 1320], ['Obsidian Warlord', 1740],
+  ['Crimson Monarch', 2160], ['Mythic Prime', 2580], ['WaveHub Apex', 3000],
 ];
 
 // The prototype's previous tier names, so an old string still finds its icon.
