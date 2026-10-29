@@ -964,7 +964,9 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
   const subtitle = banner.subtitle?.trim()
   const link = banner.linkUrl
   const external = !!link && !link.startsWith('/')
-  const button = link && banner.buttonLabel?.trim()
+  // Video links use the entire banner as their trigger, without a persistent CTA on top.
+  const isVideoLink = !!link && /(?:youtu\.be\/|youtube\.com\/|vimeo\.com\/|\.(?:mp4|webm)(?:[?#]|$))/i.test(link)
+  const button = !isVideoLink && link && banner.buttonLabel?.trim()
   const copy =
     title || subtitle || button ? (
       <span className="hero-banner-copy">

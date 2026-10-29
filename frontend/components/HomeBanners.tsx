@@ -4,6 +4,10 @@ import type { PublicBanner } from '@wavehub/shared-types'
 import { BannerPlacement } from '@wavehub/shared-types'
 import { api } from '../lib/api'
 
+function isVideoLink(url: string | null | undefined) {
+  return !!url && /(?:youtu\.be\/|youtube\.com\/|vimeo\.com\/|\.(?:mp4|webm)(?:[?#]|$))/i.test(url)
+}
+
 // Live CMS banners for one placement (Admin → Banners, backend/src/marketing/) — only ones with an
 // image. Shared by the strips below and the home page's top hero.
 export function useBanners(placement: BannerPlacement): PublicBanner[] {
@@ -42,8 +46,8 @@ export default function HomeBanners({ placement = BannerPlacement.HomeStrip }: {
   if (banners.length === 0) return null
   const b = banners[Math.min(index, banners.length - 1)]
   const internal = b.linkUrl?.startsWith('/')
-  // A button only when button text was entered; a link without one makes the whole banner a link.
-  const cta = b.linkUrl && b.buttonLabel?.trim()
+  // Video banners are opened by clicking the whole banner; their CTA must not remain over the video.
+  const cta = !isVideoLink(b.linkUrl) && b.linkUrl && b.buttonLabel?.trim()
   const wholeLink = b.linkUrl && !cta ? b.linkUrl : null
   const hasText = !!(b.title?.trim() || b.subtitle?.trim() || cta)
 
