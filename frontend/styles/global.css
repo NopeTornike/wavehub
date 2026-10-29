@@ -21843,7 +21843,9 @@ body.modal-open { overflow: hidden; }
 /* Support tickets in the site's message-chat look (components/ChatThread, owner 2026-10-07). On the
    messages page the shell frames the thread; elsewhere it carries its own card. */
 .chat-thread { display: grid; grid-template-rows: auto minmax(260px, auto) auto auto; overflow: hidden; border: 1px solid rgba(139, 155, 190, .17); border-radius: 16px; background: linear-gradient(180deg, rgba(14, 12, 28, .96), rgba(8, 8, 18, .98)); }
-.chat-thread .direct-message-history { max-height: 62vh; overflow-y: auto; }
+/* Do not bottom-align a scrollable support history: on phones that puts early messages in
+   negative overflow, making the top of a long ticket impossible to reach. */
+.chat-thread .direct-message-history { min-height: 0; max-height: 62vh; overflow-y: auto; justify-content: flex-start; }
 .chat-thread > header { padding: 14px 16px; }
 .chat-head-logo { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px rgba(255, 79, 171, .75), 0 0 14px rgba(229, 21, 127, .35); }
 .chat-logo-avatar { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1.5px rgba(255, 79, 171, .6); }
