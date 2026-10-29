@@ -16392,6 +16392,8 @@ body.seller-profile-open { overflow: hidden; }
 .language-switcher button.is-active { color: #fff; background: rgba(242, 64, 155, .2); box-shadow: inset 0 0 0 1px rgba(247, 89, 180, .36); }
 .language-switcher img { width: 17px; height: 12px; object-fit: cover; border-radius: 2px; }
 .language-switcher-floating { position: fixed; z-index: 60; top: max(12px, env(safe-area-inset-top)); right: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+/* The footer's grid column is intentionally flexible; keep its language control content-sized. */
+.site-footer-bottom > .language-switcher { width: fit-content; justify-self: end; }
 
 @media (max-width: 1040px) {
   .site-footer-main { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 38px 54px; }
@@ -16412,6 +16414,7 @@ body.seller-profile-open { overflow: hidden; }
   .site-footer-socials > span { display: none; }
   .site-footer-socials a { width: 36px; height: 36px; }
   .site-footer-language { justify-self: center; }
+  .site-footer-bottom > .language-switcher { justify-self: center; }
 }
 
 /* Coach detail: final responsive guardrails. */
