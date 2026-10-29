@@ -1,7 +1,7 @@
 // "How it works" steps (marketplace / services "როგორ მუშაობს Escrow?", coaching guide).
 // Redesigned 2026-10-29 (owner: "make it beautiful, with icons"): an icon tile per step joined by a
 // glowing line — a row on desktop, a vertical timeline on phones — plus an optional one-line note.
-export type StepIcon = 'click' | 'form' | 'review' | 'publish' | 'wait' | 'image' | 'package' | 'search' | 'calendar' | 'card' | 'star'
+export type StepIcon = 'click' | 'form' | 'review' | 'publish' | 'wait' | 'image' | 'package' | 'search' | 'calendar' | 'card' | 'star' | 'lock' | 'send' | 'key'
 
 const PATHS: Record<StepIcon, JSX.Element> = {
   click: (
@@ -66,6 +66,39 @@ const PATHS: Record<StepIcon, JSX.Element> = {
     </>
   ),
   star: <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />,
+  lock: (
+    <>
+      <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2" />
+    </>
+  ),
+  send: <path d="M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5z" />,
+  key: (
+    <>
+      <circle cx="8" cy="15" r="4.5" />
+      <path d="m11.2 11.8 8.3-8.3M16.5 6.5l2.5 2.5M14 9l2 2" />
+    </>
+  ),
+}
+
+// The icon timeline on its own (also used by the listing page's escrow box).
+export function StepTimeline({ steps }: { steps: Array<{ text: string; icon: StepIcon }> }) {
+  return (
+    <ol className="how-list" style={{ ['--how-count' as string]: steps.length }}>
+      {steps.map((step, index) => (
+        <li key={step.text}>
+          <span className="how-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">{PATHS[step.icon]}</svg>
+            <b>{index + 1}</b>
+          </span>
+          <span className="how-text">
+            <small>ნაბიჯი {index + 1}</small>
+            <strong>{step.text}</strong>
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
 }
 
 export default function StepsGuide({
@@ -84,7 +117,7 @@ export default function StepsGuide({
   id: string
 }) {
   return (
-    <section className="how-steps" aria-labelledby={id} style={{ ['--how-count' as string]: steps.length }}>
+    <section className="how-steps" aria-labelledby={id}>
       <header className="how-head">
         <span className="how-badge" aria-hidden="true">
           <svg viewBox="0 0 24 24">{PATHS.wait}</svg>
@@ -96,20 +129,7 @@ export default function StepsGuide({
           {subtitle && <p>{subtitle}</p>}
         </div>
       </header>
-      <ol className="how-list">
-        {steps.map((step, index) => (
-          <li key={step.text}>
-            <span className="how-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">{PATHS[step.icon]}</svg>
-              <b>{index + 1}</b>
-            </span>
-            <span className="how-text">
-              <small>ნაბიჯი {index + 1}</small>
-              <strong>{step.text}</strong>
-            </span>
-          </li>
-        ))}
-      </ol>
+      <StepTimeline steps={steps} />
       {note && (
         <p className="how-note">
           <svg viewBox="0 0 24 24" aria-hidden="true">

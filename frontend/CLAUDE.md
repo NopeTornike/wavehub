@@ -1348,3 +1348,6 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - **Card tap on phones**: under `(hover: none)` the hover lift (`translateY`) on cards is off (a tap
   left it "stuck" and the lifted card's top border was clipped by its scrolling row); cards scale
   to .98 while pressed instead. The home game / Steam / coach rows got 6px headroom for desktop lifts.
+- **Listing-page escrow box** (`EscrowExplainer`) now renders the same `StepTimeline` (exported
+  from `StepsGuide.tsx`) — the old `.ex-steps` grid had several competing phone rules and on live
+  phones squeezed each step into a sliver, one letter per line (owner screenshot 2026-10-25).

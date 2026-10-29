@@ -22852,3 +22852,16 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   :is(.about-explore-button, .cl-card, .coach-card, .coach-similar-card, .competition-button, .contact-details-grid > a, .faq-support-banner a, .featured-coach, .featured-item-card, .game-card, .home-explore-grid > a, .home-featured-card, .home-marketplace-game-card, .home-steam-card, .listing-card, .marketplace-card, .product-showcase-card, .public-review-card, .service-card, .sg-card, .tournament-card, .save-button, .profile-record-card):hover { transform: none !important; }
   :is(.cl-card, .coach-card, .featured-coach, .featured-item-card, .game-card, .home-explore-grid > a, .home-featured-card, .home-marketplace-game-card, .home-steam-card, .listing-card, .marketplace-card, .product-showcase-card, .service-card, .sg-card, .tournament-card):active { transform: scale(.98) !important; transition: transform .12s; }
 }
+/* The listing page's escrow box uses the same timeline (StepTimeline). */
+.how-list svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ex-box > .how-list { margin: 8px 0 4px; }
+@media (max-width: 620px) { .ex-box > .how-list { margin-top: 4px; } }
+/* Listing sidebar seller stats: in the narrow desktop right column the icon + text pair left the
+   label ~56px wide, one syllable per line (2026-10-29 sweep). Stack the icon above the number there. */
+@media (min-width: 901px) {
+  .detail-buy-panel .ld-stat { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px; }
+  .detail-buy-panel .ld-stat-icon { width: 36px; height: 36px; border-radius: 10px; }
+  .detail-buy-panel .ld-stat-icon svg { width: 20px; height: 20px; }
+  .detail-buy-panel .ld-stat strong { font-size: 20px; }
+  .detail-buy-panel .ld-stat :is(span, small) { overflow-wrap: break-word; }
+}
