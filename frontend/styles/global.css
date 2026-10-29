@@ -22865,3 +22865,8 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .detail-buy-panel .ld-stat strong { font-size: 20px; }
   .detail-buy-panel .ld-stat :is(span, small) { overflow-wrap: break-word; }
 }
+/* Profile record cards on phones: the date / length / price line was cut to "… / 19 …", hiding the
+   price — let it wrap (2026-10-29). */
+@media (max-width: 620px) {
+  .profile-record-card .profile-record-copy small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.35; }
+}
