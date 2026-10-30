@@ -22969,6 +22969,8 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
    price — let it wrap (2026-10-29). */
 @media (max-width: 620px) {
   .profile-record-card .profile-record-copy small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.35; }
+}
+
 /* Bank of Georgia payment branding: constrained so it remains legible without crowding payment CTAs. */
 .bog-checkout-brand { display: inline-flex; align-items: center; justify-content: center; gap: 9px; max-width: 100%; vertical-align: middle; }
 .bog-checkout-brand img { width: min(148px, 42vw); height: 25px; border-radius: 4px; object-fit: contain; }
@@ -23041,3 +23043,66 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 }
 /* The Bank of Georgia logo has grey lettering: on the pink pay button it needs its own white tag. */
 .bog-checkout-brand img { box-sizing: content-box; height: 22px; padding: 4px 8px; border-radius: 6px; background: #fff; }
+
+/* Purchase confirm window in the site's icon style (2026-10-30): drawn icons like the escrow guide
+   instead of emoji, green "protected" note, shield badge. */
+.purchase-confirm-modal svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.purchase-confirm-modal { border: 1px solid rgba(255, 79, 171, .5); border-radius: 24px; gap: 18px; padding: 32px 34px; }
+.purchase-confirm-close { display: grid; place-items: center; top: 16px; right: 16px; width: 36px; height: 36px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 11px; background: rgba(255, 255, 255, .04); color: #c9cbe0; line-height: 1; transition: background .15s, color .15s; }
+.purchase-confirm-close:hover { background: rgba(255, 79, 171, .16); color: #fff; }
+.purchase-confirm-close svg { width: 18px; height: 18px; }
+.purchase-confirm-icon { width: 56px; height: 56px; border-radius: 16px; color: #fff; background: linear-gradient(135deg, #ff2f8f, #7b3df5); box-shadow: 0 8px 22px rgba(255, 47, 143, .35); }
+.purchase-confirm-icon svg { width: 28px; height: 28px; }
+.purchase-confirm-items li { border-color: rgba(255, 79, 171, .18); background: linear-gradient(160deg, rgba(255, 47, 143, .07), rgba(123, 61, 245, .05)), #0e0b1c; }
+.purchase-confirm-items img, .purchase-confirm-placeholder { width: 64px; height: 64px; border-radius: 14px; }
+.purchase-confirm-placeholder { border: 1px solid rgba(255, 79, 171, .45); color: #ff6fb8; background: linear-gradient(160deg, rgba(255, 47, 143, .2), rgba(123, 61, 245, .14)), #120d22; }
+.purchase-confirm-placeholder svg { width: 28px; height: 28px; }
+.purchase-confirm-escrow { align-items: center; gap: 10px; border-color: rgba(76, 227, 155, .22); background: rgba(76, 227, 155, .07); color: #cfeee0; font-size: 13px; line-height: 1.45; padding: 11px 14px; }
+.purchase-confirm-escrow svg { flex: 0 0 auto; width: 22px; height: 22px; color: #4ce39b; }
+.purchase-confirm-actions button { min-height: 54px; border-color: rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .04); transition: transform .15s, box-shadow .15s, background .15s; }
+.purchase-confirm-actions button:first-child:hover:not(:disabled) { background: rgba(255, 255, 255, .09); }
+.purchase-confirm-actions button:last-child { border: 0; background: linear-gradient(90deg, #ff2f8f, #a23df5); }
+.purchase-confirm-actions button:last-child:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 30px rgba(242, 38, 150, .42); }
+@media (max-width: 560px) {
+  .purchase-confirm-modal { padding: 24px 18px 18px; border-radius: 20px; }
+  .purchase-confirm-icon { width: 46px; height: 46px; border-radius: 13px; }
+  .purchase-confirm-icon svg { width: 23px; height: 23px; }
+  .purchase-confirm-items img, .purchase-confirm-placeholder { width: 52px; height: 52px; }
+  .purchase-confirm-escrow { font-size: 12.5px; }
+  .purchase-confirm-actions button { min-height: 50px; }
+}
+.purchase-confirm-backdrop { overflow-y: auto; overscroll-behavior: contain; z-index: 1000; }
+.purchase-confirm-modal { margin: auto; }
+.purchase-confirm-escrow > span { color: inherit; font-size: inherit; line-height: inherit; }
+.purchase-confirm-price > div > span { min-width: 0; }
+.purchase-confirm-price > div > strong { flex: 0 0 auto; white-space: nowrap; }
+@media (max-width: 560px) {
+  .purchase-confirm-backdrop { place-items: start center; padding: 14px 12px; }
+  .purchase-confirm-modal h2 { font-size: 21px; }
+  .purchase-confirm-price .purchase-confirm-total { font-size: 16px; }
+  .purchase-confirm-price .purchase-confirm-total strong { font-size: 21px; }
+}
+
+/* Wallet top-up / withdraw cards on desktop (2026-10-30): the old five-column wallet grid scattered
+   the stacked card design and pushed the pay button onto its own row. Head + security note on top,
+   amount / presets / total + pay below. Phones keep the single column. */
+@media (min-width: 901px) {
+  .wallet-page .wallet-buy-panel.wb-topup {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "head secure secure" "amount quick total" "amount quick pay" "status status status";
+    align-items: center;
+    gap: 14px 18px;
+    padding: 22px 24px;
+  }
+  .wb-topup > .wb-head { grid-area: head; }
+  .wb-topup > .wb-secure { grid-area: secure; }
+  .wb-topup > .wb-amount { grid-area: amount; align-self: center; }
+  .wb-topup > .wb-quick { grid-area: quick; }
+  .wb-topup > .wb-total { grid-area: total; align-self: end; }
+  .wb-topup > .wb-pay { grid-area: pay; align-self: start; width: 100%; }
+  .wb-topup > .seller-status { grid-area: status; }
+  .wb-topup > .seller-status:empty { display: none; }
+  .wallet-page .wallet-buy-panel.wb-withdraw { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(180px, auto); align-items: end; gap: 14px 18px; padding: 22px 24px; }
+  .wb-withdraw > .wb-head, .wb-withdraw > .seller-status { grid-column: 1 / -1; }
+  .wb-withdraw > .seller-status:empty { display: none; }
+}

@@ -121,6 +121,13 @@ section wins.
   "My Profile" link kept from ours; Verified Status dropped), Wave Rank tiers ×3 (XP goal 3000) and
   max 3 featured coaches (Admin → Coaches shows n/3). Kept ours: Footer language pill wrapper,
   MyListings `id` prop (`/profile#profileListings`), phone search suggestions now `overflow: visible`.
+  **Follow-up the same day:** the merge dropped one `}` closing a `@media (max-width: 620px)` block,
+  so every rule after it (Tornike's BOG / video banner / purchase-confirm CSS) was phone-only and
+  the confirm window was unstyled on desktop. Fixed, and `npm run lint -w frontend` now also runs
+  `scripts/check-css-braces.mjs`, which fails on an unclosed or extra brace in `global.css`. The
+  confirm window is rendered on `<body>` via a portal (the `.app-shell` layer sat under the phone
+  bottom bar), uses drawn SVG icons instead of emoji, and the wallet top-up / withdraw cards got a
+  desktop grid (`min-width: 901px`) instead of the old five-column wallet row.
 - **Admin → Statistics** (`pages/admin/analytics.tsx`, Super Admin only — the nav link is hidden for
   other roles and the API refuses them): date presets + custom range scoping the whole page, KPI
   tiles, a trend chart (`components/charts/TrendChart.tsx`: single series, crosshair tooltip,
