@@ -968,9 +968,9 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
   // only while the video is paused, so it never obscures active playback.
   const isVideoLink = !!link && /(?:youtu\.be\/|youtube\.com\/|vimeo\.com\/|\.(?:mp4|webm)(?:[?#]|$))/i.test(link)
   const button = !isVideoLink && link && banner.buttonLabel?.trim()
-  const videoCtaLabel = banner.buttonLabel?.trim() || 'ვიდეოს გაგრძელება'
   const [videoOpen, setVideoOpen] = useState(false)
   const [videoPlaying, setVideoPlaying] = useState(false)
+  const [videoControlVisible, setVideoControlVisible] = useState(false)
   const [muted, setMuted] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -978,9 +978,11 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
   const videoEmbed = (() => {
     if (!link || !isVideoLink) return null
     const youtube = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/.exec(link)
-    if (youtube) return { provider: 'youtube' as const, src: `https://www.youtube.com/embed/${youtube[1]}?autoplay=1&mute=1&playsinline=1&enablejsapi=1&rel=0` }
+    // The banner has its own sound and resume controls. Do not let an embedded player add a
+    // pause control over the video — it needs to stay equally clean on desktop and phones.
+    if (youtube) return { provider: 'youtube' as const, src: `https://www.youtube.com/embed/${youtube[1]}?autoplay=1&mute=1&playsinline=1&enablejsapi=1&controls=0&rel=0` }
     const vimeo = /vimeo\.com\/(?:video\/)?(\d+)/.exec(link)
-    if (vimeo) return { provider: 'vimeo' as const, src: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&playsinline=1` }
+    if (vimeo) return { provider: 'vimeo' as const, src: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&playsinline=1&controls=0` }
     return { provider: 'file' as const, src: link }
   })()
 
@@ -1007,7 +1009,6 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
     if (videoEmbed?.provider === 'youtube') iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*')
     if (videoEmbed?.provider === 'vimeo') iframeRef.current?.contentWindow?.postMessage({ method: 'play' }, '*')
   }
-
   // Native video reports its state directly. YouTube and Vimeo expose the same state through
   // postMessage, allowing their pause controls to restore the banner CTA as well.
   useEffect(() => {
@@ -1060,10 +1061,10 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
   const image = <img src={banner.imageUrl ?? ''} alt={title || 'WaveHubX'} />
   if (videoEmbed) {
     return (
-      <div className={`home-marketplace-cover hero-banner hero-video-banner${videoOpen ? ' is-playing' : ''}`}>
+      <div className={`home-marketplace-cover hero-banner hero-video-banner${videoOpen ? ' is-playing' : ''}${videoControlVisible ? ' show-video-control' : ''}`}>
         {videoOpen ? (
           videoEmbed.provider === 'file' ? (
-            <video ref={videoRef} className="hero-banner-video" src={videoEmbed.src} autoPlay muted={muted} loop playsInline controls onPlay={() => setVideoPlaying(true)} onPause={() => setVideoPlaying(false)} onEnded={() => setVideoPlaying(false)} />
+            <video ref={videoRef} className="hero-banner-video" src={videoEmbed.src} autoPlay muted={muted} loop playsInline onPlay={() => setVideoPlaying(true)} onPause={() => setVideoPlaying(false)} onEnded={() => setVideoPlaying(false)} />
           ) : (
             <iframe ref={iframeRef} className="hero-banner-video" src={videoEmbed.src} title={title || 'WaveHubX video'} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
           )
@@ -1087,9 +1088,12 @@ function HeroBanner({ banner }: { banner: PublicBanner }) {
           </button>
         )}
         {videoOpen && !videoPlaying && (
-          <button type="button" className="hero-video-resume" onClick={resumeVideo}>
-            {videoCtaLabel} <span aria-hidden="true">▶</span>
-          </button>
+          <>
+            <button type="button" className="hero-video-tap-target" aria-label="ვიდეოს კონტროლების ჩვენება" onClick={() => setVideoControlVisible(true)} />
+            <button type="button" className="hero-video-control" aria-label="ვიდეოს გაგრძელება" onClick={resumeVideo}>
+              <span aria-hidden="true">▶</span>
+            </button>
+          </>
         )}
       </div>
     )
