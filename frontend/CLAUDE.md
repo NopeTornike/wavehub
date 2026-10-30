@@ -109,6 +109,18 @@ section wins.
   icon; direct messages render as rows with avatar + sender/time meta (his "Seen" marker omitted:
   messages carry no read time); home `.top-actions.is-signed-in`; review cards show the reviewer's
   real Wave rank (`PublicReview.buyerRank`).
+- **Tornike's `main` merged directly (2026-10-30, up to `a024284`)** — he now edits this Next app
+  on `main` (not the prototype), so his commits are merged, not hand-ported. Took: purchase confirm
+  modal (`components/PurchaseConfirmModal.tsx`, display-only, before `api.purchase`/cart checkout),
+  BOG logo on wallet pay + coaching booking (`public/assets/bog-logo.png`, white tag via
+  `.bog-checkout-brand img`), hero banners embedding a YouTube/Vimeo/file link (only when the banner
+  has no uploaded video; host check `(^|\.)youtube\.com$`), a separate mute button beside the big
+  play button (`.hero-video-sound`), no static home cover when no banner exists, sidebar order
+  (Home, Dashboard, Messages, Marketplace, Coaching, Tournaments, Services, Steam Keys, Cart,
+  Favorites, Settings), profile menu as one group (Admin Panel, live-chat support and the public
+  "My Profile" link kept from ours; Verified Status dropped), Wave Rank tiers ×3 (XP goal 3000) and
+  max 3 featured coaches (Admin → Coaches shows n/3). Kept ours: Footer language pill wrapper,
+  MyListings `id` prop (`/profile#profileListings`), phone search suggestions now `overflow: visible`.
 - **Admin → Statistics** (`pages/admin/analytics.tsx`, Super Admin only — the nav link is hidden for
   other roles and the API refuses them): date presets + custom range scoping the whole page, KPI
   tiles, a trend chart (`components/charts/TrendChart.tsx`: single series, crosshair tooltip,

@@ -120,6 +120,8 @@ describe('client round 3 (e2e)', () => {
     const a = await makeCoach('r3ordera');
     const b = await makeCoach('r3orderb');
     const c = await makeCoach('r3orderc');
+    // The home row holds at most three featured coaches; specs share one database.
+    await ctx.dataSource.query(`UPDATE coaches SET "isFeatured" = false, "homeOrder" = NULL`);
     for (const coach of [a, b, c]) {
       expect((await admin.client.post(`/admin/coaches/${coach.coachId}/featured`, { isFeatured: true })).status).toBe(200);
     }
@@ -132,12 +134,15 @@ describe('client round 3 (e2e)', () => {
     expect(mineOnly).toEqual([c.coachId, a.coachId, b.coachId]);
     // Not-featured ids and duplicates are refused.
     const d = await makeCoach('r3orderd');
+    // A fourth featured coach is refused (Tornike 2026-10-29: the home row is three cards).
+    expect((await admin.client.post(`/admin/coaches/${d.coachId}/featured`, { isFeatured: true })).status).toBe(409);
     expect((await admin.client.post('/admin/coach-home-order', { ids: [d.coachId] })).status).toBe(400);
     expect((await admin.client.post('/admin/coach-home-order', { ids: [a.coachId, a.coachId] })).status).toBe(400);
     // Un-featuring clears the position.
     await admin.client.post(`/admin/coaches/${c.coachId}/featured`, { isFeatured: false });
     const [{ homeOrder }] = await ctx.dataSource.query(`SELECT "homeOrder" FROM coaches WHERE id = $1`, [c.coachId]);
     expect(homeOrder).toBeNull();
+    for (const coach of [a, b]) await admin.client.post(`/admin/coaches/${coach.coachId}/featured`, { isFeatured: false });
   });
 
   it('admin dashboard registration counts: any staff role, counts only', async () => {

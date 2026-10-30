@@ -377,8 +377,10 @@ account stays. Audited (`coach.delete`, with username/status).
 - **Featured coaches (#2)**: `coaches.isFeatured` (same migration as the fee).
   - `POST admin/coaches/:id/featured {isFeatured}` (`COACH_MANAGEMENT_ROLES`), audited as
     `coach.feature` / `coach.unfeature`.
+  - At most **three** active, verified coaches may be featured; the server enforces the limit and
+    the Admin → Coaches UI shows the current `n/3` selection.
   - `GET coaches?featured=true` returns only those; browse orders `isFeatured DESC` first.
-  - The home coach section asks for featured coaches and falls back to the normal list when none
+  - The home coach section asks for up to those three featured coaches and falls back to the normal list when none
     are featured.
 - **Badges**: approve / restore → `BadgesService.onCoachVerified`; reject / suspend / delete →
   `onCoachUnverified`. Coaches grant student badges through `backend/src/badges/`.

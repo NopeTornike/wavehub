@@ -351,7 +351,16 @@ export default function Wallet() {
             <strong id="walletBuyTotal">{Number.isFinite(amount) ? amount : 0} GEL</strong>
           </div>
           <button className="cart-checkout-button wb-pay" id="buyWavecoinButton" type="submit" disabled={submitting}>
-            <span>{submitting ? 'გადამისამართება…' : checked && !user ? 'შესვლა და შევსება' : 'გადახდა Bank of Georgia-ით'}</span>
+            {submitting ? (
+              <span>გადამისამართება…</span>
+            ) : checked && !user ? (
+              <span>შესვლა და შევსება</span>
+            ) : (
+              <span className="bog-checkout-brand">
+                <span>გადახდა</span>
+                <img src="/assets/bog-logo.png" alt="Bank of Georgia" />
+              </span>
+            )}
             <b aria-hidden="true">→</b>
           </button>
           <p className={`seller-status${topupStatus.kind ? ` ${topupStatus.kind}` : ''}`} id="walletStatus" aria-live="polite">

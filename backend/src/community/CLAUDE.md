@@ -29,8 +29,9 @@ a request.
 - "Online" = a guarded request within 5 minutes, accounts `active` or `pending_verification`
   (suspended/banned never count). It's a real signal, not a decoration (root rule #6) — a signed-out
   visitor browsing doesn't count.
-- Wave rank mirrors `profile-nav.js#getWaveRankMetrics` weights exactly (listing 15, sold 60,
-  bought 20, review 25, recent-30-day event 75; progress cap 500, activity cap 500, score cap 1000);
+- Wave rank uses the prototype's action weights (listing 15, sold 60, bought 20, review 25,
+  recent-30-day event 75), but promotion is deliberately **three times harder**: progress and
+  activity caps are 1500 each, score cap is 3000, and every tier threshold is tripled;
   tiers are `WAVE_RANK_TIERS` in shared-types. Only the inputs changed (real rows).
 - Seller ranks are cached per process for 60s (every marketplace view asks for them).
 - Reviews count only `status = 'published'` (the reviews module's real value — an earlier draft used

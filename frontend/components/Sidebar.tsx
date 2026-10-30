@@ -5,14 +5,10 @@ import { useAuth } from '../lib/auth'
 import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
 
-// The static prototype's sidebar (profile-nav.js#standardizeNavigation + the marketplace game
-// menu), item-for-item: same order, icons, labels and the Marketplace flyout listing games. Real
+// The sidebar's owner-defined navigation order plus the Marketplace flyout listing games. Real
 // data behind it: the game list is the games table (GET /stats/games), the Messages pill is the real
 // unread direct-message count, the Cart pill is the cart, and "N online" counts accounts seen in
-// the last few minutes (backend/src/community/) instead of the prototype's random number. Staff
-// accounts get one extra "Admin" entry at the end — the admin panel has no prototype equivalent.
-// Order (owner 2026-10-15): Home, Dashboard, Marketplace, Services, Steam Keys, Coaching,
-// Tournaments, About Us, Messages, Wallet, Cart, Favorites. Subscriptions are in the profile menu.
+// the last few minutes (backend/src/community/) instead of the prototype's random number.
 /* eslint-disable @next/next/no-img-element */
 
 type NavItem = {
@@ -27,6 +23,7 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { id: 'index', label: 'Home', href: '/', icon: 'home-icon.svg', iconClass: 'nav-icon-home', match: (p) => p === '/' },
+  { id: 'messages', label: 'Messages', href: '/messages', icon: 'sidebar-message-icon.svg', iconClass: 'nav-icon-messages', count: 'message', match: (p) => p.startsWith('/messages') },
   {
     id: 'marketplace',
     label: 'Marketplace',
@@ -35,16 +32,13 @@ const NAV: NavItem[] = [
     iconClass: 'nav-icon-marketplace',
     match: (p) => p === '/marketplace' || p.startsWith('/listings'),
   },
-  // Services have their own page (client feedback #7).
-  { id: 'services', label: 'Services', href: '/services', icon: 'active-services-icon.svg', iconClass: 'nav-icon-marketplace', match: (p) => p === '/services' || p.startsWith('/sell/services') },
-  { id: 'steam-keys', label: 'Steam Keys', href: '/steam-keys', icon: 'steam-logo.png', iconClass: 'steam-side-icon', match: (p) => p.startsWith('/steam-keys') || p.startsWith('/sell/digital-keys') },
   { id: 'coaching', label: 'Coaching', href: '/coaching', icon: 'sidebar-coaching-icon.svg', iconClass: 'nav-icon-coaching', match: (p) => p.startsWith('/coaching') },
   { id: 'tournaments', label: 'Tournaments', href: '/tournaments', icon: 'tournaments-icon.svg', iconClass: 'nav-icon-tournaments', match: (p) => p.startsWith('/tournaments') },
-  { id: 'about', label: 'About Us', href: '/about', icon: 'about-icon.svg', iconClass: 'nav-icon-about', match: (p) => p === '/about' },
-  { id: 'messages', label: 'Messages', href: '/messages', icon: 'sidebar-message-icon.svg', iconClass: 'nav-icon-messages', count: 'message', match: (p) => p.startsWith('/messages') },
-  { id: 'wallet', label: 'Wallet', href: '/wallet', icon: 'wallet-icon.svg', iconClass: 'nav-icon-wallet', match: (p) => p.startsWith('/wallet') },
+  { id: 'services', label: 'Services', href: '/services', icon: 'active-services-icon.svg', iconClass: 'nav-icon-marketplace', match: (p) => p === '/services' || p.startsWith('/sell/services') },
+  { id: 'steam-keys', label: 'Steam Keys', href: '/steam-keys', icon: 'steam-logo.png', iconClass: 'steam-side-icon', match: (p) => p.startsWith('/steam-keys') || p.startsWith('/sell/digital-keys') },
   { id: 'cart', label: 'Cart', href: '/cart', icon: 'sidebar-cart-icon.svg', iconClass: 'nav-icon-cart', count: 'cart', match: (p) => p.startsWith('/cart') },
   { id: 'favorites', label: 'Favorites', href: '/favorites', icon: 'favorites-icon.svg', iconClass: 'nav-icon-heart', match: (p) => p.startsWith('/favorites') },
+  { id: 'settings', label: 'Settings', href: '/profile', icon: 'settings-icon.svg', iconClass: 'nav-icon-about', match: (p) => p === '/profile' },
 ]
 
 // Signed-in only (docs/design-mockups/09).

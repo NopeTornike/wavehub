@@ -5,6 +5,11 @@ import { BannerPlacement } from '@wavehub/shared-types'
 import { api } from '../lib/api'
 import { BannerVideo, useBannerRotation, useSwipe } from './BannerSlides'
 
+// A link to a video (YouTube / Vimeo / a file): such a banner opens by tapping it, without a button.
+function isVideoLink(url: string | null | undefined) {
+  return !!url && /(?:youtu\.be\/|youtube\.com\/|vimeo\.com\/|\.(?:mp4|webm)(?:[?#]|$))/i.test(url)
+}
+
 // Live CMS banners for one placement (Admin → Banners, backend/src/marketing/) — only ones with a
 // photo or a video. Shared by the strips below and the home page's top hero.
 export function useBanners(placement: BannerPlacement): PublicBanner[] {
@@ -38,8 +43,9 @@ export default function HomeBanners({ placement = BannerPlacement.HomeStrip }: {
 
   if (!b) return null
   const internal = b.linkUrl?.startsWith('/')
-  // A button only when button text was entered; a link without one makes the whole banner a link.
-  const cta = b.linkUrl && b.buttonLabel?.trim()
+  // Video banners are opened by clicking the whole banner; their CTA must not remain over the video.
+  // (Tornike 2026-10-29: no CTA button over a video banner either.)
+  const cta = !b.videoUrl && !isVideoLink(b.linkUrl) && b.linkUrl && b.buttonLabel?.trim()
   const wholeLink = b.linkUrl && !cta ? b.linkUrl : null
   const hasText = !!(b.title?.trim() || b.subtitle?.trim() || cta)
   const video = b.videoUrl

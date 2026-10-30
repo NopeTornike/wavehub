@@ -107,6 +107,7 @@ describe('client feedback batch (e2e)', () => {
     expect(await audits('badge.revoke', buyer.id)).toBe(1);
 
     // Featured: staff-only, audited, and the home filter returns only featured coaches.
+    await ctx.dataSource.query(`UPDATE coaches SET "isFeatured" = false, "homeOrder" = NULL`);
     expect((await stranger.client.post(`/admin/coaches/${coachId}/featured`, { isFeatured: true })).status).toBe(403);
     expect((await ops.client.post(`/admin/coaches/${coachId}/featured`, { isFeatured: 'yes' })).status).toBe(400);
     expect((await ops.client.post(`/admin/coaches/${coachId}/featured`, { isFeatured: true })).status).toBe(200);

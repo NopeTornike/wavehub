@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ListingType } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
+import PurchaseConfirmModal from '../components/PurchaseConfirmModal'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useCart, type CartLine } from '../lib/cart'
@@ -30,6 +31,7 @@ export default function CartPage() {
   const [status, setStatus] = useState<{ kind: '' | 'error' | 'success' | 'pending'; text: string }>({ kind: '', text: '' })
   const [results, setResults] = useState<Result[]>([])
   const [busy, setBusy] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const lineIds = cart.lines.map((l) => l.listingId).join(',')
 
@@ -240,7 +242,7 @@ export default function CartPage() {
               <span aria-hidden="true">→</span>
             </Link>
           ) : (
-            <button className="cart-checkout-button" id="checkoutButton" type="button" disabled={busy || buyable.length === 0} onClick={checkout}>
+            <button className="cart-checkout-button" id="checkoutButton" type="button" disabled={busy || buyable.length === 0} onClick={() => setConfirmOpen(true)}>
               <span>{busy ? 'მუშავდება…' : 'გადახდაზე გადასვლა'}</span>
               <span aria-hidden="true">→</span>
             </button>
@@ -257,6 +259,20 @@ export default function CartPage() {
           </p>
         </aside>
       </section>
+      <PurchaseConfirmModal
+        open={confirmOpen}
+        items={buyable.map((line) => ({ title: line.title, quantity: line.quantity, imageUrl: gameCover(live[line.listingId]?.gameSlug, line.imageUrl), detail: [line.gameName, line.sellerUsername].filter(Boolean).join(' · ') }))}
+        subtotal={subtotal}
+        fee={fees}
+        feePercent={feePercents.length === 1 ? feePercents[0] : null}
+        total={total}
+        busy={busy}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false)
+          void checkout()
+        }}
+      />
     </Layout>
   )
 }

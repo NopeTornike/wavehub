@@ -221,9 +221,9 @@ export default function Home() {
     // Staff-featured coaches (Admin → Coaches, client feedback #2); the top-rated ones until staff
     // feature anyone.
     api
-      .browseCoaches({ featured: true, limit: 12 })
+      .browseCoaches({ featured: true, limit: 3 })
       .then(async (featuredRes) => {
-        if (featuredRes.items.length > 0) return featuredRes.items
+        if (featuredRes.items.length > 0) return featuredRes.items.slice(0, 3)
         const res = await api.browseCoaches({ limit: 12 })
         return [...res.items].sort((a, b) => Number(b.ratingAvg ?? 0) - Number(a.ratingAvg ?? 0) || b.ratingCount - a.ratingCount).slice(0, 3)
       })
@@ -399,18 +399,9 @@ export default function Home() {
       <div className="home-dashboard-grid">
         <div className="home-dashboard-main">
           <section className="content-section home-marketplace-showcase" aria-labelledby="home-marketplace-title">
-            {/* The top hero is a CMS banner when one is published at "home_hero" (owner 2026-10-07:
-                every banner editable from Admin → Banners); the built-in marketplace cover otherwise. */}
-            {hero ? (
-              <HeroBanner banner={hero} rotation={heroRotation} banners={heroBanners} />
-            ) : (
-              <Link className="home-marketplace-cover" href="/marketplace" aria-label="Explore the WaveHubX marketplace">
-                <img src="/assets/home-marketplace-cover.png" alt="WaveHubX neon gaming marketplace" />
-                <span className="mobile-cover-cta">
-                  დაათვალიერე <b aria-hidden="true">→</b>
-                </span>
-              </Link>
-            )}
+            {/* The top hero only renders a published CMS banner. The former static marketplace-cover
+                fallback was removed at the owner's request. */}
+            {hero && <HeroBanner banner={hero} rotation={heroRotation} banners={heroBanners} />}
 
             {/* The same services row on phones and desktop (owner 2026-10-15; phones had their own,
                 different list). */}
@@ -901,7 +892,7 @@ export default function Home() {
           <header className="how-hero">
             <p className="how-eyebrow">როგორ მუშაობს</p>
             <h1 id="howTitle">
-              ნახეთ, როგორ <em>WaveHubX</em> მუშაობს
+              ნახეთ როგორ მუშაობს <em>WaveHubX</em>.
             </h1>
             <p>შეეხეთ ეტაპს, რომ მეტი გაიგოთ თითოეულის შესახებ.</p>
           </header>
@@ -1018,8 +1009,90 @@ function HeroBanner({ banner, banners, rotation }: { banner: PublicBanner; banne
   const subtitle = banner.subtitle?.trim()
   const link = banner.linkUrl
   const external = !!link && !link.startsWith('/')
-  const button = link && banner.buttonLabel?.trim()
+  // Video links use the entire banner as their trigger; their CMS CTA becomes a resume action
+  // only while the video is paused, so it never obscures active playback.
+  // An uploaded video (banner.videoUrl) plays in the banner itself (BannerVideo) and wins over a link.
+  const isVideoLink = !banner.videoUrl && !!link && /(?:youtu\.be\/|youtube\.com\/|vimeo\.com\/|\.(?:mp4|webm)(?:[?#]|$))/i.test(link)
+  const button = !banner.videoUrl && !isVideoLink && link && banner.buttonLabel?.trim()
   const kicker = banner.kicker?.trim()
+  const videoCtaLabel = banner.buttonLabel?.trim() || 'ვიდეოს გაგრძელება'
+  const [videoOpen, setVideoOpen] = useState(false)
+  const [videoPlaying, setVideoPlaying] = useState(false)
+  const [muted, setMuted] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  const videoEmbed = (() => {
+    if (!link || !isVideoLink) return null
+    const youtube = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/.exec(link)
+    if (youtube) return { provider: 'youtube' as const, src: `https://www.youtube.com/embed/${youtube[1]}?autoplay=1&mute=1&playsinline=1&enablejsapi=1&rel=0` }
+    const vimeo = /vimeo\.com\/(?:video\/)?(\d+)/.exec(link)
+    if (vimeo) return { provider: 'vimeo' as const, src: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&playsinline=1` }
+    return { provider: 'file' as const, src: link }
+  })()
+
+  const toggleMute = () => {
+    const nextMuted = !muted
+    setMuted(nextMuted)
+    if (videoRef.current instanceof HTMLVideoElement) {
+      videoRef.current.muted = nextMuted
+      return
+    }
+    if (videoEmbed?.provider === 'youtube') {
+      iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: nextMuted ? 'mute' : 'unMute', args: [] }), '*')
+    }
+    if (videoEmbed?.provider === 'vimeo') {
+      iframeRef.current?.contentWindow?.postMessage({ method: 'setVolume', value: nextMuted ? 0 : 1 }, '*')
+    }
+  }
+  const resumeVideo = () => {
+    setVideoPlaying(true)
+    if (videoRef.current instanceof HTMLVideoElement) {
+      void videoRef.current.play()
+      return
+    }
+    if (videoEmbed?.provider === 'youtube') iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*')
+    if (videoEmbed?.provider === 'vimeo') iframeRef.current?.contentWindow?.postMessage({ method: 'play' }, '*')
+  }
+
+  // Native video reports its state directly. YouTube and Vimeo expose the same state through
+  // postMessage, allowing their pause controls to restore the banner CTA as well.
+  useEffect(() => {
+    if (!videoOpen || !videoEmbed || videoEmbed.provider === 'file') return
+    const onMessage = (event: MessageEvent) => {
+      let host = ''
+      try {
+        host = new URL(event.origin).hostname
+      } catch {
+        return
+      }
+      if (videoEmbed.provider === 'youtube' && /(^|\.)youtube\.com$/.test(host)) {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+          if (data?.event === 'onStateChange') setVideoPlaying(data.info === 1)
+        } catch {
+          // Ignore messages unrelated to the YouTube player.
+        }
+      }
+      if (videoEmbed.provider === 'vimeo' && /(^|\.)vimeo\.com$/.test(host) && event.data?.event) {
+        if (event.data.event === 'play') setVideoPlaying(true)
+        if (event.data.event === 'pause' || event.data.event === 'ended') setVideoPlaying(false)
+      }
+    }
+    window.addEventListener('message', onMessage)
+    const timer = window.setTimeout(() => {
+      if (videoEmbed.provider === 'youtube') iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), '*')
+      if (videoEmbed.provider === 'vimeo') {
+        iframeRef.current?.contentWindow?.postMessage({ method: 'addEventListener', value: 'play' }, '*')
+        iframeRef.current?.contentWindow?.postMessage({ method: 'addEventListener', value: 'pause' }, '*')
+        iframeRef.current?.contentWindow?.postMessage({ method: 'addEventListener', value: 'ended' }, '*')
+      }
+    }, 0)
+    return () => {
+      window.removeEventListener('message', onMessage)
+      window.clearTimeout(timer)
+    }
+  }, [videoOpen, videoEmbed?.provider])
   const copy =
     title || subtitle || button || kicker ? (
       <span className="hero-banner-copy">
@@ -1043,6 +1116,43 @@ function HeroBanner({ banner, banners, rotation }: { banner: PublicBanner; banne
           ))}
       </span>
     ) : null
+  const image = <img src={banner.imageUrl ?? ''} alt={title || 'WaveHubX'} />
+  if (videoEmbed) {
+    return (
+      <div className={`home-marketplace-cover hero-banner hero-video-banner${videoOpen ? ' is-playing' : ''}`}>
+        {videoOpen ? (
+          videoEmbed.provider === 'file' ? (
+            <video ref={videoRef} className="hero-banner-video" src={videoEmbed.src} autoPlay muted={muted} loop playsInline controls onPlay={() => setVideoPlaying(true)} onPause={() => setVideoPlaying(false)} onEnded={() => setVideoPlaying(false)} />
+          ) : (
+            <iframe ref={iframeRef} className="hero-banner-video" src={videoEmbed.src} title={title || 'WaveHubX video'} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
+          )
+        ) : (
+          <button
+            type="button"
+            className="hero-video-launch"
+            aria-label={`${title || 'ვიდეო'} გახსნა`}
+            onClick={() => {
+              setVideoPlaying(true)
+              setVideoOpen(true)
+            }}
+          >
+            {image}
+            <span className="hero-video-play" aria-hidden="true">▶</span>
+          </button>
+        )}
+        {videoOpen && (
+          <button type="button" className="hero-video-sound" aria-label={muted ? 'ხმის ჩართვა' : 'ხმის გამორთვა'} onClick={toggleMute}>
+            {muted ? '🔇' : '🔊'}
+          </button>
+        )}
+        {videoOpen && !videoPlaying && (
+          <button type="button" className="hero-video-resume" onClick={resumeVideo}>
+            {videoCtaLabel} <span aria-hidden="true">▶</span>
+          </button>
+        )}
+      </div>
+    )
+  }
   const wholeLink = link && !button ? link : null
   return (
     <div className={`home-marketplace-cover hero-banner${banner.videoUrl ? ' is-video' : ''}`} {...swipe}>

@@ -637,7 +637,26 @@ export class CoachesService {
   }
 
   async setFeatured(id: string, isFeatured: boolean): Promise<AdminCoachSummary> {
-    await this.getOrThrow(id);
+    const coach = await this.getOrThrow(id);
+    if (isFeatured && (coach.verificationStatus !== VerificationStatus.Verified || coach.status !== CoachStatus.Active)) {
+      throw new BadRequestException('Only active, verified coaches can appear on the home page');
+    }
+
+    // The home showcase is intentionally a three-card row. Keep the staff selection bounded here,
+    // rather than trusting only the admin UI, so every caller observes the same limit.
+    if (isFeatured && !coach.isFeatured) {
+      const featuredCount = await this.coaches.count({
+        where: {
+          isFeatured: true,
+          verificationStatus: VerificationStatus.Verified,
+          status: CoachStatus.Active,
+        },
+      });
+      if (featuredCount >= 3) {
+        throw new ConflictException('At most three coaches can be featured on the home page');
+      }
+    }
+
     await this.coaches.update(id, isFeatured ? { isFeatured } : { isFeatured, homeOrder: null });
     return this.toAdminSummary(await this.getOrThrow(id));
   }
