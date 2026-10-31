@@ -56,12 +56,20 @@ const MAX_IMAGE_BYTES = PHOTO_SOURCE_MAX_BYTES
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 type Status = { kind: '' | 'error' | 'success' | 'pending'; text: string }
+type SellerChoice = 'account' | 'item' | 'skin'
+
+const SELL_CHOICES: Array<{ kind: SellerChoice; title: string; description: string; image: string }> = [
+  { kind: 'account', title: 'გეიმინგ ანგარიში', description: 'გაყიდე შენი თამაშის ანგარიში უსაფრთხო ესქროუს საშუალებით.', image: '/assets/sell/account-card.png' },
+  { kind: 'item', title: 'თამაშის ნივთები', description: 'გაყიდე თამაშის ნივთები, რესურსები და სხვა.', image: '/assets/sell/items-card.png' },
+  { kind: 'skin', title: 'CS2 სკინები', description: 'გაყიდე CS2-ის იარაღის სკინები, დანები, ხელთათმანები და სხვა.', image: '/assets/sell/cs2-skins-card.png' },
+]
 
 export default function SellerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter()
   const { user } = useAuth()
   const { games } = useShell()
   const [categories, setCategories] = useState<PublicCategory[]>([])
+  const [stage, setStage] = useState<'choose' | 'form'>('choose')
   const [kind, setKind] = useState<'account' | 'skin' | 'item'>('account')
   const [gameSlug, setGameSlug] = useState('')
   const [title, setTitle] = useState('')
@@ -150,7 +158,10 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
   useEffect(() => {
     // A response to the modal closing, not derived state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!open) setPublished(null)
+    if (!open) {
+      setPublished(null)
+      setStage('choose')
+    }
   }, [open])
 
   // Draft: everything typed is kept in this browser until the listing is published, so leaving the
@@ -331,6 +342,55 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
     onChange: (event: { target: { value: string } }) => setAccess((current) => ({ ...current, [key]: event.target.value })),
   })
 
+  const chooseItem = (nextKind: SellerChoice) => {
+    setKind(nextKind)
+    // CS2 Skins is deliberately a CS2-only flow, not a generic skin form.
+    setGameSlug(nextKind === 'skin' ? 'cs2' : '')
+    setStage('form')
+  }
+
+  const chooseService = () => {
+    onClose()
+    void router.push('/sell/services?category=custom-gaming-services')
+  }
+
+  if (stage === 'choose') {
+    return (
+      <div className="seller-modal seller-choice-modal" id="sellerModal" role="dialog" aria-modal="true" aria-labelledby="sellerModalTitle" hidden={!open}>
+        <section className="seller-modal-panel listing-builder-panel seller-choice-panel">
+          <header className="seller-choice-head">
+            <div>
+              <p className="section-kicker">გაყიდვა</p>
+              <h2 id="sellerModalTitle">რისი გაყიდვა გსურს?</h2>
+              <p>აირჩიე კატეგორია გასაგრძელებლად</p>
+            </div>
+            <button type="button" className="seller-close-button" aria-label="დახურვა" onClick={onClose}>×</button>
+          </header>
+          <div className="seller-choice-grid">
+            {SELL_CHOICES.map((choice) => (
+              <button key={choice.kind} type="button" className={`seller-choice-card ${choice.kind}`} onClick={() => chooseItem(choice.kind)}>
+                <img src={choice.image} alt="" />
+                <span className="seller-choice-copy">
+                  <strong>{choice.title}</strong>
+                  <small>{choice.description}</small>
+                </span>
+                <span className="seller-choice-action">არჩევა <b aria-hidden="true">›</b></span>
+              </button>
+            ))}
+            <button type="button" className="seller-choice-card service" onClick={chooseService}>
+              <img src="/assets/sell/services-card.png" alt="" />
+              <span className="seller-choice-copy">
+                <strong>გეიმინგ სერვისი</strong>
+                <small>გაყიდე ბუსტინგი, ქოუჩინგი ან სხვა ინდივიდუალური სერვისი.</small>
+              </span>
+              <span className="seller-choice-action">არჩევა <b aria-hidden="true">›</b></span>
+            </button>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   return (
     <div className="seller-modal" id="sellerModal" role="dialog" aria-modal="true" aria-labelledby="sellerModalTitle" hidden={!open}>
       <div className="seller-modal-panel listing-builder-panel">
@@ -344,8 +404,8 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
               </p>
             )}
           </div>
-          <button className="seller-close-button" id="sellerCloseButton" type="button" aria-label="Close seller form" onClick={onClose}>
-            x
+          <button className="seller-close-button" id="sellerCloseButton" type="button" aria-label="კატეგორიების არჩევაზე დაბრუნება" onClick={() => setStage('choose')}>
+            ‹
           </button>
         </div>
         {published && (
@@ -377,7 +437,17 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
             <div className="listing-builder-grid">
               <label>
                 <span>Listing type *</span>
-                <select id="sellerProductType" ref={firstField} value={kind} onChange={(e) => setKind(e.target.value as 'account' | 'skin' | 'item')} required>
+                <select
+                  id="sellerProductType"
+                  ref={firstField}
+                  value={kind}
+                  onChange={(e) => {
+                    const nextKind = e.target.value as 'account' | 'skin' | 'item'
+                    setKind(nextKind)
+                    if (nextKind === 'skin') setGameSlug('cs2')
+                  }}
+                  required
+                >
                   <option value="account">ანგარიში</option>
                   <option value="skin">სკინი</option>
                   <option value="item">ნივთი</option>
@@ -385,9 +455,9 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
               </label>
               <label>
                 <span>Game *</span>
-                <select id="sellerGame" value={gameSlug} onChange={(e) => setGameSlug(e.target.value)} required>
-                  <option value="">აირჩიე თამაში</option>
-                  {games.map((g) => (
+                <select id="sellerGame" value={gameSlug} onChange={(e) => setGameSlug(e.target.value)} required disabled={kind === 'skin'}>
+                  {kind !== 'skin' && <option value="">აირჩიე თამაში</option>}
+                  {games.filter((g) => kind !== 'skin' || g.slug === 'cs2').map((g) => (
                     <option key={g.slug} value={g.slug}>
                       {g.name}
                     </option>
