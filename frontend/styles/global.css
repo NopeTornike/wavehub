@@ -21914,8 +21914,11 @@ body.modal-open { overflow: hidden; }
 .dm-handle.dm-staff, .dm-head-person small.dm-staff { color: #ff6fb5; font-style: normal; font-weight: 800; }
 
 /* Bank of Georgia payment branding: constrained so it remains legible without crowding payment CTAs. */
+.wb-bank,
 .bog-checkout-brand { display: inline-flex; align-items: center; justify-content: center; gap: 9px; max-width: 100%; vertical-align: middle; }
+.wb-bank img,
 .bog-checkout-brand img { width: min(148px, 42vw); height: 25px; border-radius: 4px; object-fit: contain; }
+.plan-checkout-brand img { width: 74px; height: 18px; }
 
 /* CMS video banners: the muted-by-default player gets its own sound control, clear of native controls. */
 .hero-video-banner { background: #020207; }

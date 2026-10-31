@@ -208,7 +208,14 @@ export default function Plans() {
                         </button>
                       ) : (
                         <button type="button" className="button" disabled={busyId === plan.id} onClick={() => subscribe(plan.id)}>
-                          {busyId === plan.id ? 'გადამისამართება…' : 'გამოწერა'}
+                          {busyId === plan.id ? (
+                            'გადამისამართება…'
+                          ) : (
+                            <span className="wb-bank plan-checkout-brand">
+                              <span>გამოწერა</span>
+                              <img src="/assets/bog-logo.png" alt="საქართველოს ბანკი" />
+                            </span>
+                          )}
                         </button>
                       )}
                     </article>
