@@ -138,3 +138,16 @@ registration, and on `/verify-email`. Test: `test/auth.e2e-spec.ts`.
   `true` → the 7-day cookie as before (`SessionService#attach(res, userId, remember)`).
 - Frontend: one `LoginForm` for `/login`, the desktop side drawer and the phone card (see
   `frontend/CLAUDE.md`). Tests: `test/client-round-3.e2e-spec.ts`.
+
+## 2026-11-01 Sliding session + expired-session prompt
+- Production showed a seller unable to publish: their 7-day session expired at 06:22 with the tab
+  open, the site kept showing them signed in, and ~25 "publish" presses got 401.
+- `SessionService.renewIfAged` (called from `GET /auth/me`, which every page load makes): once a
+  valid token has used a seventh of its life (1 day of 7 for "remember me", ~3.4h of 24h otherwise)
+  it is re-issued with a full lifetime and the same remember choice (persistent `Max-Age` cookie vs
+  browser-session cookie). Only a token `AuthGuard` already accepted is renewed; expired, forged
+  and suspended/banned sessions are still 401/403 and get nothing.
+- Frontend: any 401 outside `/auth/*` fires `SESSION_LOST_EVENT` (`lib/api.ts`); `lib/auth-modal.tsx`
+  signs the user out locally and opens the sign-in window over the same page with a "session
+  expired, your form is kept" note — no navigation, so a half-filled form survives.
+- e2e: `test/auth.e2e-spec.ts` ("renews an aged session…").

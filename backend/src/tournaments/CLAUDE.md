@@ -250,3 +250,15 @@ Migration `1784389000000-TournamentGameRoom`.
     "Go to server" button, and polls every 30s.
   - Admin → Tournaments → match → "თამაშის ოთახი" is the per-team editor.
 - e2e: `test/client-round-5.e2e-spec.ts`.
+
+## 2026-11-01 Game room for pending teams + redesign
+- Production: Tornike's team (SHADOW VIPERS) was `pending` but already scheduled in matches, so
+  `GET me/tournament-matches/:id/room` answered 403 and the card hid itself — it looked missing.
+- Now a member (or the captain, for older squads linked only by `captainUserId`) of a **pending**
+  team gets 200 with `status: 'locked'`, `teamPending: true` and `room: null` — never any details,
+  even if staff already opened that side. Rejected teams and outsiders still get 403.
+  `MatchRoomView.teamPending` is new in shared-types.
+- `components/GameRoomCard.tsx` follows Tornike's before/after screens: checklist (Room ID /
+  password / slot), lock notice (or "team not verified yet"), "View" button, then copyable details,
+  info note and "Open <game>".
+- e2e: `test/client-round-5.e2e-spec.ts` ("a pending team sees the card locked…").

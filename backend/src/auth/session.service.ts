@@ -38,6 +38,26 @@ export class SessionService {
     });
   }
 
+  // Sliding session (2026-11-01): an active user was signed out mid-visit when their 7-day token ran
+  // out with the tab open. Every page load calls GET /auth/me; once the token has used a seventh of
+  // its life (1 day for "remember me", ~3.4 hours otherwise) it is re-issued with a full lifetime and
+  // the same remember choice. Only an already-valid token is renewed — AuthGuard has rejected
+  // expired, tampered and suspended/banned sessions before this runs.
+  renewIfAged(token: string | undefined, res: Response) {
+    if (!token) return;
+    let payload: SessionPayload & { iat?: number; exp?: number };
+    try {
+      payload = this.verify(token);
+    } catch {
+      return;
+    }
+    if (!payload.iat || !payload.exp) return;
+    const lifetime = payload.exp - payload.iat;
+    const age = Math.floor(Date.now() / 1000) - payload.iat;
+    if (age < lifetime / 7) return;
+    this.attach(res, payload.sub, lifetime > SHORT_SESSION_TTL_SECONDS);
+  }
+
   clear(res: Response) {
     res.clearCookie(SESSION_COOKIE_NAME, { path: '/' });
   }

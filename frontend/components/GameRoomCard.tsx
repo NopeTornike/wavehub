@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import type { MatchRoomView } from '@wavehub/shared-types'
 import { api } from '../lib/api'
 
-// The tournament dashboard's "Game room" card (owner 2026-10-28): one per upcoming match, only for
-// its players. Two states only — available (tap to open the details below) or locked 🔒 until staff
-// open it. PUBG-style lobbies show Room ID / password / slot + "Open <game>"; a CS2-style match shows
-// the server link + "Go to server". The server refuses anyone not on a verified team of the match
-// (backend/src/tournaments/CLAUDE.md), and then the card isn't shown at all.
+// The tournament dashboard's "Game room" card (owner 2026-10-28, redesigned 2026-11-01 to Tornike's
+// screens): one per upcoming match, only for its players. Locked until staff open it, then "View"
+// shows the details. PUBG-style lobbies show Room ID / password / slot + "Open <game>"; a CS2-style
+// match shows the server link + "Go to server". A team still pending verification sees it locked
+// with a "team not verified yet" note and never any details; outsiders and rejected teams get a 403
+// and the card isn't shown (backend/src/tournaments/CLAUDE.md).
 const POLL_MS = 30_000
 // Server-side validated too; never follow anything but a Steam connect link or an https page.
 const SAFE_LINK = /^(steam:\/\/connect\/|https:\/\/)/
@@ -51,6 +52,20 @@ const PadIcon = () => (
   </svg>
 )
 
+const LockIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+    <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2" />
+  </svg>
+)
+
+const InfoIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" />
+  </svg>
+)
+
 export default function GameRoomCard({ matchId }: { matchId: string }) {
   const [room, setRoom] = useState<MatchRoomView | null>(null)
   const [hidden, setHidden] = useState(false)
@@ -77,7 +92,11 @@ export default function GameRoomCard({ matchId }: { matchId: string }) {
   const available = room.status === 'available' && !!room.room
   const server = available && room.room?.serverUrl && SAFE_LINK.test(room.room.serverUrl) ? room.room.serverUrl : null
   const launch = room.launchUrl && SAFE_LINK.test(room.launchUrl) ? room.launchUrl : null
+  const pill = available ? 'ხელმისაწვდომია' : room.teamPending ? 'მოლოდინში' : 'დაბლოკილია'
+  const checks = server ? ['სერვერის ბმული'] : ['Room ID', 'პაროლი', 'თქვენი ადგილი']
 
+  // Owner design 2026-11-01 (Tornike's screens "before / after opening"): what the card will hold,
+  // a lock notice until staff open it, then "View" → the copyable details and the game button.
   return (
     <section className={`wt-panel gr-card${available ? ' is-open' : ' is-locked'}`}>
       <button type="button" className="gr-head" aria-expanded={available && open} disabled={!available} onClick={() => setOpen((o) => !o)}>
@@ -85,7 +104,10 @@ export default function GameRoomCard({ matchId }: { matchId: string }) {
           <PadIcon />
         </span>
         <strong>{server ? 'თამაშის სერვერი' : 'თამაშის ოთახი'}</strong>
-        <em className={`gr-pill${available ? ' on' : ''}`}>{available ? 'ხელმისაწვდომია' : 'დაბლოკილია 🔒'}</em>
+        <em className={`gr-pill${available ? ' on' : room.teamPending ? ' wait' : ''}`}>
+          {!available && <LockIcon />}
+          {pill}
+        </em>
         {available && (
           <span className={`gr-chev${open ? ' up' : ''}`} aria-hidden="true">
             <svg viewBox="0 0 24 24" width="22" height="22">
@@ -95,44 +117,78 @@ export default function GameRoomCard({ matchId }: { matchId: string }) {
         )}
       </button>
 
-      {!available ? (
-        <div className="gr-locked">
-          <span aria-hidden="true">🔒</span>
-          <p>
-            <strong>ოთახის ინფორმაცია ჯერ არ არის ხელმისაწვდომი</strong>
-            <small>ორგანიზატორი გახსნის მატჩის დაწყებამდე. ამის შემდეგ აქ გამოჩნდება Room ID, პაროლი და თქვენი ადგილი.</small>
-          </p>
-        </div>
-      ) : open ? (
-        <div className="gr-body">
-          {server ? (
-            <>
-              <p className="gr-lead">ამ მატჩის სერვერთან შესვლის ბმული.</p>
-              <CopyBox label="სერვერის ბმული" value={server} />
-              <a className="gr-launch" href={server}>
-                სერვერზე გადასვლა <span aria-hidden="true">↗</span>
-              </a>
-              <p className="gr-note">დააკლიკეთ ბმულს ან დააკოპირეთ მისამართი და გახსენით Steam-ში.</p>
-            </>
-          ) : (
-            <>
-              <div className="gr-grid">
-                {room.room?.roomId && <CopyBox label="Room ID" value={room.room.roomId} />}
-                {room.room?.password && <CopyBox label="პაროლი" value={room.room.password} />}
-                {room.room?.slot && <CopyBox label="თქვენი ადგილი" value={room.room.slot} />}
-              </div>
-              <p className="gr-note">მატჩის დაწყებამდე ოთახში შედით და დაიკავეთ თქვენი ადგილი.</p>
-              {launch && (
-                <a className="gr-launch" href={launch} target="_blank" rel="noopener noreferrer">
-                  <PadIcon />
-                  {`${room.gameName.toUpperCase()}-ის გახსნა`}
-                  <span aria-hidden="true">›</span>
-                </a>
+      <div className="gr-body">
+        <p className="gr-lead">აქ იხილავთ მატჩის ოთახის ინფორმაციას:</p>
+        <ul className="gr-checks">
+          {checks.map((label) => (
+            <li key={label}>
+              <span aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m6.5 12.5 3.5 3.5 7.5-8" />
+                </svg>
+              </span>
+              {label}
+            </li>
+          ))}
+        </ul>
+
+        {!available ? (
+          <div className="gr-locked">
+            <span className="gr-lock-tile" aria-hidden="true">
+              <LockIcon />
+            </span>
+            <p>
+              {room.teamPending ? (
+                <>
+                  <strong>თქვენი გუნდი ჯერ არ არის დადასტურებული</strong>
+                  <small>ორგანიზატორი ამოწმებს გუნდს. დადასტურების შემდეგ, მატჩის დაწყებამდე აქ გამოჩნდება ოთახის ინფორმაცია.</small>
+                </>
+              ) : (
+                <>
+                  <strong>ოთახის ინფორმაცია ჯერ არ არის ხელმისაწვდომი</strong>
+                  <small>ორგანიზატორი გახსნის მატჩის დაწყებამდე. ამის შემდეგ აქ გამოჩნდება Room ID, პაროლი და თქვენი ადგილი.</small>
+                </>
               )}
-            </>
-          )}
-        </div>
-      ) : null}
+            </p>
+          </div>
+        ) : !open ? (
+          <button type="button" className="gr-view" onClick={() => setOpen(true)}>
+            ნახვა <span aria-hidden="true">›</span>
+          </button>
+        ) : server ? (
+          <>
+            <CopyBox label="სერვერის ბმული" value={server} />
+            <p className="gr-note">
+              <InfoIcon />
+              დააკლიკეთ ბმულს ან დააკოპირეთ მისამართი და გახსენით Steam-ში.
+            </p>
+            <a className="gr-launch" href={server}>
+              <PadIcon />
+              სერვერზე გადასვლა
+              <span aria-hidden="true">›</span>
+            </a>
+          </>
+        ) : (
+          <>
+            <div className="gr-grid">
+              {room.room?.roomId && <CopyBox label="Room ID" value={room.room.roomId} />}
+              {room.room?.password && <CopyBox label="პაროლი" value={room.room.password} />}
+              {room.room?.slot && <CopyBox label="თქვენი ადგილი" value={room.room.slot} />}
+            </div>
+            <p className="gr-note">
+              <InfoIcon />
+              მატჩის დაწყებამდე ოთახში შედით და დაიკავეთ თქვენი ადგილი.
+            </p>
+            {launch && (
+              <a className="gr-launch" href={launch} target="_blank" rel="noopener noreferrer">
+                <PadIcon />
+                {`${room.gameName.toUpperCase()}-ის გახსნა`}
+                <span aria-hidden="true">›</span>
+              </a>
+            )}
+          </>
+        )}
+      </div>
     </section>
   )
 }

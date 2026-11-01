@@ -36,7 +36,7 @@ const CORE_LABELS: Record<string, string> = {
   deliveryMethod: 'მიწოდების მეთოდი',
   deliveryTime: 'მიწოდების დრო',
 }
-const MAX_IMAGES = 6
+const MAX_IMAGES = 10
 
 type AttrKind = 'string' | 'number' | 'boolean'
 type AttrRow = { key: string; label: string; kind: AttrKind; value: string; options?: string[] }

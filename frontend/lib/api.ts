@@ -174,6 +174,8 @@ export interface MyCoachApplication {
   rejectionReason: string | null
 }
 
+export const SESSION_LOST_EVENT = 'wavehub:session-lost'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 export class ApiError extends Error {
@@ -208,7 +210,7 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'Account suspended or banned': 'თქვენი ანგარიში შეჩერებული ან დაბლოკილია.',
   'Server error': 'სერვერის შეცდომა. სცადეთ მოგვიანებით.',
   "You can't buy your own listing": 'საკუთარი განცხადების ყიდვა შეუძლებელია.',
-  'A listing can have at most 6 images': 'განცხადებას მაქსიმუმ 6 სურათი შეიძლება ჰქონდეს.',
+  'A listing can have at most 10 images': 'განცხადებას მაქსიმუმ 10 სურათი შეიძლება ჰქონდეს.',
   'item listings require priceWaveCoin': 'მიუთითეთ ფასი.',
   'You just created this listing — open it from My Listings instead of creating it again': 'ეს განცხადება ახლახან შექმენი — გახსენი „ჩემი განცხადებებიდან“, ხელახლა შექმნა არ არის საჭირო.',
   'Insufficient WaveCoin balance for this purchase': 'ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.',
@@ -295,6 +297,13 @@ async function send(path: string, init: RequestInit): Promise<unknown> {
     // fetch() only rejects on a network-level failure (server down, offline, CORS block) —
     // surfaced as status 0, which errorMessage() maps to a Georgian "can't reach the server" text.
     throw new ApiError(0, 'Network error')
+  }
+
+  // A 401 outside the auth endpoints means the session cookie expired (7 days) while this tab still
+  // shows the user as signed in — owner 2026-11-01: sellers kept pressing "publish" on a dead session.
+  // lib/auth-modal.tsx listens and reopens the sign-in window over the page, keeping the form.
+  if (res.status === 401 && !path.startsWith('/auth/') && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(SESSION_LOST_EVENT))
   }
 
   // An empty body (e.g. a handler returning null/undefined) is `null`, not `{}` — `{}` read as a real

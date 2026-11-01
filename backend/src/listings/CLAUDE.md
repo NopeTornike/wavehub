@@ -204,7 +204,7 @@ Seller-Coach plan whose `perks.featuredListings` is true sorts first — live, n
 Added while porting the prototype's marketplace/seller flow 1:1 (commits `fee10df` and the follow-up):
 - **Generic seller create flow exists now** (the "no create page for Service/Item" note above is
   stale): the marketplace "Become a seller" modal (`frontend/components/SellerModal.tsx`) creates
-  Item listings (accounts / skins) with up to **6** images (`MAX_IMAGES_PER_LISTING`) and a
+  Item listings (accounts / skins) with up to **10** images (6 until 2026-11-01) (`MAX_IMAGES_PER_LISTING`) and a
   per-game `attributes` object.
 - **`itemAttributes`** — `CreateListingDto.attributes`, validated by
   `dto/item-attributes.validator.ts` (`@IsItemAttributes`): plain object, ≤40 keys matching

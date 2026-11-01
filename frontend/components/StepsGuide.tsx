@@ -81,6 +81,11 @@ const PATHS: Record<StepIcon, JSX.Element> = {
   ),
 }
 
+// One step icon on its own (the listing page's compact escrow row).
+export function StepGlyph({ icon }: { icon: StepIcon }) {
+  return <svg viewBox="0 0 24 24">{PATHS[icon]}</svg>
+}
+
 // The icon timeline on its own (also used by the listing page's escrow box).
 export function StepTimeline({ steps }: { steps: Array<{ text: string; icon: StepIcon }> }) {
   return (

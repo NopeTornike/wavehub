@@ -1,10 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { usePlatformTimings } from '../lib/timings'
-import { StepTimeline, type StepIcon } from './StepsGuide'
+import { StepGlyph, type StepIcon } from './StepsGuide'
 
 // "როგორ მუშაობს Escrow?" on the listing page (design 2026-10-04, screenshot "listing"): the five
-// money steps for this kind of product, then the three things a buyer should know.
+// money steps for this kind of product, then the three things a buyer should know. Owner 2026-11-01:
+// the steps are a compact row of five tiles again (the big vertical timeline was too much here).
 type Kind = 'account' | 'skin' | 'item' | 'service' | 'key'
 
 function stepsFor(kind: Kind): Array<{ text: string; icon: StepIcon }> {
@@ -35,7 +36,17 @@ export default function EscrowExplainer({ kind }: { kind: Kind }) {
           <p>უსაფრთხო ყიდვა-გაყიდვის პროცესი</p>
         </div>
       </header>
-      <StepTimeline steps={stepsFor(kind)} />
+      <ol className="ex-row">
+        {stepsFor(kind).map((step, i) => (
+          <li key={step.text}>
+            <b>{i + 1}</b>
+            <span className="ex-row-icon" aria-hidden="true">
+              <StepGlyph icon={step.icon} />
+            </span>
+            <span className="ex-row-text">{step.text}</span>
+          </li>
+        ))}
+      </ol>
       <h3>მნიშვნელოვანი ინფორმაცია</h3>
       <div className="ex-info">
         <Link href="/support">

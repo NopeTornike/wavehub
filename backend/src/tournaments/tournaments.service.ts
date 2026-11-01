@@ -688,8 +688,11 @@ export class TournamentsService {
     return all.find((m) => m.id === matchId)!;
   }
 
-  // A player's own room card. Only a member of one of the match's teams, while that team is verified
-  // and the tournament is published, gets an answer; details only when staff opened that side.
+  // A player's own room card. Only a member (or the captain) of one of the match's teams gets an
+  // answer, and only while the tournament is published. A rejected team gets 403. A team still
+  // pending verification sees the card locked with `teamPending` — never any details (owner
+  // 2026-11-01: the card used to vanish for pending teams, which looked like a bug). Details only
+  // once the team is verified and staff opened that side.
   async myMatchRoom(userId: string, matchId: string): Promise<MatchRoomView> {
     const match = await this.matches.findOne({ where: { id: matchId }, relations: { tournament: { game: true }, teamA: true, teamB: true } });
     if (!match || match.tournament.status === TournamentStatus.Draft) throw new NotFoundException('Match not found');
@@ -697,17 +700,20 @@ export class TournamentsService {
     const membership = teamIds.length
       ? await this.members.findOne({ where: { userId, teamId: In(teamIds) } })
       : null;
-    const side: 'a' | 'b' | null = membership ? (membership.teamId === match.teamAId ? 'a' : 'b') : null;
+    let side: 'a' | 'b' | null = membership ? (membership.teamId === match.teamAId ? 'a' : 'b') : null;
+    // Older squads only linked the captain through tournament_teams.captainUserId.
+    if (!side) side = match.teamA?.captainUserId === userId ? 'a' : match.teamB?.captainUserId === userId ? 'b' : null;
     const team = side === 'a' ? match.teamA : side === 'b' ? match.teamB : null;
-    // Not on either team, or the team was rejected / removed: no access at all.
-    if (!side || !team || team.status !== TournamentTeamStatus.Verified) throw new ForbiddenException('You are not a player in this match');
-    const info = match.room?.[side] ?? null;
+    if (!side || !team || team.status === TournamentTeamStatus.Rejected) throw new ForbiddenException('You are not a player in this match');
+    const teamPending = team.status !== TournamentTeamStatus.Verified;
+    const info = teamPending ? null : (match.room?.[side] ?? null);
     const hasDetails = !!info && !!(info.roomId || info.password || info.slot || info.serverUrl);
     const open = !!info?.open && hasDetails;
     return {
       matchId: match.id,
       status: open ? 'available' : 'locked',
       side,
+      teamPending,
       room: open && info ? { roomId: info.roomId, password: info.password, slot: info.slot, serverUrl: info.serverUrl } : null,
       gameName: match.tournament.game?.name ?? '',
       launchUrl: match.tournament.game?.launchUrl ?? null,

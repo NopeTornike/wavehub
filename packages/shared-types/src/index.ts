@@ -1544,6 +1544,8 @@ export interface MatchRoomView {
   matchId: string;
   status: 'available' | 'locked';
   side: 'a' | 'b';
+  // The caller's team is still waiting for staff verification: the card shows, always locked.
+  teamPending: boolean;
   room: Omit<MatchRoomSide, 'open'> | null;
   gameName: string;
   launchUrl: string | null;

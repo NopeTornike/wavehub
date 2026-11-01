@@ -1,3 +1,4 @@
+import { JwtService } from '@nestjs/jwt';
 import { Client, createApp, E2eApp, registerUser } from './helpers';
 
 describe('auth (e2e)', () => {
@@ -95,5 +96,46 @@ describe('auth (e2e)', () => {
     expect((await user.client.get('/auth/me')).status).toBe(200);
     await user.client.post('/auth/logout');
     expect((await user.client.get('/auth/me')).status).toBe(401);
+  });
+
+  // Owner 2026-11-01: a seller's 7-day session ran out with the tab open and every "publish" got a 401.
+  // GET /auth/me now re-issues an aged (still valid) token with a full lifetime; never a bad one.
+  it('renews an aged session on /auth/me, keeps the remember choice, never renews a bad token', async () => {
+    const user = await registerUser(ctx, 'slide');
+    const me = (await user.client.get('/auth/me')).body.user as { id: string };
+    const jwt = ctx.app.get(JwtService);
+    const now = Math.floor(Date.now() / 1000);
+    const call = (token: string) => fetch(`${ctx.baseUrl}/auth/me`, { headers: { cookie: `wavehub_session=${token}`, 'x-forwarded-for': `10.77.${now % 250}.9` } });
+    const issued = (res: Response) => res.headers.getSetCookie().find((c) => c.startsWith('wavehub_session='));
+
+    // A fresh token is left alone.
+    const fresh = await call(jwt.sign({ sub: me.id }, { expiresIn: 7 * 86400 }));
+    expect(fresh.status).toBe(200);
+    expect(issued(fresh)).toBeUndefined();
+
+    // Six days into a 7-day "remember me" session: renewed for another 7 days, persistent cookie.
+    const aged = await call(jwt.sign({ sub: me.id, iat: now - 6 * 86400, exp: now + 86400 }));
+    expect(aged.status).toBe(200);
+    const renewed = issued(aged)!;
+    expect(renewed).toMatch(/Max-Age=604800/i);
+    expect(renewed).toMatch(/HttpOnly/i);
+    const payload = jwt.decode(renewed.split(';')[0].split('=')[1]) as { sub: string; iat: number; exp: number };
+    expect(payload.sub).toBe(me.id);
+    expect(payload.exp - payload.iat).toBe(7 * 86400);
+
+    // A "don't remember me" session stays a browser-session cookie with a one-day token.
+    const short = await call(jwt.sign({ sub: me.id, iat: now - 5 * 3600, exp: now + 19 * 3600 }));
+    const shortCookie = issued(short)!;
+    expect(shortCookie).not.toMatch(/Max-Age/i);
+    const shortPayload = jwt.decode(shortCookie.split(';')[0].split('=')[1]) as { iat: number; exp: number };
+    expect(shortPayload.exp - shortPayload.iat).toBe(86400);
+
+    // Expired or forged tokens get a 401 and nothing new.
+    const expired = await call(jwt.sign({ sub: me.id, iat: now - 8 * 86400, exp: now - 86400 }));
+    expect(expired.status).toBe(401);
+    expect(issued(expired)).toBeUndefined();
+    const forged = await call(new JwtService({ secret: 'not-the-server-secret' }).sign({ sub: me.id, iat: now - 6 * 86400, exp: now + 86400 }));
+    expect(forged.status).toBe(401);
+    expect(issued(forged)).toBeUndefined();
   });
 });

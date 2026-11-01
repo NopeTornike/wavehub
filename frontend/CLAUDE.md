@@ -128,6 +128,11 @@ section wins.
   confirm window is rendered on `<body>` via a portal (the `.app-shell` layer sat under the phone
   bottom bar), uses drawn SVG icons instead of emoji, and the wallet top-up / withdraw cards got a
   desktop grid (`min-width: 901px`) instead of the old five-column wallet row.
+- **Owner fixes 2026-11-01**: an expired session now reopens sign-in over the page (see
+  `backend/src/auth/CLAUDE.md`); listing photos go up to **10** (`MAX_IMAGES` in `SellerModal.tsx`
+  and `ListingEditor.tsx`); the listing page's escrow box is a compact row of five tiles again
+  (`.ex-row`, `StepGlyph` from `StepsGuide.tsx`) — the owner crossed out the big vertical timeline
+  there; `GameRoomCard` redesigned to Tornike's screens and shown to pending teams (locked).
 - **Admin → Statistics** (`pages/admin/analytics.tsx`, Super Admin only — the nav link is hidden for
   other roles and the API refuses them): date presets + custom range scoping the whole page, KPI
   tiles, a trend chart (`components/charts/TrendChart.tsx`: single series, crosshair tooltip,

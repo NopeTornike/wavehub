@@ -17,7 +17,7 @@ import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLengt
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
-import { SessionService } from './session.service';
+import { SESSION_COOKIE_NAME, SessionService } from './session.service';
 import { CurrentUserId } from './current-user.decorator';
 import { UsersService } from '../users/users.service';
 import { PASSWORD_MIN_LENGTH, PASSWORD_PATTERN } from './password-policy';
@@ -162,11 +162,12 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(AuthGuard)
-  async me(@CurrentUserId() userId: string) {
+  async me(@CurrentUserId() userId: string, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const user = await this.usersService.findById(userId);
     if (!user) {
       throw new HttpException({ ok: false, error: 'User not found' }, HttpStatus.NOT_FOUND);
     }
+    this.sessions.renewIfAged(req.cookies?.[SESSION_COOKIE_NAME], res);
     return { ok: true, user: this.usersService.toPublicUser(user) };
   }
 

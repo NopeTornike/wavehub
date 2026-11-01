@@ -237,7 +237,7 @@
   "თქვენი ანგარიში შეჩერებული ან დაბლოკილია.": "Your account is suspended or banned.",
   "სერვერის შეცდომა. სცადეთ მოგვიანებით.": "Server error. Please try again later.",
   "საკუთარი განცხადების ყიდვა შეუძლებელია.": "You can't buy your own listing.",
-  "განცხადებას მაქსიმუმ 6 სურათი შეიძლება ჰქონდეს.": "A listing can have at most 6 images.",
+  "განცხადებას მაქსიმუმ 10 სურათი შეიძლება ჰქონდეს.": "A listing can have at most 10 images.",
   "მიუთითეთ ფასი.": "Enter a price.",
   "WaveCoin-ის ბალანსი არ არის საკმარისი. შეავსეთ საფულე და სცადეთ თავიდან.": "Not enough WaveCoin. Top up your wallet and try again.",
   "ეს ნივთი ამოიწურა.": "This item is sold out.",
@@ -2789,5 +2789,10 @@
   "გამოაქვეყნე შენი სერვისი 5 მარტივ ნაბიჯში": "Publish your service in 5 easy steps",
   "გადახდა იყინება და გამყიდველთან მხოლოდ მყიდველის დადასტურების შემდეგ გადადის.": "Payment is held and only goes to the seller after the buyer confirms.",
   "დაჯავშნე სესია 5 მარტივ ნაბიჯში": "Book a session in 5 easy steps",
-  "გადახდა ინახება და ქოუჩთან სესიის დასრულების შემდეგ გადადის.": "Payment is held and goes to the coach after the session is completed."
+  "გადახდა ინახება და ქოუჩთან სესიის დასრულების შემდეგ გადადის.": "Payment is held and goes to the coach after the session is completed.",
+  "სესიის ვადა ამოიწურა. შედი ხელახლა — შევსებული ინფორმაცია გვერდზე შენახულია, შესვლის შემდეგ უბრალოდ გაიმეორე მოქმედება.": "Your session expired. Sign in again — what you filled in is still on the page; just repeat the action after signing in.",
+  "აქ იხილავთ მატჩის ოთახის ინფორმაციას:": "Here you'll find the match room details:",
+  "თქვენი გუნდი ჯერ არ არის დადასტურებული": "Your team is not verified yet",
+  "ორგანიზატორი ამოწმებს გუნდს. დადასტურების შემდეგ, მატჩის დაწყებამდე აქ გამოჩნდება ოთახის ინფორმაცია.": "The organizer is checking your team. Once it is verified, the room details will appear here before the match starts.",
+  "ნახვა": "View"
 }

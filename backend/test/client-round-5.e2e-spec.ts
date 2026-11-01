@@ -77,6 +77,58 @@ describe('client round 5 (e2e)', () => {
     expect(JSON.stringify(audit)).not.toMatch(/WHX2026/);
   });
 
+  // Owner 2026-11-01: a pending team's card vanished (403 → hidden). It now shows locked, with no
+  // details even when staff already opened the room; verification unlocks it.
+  it('game room: a pending team sees the card locked with no details until verified', async () => {
+    const t = await admin.client.post('/admin/tournaments', {
+      gameId, name: `Pending Cup ${Date.now() % 100000}`, description: 'A squad tournament for the pending room test.',
+      prize: '50 GEL', status: 'open', startDate, maxPlayers: 8, teamSize: 2,
+    });
+    const id = t.body.id as string;
+    const [p1, p2, q1, q2] = await Promise.all(['pa1', 'pa2', 'pb1', 'pb2'].map((p) => registerUser(ctx, p)));
+    const tp = (await p1.client.post(`/tournaments/${id}/teams`, roster('Pend', [p1, p2]))).body.id;
+    const tq = (await q1.client.post(`/tournaments/${id}/teams`, roster('Quik', [q1, q2]))).body.id;
+    await admin.client.post(`/admin/tournaments/${id}/teams/${tq}/status`, { status: 'verified' });
+    const match = (await admin.client.post(`/admin/tournaments/${id}/matches`, { teamAId: tp, teamBId: tq, bestOf: 1 })).body;
+    await admin.client.post(`/admin/tournaments/${id}/matches/${match.id}/room`, {
+      a: { open: true, roomId: '77001122', password: 'PENDPASS', slot: '#2' },
+      b: { open: true, roomId: '77001122', password: 'PENDPASS', slot: '#9' },
+    });
+
+    for (const player of [p1, p2]) {
+      const view = await player.client.get(`/me/tournament-matches/${match.id}/room`);
+      expect(view.status).toBe(200);
+      expect(view.body).toMatchObject({ status: 'locked', side: 'a', teamPending: true, room: null });
+      expect(JSON.stringify(view.body)).not.toMatch(/PENDPASS|77001122/);
+    }
+    expect((await q2.client.get(`/me/tournament-matches/${match.id}/room`)).body).toMatchObject({ status: 'available', teamPending: false, room: { slot: '#9' } });
+
+    await admin.client.post(`/admin/tournaments/${id}/teams/${tp}/status`, { status: 'verified' });
+    expect((await p2.client.get(`/me/tournament-matches/${match.id}/room`)).body).toMatchObject({ status: 'available', teamPending: false, room: { password: 'PENDPASS', slot: '#2' } });
+  });
+
+  it('listing photos: up to 10, the 11th is refused', async () => {
+    const seller = await registerUser(ctx, 'r5photos');
+    // A draft, like the sell form uploads to (a live listing goes back to review on the first photo).
+    const cats = (await seller.client.get('/categories')).body;
+    const games = (await seller.client.get('/games')).body;
+    const created = await seller.client.post('/listings', {
+      type: 'item', categoryId: cats[0].id, gameId: games[0].id, title: `Ten photos ${Date.now().toString(36)}`,
+      description: 'An account listing with ten photos, long enough for the fifty character minimum.',
+      priceWaveCoin: 40, stockQuantity: 1, isUnique: true, resaleRightsAttested: true,
+    });
+    expect(created.status).toBeLessThan(300);
+    const id = created.body.id as string;
+    const png = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63000100000500010d0a2db40000000049454e44ae426082', 'hex');
+    for (let i = 0; i < 10; i++) {
+      expect((await seller.client.upload(`/listings/${id}/images`, png, 'p.png', 'image/png')).status).toBeLessThan(300);
+    }
+    const eleventh = await seller.client.upload(`/listings/${id}/images`, png, 'p.png', 'image/png');
+    expect(eleventh.status).toBe(403);
+    expect(JSON.stringify(eleventh.body)).toMatch(/at most 10 images/);
+    expect((await seller.client.get(`/listings/mine/${id}`)).body.images).toHaveLength(10);
+  });
+
   it('game launch link: https only, staff only, public on GET /games', async () => {
     const games = (await admin.client.get('/admin/games')).body as Array<{ id: string; slug: string; launchUrl: string | null }>;
     const pubg = games.find((g) => g.slug === 'pubg-mobile');

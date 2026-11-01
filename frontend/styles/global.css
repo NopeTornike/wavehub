@@ -23106,3 +23106,68 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .wb-withdraw > .wb-head, .wb-withdraw > .seller-status { grid-column: 1 / -1; }
   .wb-withdraw > .seller-status:empty { display: none; }
 }
+
+/* Sign-in reopened because the session expired mid-visit (2026-11-01). */
+.ax-drawer .ax-lead.ax-expired { border: 1px solid rgba(255, 176, 64, .35); border-radius: 12px; background: rgba(255, 176, 64, .08); padding: 10px 12px; color: #ffd9a0; font-size: 14px; }
+
+/* Listing escrow box: compact row of five step tiles (owner 2026-11-01, replaces the vertical
+   timeline there). Number on top, drawn icon, short text; arrows between tiles. */
+.ex-box .ex-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 14px 0 6px; padding: 12px 0 0; list-style: none; }
+.ex-box .ex-row li { position: relative; min-width: 0; display: grid; justify-items: center; align-content: start; gap: 8px; border: 1px solid rgba(255, 79, 171, .22); border-radius: 12px; background: linear-gradient(160deg, rgba(255, 47, 143, .08), rgba(123, 61, 245, .06)), #0e0b1c; padding: 22px 6px 12px; text-align: center; }
+.ex-box .ex-row li:not(:last-child)::after { content: ''; position: absolute; top: 50%; right: -10px; z-index: 1; width: 8px; height: 8px; border-top: 1.5px solid #8d88a3; border-right: 1.5px solid #8d88a3; transform: translate(-1px, -50%) rotate(45deg); }
+.ex-box .ex-row b { position: absolute; top: -12px; left: 50%; width: 24px; height: 24px; display: grid; place-items: center; border: 2px solid #120d22; border-radius: 999px; color: #fff; background: linear-gradient(135deg, #ff2f8f, #7b3df5); font-size: 11px; font-weight: 900; line-height: 1; transform: translateX(-50%); }
+.ex-box .ex-row-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: #ff6fb8; background: rgba(255, 47, 143, .1); }
+.ex-box .ex-row-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ex-box .ex-row li:last-child .ex-row-icon { color: #4ce39b; background: rgba(76, 227, 155, .1); }
+.ex-box .ex-row-text { min-width: 0; color: #e7e3f2; font-size: 12.5px; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; hyphens: auto; }
+@media (max-width: 620px) {
+  .ex-box .ex-row { gap: 7px; margin-top: 12px; }
+  .ex-box .ex-row li { gap: 6px; padding: 18px 3px 8px; border-radius: 10px; }
+  .ex-box .ex-row li:not(:last-child)::after { right: -6px; width: 5px; height: 5px; }
+  .ex-box .ex-row b { top: -10px; width: 20px; height: 20px; font-size: 10px; }
+  .ex-box .ex-row-icon { width: 28px; height: 28px; border-radius: 8px; }
+  .ex-box .ex-row-icon svg { width: 17px; height: 17px; }
+  .ex-box .ex-row-text { font-size: 9.5px; line-height: 1.25; letter-spacing: -.01em; }
+}
+
+/* Game room card, owner design 2026-11-01 (Tornike's before / after screens). */
+.gr-card { background: radial-gradient(circle at 88% 20%, rgba(190, 60, 255, .16), transparent 42%), linear-gradient(160deg, #120a22, #0a0815 70%) !important; }
+.gr-card.is-locked { border-color: rgba(214, 70, 255, .45) !important; box-shadow: 0 0 18px rgba(190, 60, 255, .12); }
+.gr-pill { display: inline-flex; align-items: center; gap: 6px; }
+.gr-pill svg { width: 14px; height: 14px; }
+.gr-pill.wait { border-color: rgba(255, 176, 64, .45); background: rgba(255, 176, 64, .08); color: #ffc46b; }
+.gr-card .gr-body { gap: 14px; }
+.gr-checks { display: flex; flex-wrap: wrap; gap: 10px 26px; margin: -4px 0 0; padding: 0; list-style: none; color: #e6e1f0; font-size: 14px; font-weight: 600; }
+.gr-checks li { display: inline-flex; align-items: center; gap: 8px; }
+.gr-checks li > span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, #ff2f8f, #d946ef); color: #fff; }
+.gr-checks li > span svg { width: 13px; height: 13px; stroke-width: 3; }
+.gr-card .gr-locked { margin: 0; align-items: center; background: rgba(120, 40, 170, .12); }
+.gr-lock-tile { flex: 0 0 auto; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, rgba(255, 47, 143, .3), rgba(160, 60, 255, .25)); color: #ff7fd0; }
+.gr-lock-tile svg { width: 24px; height: 24px; }
+.gr-view { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 50px; border: 1px solid rgba(214, 70, 255, .55); border-radius: 12px; background: rgba(120, 40, 170, .18); color: #fff; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; transition: background .15s, border-color .15s; }
+.gr-view span { font-size: 22px; line-height: 1; }
+.gr-view:hover, .gr-view:focus-visible { border-color: #ff4fd8; background: rgba(160, 50, 220, .28); outline: none; }
+.gr-card .gr-note { display: flex; align-items: center; gap: 10px; }
+.gr-card .gr-note svg { flex: 0 0 auto; width: 18px; height: 18px; }
+.gr-card .gr-launch { border-color: rgba(214, 70, 255, .45); background: rgba(10, 8, 22, .6); color: #fff; font-weight: 800; }
+.gr-card .gr-launch > span:last-child { margin-left: auto; font-size: 22px; }
+@media (max-width: 620px) {
+  .gr-checks { gap: 8px 16px; font-size: 12.5px; }
+  .gr-checks li > span { width: 18px; height: 18px; }
+  .gr-card .gr-locked, .gr-card .gr-body { margin-left: 0; margin-right: 0; }
+  .gr-card .gr-body { padding: 0 14px 14px; }
+  .gr-lock-tile { width: 38px; height: 38px; }
+  .gr-view { min-height: 46px; font-size: 15px; }
+}
+@media (max-width: 620px) {
+  .gr-card .gr-head strong { white-space: normal !important; overflow: visible !important; font-size: 16px !important; line-height: 1.2; }
+  .gr-card .gr-pill { padding: 5px 8px; font-size: 11px; }
+  .gr-card .gr-head { gap: 8px; }
+  .gr-card .gr-icon, .gr-card .gr-icon svg { width: 30px; height: 30px; }
+}
+@media (max-width: 420px) {
+  .ex-box .ex-row { gap: 5px; }
+  .ex-box .ex-row li { padding: 18px 2px 8px; }
+  .ex-box .ex-row li:not(:last-child)::after { right: -5px; width: 4px; height: 4px; }
+  .ex-box .ex-row-text { font-size: 8.8px; font-weight: 600; letter-spacing: -.02em; }
+}

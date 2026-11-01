@@ -10,6 +10,8 @@ type AuthState = {
   checked: boolean
   refresh: () => Promise<void>
   logout: () => Promise<void>
+  // The server no longer accepts the session (expired): forget the user without calling the API.
+  sessionLost: () => void
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -44,7 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
-  return <AuthContext.Provider value={{ user, checked, refresh, logout }}>{children}</AuthContext.Provider>
+  const sessionLost = useCallback(() => setUser(null), [])
+
+  return <AuthContext.Provider value={{ user, checked, refresh, logout, sessionLost }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(): AuthState {

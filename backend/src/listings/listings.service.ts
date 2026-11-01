@@ -40,7 +40,7 @@ function toPublicSeller(seller: User, verified = false): PublicSeller {
   };
 }
 
-const MAX_IMAGES_PER_LISTING = 6;
+const MAX_IMAGES_PER_LISTING = 10;
 const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 // Listing photos: 2MB (owner decision 2026-10-03). The frontend downscales larger phone photos
 // before uploading (frontend/lib/image-resize.ts), so this only rejects what a browser didn't shrink.

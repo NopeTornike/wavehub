@@ -51,7 +51,7 @@ const HINTS: Record<string, string> = {
   roblox: 'Roblox selected — add the optional Robux, Limiteds, account and item details.',
 }
 
-const MAX_IMAGES = 6
+const MAX_IMAGES = 10
 const MAX_IMAGE_BYTES = PHOTO_SOURCE_MAX_BYTES
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
@@ -480,7 +480,7 @@ export default function SellerModal({ open, onClose }: { open: boolean; onClose:
                   <span className="upload-icon" aria-hidden="true"></span>
                   <span className="upload-copy">
                     <strong>Drag &amp; drop images here or click to upload</strong>
-                    <small>Upload up to 6 images. First image is the cover. Recommended cover ratio: 16:9.</small>
+                    <small>Upload up to 10 images. First image is the cover. Recommended cover ratio: 16:9.</small>
                   </span>
                   <input
                     id="sellerImage"

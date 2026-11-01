@@ -6,7 +6,7 @@ import LoginForm from './LoginForm'
 
 // The login drawer (desktop: slides in from the right) / card (phones: centred) — owner design
 // 2026-10-15. Escape, the × and the backdrop close it; the page behind doesn't scroll.
-export default function LoginModal({ next, onClose }: { next?: string; onClose: () => void }) {
+export default function LoginModal({ next, expired = false, onClose }: { next?: string; expired?: boolean; onClose: () => void }) {
   const router = useRouter()
   const panel = useRef<HTMLElement>(null)
 
@@ -35,7 +35,13 @@ export default function LoginModal({ next, onClose }: { next?: string; onClose: 
         <h2 id="axLoginTitle" className="ax-heading">
           შესვლა
         </h2>
-        <p className="ax-lead">კეთილი იყოს შენი დაბრუნება! შედი WaveHubX ანგარიშზე და განაგრძე გეიმინგ მოგზაურობა.</p>
+        {expired ? (
+          <p className="ax-lead ax-expired" role="alert">
+            სესიის ვადა ამოიწურა. შედი ხელახლა — შევსებული ინფორმაცია გვერდზე შენახულია, შესვლის შემდეგ უბრალოდ გაიმეორე მოქმედება.
+          </p>
+        ) : (
+          <p className="ax-lead">კეთილი იყოს შენი დაბრუნება! შედი WaveHubX ანგარიშზე და განაგრძე გეიმინგ მოგზაურობა.</p>
+        )}
         <LoginForm
           next={next}
           onDone={onClose}
