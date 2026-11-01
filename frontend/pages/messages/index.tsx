@@ -10,6 +10,7 @@ import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import ReportButton from '../../components/ReportButton'
 import { kaDayMonth, kaTime } from '../../lib/dates'
+import { pollWhileVisible } from '../../lib/visible-poll'
 
 const POLL_MS = 5000
 
@@ -107,10 +108,10 @@ export default function Messages() {
         })
     }
     load()
-    const interval = setInterval(load, POLL_MS)
+    const stop = pollWhileVisible(load, POLL_MS)
     return () => {
       cancelled = true
-      clearInterval(interval)
+      stop()
     }
   }, [selectedId])
 

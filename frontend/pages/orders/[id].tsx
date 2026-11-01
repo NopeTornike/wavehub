@@ -15,6 +15,7 @@ import { LISTING_TYPE_LABELS } from '../../lib/labels'
 import Avatar, { displayName } from '../../components/Avatar'
 import VerifiedMark from '../../components/VerifiedMark'
 import { usePlatformTimings } from '../../lib/timings'
+import { pollWhileVisible } from '../../lib/visible-poll'
 
 const MESSAGE_POLL_MS = 5000
 
@@ -247,10 +248,10 @@ export default function OrderDetail() {
         .catch(() => undefined)
     }
     load()
-    const interval = setInterval(load, MESSAGE_POLL_MS)
+    const stop = pollWhileVisible(load, MESSAGE_POLL_MS)
     return () => {
       cancelled = true
-      clearInterval(interval)
+      stop()
     }
   }, [id])
 

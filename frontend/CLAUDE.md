@@ -90,7 +90,7 @@ section wins.
   at 921–1250px (the tournament panel fell into a hidden 150px bridge column; now stacked), the
   footer's last column cut off at 1041–1400px, and the phone home topbar sized `100vw` inside an
   8px-padded panel. Home featured items use the prototype's image order: own photo → account
-  rarity art (`<status>-account.png`) → game cover.
+  rarity art (`<status>-account.webp`) → game cover.
 - **Support (`pages/support/*`, `lib/support.tsx`, `sp-` CSS)**: no prototype page; dark cards,
   category chip grid (no native `<select>`), ticket list, chat-style thread. A global rule now
   gives native `<select>` option lists a dark background (they were white-on-white).
@@ -1380,3 +1380,23 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - **Listing-page escrow box** (`EscrowExplainer`) now renders the same `StepTimeline` (exported
   from `StepsGuide.tsx`) — the old `.ex-steps` grid had several competing phone rules and on live
   phones squeezed each step into a sliver, one letter per line (owner screenshot 2026-10-25).
+
+## 2026-11-01 Speed pass (images, caching, background polling)
+- **`public/assets` shrank from 94MB to ~9MB.** Every image over 100KB was re-encoded:
+  - opaque PNG photos/covers (game covers, `home-game-*`, `*-account`, `*-popular-games-photo`,
+    `cod-mobile-icon`, `valorant-icon`, …) → **`.webp`**, max 1200px wide (1600px for
+    `home-marketplace-cover` and `team-player-portraits`); references in `lib/games.ts`,
+    `pages/index.tsx` and `global.css` updated;
+  - transparent PNG icons keep their name and format, resized to ≤384px palette PNGs (logos 800px);
+  - large JPEGs re-encoded in place at ≤1200px.
+  - `home-game-standoff2.png` stays a PNG on purpose: a seeded `games.iconUrl` row points at it.
+  - **New art from Tornike or the owner**: convert it before committing (a 2MB PNG cover is the
+    usual case — WebP or JPEG at the size it's shown). If a merge brings back a reference to an old
+    `.png` name that is now `.webp`, change the reference, don't restore the PNG.
+- **`/assets/*` is cached for 7 days** (`next.config.js` `headers()`; it used to be `max-age=0`).
+  These names have no content hash, so **replace a file under a new name**, or visitors can keep
+  the old one for a week.
+- **Background tabs stop polling** (`lib/visible-poll.ts#pollWhileVisible`): the bell/messages
+  badges and online count (`lib/shell.tsx`), DM threads, order chat, the coaching-session page,
+  the game room, support live chat and the admin dashboard/ticket chat skip their timer while the
+  tab is hidden and refresh at once when it is shown again. Use it for any new polling.

@@ -4,6 +4,7 @@ import { AdminRole, TicketStatus } from '@wavehub/shared-types'
 import AdminLayout, { AdminIcon } from '../../components/AdminLayout'
 import { api } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { pollWhileVisible } from '../../lib/visible-poll'
 
 type Key = 'listings' | 'coaches' | 'tickets' | 'disputes' | 'withdrawals' | 'reviews'
 type IconName = Parameters<typeof AdminIcon>[0]['name']
@@ -65,10 +66,10 @@ export default function AdminDashboard() {
         })
         .catch(() => undefined)
     load()
-    const timer = window.setInterval(load, 30_000)
+    const stop = pollWhileVisible(load, 30_000)
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+      stop()
     }
   }, [])
 
@@ -85,10 +86,10 @@ export default function AdminDashboard() {
         })
         .catch(() => undefined)
     load()
-    const timer = window.setInterval(load, 60_000)
+    const stop = pollWhileVisible(load, 60_000)
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+      stop()
     }
   }, [])
 

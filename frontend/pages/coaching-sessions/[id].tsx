@@ -13,6 +13,7 @@ import SessionDisputePanel from '../../components/SessionDisputePanel'
 import Avatar from '../../components/Avatar'
 import VerifiedMark from '../../components/VerifiedMark'
 import { usePlatformTimings } from '../../lib/timings'
+import { pollWhileVisible } from '../../lib/visible-poll'
 
 // One coaching session, lifecycle v2 (backend/src/coaching/CLAUDE.md "Lifecycle v2"):
 //   booked → both confirm the start (from 15 min before until 60 min after; reminders every 10 min,
@@ -121,10 +122,10 @@ export default function CoachingSessionDetail() {
   const active = session && (session.status === S.Scheduled || session.status === S.InProgress || session.status === S.AwaitingConfirmation || session.status === S.Disputed)
   useEffect(() => {
     if (!active) return
-    const poll = window.setInterval(() => load(true), 20_000)
+    const stopPoll = pollWhileVisible(() => load(true), 20_000)
     const tick = window.setInterval(() => setClock(Date.now()), 15_000)
     return () => {
-      window.clearInterval(poll)
+      stopPoll()
       window.clearInterval(tick)
     }
   }, [active, load])

@@ -5193,7 +5193,7 @@ button {
 .account-basic-cover {
   background:
     linear-gradient(180deg, rgba(5, 8, 19, 0.02), rgba(5, 8, 19, 0.22)),
-    url("/assets/basic-account.png") center 24% / cover no-repeat;
+    url("/assets/basic-account.webp") center 24% / cover no-repeat;
 }
 
 .marketplace-card-top,
@@ -7639,7 +7639,7 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 .cover-cod {
   background:
     linear-gradient(180deg, rgba(6, 10, 17, 0.08), rgba(6, 10, 17, 0.28)),
-    url("/assets/call-of-duty-popular-games-photo.png") center / cover no-repeat,
+    url("/assets/call-of-duty-popular-games-photo.webp") center / cover no-repeat,
     #10151f;
 }
 
@@ -8063,7 +8063,7 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 .cover-ml {
   background:
     linear-gradient(180deg, rgba(12, 10, 28, 0.04), rgba(12, 10, 28, 0.24)),
-    url("/assets/mobile-legends-popular-games-photo.png") center / cover no-repeat,
+    url("/assets/mobile-legends-popular-games-photo.webp") center / cover no-repeat,
     #121423;
 }
 
@@ -8087,7 +8087,7 @@ body.favorites-view .marketplace-empty a { margin-top: 8px; border-radius: 9px; 
 .cover-roblox {
   background:
     linear-gradient(180deg, rgba(8, 12, 23, 0.04), rgba(8, 12, 23, 0.22)),
-    url("/assets/roblox-popular-games-photo.png") center / cover no-repeat,
+    url("/assets/roblox-popular-games-photo.webp") center / cover no-repeat,
     #0e1522;
 }
 
@@ -14901,22 +14901,22 @@ body.public-profile-view .main-panel {
 .home-steam-card:hover,
 .home-steam-card:focus-visible { border-color: rgba(255, 42, 155, .68); color: white; transform: translateY(-3px); }
 .home-steam-cover { min-height: 225px; display: block; background-position: center; background-size: cover; }
-.home-steam-cover.cs2 { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/cs2-marketplace-cover.png'); }
-.home-steam-cover.dota { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/dota-2-marketplace-cover.png'); }
-.home-steam-cover.fortnite { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/fortnite-marketplace-cover.png'); }
-.home-steam-cover.elden-ring { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/gta-5-marketplace-cover.png'); }
-.home-steam-cover.cod { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/call-of-duty-marketplace-photo.png'); }
-.home-steam-cover.gta { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/gta-5-marketplace-cover.png'); }
-.home-steam-cover.valorant { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/valorant-marketplace-cover.png'); }
-.home-steam-cover.minecraft { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/minecraft-marketplace-cover.png'); }
-.home-steam-cover.league { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/league-of-legends-marketplace-cover.png'); }
-.home-steam-cover.pubg { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/pubg-mobile-marketplace-cover.png'); }
-.home-steam-cover.roblox { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/roblox-marketplace-cover.png'); }
-.home-steam-cover.mobile-legends { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/mobile-legends-marketplace-cover.png'); }
-.home-steam-cover.clash { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/clash-of-clans-marketplace-cover.png'); }
+.home-steam-cover.cs2 { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/cs2-marketplace-cover.webp'); }
+.home-steam-cover.dota { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/dota-2-marketplace-cover.webp'); }
+.home-steam-cover.fortnite { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/fortnite-marketplace-cover.webp'); }
+.home-steam-cover.elden-ring { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/gta-5-marketplace-cover.webp'); }
+.home-steam-cover.cod { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/call-of-duty-marketplace-photo.webp'); }
+.home-steam-cover.gta { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/gta-5-marketplace-cover.webp'); }
+.home-steam-cover.valorant { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/valorant-marketplace-cover.webp'); }
+.home-steam-cover.minecraft { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/minecraft-marketplace-cover.webp'); }
+.home-steam-cover.league { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/league-of-legends-marketplace-cover.webp'); }
+.home-steam-cover.pubg { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/pubg-mobile-marketplace-cover.webp'); }
+.home-steam-cover.roblox { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/roblox-marketplace-cover.webp'); }
+.home-steam-cover.mobile-legends { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/mobile-legends-marketplace-cover.webp'); }
+.home-steam-cover.clash { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/clash-of-clans-marketplace-cover.webp'); }
 .home-steam-cover.standoff { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/home-game-standoff2.png'); }
-.home-steam-cover.rdr2 { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/clash-of-clans-marketplace-cover.png'); }
-.home-steam-cover.cyberpunk { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/valorant-marketplace-cover.png'); }
+.home-steam-cover.rdr2 { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/clash-of-clans-marketplace-cover.webp'); }
+.home-steam-cover.cyberpunk { background-image: linear-gradient(180deg, transparent 65%, #06050d), url('/assets/valorant-marketplace-cover.webp'); }
 .home-steam-platform { min-height: 58px; display: flex; align-items: center; gap: 11px; padding: 0 15px; border-bottom: 1px solid rgba(255, 255, 255, .07); color: #c3bdc8; font-size: 11px; text-transform: uppercase; }
 .home-steam-platform b { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; font-size: 11px; font-weight: 900; }
 .home-steam-platform .steam-mark {
@@ -15180,8 +15180,8 @@ body.public-profile-view .main-panel {
 .featured-coach:hover, .featured-coach:focus-visible { border-color: rgba(255, 48, 163, .62); color: inherit; transform: translateY(-2px); }
 .featured-coach-photo { position: relative; min-height: 182px; background-position: center; background-size: cover; }
 .featured-coach-photo::after { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13, 4, 28, .02), rgba(5, 4, 15, .48)); content: ''; }
-.featured-coach-photo.luna { background-image: linear-gradient(rgba(76, 13, 119, .2), rgba(10, 1, 20, .36)), url('/assets/valorant-marketplace-cover.png'); background-position: 15% center; }
-.featured-coach-photo.zephyr { background-image: linear-gradient(rgba(72, 8, 116, .2), rgba(7, 2, 17, .42)), url('/assets/cs2-marketplace-cover.png'); background-position: 16% center; }
+.featured-coach-photo.luna { background-image: linear-gradient(rgba(76, 13, 119, .2), rgba(10, 1, 20, .36)), url('/assets/valorant-marketplace-cover.webp'); background-position: 15% center; }
+.featured-coach-photo.zephyr { background-image: linear-gradient(rgba(72, 8, 116, .2), rgba(7, 2, 17, .42)), url('/assets/cs2-marketplace-cover.webp'); background-position: 16% center; }
 .featured-coach-photo > span { position: absolute; z-index: 1; top: 12px; left: 12px; padding: 7px 10px; border-radius: 5px; color: #f8edff; background: linear-gradient(105deg, #6b18c9, #40118f); box-shadow: 0 0 14px rgba(107, 24, 201, .35); font-size: 10px; font-weight: 850; letter-spacing: .02em; text-transform: uppercase; }
 .featured-coach-copy { min-width: 0; display: flex; flex-direction: column; padding: 17px 16px 12px; }
 .featured-coach-name { display: flex; align-items: center; gap: 8px; }
@@ -15217,7 +15217,7 @@ body.public-profile-view .main-panel {
 .competition-bridge p { position: absolute; bottom: 3px; margin: 0; color: #bd5cf4; font-size: 15px; font-weight: 850; line-height: 1.55; letter-spacing: .04em; text-align: center; text-transform: uppercase; text-shadow: 0 0 12px rgba(177, 46, 242, .35); }
 
 .featured-tournament { overflow: hidden; border: 1px solid rgba(231, 43, 150, .31); border-radius: 13px; background: rgba(4, 5, 13, .95); }
-.tournament-cover { position: relative; min-height: 248px; display: grid; place-items: center; overflow: hidden; background: linear-gradient(0deg, rgba(9, 1, 18, .62), rgba(9, 4, 25, .08)), url('/assets/cs2-marketplace-cover.png') center / cover; }
+.tournament-cover { position: relative; min-height: 248px; display: grid; place-items: center; overflow: hidden; background: linear-gradient(0deg, rgba(9, 1, 18, .62), rgba(9, 4, 25, .08)), url('/assets/cs2-marketplace-cover.webp') center / cover; }
 .tournament-cover::after { position: absolute; inset: 0; background: radial-gradient(circle at 50% 54%, rgba(222, 37, 255, .18), transparent 30%), linear-gradient(90deg, rgba(18, 0, 37, .34), transparent 40%, transparent 60%, rgba(18, 0, 37, .34)); content: ''; }
 .tournament-cover > span, .tournament-cover > b { position: absolute; z-index: 2; top: 14px; padding: 8px 11px; border-radius: 5px; font-size: 10px; letter-spacing: .025em; text-transform: uppercase; }
 .tournament-cover > span { left: 14px; color: #fff; background: linear-gradient(110deg, #e2238a, #a615a7); }
@@ -15946,13 +15946,13 @@ body.public-profile-view .main-panel {
 .mobile-home-services,
 .mobile-marketplace-title,
 .home-marketplace-heading-link { display: none; }
-.home-marketplace-game-card:nth-child(1) .home-marketplace-game-image { background: url("/assets/home-game-cs2.png") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(1) .home-marketplace-game-image { background: url("/assets/home-game-cs2.webp") center / cover no-repeat; }
 .home-marketplace-game-card:nth-child(2) .home-marketplace-game-image { background: url("/assets/home-game-dota2.jpg") center / cover no-repeat; }
 .home-marketplace-game-card:nth-child(3) .home-marketplace-game-image { background: url("/assets/home-game-pubg-mobile.jpg") center / cover no-repeat; }
-.home-marketplace-game-card:nth-child(4) .home-marketplace-game-image { background: url("/assets/home-game-mobile-legends.png") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(4) .home-marketplace-game-image { background: url("/assets/home-game-mobile-legends.webp") center / cover no-repeat; }
 .home-marketplace-game-card:nth-child(5) .home-marketplace-game-image { background: url("/assets/home-game-call-of-duty-mobile.jpg") center / cover no-repeat; }
 .home-marketplace-game-card:nth-child(6) .home-marketplace-game-image { background: url("/assets/home-game-fortnite.jpg") center / cover no-repeat; }
-.home-marketplace-game-card:nth-child(7) .home-marketplace-game-image { background: url("/assets/home-game-roblox.png") center / cover no-repeat; }
+.home-marketplace-game-card:nth-child(7) .home-marketplace-game-image { background: url("/assets/home-game-roblox.webp") center / cover no-repeat; }
 .home-marketplace-game-card:nth-child(8) .home-marketplace-game-image { background: url("/assets/home-game-standoff2.png") center / cover no-repeat; }
 
 .home-right-rail { min-width: 0; }
@@ -17207,7 +17207,7 @@ body.seller-profile-open { overflow: hidden; }
 .team-name small { grid-column:1 / -1; overflow:hidden; color:#aab3c1; font-size:9px !important; text-overflow:ellipsis; white-space:nowrap; }
 .team-members { display:flex !important; align-items:center; gap:18px !important; padding:0 10px; }
 .team-members span { display:grid !important; justify-items:center; gap:3px; min-width:42px; color:#dce1eb; }
-.team-members i { width:54px !important; height:54px !important; border:1px solid rgba(232,77,154,.58); color:transparent; background-color:#101722; background-image:url('/assets/team-player-portraits.png'); background-repeat:no-repeat; background-size:500% 100%; font-size:10px; }
+.team-members i { width:54px !important; height:54px !important; border:1px solid rgba(232,77,154,.58); color:transparent; background-color:#101722; background-image:url('/assets/team-player-portraits.webp'); background-repeat:no-repeat; background-size:500% 100%; font-size:10px; }
 .team-members span:nth-child(1) i { background-position:0% center; }
 .team-members span:nth-child(2) i { background-position:25% center; }
 .team-members span:nth-child(3) i { background-position:50% center; }
@@ -19023,7 +19023,7 @@ body:not(.home-page) .mobile-header-auth { display: none !important; }
 .wt-hub-help a { color: #ff3d8f; }
 @media (max-width: 1100px) { .wt-stat-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .wt-hub-reg { grid-template-columns: 150px minmax(0, 1fr); } .wt-hub-status { grid-column: 1 / -1; } .wt-next-body { grid-template-columns: 1fr; } .wt-countdown, .wt-next-meta { grid-column: 1; grid-row: auto; } }
 @media (max-width: 600px) { .wt-hub-reg { grid-template-columns: 1fr; } .wt-stat-cards { grid-template-columns: 1fr; } .wt-next-vs { grid-template-columns: 1fr; justify-items: center; } .wt-next-team, .wt-next-team.right { justify-content: center; } }
-/* The prototype fills member circles from a stock portrait sprite (team-player-portraits.png) —
+/* The prototype fills member circles from a stock portrait sprite (team-player-portraits.webp) —
    strangers' faces next to real players' names. Real players have no photo here, so show the
    initial instead (root rule #6). */
 .wt-page .team-members i { display: grid !important; place-items: center; border-radius: 50%; color: #f3dcff !important; background: radial-gradient(circle, rgba(143, 69, 255, .4), rgba(16, 12, 34, .95)) !important; font-size: 19px !important; font-style: normal; font-weight: 800; }
@@ -19414,7 +19414,7 @@ body:not(.home-page) .mobile-header-auth { display: none !important; }
 .db-rank b { font-size: 22px; }
 .db-rank i { height: 7px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
 .db-rank i u { display: block; height: 100%; background: #ff2f8f; }
-.db-banner { position: relative; overflow: hidden; border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px; background: linear-gradient(90deg, rgba(10, 8, 20, .98) 35%, rgba(10, 8, 20, .2)), url('/assets/home-marketplace-cover.png') right center / cover no-repeat; padding: 30px 34px; }
+.db-banner { position: relative; overflow: hidden; border: 1px solid rgba(120, 130, 170, .2); border-radius: 12px; background: linear-gradient(90deg, rgba(10, 8, 20, .98) 35%, rgba(10, 8, 20, .2)), url('/assets/home-marketplace-cover.webp') right center / cover no-repeat; padding: 30px 34px; }
 .db-banner > div { display: grid; justify-items: start; gap: 10px; max-width: 460px; }
 .db-banner h2 { margin: 0; font-size: 28px; }
 .db-banner p { margin: 0; color: #d6d9e3; font-size: 16px; }

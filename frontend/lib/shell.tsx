@@ -4,6 +4,7 @@ import type { GameListingCount, WaveRank } from '@wavehub/shared-types'
 import { api } from './api'
 import { registerGameArt } from './games'
 import { useAuth } from './auth'
+import { pollWhileVisible } from './visible-poll'
 
 // Live numbers the site shell shows on every page — one poller here instead of one per component.
 // Everything is real backend data (backend/src/community/, notifications, direct messages); the
@@ -74,8 +75,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     }
     refreshBadges()
     api.getMyWaveRank().then(setWaveRank).catch(() => setWaveRank(null))
-    const interval = setInterval(refreshBadges, BADGE_POLL_MS)
-    return () => clearInterval(interval)
+    return pollWhileVisible(refreshBadges, BADGE_POLL_MS)
   }, [userId, refreshBadges])
 
   useEffect(() => {
@@ -88,8 +88,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
         setGames(list)
       })
       .catch(() => undefined)
-    const interval = setInterval(loadOnline, ONLINE_POLL_MS)
-    return () => clearInterval(interval)
+    return pollWhileVisible(loadOnline, ONLINE_POLL_MS)
   }, [])
 
   const value = useMemo(

@@ -8,6 +8,7 @@ import { displayName } from '../../../components/Avatar'
 import { api, errorMessage } from '../../../lib/api'
 import { useAuth } from '../../../lib/auth'
 import { CategoryIcon, TICKET_CATEGORY_LABELS, TICKET_STATUS_LABELS, formatTicketDate } from '../../../lib/support'
+import { pollWhileVisible } from '../../../lib/visible-poll'
 
 const PRIORITY_LABELS: Record<TicketPriority, string> = {
   [TicketPriority.Low]: 'დაბალი',
@@ -138,14 +139,12 @@ export default function AdminTicketDetail() {
   const isChat = ticket?.channel === 'chat'
   useEffect(() => {
     if (!id || !isChat) return
-    const timer = window.setInterval(() => {
-      if (document.visibilityState !== 'visible') return
+    return pollWhileVisible(() => {
       api
         .adminGetTicket(id)
         .then(setTicket)
         .catch(() => undefined)
     }, 5000)
-    return () => window.clearInterval(timer)
   }, [id, isChat])
 
   // The requester, from their own messages (the thread header).

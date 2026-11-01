@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MatchRoomView } from '@wavehub/shared-types'
 import { api } from '../lib/api'
+import { pollWhileVisible } from '../lib/visible-poll'
 
 // The tournament dashboard's "Game room" card (owner 2026-10-28, redesigned 2026-11-01 to Tornike's
 // screens): one per upcoming match, only for its players. Locked until staff open it, then "View"
@@ -79,12 +80,10 @@ export default function GameRoomCard({ matchId }: { matchId: string }) {
         .then((r) => alive && setRoom(r))
         .catch(() => alive && setHidden(true))
     void load()
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void load()
-    }, POLL_MS)
+    const stop = pollWhileVisible(() => void load(), POLL_MS)
     return () => {
       alive = false
-      window.clearInterval(timer)
+      stop()
     }
   }, [matchId])
 

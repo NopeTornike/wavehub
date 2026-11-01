@@ -7,6 +7,7 @@ import ChatThread, { CHAT_FILE_MAX_BYTES, type ChatThreadMessage } from '../../c
 import { displayName } from '../../components/Avatar'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { pollWhileVisible } from '../../lib/visible-poll'
 
 // Live support chat (owner 2026-10-24: "Contact support" opens a chat straight with support; tickets
 // stay at /support). Backed by a ticket on the 'chat' channel (backend/src/support/CLAUDE.md).
@@ -46,11 +47,12 @@ export default function SupportLiveChat() {
     if (!me) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void reload()
-    const timer = window.setInterval(() => {
-      setNow(Date.now())
-      if (document.visibilityState === 'visible') void reload()
-    }, POLL_MS)
-    return () => window.clearInterval(timer)
+    const tick = window.setInterval(() => setNow(Date.now()), POLL_MS)
+    const stop = pollWhileVisible(() => void reload(), POLL_MS)
+    return () => {
+      window.clearInterval(tick)
+      stop()
+    }
   }, [me, reload])
 
   const send = async () => {

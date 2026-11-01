@@ -103,12 +103,12 @@ function listingPrice(listing: PublicListingSummary) {
 }
 
 // The prototype's featured-item image order (index.html#getFeaturedImage): the seller's own photo,
-// then an account's rarity art (`<status>-account.png`), then the game's cover.
+// then an account's rarity art (`<status>-account.webp`), then the game's cover.
 function listingImage(listing: PublicListingSummary, gameSlug: string | undefined) {
   const own = listing.images[0]?.url
   if (own) return own
   const status = listing.itemAttributes?.accountStatus
-  if (listingKind(listing) === 'account' && status) return `/assets/${normalizeAccountStatus(status)}-account.png`
+  if (listingKind(listing) === 'account' && status) return `/assets/${normalizeAccountStatus(status)}-account.webp`
   return gameCover(gameSlug)
 }
 
@@ -681,7 +681,7 @@ export default function Home() {
                     return `${words.slice(0, half).join(' ')}\n${words.slice(half).join(' ')}`.trim()
                   })()}
                   style={{
-                    backgroundImage: `linear-gradient(0deg, rgba(9, 1, 18, .62), rgba(9, 4, 25, .08)), url("${tournament.coverImageUrl ?? gameCover(slugById.get(tournament.gameId)) ?? '/assets/cs2-marketplace-cover.png'}")`,
+                    backgroundImage: `linear-gradient(0deg, rgba(9, 1, 18, .62), rgba(9, 4, 25, .08)), url("${tournament.coverImageUrl ?? gameCover(slugById.get(tournament.gameId)) ?? '/assets/cs2-marketplace-cover.webp'}")`,
                   }}
                 />
                 {tournaments.length > 1 && (
