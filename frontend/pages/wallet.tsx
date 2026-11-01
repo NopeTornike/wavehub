@@ -356,7 +356,7 @@ export default function Wallet() {
             ) : checked && !user ? (
               <span>შესვლა და შევსება</span>
             ) : (
-              <span className="bog-checkout-brand">
+              <span className="wb-bank bog-checkout-brand">
                 <span>გადახდა</span>
                 <img src="/assets/bog-logo.png" alt="Bank of Georgia" />
               </span>

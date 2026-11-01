@@ -133,6 +133,11 @@ section wins.
   and `ListingEditor.tsx`); the listing page's escrow box is a compact row of five tiles again
   (`.ex-row`, `StepGlyph` from `StepsGuide.tsx`) — the owner crossed out the big vertical timeline
   there; `GameRoomCard` redesigned to Tornike's screens and shown to pending teams (locked).
+- **Tornike's `main` merged again (2026-11-01, up to `20965a7`)**: seller category picker
+  (`SellerModal` stage `choose`: account / items / CS2 skins / services → `/sell/services?category=`),
+  "my tournaments" empty state, BOG logo on more pay buttons, hero video without player controls
+  (tap → WaveHub play button). His four picker images were 2MB PNGs; converted to 720px JPEGs
+  (`public/assets/sell/*.jpg`, ~150KB each). Keep the 10-photo limit if `SellerModal` is merged again.
 - **Admin → Statistics** (`pages/admin/analytics.tsx`, Super Admin only — the nav link is hidden for
   other roles and the API refuses them): date presets + custom range scoping the whole page, KPI
   tiles, a trend chart (`components/charts/TrendChart.tsx`: single series, crosshair tooltip,

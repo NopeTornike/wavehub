@@ -50,6 +50,17 @@ export default function SellServices() {
     api.listGames().then(setGames).catch(() => undefined)
   }, [])
 
+  // The seller-category chooser links here with a category slug, so the existing service form
+  // opens already filtered for the seller's choice instead of making them select it again.
+  useEffect(() => {
+    const category = typeof router.query.category === 'string' ? router.query.category : ''
+    if (!category || categories.length === 0) return
+    const selected = categories.find((item) => item.slug === category)
+    // Applies the chooser's ?category once the list loads — a response to the URL, not derived state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (selected) setForm((current) => (current.categoryId === selected.id ? current : { ...current, categoryId: selected.id }))
+  }, [router.query.category, categories])
+
   useEffect(() => {
     if (!userId) return
     api
