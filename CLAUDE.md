@@ -158,6 +158,14 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   version, annotated "overridden" but not actually reinstalled) — `npm update sharp` was needed to
   force the actual reinstall. If a future override edit doesn't show up in `npm audit`, try `npm
   update <package>` before assuming the override itself is broken.
+- **`glob`/`minimatch` under `typeorm`** are pinned by a root override scoped to `typeorm`
+  (`glob ^14.0.2`, its `minimatch ^11.0.1`; since 2026-11-01) past GHSA-3g3m-2fjr-6pw4 and
+  GHSA-g3hv-75wg-m249 — `typeorm@0.3.31` asks for `glob@^10`, and npm's suggested fix is a breaking
+  jump to `typeorm@1.x`. glob 14 still exports `sync` for CJS `require`, which is all TypeORM's
+  `DirectoryExportedClassesLoader` uses (entity/migration paths from our own config). Verified by
+  `migration:run:prod` finding all migrations, a compiled boot + `/health`, and the e2e suite. Scoped
+  so dev tooling (`@typescript-eslint`'s `minimatch@9`) is untouched. Needed `npm update glob
+  minimatch` after `npm install`, as with `sharp`. Drop it when TypeORM is upgraded.
 - **A suspended or banned account's existing session cookie stops working immediately, not just at
   its next login.** `AuthGuard` (`backend/src/auth/auth.guard.ts`) does one lightweight
   `UsersService.findStatusById()` lookup per guarded request and rejects with 403 if the account is
