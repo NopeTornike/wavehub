@@ -293,7 +293,7 @@ export default function Topbar({
       )}
 
       <div className={`top-actions${signedIn ? ' is-signed-in' : ''}`}>
-        <LanguageSwitcher />
+        <LanguageSwitcher header />
         <Link className="icon-button" href={signedIn ? '/messages' : loginHref} aria-label="შეტყობინებები" title="შეტყობინებები">
           <img className="message-icon-image" src="/assets/message-icon.svg" alt="" aria-hidden="true" />
           <span className="message-notification-badge" hidden={unreadMessages === 0}>
