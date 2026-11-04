@@ -2,6 +2,7 @@ import { useLanguage } from '../lib/i18n'
 
 // Desktop header and footer share the compact globe + select. Phone headers retain the
 // original EN/ქა buttons, while the footer keeps the globe selector.
+/* eslint-disable @next/next/no-img-element */
 export default function LanguageSwitcher({ floating = false, header = false }: { floating?: boolean; header?: boolean }) {
   const { language, setLanguage } = useLanguage()
   return (
