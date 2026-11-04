@@ -52,7 +52,8 @@ export function useSwipe(onPrev: () => void, onNext: () => void) {
 }
 
 // A video slide: autoplays muted inline, no photo behind it, only a pause / play control.
-// With a single banner it loops; otherwise the carousel moves on when it ends.
+// Hero videos loop continuously. The resume button stays until the customer resumes playback;
+// the pause button then remains visible briefly before getting out of the way again.
 // `bigPlay` (the home hero, round 4 02.jpg): a large centred play / pause button plus a separate
 // sound on / off button (Tornike 2026-10-29); the preview starts muted.
 export function BannerVideo({
@@ -74,6 +75,7 @@ export function BannerVideo({
 }) {
   const ref = useRef<HTMLVideoElement>(null)
   const [muted, setMuted] = useState(true)
+  const [showPauseControl, setShowPauseControl] = useState(false)
 
   // The banner shows the whole video, never a zoomed crop (owner 2026-10-24: a vertical phone video
   // filled the wide frame by cropping). The frame learns the video's orientation so phones can give
@@ -91,6 +93,23 @@ export function BannerVideo({
     if (paused) v.pause()
     else void v.play().catch(() => undefined)
   }, [paused, src])
+
+  useEffect(() => {
+    if (paused || !showPauseControl) return
+    const timer = window.setTimeout(() => setShowPauseControl(false), 2000)
+    return () => window.clearTimeout(timer)
+  }, [paused, showPauseControl])
+
+  const togglePlayback = () => {
+    if (paused) {
+      // Keep the pause icon available for a moment after Resume, then hide it.
+      setShowPauseControl(true)
+      onPausedChange(false)
+      return
+    }
+    setShowPauseControl(false)
+    onPausedChange(true)
+  }
 
   return (
     <>
@@ -119,12 +138,12 @@ export function BannerVideo({
         <>
           <button
             type="button"
-            className={`banner-video-play${paused ? '' : ' is-playing'}`}
+            className={`banner-video-play${paused ? ' is-paused' : ' is-playing'}${showPauseControl ? ' is-temporarily-visible' : ''}`}
             aria-label={paused ? 'ვიდეოს გაგრძელება' : 'ვიდეოს პაუზა'}
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
-              onPausedChange(!paused)
+              togglePlayback()
             }}
           >
             {paused ? (
@@ -165,7 +184,7 @@ export function BannerVideo({
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
-          onPausedChange(!paused)
+          togglePlayback()
         }}
       >
         {paused ? (

@@ -22639,10 +22639,11 @@ a.team-view { display: inline-flex; align-items: center; justify-content: center
    it never covers the text; without text it stays dead centre. */
 .hero-banner:has(.hero-banner-copy) .banner-video-play, .hero-banner:has(.hero-banner-copy) .banner-video-play:hover { left: 80% !important; }
 @media (max-width: 760px) { .hero-banner:has(.hero-banner-copy) .banner-video-play { left: 82% !important; top: 42% !important; width: 52px; height: 52px; } }
-/* The pause button stays visible (dimmed) while the video plays — phones have no hover to reveal
-   it, so a hidden button meant nobody could find "stop". */
-.banner-video-play.is-playing { opacity: .55 !important; }
-.hero-banner:hover .banner-video-play.is-playing, .banner-video-play.is-playing:focus-visible { opacity: .95 !important; }
+/* A playing hero should stay clean. Hover/focus exposes Pause on desktop; after Resume it remains
+   available for two seconds, while a paused video keeps its Resume control visible. */
+.banner-video-play.is-playing { opacity: 0 !important; pointer-events: none; }
+.hero-banner:hover .banner-video-play.is-playing, .banner-video-play.is-playing:focus-visible, .banner-video-play.is-temporarily-visible { opacity: .95 !important; pointer-events: auto; }
+.banner-video-play.is-paused { opacity: 1 !important; pointer-events: auto; }
 
 /* Round 5 (owner screenshots 2026-10-24..27). */
 /* A long unbroken word in a listing's title / description (sellers type them) stretched the listing

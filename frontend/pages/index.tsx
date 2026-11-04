@@ -1166,7 +1166,7 @@ function HeroBanner({ banner, banners, rotation }: { banner: PublicBanner; banne
           key={banner.id}
           src={banner.videoUrl}
           className="hero-banner-video"
-          loop={rotation.count < 2}
+          loop
           paused={rotation.paused}
           onPausedChange={rotation.setPaused}
           onEnded={rotation.next}
