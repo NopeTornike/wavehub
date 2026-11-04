@@ -21550,6 +21550,12 @@ body.modal-open { overflow: hidden; }
   background-position: center;
   border-bottom: 1px solid rgba(202, 105, 206, .2);
 }
+/* Tournament uploads are wide promotional artwork.  Do not crop their top/bottom
+   inside the fixed-height home showcase; show the full supplied cover instead. */
+.home-competition-section .tournament-cover.has-photo {
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
 .home-competition-section .tournament-copy > p {
   max-width: calc(100% - 52px);
   min-height: 27px;
