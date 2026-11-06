@@ -129,6 +129,40 @@ describe('coach admin, packages, questions, video (e2e)', () => {
     expect((await buyer.client.get(`/coaches/${coachId}`)).body.videoFileUrl).toBeNull();
   });
 
+  it('intro video: up to 25MB, then the server swaps in a smaller compressed MP4', async () => {
+    const tooBig = Buffer.concat([MP4, Buffer.alloc(25 * 1024 * 1024)]);
+    expect([400, 413]).toContain((await coachUser.client.upload('/coaches/mine/video', tooBig, 'big.mp4', 'video/mp4')).status);
+
+    // A real (if short) video needs ffmpeg to make and to compress; skipped where it isn't installed.
+    const { spawnSync } = await import('child_process');
+    const { readFileSync, existsSync, mkdtempSync } = await import('fs');
+    const { join } = await import('path');
+    const { tmpdir } = await import('os');
+    if (spawnSync('ffmpeg', ['-version']).status !== 0) return;
+    const file = join(mkdtempSync(join(tmpdir(), 'wh-e2e-')), 'raw.mp4');
+    // 4s of 1920x1080 noise at a high bitrate: big enough that the 720p CRF-28 copy is smaller.
+    spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=1920x1080:rate=30:duration=4', '-c:v', 'libx264', '-b:v', '8M', '-pix_fmt', 'yuv420p', file]);
+    const raw = readFileSync(file);
+
+    const up = await coachUser.client.upload('/coaches/mine/video', raw, 'raw.mp4', 'video/mp4');
+    expect(up.status).toBe(200);
+    const { VideoCompressor } = await import('../src/storage/video-compressor');
+    await ctx.app.get(VideoCompressor).idle();
+    // The swap is written right after the job finishes.
+    let now = up.body.videoFileUrl as string;
+    for (let i = 0; i < 50 && now === up.body.videoFileUrl; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      now = (await buyer.client.get(`/coaches/${coachId}`)).body.videoFileUrl;
+    }
+    expect(now).not.toBe(up.body.videoFileUrl);
+    const small = Buffer.from(await (await fetch(`${ctx.baseUrl}${new URL(now).pathname}`)).arrayBuffer());
+    expect(small.length).toBeLessThan(raw.length);
+    expect(small.subarray(4, 8).toString('latin1')).toBe('ftyp');
+    // The original is removed from disk once replaced.
+    const uploads = process.env.UPLOADS_DIR || join(process.cwd(), 'uploads');
+    expect(existsSync(join(uploads, new URL(up.body.videoFileUrl).pathname.split('/').pop() as string))).toBe(false);
+  }, 120_000);
+
   it('booking a package charges its price and stores the answers for the participants only', async () => {
     const detail = (await buyer.client.get(`/coaches/${coachId}`)).body;
     const vod = detail.packages.find((p: { key: string }) => p.key === 'starter');

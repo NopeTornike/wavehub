@@ -257,6 +257,7 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'You cannot follow yourself': 'საკუთარი თავის გამოწერა შეუძლებელია.',
   'Only a completed session can be reviewed': 'შეფასება შესაძლებელია მხოლოდ დასრულებული სესიისთვის.',
   'You are not a coach': 'თქვენ ქოუჩის პროფილი არ გაქვთ.',
+  'The video must be 25MB or smaller': 'ვიდეო 25MB-ზე დიდია.',
   'The video must be a YouTube or Vimeo link': 'ვიდეო უნდა იყოს YouTube ან Vimeo ბმული.',
   'Unknown game': 'უცნობი თამაში.',
   'The original price must be a whole number above the current price': 'ძველი ფასი უნდა იყოს მთელი რიცხვი და აღემატებოდეს მიმდინარე ფასს.',

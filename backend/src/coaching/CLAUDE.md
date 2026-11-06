@@ -231,10 +231,11 @@ Migration `1784360000000-CoachPackagesVideo` (runs on boot).
   `PATCH coaches/mine/profile { bookingQuestions }`. Answers are validated on booking and stored on
   `coaching_sessions.answers`; only the session's participants see them (`/coaching-sessions/[id]`).
 - **Uploaded intro video**: `POST coaches/mine/video` (multipart `file`, `StorageService` kind
-  `'video'` — byte-sniffed MP4/WebM, `MAX_COACH_VIDEO_BYTES` 5MB (50MB before 2026-10-03), `UPLOAD_THROTTLE`) →
+  `'video'` — byte-sniffed MP4/WebM, `MAX_COACH_VIDEO_BYTES` 25MB since 2026-11-06 (5MB from 2026-10-03, 50MB before), `UPLOAD_THROTTLE`) →
   `coaches.videoFileUrl`; `DELETE coaches/mine/video` clears it. When set it replaces the
-  YouTube/Vimeo `videoUrl` on the public profile. Caddy's `request_body` cap (22MB, `deploy/Caddyfile`)
-  is sized for the 20MB attachments now, not videos — restart Caddy after changing it.
+  YouTube/Vimeo `videoUrl` on the public profile. Caddy's `request_body` cap (27MB, `deploy/Caddyfile`)
+  is sized for the 25MB video — restart Caddy after changing it. Since 2026-11-06 the server
+  compresses it (see below).
 - **Staff add / edit coaches** (`COACH_MANAGEMENT_ROLES` = Operation Lead, Main Administrator,
   Marketplace & Coaching Ops Manager, plus Super Admin; every mutation audit-logged as
   `coach.create|update|set_packages|set_video|clear_video`): `POST admin/coaches`
@@ -423,3 +424,15 @@ account stays. Audited (`coach.delete`, with username/status).
 - Admin → Coaches' edit panel can now change a coach's **other games** — it had no control for them
   and re-saved the old list, so a game removed in the admin panel stayed on the profile.
 - Tests: `test/client-round-3.e2e-spec.ts`.
+
+## 2026-11-06 25MB intro videos, compressed by the server
+- `MAX_COACH_VIDEO_BYTES` = 25MB (multer limit + service check, 400 "The video must be 25MB or
+  smaller"). `setVideo` stores the original (it plays at once), then `compressVideoLater` hands it
+  to `VideoCompressor` (`storage/video-compressor.ts`, ffmpeg → 720p H.264/AAC MP4, CRF 28,
+  faststart, one job at a time on 2 threads). The result replaces `videoFileUrl` only if it is ≥5%
+  smaller **and** `videoFileUrl` still equals the original (conditional update — a newer upload or a
+  removal wins); the losing file is deleted. Replacing or removing a video deletes the old file
+  (`StorageService.remove`, local driver only).
+- No ffmpeg (local dev without it) → a warning once, originals kept. The Docker image installs it.
+- e2e: `coach-admin.e2e-spec.ts` "up to 25MB, then … compressed MP4" (the swap part runs only where
+  `ffmpeg` is installed).

@@ -1,6 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException, UnsupportedMediaTypeException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { sniffFileType } from './file-sniff';
 import { putObject, S3Config } from './s3-client';
@@ -91,5 +91,15 @@ export class StorageService {
     await writeFile(join(dir, filename), buffer);
     const publicBaseUrl = (process.env.BACKEND_PUBLIC_URL || 'http://localhost:4000').replace(/\/+$/, '');
     return { url: `${publicBaseUrl}/uploads/${filename}`, contentType: sniffed.mime };
+  }
+
+  // Best-effort removal of a file this service stored (local driver only — S3 objects are left in
+  // place). Only a UUID filename under /uploads/ is ever touched, so a stored URL can't point it
+  // anywhere else.
+  async remove(url: string | null | undefined): Promise<void> {
+    if (!url || this.s3) return;
+    const m = /\/uploads\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{2,5})$/.exec(url);
+    if (!m) return;
+    await unlink(join(resolveUploadsDir(), m[1])).catch(() => undefined);
   }
 }

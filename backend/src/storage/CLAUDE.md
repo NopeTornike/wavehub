@@ -24,7 +24,12 @@ by `STORAGE_DRIVER`.
 - `file-sniff.ts` — `sniffFileType(buffer)`: identifies JPEG/PNG/WEBP/PDF/ZIP by magic bytes, MP4 by
   its `ftyp` box + a known brand, WebM by the EBML header with a `webm` DocType.
 - `s3-client.ts` — SigV4 signer (`signPutObject`, unit-tested) + `putObject`.
-- `storage.module.ts` — exports `StorageService`.
+- `storage.service.ts` `remove(url)` — best-effort delete of a stored file (local driver, UUID names
+  under `/uploads/` only; S3 objects are left).
+- `video-compressor.ts` — `VideoCompressor.compress(buffer)` → small 720p MP4 or null (ffmpeg via
+  `FFMPEG_PATH`, default `ffmpeg`; installed in `backend/Dockerfile`). Serial queue, 2 threads, 10-min
+  kill; `idle()` for tests. Used for coach intro videos (`coaching/CLAUDE.md`).
+- `storage.module.ts` — exports `StorageService` and `VideoCompressor`.
 - `storage.spec.ts` — sniffing, local driver, path-traversal/disguised-file rejection, signer.
 
 ## Data model
@@ -47,9 +52,8 @@ None — files only. Callers persist the returned `url` (and `contentType`) in t
   `scripts/backup.sh`) but not a server loss, and won't work with more than one backend instance.
   Use `s3` for anything else.
 - **Body size limits** (owner decision 2026-10-03): multer per-route limits — 2 MB user photos
-  (listing images, avatars/coach portraits, team logos), 5 MB coach intro videos and staff game
-  art/tournament covers, 8 MB banners, 20 MB order/dispute attachments — + Caddy's 22 MB
-  `request_body` cap (lowered from 55 MB once videos dropped to 5 MB). The frontend downscales
+  (listing images, avatars/coach portraits, team logos), 5 MB staff game art/tournament covers, 8 MB banners, 20 MB order/dispute attachments, 25 MB coach
+  intro videos (since 2026-11-06, compressed after upload) — + Caddy's 27 MB `request_body` cap. The frontend downscales
   photos over 2 MB in the browser before uploading (`frontend/lib/image-resize.ts`). Upload routes are also rate-limited (`common/throttle.ts` `UPLOAD_THROTTLE`).
 - Uploading to S3 fails closed: a provider error is logged (status only) and the client gets a
   generic 503; nothing is recorded in the database.

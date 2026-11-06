@@ -8,6 +8,8 @@
 # against a real Docker daemon by its authors — correctness over image size. (The image is larger
 # than necessary because the frontend's dependencies are installed too; harmless.)
 FROM node:22-alpine
+# ffmpeg compresses coach intro videos after upload (storage/video-compressor.ts).
+RUN apk add --no-cache ffmpeg
 WORKDIR /app
 
 # Manifests first for layer caching — every workspace's package.json is needed for `npm ci` to
