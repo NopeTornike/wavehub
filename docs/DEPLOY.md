@@ -265,31 +265,59 @@ of writing).
    — while the daemon is actually up and listening fine). Trusted at face value, this means a real
    reboot can leave systemd believing postfix started when the mail daemon never actually launched
    (found by literally rebooting and checking — `systemctl status` said "active", `ps aux` showed
-   nothing). Fix: override the unit to verify the real listening socket instead of trusting the
-   script's exit code:
+   nothing). **Sixth gotcha, the same reboot (2026-11-06, after an OVH hypervisor restart)**: postfix
+   can start before Docker has created the `172.28.0.1` bridge and dies with `fatal: parameter
+   inet_interfaces: no local interface found for 172.28.0.1` — every email then fails with
+   `ECONNREFUSED 172.28.0.1:25` and is dropped after the backend's retries. Fix: order the unit after
+   Docker, wait for the bridge address, then verify the real listening socket instead of trusting
+   the script's exit code. Write both files locally and `scp` them up (an inline heredoc over `ssh`
+   with nested quotes truncated the wrapper once), then `sudo install` them:
    ```bash
-   sudo tee /usr/local/sbin/postfix-start-wrapper.sh > /dev/null <<'EOF'
+   # /usr/local/sbin/postfix-start-wrapper.sh  (mode 755)
    #!/bin/sh
-   /usr/sbin/postfix start >/dev/null 2>&1 || true
-   for i in 1 2 3 4 5 6 7 8 9 10; do
-     ss -tln | grep -q '172.28.0.1:25' && exit 0
+   # postfix listens only on the Docker bridge address (172.28.0.1, see inet_interfaces), which exists
+   # only once Docker has brought up the wavehub compose network. At boot postfix can start first and
+   # die with "no local interface found for 172.28.0.1" (happened 2026-11-06), so wait for the address
+   # first (up to 3 minutes), then start postfix and verify it is really listening. postfix-script's own
+   # exit codes are unreliable on this host (2026-09-23), so the listening socket is the ground truth.
+   i=0
+   until ip -4 addr show | grep -q "inet 172\.28\.0\.1/"; do
+     i=$((i + 1))
+     if [ "$i" -ge 180 ]; then
+       echo "docker bridge 172.28.0.1 never appeared within 180s" >&2
+       exit 1
+     fi
      sleep 1
    done
-   echo "postfix did not come up listening on 172.28.0.1:25 within 10s" >&2
+   /usr/sbin/postfix start >/dev/null 2>&1 || true
+   for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+     if ss -tln | grep -q "172\.28\.0\.1:25"; then
+       exit 0
+     fi
+     sleep 1
+   done
+   echo "postfix did not come up listening on 172.28.0.1:25 within 15s" >&2
    exit 1
-   EOF
-   sudo chmod +x /usr/local/sbin/postfix-start-wrapper.sh
-   sudo mkdir -p /etc/systemd/system/postfix.service.d
-   sudo tee /etc/systemd/system/postfix.service.d/override.conf > /dev/null <<'EOF'
+   ```
+   ```ini
+   # /etc/systemd/system/postfix.service.d/override.conf
+   [Unit]
+   After=docker.service network-online.target
+   Wants=docker.service network-online.target
+
    [Service]
    Type=oneshot
    RemainAfterExit=yes
+   TimeoutStartSec=240
    ExecStart=
    ExecStart=/usr/local/sbin/postfix-start-wrapper.sh
    ExecStop=/usr/sbin/postfix stop
    ExecReload=/usr/sbin/postfix reload
-   EOF
+   ```
+   ```bash
    sudo systemctl daemon-reload
+   sudo systemctl reset-failed postfix.service postfix@-.service
+   sudo systemctl restart postfix
    ```
    **Verify this by actually rebooting**, not just `systemctl restart` — the failure mode only
    shows up across a real cold boot: `sudo reboot`, wait, then `systemctl is-active postfix` AND
