@@ -54,6 +54,10 @@ export function useSwipe(onPrev: () => void, onNext: () => void) {
 // A video slide: autoplays muted inline, no photo behind it, only a pause / play control.
 // Hero videos loop continuously. The resume button stays until the customer resumes playback;
 // the pause button then remains visible briefly before getting out of the way again.
+// The button follows what the <video> really does (its play / pause events), not only the requested
+// state: when the browser blocks autoplay (iOS Low Power Mode, data saver) the button still says
+// Play and a tap starts it. On the big hero a tap anywhere on the video pauses / resumes it — phones
+// have no hover, so the faded pause button alone left no way to stop it (owner 2026-11-06).
 // `bigPlay` (the home hero, round 4 02.jpg): a large centred play / pause button plus a separate
 // sound on / off button (Tornike 2026-10-29); the preview starts muted.
 export function BannerVideo({
@@ -76,6 +80,7 @@ export function BannerVideo({
   const ref = useRef<HTMLVideoElement>(null)
   const [muted, setMuted] = useState(true)
   const [showPauseControl, setShowPauseControl] = useState(false)
+  const [playing, setPlaying] = useState(false)
 
   // The banner shows the whole video, never a zoomed crop (owner 2026-10-24: a vertical phone video
   // filled the wide frame by cropping). The frame learns the video's orientation so phones can give
@@ -101,15 +106,20 @@ export function BannerVideo({
   }, [paused, showPauseControl])
 
   const togglePlayback = () => {
-    if (paused) {
+    const v = ref.current
+    if (!v || v.paused) {
       // Keep the pause icon available for a moment after Resume, then hide it.
       setShowPauseControl(true)
       onPausedChange(false)
+      // Already "playing" in state (autoplay was blocked): the effect won't re-run, so start it here.
+      if (v && !paused) void v.play().catch(() => undefined)
       return
     }
     setShowPauseControl(false)
     onPausedChange(true)
+    if (paused) v.pause()
   }
+  const stopped = !playing
 
   return (
     <>
@@ -126,6 +136,8 @@ export function BannerVideo({
         controls={false}
         aria-hidden="true"
         onEnded={onEnded}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
         onLoadedMetadata={(e) => {
           const v = e.currentTarget
           const host = v.parentElement
@@ -136,17 +148,26 @@ export function BannerVideo({
       />
       {bigPlay ? (
         <>
+          {/* Tap the video itself to pause / resume (under the copy, the banner link and the buttons). */}
+          <div
+            className="banner-video-tap"
+            aria-hidden="true"
+            onClick={(e) => {
+              e.preventDefault()
+              togglePlayback()
+            }}
+          />
           <button
             type="button"
-            className={`banner-video-play${paused ? ' is-paused' : ' is-playing'}${showPauseControl ? ' is-temporarily-visible' : ''}`}
-            aria-label={paused ? 'ვიდეოს გაგრძელება' : 'ვიდეოს პაუზა'}
+            className={`banner-video-play${stopped ? ' is-paused' : ' is-playing'}${showPauseControl ? ' is-temporarily-visible' : ''}`}
+            aria-label={stopped ? 'ვიდეოს გაგრძელება' : 'ვიდეოს პაუზა'}
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
               togglePlayback()
             }}
           >
-            {paused ? (
+            {stopped ? (
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />
               </svg>
@@ -168,7 +189,10 @@ export function BannerVideo({
               const next = !muted
               if (v) {
                 v.muted = next
-                if (!next && paused) onPausedChange(false)
+                if (!next && v.paused) {
+                  onPausedChange(false)
+                  if (!paused) void v.play().catch(() => undefined)
+                }
               }
               setMuted(next)
             }}
@@ -180,14 +204,14 @@ export function BannerVideo({
       <button
         type="button"
         className="banner-video-toggle"
-        aria-label={paused ? 'ვიდეოს გაგრძელება' : 'ვიდეოს პაუზა'}
+        aria-label={stopped ? 'ვიდეოს გაგრძელება' : 'ვიდეოს პაუზა'}
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
           togglePlayback()
         }}
       >
-        {paused ? (
+        {stopped ? (
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
             <path d="M8 5v14l11-7z" fill="currentColor" />
           </svg>

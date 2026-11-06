@@ -1400,3 +1400,28 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   badges and online count (`lib/shell.tsx`), DM threads, order chat, the coaching-session page,
   the game room, support live chat and the admin dashboard/ticket chat skip their timer while the
   tab is hidden and refresh at once when it is shown again. Use it for any new polling.
+
+## 2026-11-06 Owner prompts (screenshots in ~/Downloads, the request is the file name)
+- **Subscriptions (`/plans`) = the owner's "WaveHubX PLUS" screen, 1:1** (`px-` CSS, one centred
+  column at every width): back + "გამოწერა", hero (WAVEHUBX / gradient PLUS + crown, art cropped from
+  the owner's mockup as `public/assets/plus-hero-art.webp`), a plan switcher when there are 2+ plans
+  (Seller / Coach plans first), the price card (`BEST VALUE` only when it is the cheapest per day of
+  2+ plans in its audience; the ⓘ line opens the plan description), perk rows that expand to say what
+  the perk does, the gradient CTA (login / active / cancel-first / BOG checkout), the BOG logo, and the
+  secure-payment / cancel-anytime / N-day facts. "My subscriptions" with cancel and the past-due
+  banner are kept. Rule #6: the fee-discount row shows only on **Seller / Coach** plans (the backend
+  applies `platformFeeDiscountPercent` only from those); "Subscription Member ბეჯი" is always shown
+  (every live subscription earns the `subscriber` badge); the mockup's "more platform features" and
+  "exclusive offers" rows are omitted (no perk backs them).
+- **Marketplace / Services "How Escrow works"** now shows the buyer's escrow money steps
+  (`escrowSteps` from `EscrowExplainer.tsx`; neutral item wording on the marketplace, service wording
+  on `/services`). The seller "publish in 5 steps" list that sat under that title is gone.
+- **Listing page**: the escrow header + 5 steps were crossed out by the owner; `EscrowExplainer` now
+  renders only "მნიშვნელოვანი ინფორმაცია" (support / dispute / auto-complete links).
+- **`/tournaments/hub`**: the countdown and "მატჩის დეტალები" button were circled out — the game room
+  card under "Upcoming match" takes that place (owner screens); the badge reads "შენი გუნდი"; the
+  card is one column with date / time / map as three equal boxes. A **pending** team still sees the
+  room locked (backend rule) — staff must verify the team and open the room in Admin → Tournaments.
+- **Hero video** (`BannerVideo`): the button follows the `<video>`'s real play / pause events (autoplay
+  blocked → it shows Play and a tap starts it), and on the big hero a tap anywhere on the video
+  (`.banner-video-tap`) pauses / resumes — phones had no hover, so a playing video couldn't be stopped.

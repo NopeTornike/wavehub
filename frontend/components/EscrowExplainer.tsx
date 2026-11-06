@@ -1,14 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { usePlatformTimings } from '../lib/timings'
-import { StepGlyph, type StepIcon } from './StepsGuide'
+import type { StepIcon } from './StepsGuide'
 
-// "როგორ მუშაობს Escrow?" on the listing page (design 2026-10-04, screenshot "listing"): the five
-// money steps for this kind of product, then the three things a buyer should know. Owner 2026-11-01:
-// the steps are a compact row of five tiles again (the big vertical timeline was too much here).
-type Kind = 'account' | 'skin' | 'item' | 'service' | 'key'
+// The listing page's buyer notes (design 2026-10-04): what to do if something goes wrong. Owner
+// 2026-11-06 crossed out the "How Escrow works" steps here; they moved to the top of /marketplace
+// and /services (`escrowSteps`, shown through StepsGuide), replacing the seller steps there.
+export type EscrowKind = 'account' | 'skin' | 'item' | 'service' | 'key'
 
-function stepsFor(kind: Kind): Array<{ text: string; icon: StepIcon }> {
+export function escrowSteps(kind: EscrowKind): Array<{ text: string; icon: StepIcon }> {
   const third =
     kind === 'service' ? 'გამყიდველი ასრულებს სერვისს' : kind === 'key' ? 'გასაღებს მყისიერად იღებთ' : 'გამყიდველი გიგზავნის ლოგინს და პაროლს'
   const fourth = kind === 'service' ? 'თქვენ ამოწმებთ შედეგს' : kind === 'key' ? 'თქვენ ააქტიურებთ და ამოწმებთ' : kind === 'account' ? 'თქვენ ამოწმებთ ანგარიშს' : 'თქვენ ამოწმებთ ნივთს'
@@ -21,33 +21,11 @@ function stepsFor(kind: Kind): Array<{ text: string; icon: StepIcon }> {
   ]
 }
 
-export default function EscrowExplainer({ kind }: { kind: Kind }) {
+export default function EscrowExplainer({ kind }: { kind: EscrowKind }) {
   const timings = usePlatformTimings()
   return (
-    <section className="ex-box" aria-labelledby="escrowExplainerTitle">
-      <header className="ex-head">
-        <span className="ex-shield">
-          <img src="/assets/ui/shield-check.png" alt="" aria-hidden="true" />
-        </span>
-        <div>
-          <h2 id="escrowExplainerTitle">
-            როგორ მუშაობს <span>Escrow</span> ?
-          </h2>
-          <p>უსაფრთხო ყიდვა-გაყიდვის პროცესი</p>
-        </div>
-      </header>
-      <ol className="ex-row">
-        {stepsFor(kind).map((step, i) => (
-          <li key={step.text}>
-            <b>{i + 1}</b>
-            <span className="ex-row-icon" aria-hidden="true">
-              <StepGlyph icon={step.icon} />
-            </span>
-            <span className="ex-row-text">{step.text}</span>
-          </li>
-        ))}
-      </ol>
-      <h3>მნიშვნელოვანი ინფორმაცია</h3>
+    <section className="ex-box" aria-labelledby="escrowInfoTitle">
+      <h3 id="escrowInfoTitle">მნიშვნელოვანი ინფორმაცია</h3>
       <div className="ex-info">
         <Link href="/support">
           <img src="/assets/ui/headset.png" alt="" aria-hidden="true" />

@@ -13,25 +13,10 @@ import { formatDay, matchWinner, STAGE_LABEL, TeamMark, TIcon, tournamentCover, 
 
 // docs/design-mockups/10-tournament-hub.jpg, for the signed-in user: the selected registration
 // (status: pending verification / verified / rejected), four stats (active registrations, upcoming
-// matches, wins, win rate — all from recorded matches of the user's teams), the next match with a
-// live countdown to its scheduled time, and the bracket for the selected tournament: group tables
+// matches, wins, win rate — all from recorded matches of the user's teams), the next match (its date,
+// time and map; the game room card sits right under it — owner 2026-11-06 replaced the countdown), and the bracket for the selected tournament: group tables
 // (W-L from completed group matches) plus semi-final and final slots from the recorded playoff
 // matches ("TBD" until staff record them).
-
-function useCountdown(target: string | null) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    if (!target) return
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(timer)
-  }, [target])
-  if (!target) return null
-  const ms = Math.max(0, new Date(target).getTime() - now)
-  const h = Math.floor(ms / 3_600_000)
-  const m = Math.floor((ms % 3_600_000) / 60_000)
-  const s = Math.floor((ms % 60_000) / 1000)
-  return { h, m, s, done: ms === 0 }
-}
 
 type Standing = { team: TournamentTeamRef; wins: number; losses: number }
 
@@ -125,7 +110,6 @@ export default function TournamentHub() {
     .filter((m) => m.status !== TournamentMatchStatus.Completed && m.scheduledAt && new Date(m.scheduledAt).getTime() > loadedAt - 3_600_000)
     .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''))
   const next = upcoming[0] ?? null
-  const countdown = useCountdown(next?.scheduledAt ?? null)
   const activeCount = (entries ?? []).filter((e) => e.tournament.status !== TournamentStatus.Completed).length
   const winRate = completed.length ? Math.round((wins / completed.length) * 100) : null
 
@@ -283,7 +267,7 @@ export default function TournamentHub() {
                       <TeamMark team={me} className="lg" />
                       <span>
                         <strong>{me?.name ?? 'TBD'}</strong>
-                        <b className="wt-you">შენ</b>
+                        <b className="wt-you">შენი გუნდი</b>
                       </span>
                     </span>
                     <span className="wt-next-mid">
@@ -312,31 +296,6 @@ export default function TournamentHub() {
                       {next.map || '—'}
                     </span>
                   </p>
-                  <div className="wt-countdown">
-                    <small>მატჩი იწყება</small>
-                    {countdown && (
-                      <div>
-                        {(
-                          [
-                            [countdown.h, 'სთ'],
-                            [countdown.m, 'წთ'],
-                            [countdown.s, 'წმ'],
-                          ] as const
-                        ).map(([value, unit], i) => (
-                          <span key={unit}>
-                            {i > 0 && <i>:</i>}
-                            <span className="wt-cd">
-                              <b>{String(value).padStart(2, '0')}</b>
-                              <small>{unit}</small>
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <Link className="wt-primary-btn" href={`/tournaments/${next.tournamentId}/matches/${next.id}`}>
-                      მატჩის დეტალები
-                    </Link>
-                  </div>
                 </div>
               ) : (
                 <p className="rules-pending">დაგეგმილი მატჩი ჯერ არ არის — განრიგს ტურნირის ადმინისტრაცია გამოაქვეყნებს.</p>

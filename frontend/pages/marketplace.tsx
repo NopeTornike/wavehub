@@ -10,6 +10,7 @@ import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
 import { gel } from '../lib/money'
 import StepsGuide, { type StepIcon } from '../components/StepsGuide'
+import { escrowSteps } from '../components/EscrowExplainer'
 import HomeBanners from '../components/HomeBanners'
 import { BannerPlacement } from '@wavehub/shared-types'
 import { restoreScroll, saveSnapshot, takeSnapshot } from '../lib/scroll-memory'
@@ -36,21 +37,13 @@ function queryString(value: string | string[] | undefined): string {
   return typeof value === 'string' ? value : ''
 }
 
-// Seller steps shown under the header (design 2026-10-04, "როგორ მუშაობს Escrow?").
-const SELLER_STEPS: Array<{ text: string; icon: StepIcon }> = [
-  { text: 'დააჭირე „გახდი გამყიდველი“', icon: 'click' },
-  { text: 'შეავსე ინფორმაცია', icon: 'form' },
-  { text: 'შეამოწმე', icon: 'review' },
-  { text: 'გამოაქვეყნე', icon: 'publish' },
-  { text: 'დაელოდე დადასტურებას', icon: 'wait' },
-]
-const SERVICE_STEPS: Array<{ text: string; icon: StepIcon }> = [
-  { text: 'დააჭირე „გაყიდე სერვისი“', icon: 'click' },
-  { text: 'აღწერე სერვისი და ფოტოები', icon: 'image' },
-  { text: 'დაამატე პაკეტები', icon: 'package' },
-  { text: 'გამოაქვეყნე', icon: 'publish' },
-  { text: 'დაელოდე დადასტურებას', icon: 'wait' },
-]
+// "How Escrow works" under the header: the buyer's money steps. Owner 2026-11-06 replaced the seller
+// "publish in 5 steps" list that sat here under this title, and moved the steps here from the listing
+// page. Marketplace sells accounts, skins and items, so steps 3–4 use neutral wording.
+const MARKET_ESCROW_STEPS: Array<{ text: string; icon: StepIcon }> = escrowSteps('item').map((step, i) =>
+  i === 2 ? { ...step, text: 'გამყიდველი გადმოგცემთ შენაძენს' } : i === 3 ? { ...step, text: 'თქვენ ამოწმებთ შენაძენს' } : step,
+)
+const SERVICE_ESCROW_STEPS = escrowSteps('service')
 
 export default function Marketplace() {
   return <MarketplaceView />
@@ -210,7 +203,7 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
     [router, servicesOnly],
   )
 
-  const steps = servicesOnly ? SERVICE_STEPS : SELLER_STEPS
+  const steps = servicesOnly ? SERVICE_ESCROW_STEPS : MARKET_ESCROW_STEPS
   const listTitle =
     product === 'account' ? 'ანგარიშები' : product === 'skin' ? 'სკინები' : product === 'item' ? 'ნივთები' : product === 'service' ? 'სერვისები' : 'ყველა პროდუქტი'
 
@@ -239,8 +232,7 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
         id="escrowStepsTitle"
         title="როგორ მუშაობს"
         accent="Escrow"
-        subtitle={servicesOnly ? 'გამოაქვეყნე შენი სერვისი 5 მარტივ ნაბიჯში' : 'გამოაქვეყნე შენი პირველი განცხადება 5 მარტივ ნაბიჯში'}
-        note="გადახდა იყინება და გამყიდველთან მხოლოდ მყიდველის დადასტურების შემდეგ გადადის."
+        subtitle="უსაფრთხო ყიდვა-გაყიდვის პროცესი"
         steps={steps}
       />
 
