@@ -4,6 +4,7 @@ import { TOURNAMENT_DETAIL_KEYS, TournamentStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import TournamentOps from '../../components/admin/TournamentOps'
 import { api, errorMessage } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
 
 const STATUS_LABELS: Record<TournamentStatus, string> = {
   [TournamentStatus.Draft]: 'დრაფტი (დამალული)',
@@ -189,7 +190,10 @@ function TournamentFields({
 }
 
 export default function AdminTournaments() {
-  const [games, setGames] = useState<PublicGame[]>([])
+  const [allGames, setGames] = useState<PublicGame[]>([])
+  // A Game Manager can only pick its own tournament games (the API refuses the others).
+  const scopeIds = useAuth().user?.staffScopes?.tournamentGameIds ?? null
+  const games = scopeIds ? allGames.filter((g) => scopeIds.includes(g.id)) : allGames
   const [items, setItems] = useState<PublicTournamentSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

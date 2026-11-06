@@ -111,14 +111,14 @@ export class AdminUsersController {
     @Body() dto: SetAdminRoleDto,
   ) {
     const before = await this.users.getAdminOne(id);
-    const user = await this.users.setAdminRole(adminId, id, dto.adminRole ?? null);
+    const user = await this.users.setAdminRole(adminId, id, dto.adminRole ?? null, dto.staffScopes);
     await this.audit.log({
       adminId,
       adminRole,
       action: 'user.set_admin_role',
       entityType: 'user',
       entityId: id,
-      metadata: { from: before.adminRole, to: user.adminRole, reason: dto.reason },
+      metadata: { from: before.adminRole, to: user.adminRole, reason: dto.reason, staffScopes: user.staffScopes ?? null },
     });
     return user;
   }

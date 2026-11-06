@@ -148,6 +148,7 @@ export default function MyListings({
                     <i aria-hidden="true" />
                     {LISTING_STATUS_LABELS[listing.status]}
                   </span>
+                  {listing.soldAt && <span className="al-sold">SOLD</span>}
                   <details className="ml-more">
                     <summary aria-label="მეტი მოქმედება">
                       <img src="/assets/ui/ellipsis.png" alt="" aria-hidden="true" />

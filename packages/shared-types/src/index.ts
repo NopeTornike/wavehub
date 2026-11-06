@@ -26,6 +26,16 @@ export enum AdminRole {
   MarketplaceCoachingOpsManager = 'marketplace_coaching_ops_manager',
   TrustSafetyOfficer = 'trust_safety_officer',
   SupportSpecialist = 'support_specialist',
+  // Owner 2026-11-06: a per-game head (e.g. "PUBG marketplace head"). Sees and acts only on the
+  // games in its `staffScopes` — marketplace listings and tournaments are granted separately — and
+  // nothing else (no statistics, users, finance, settings). Enforced in AdminGuard's callers.
+  GameManager = 'game_manager',
+}
+
+// Which games a Game Manager may act on, per area. Empty list = no access to that area.
+export interface StaffGameScopes {
+  marketplaceGameIds: string[];
+  tournamentGameIds: string[];
 }
 
 export enum SellerTier {
@@ -264,6 +274,8 @@ export interface PublicUser {
   wavecoinBalance: number;
   // Uploaded profile photo (Settings page), or null for the initials avatar.
   avatarUrl: string | null;
+  // Game Manager only (null for everyone else): the games the admin panel lets them work on.
+  staffScopes?: StaffGameScopes | null;
 }
 
 export interface AuthMeResponse {
@@ -368,6 +380,9 @@ export interface PublicListingSummary {
   itemAttributes: ItemAttributes | null;
   // How many accounts have this listing in their favourites (the card's ♡ count).
   favoriteCount: number;
+  // Staff marked it SOLD (ISO time, owner 2026-11-06): the cover shows the SOLD overlay, it can't
+  // be bought, and it leaves the site 24h later. Null otherwise.
+  soldAt?: string | null;
 }
 
 // Seller-entered details on an item listing (backend/src/listings — `item_details.attributes`).
@@ -426,6 +441,7 @@ export interface ListingForEdit {
   faq: FaqEntry[];
   itemAttributes: Record<string, unknown> | null;
   createdAt: string;
+  soldAt?: string | null;
 }
 
 // What ListingsService#findPublicById returns — a PublicListingSummary plus the fuller detail-page
@@ -1010,6 +1026,9 @@ export interface AdminListingSummary {
   priceWaveCoin?: number | null;
   // Staff-checked account / details → the listing's VERIFIED badge.
   verified?: boolean;
+  // Staff marked it SOLD (ISO time); it leaves the site 24h later.
+  soldAt?: string | null;
+  gameId?: string | null;
 }
 
 // Admin → Steam (GET admin/steam-games): every Steam game whoever created it, with live key stock.
@@ -1162,6 +1181,7 @@ export interface AdminUserSummary {
   // The public profile title (null = automatic); `profileTitleByStaff` = set from the admin panel.
   profileTitle: ProfileTitle | null;
   profileTitleByStaff: boolean;
+  staffScopes?: StaffGameScopes | null;
 }
 
 // Static/legal page CMS — scoped to what Footer.tsx actually links to (About/Contact/Terms/

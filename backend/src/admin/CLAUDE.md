@@ -118,3 +118,24 @@ banners, and Maintenance Mode enforcement are not). Phase 11b (Coaching) has a f
 coach verification/suspension routes exist (`backend/src/coaching/CLAUDE.md`, same
 `AdminGuard`/`AdminAuditService` foundation), but session booking/payment and the rest of Coaching
 Management don't. Still fully ahead: Trust & Safety/Analytics (11e, 11g).
+
+## 2026-11-06 Game Manager (7th role) + staff scopes
+- `AdminRole.GameManager` (`game_manager`): a per-game head. `users.staffScopes` jsonb
+  (`StaffGameScopes {marketplaceGameIds, tournamentGameIds}`, migration
+  `1784392000000-GameManagerAndSold`) holds its games; null for every other role.
+- `staff-scope.ts`: `AdminGuard` attaches `request.staffScope` (`staffScopeFor`) — `null` lists for
+  every non-Game-Manager role (no game limit), the Game Manager's ids otherwise.
+  `@CurrentStaffScope()`, `scopeGameIds(scope, area)` (for list filters; `[]` → empty result) and
+  `assertGameInScope(scope, area, gameId)` (403 "This game is outside your staff access"; a listing
+  with no game is outside every Game Manager's scope).
+- **A route that lists `AdminRole.GameManager` must check the game itself** — the role list alone
+  lets every Game Manager in. Today: listing moderation/edit routes (`listings.controller.ts`
+  `MODERATORS`/`EDITORS`, each calling `ListingsService.assertInScope`) and every
+  `TOURNAMENT_MANAGEMENT_ROLES` route (`TournamentsService.assertTournamentInScope`; create/update
+  also check the new `gameId`). Nothing else lists the role.
+- Granted by Super Admin: `POST admin/users/:id/role {adminRole:'game_manager', staffScopes}` —
+  at least one game, ids must exist; audited with the scopes. `GET auth/me` returns `staffScopes`
+  for a Game Manager (the admin panel shows only its areas' pages).
+- `notifyStaff(..., { game: {area, gameId} })` tells a Game Manager only about its own games
+  (listing review, team registration).
+- Spec: `SPECIFICATION.md` §5.13.6a. e2e: `test/game-manager-sold.e2e-spec.ts`.

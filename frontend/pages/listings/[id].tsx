@@ -16,6 +16,7 @@ import RankIcon from '../../components/RankIcon'
 import Avatar from '../../components/Avatar'
 import ReportButton from '../../components/ReportButton'
 import ImageLightbox from '../../components/ImageLightbox'
+import SoldOverlay from '../../components/SoldOverlay'
 import EscrowExplainer from '../../components/EscrowExplainer'
 import ReviewCard from '../../components/ReviewCard'
 import FeeBreakdown from '../../components/FeeBreakdown'
@@ -476,6 +477,7 @@ export default function ListingDetail() {
                     data-label={listing.game?.name ?? ''}
                     style={hero ? { backgroundImage: `linear-gradient(rgba(5, 8, 19, 0.03), rgba(5, 8, 19, 0.22)), url("${hero.url}")` } : undefined}
                   >
+                    <SoldOverlay soldAt={listing.soldAt} size="hero" />
                     <div className="detail-hero-badges">
                       <span className={`service-tag ${kind === 'account' ? 'account' : kind === 'skin' || kind === 'item' ? 'skin' : 'hot'}`} id="detailHeroTag">
                         {kind === 'account' && (
@@ -724,10 +726,10 @@ export default function ListingDetail() {
                   className="detail-buy-button"
                   id="buyButton"
                   type="button"
-                  disabled={purchasing || !inStock || (kind === 'service' && !selectedPackageId)}
+                  disabled={purchasing || !inStock || !!listing.soldAt || (kind === 'service' && !selectedPackageId)}
                   onClick={requestPurchase}
                 >
-                  {purchasing ? 'მიმდინარეობს…' : 'ახლავე ყიდვა'}
+                  {listing.soldAt ? 'გაყიდულია' : purchasing ? 'მიმდინარეობს…' : 'ახლავე ყიდვა'}
                 </button>
               </>
             )}
@@ -735,7 +737,9 @@ export default function ListingDetail() {
               <button id="wishlistButton" type="button" aria-pressed={saved} title="Add to wishlist" onClick={() => void toggleFavorite()}>
                 {saved ? 'რჩეულებშია ♥' : 'რჩეულებში დამატება'}
               </button>
-              {me?.adminRole === AdminRole.SuperAdmin && !isOwnListing && (
+              {(me?.adminRole === AdminRole.SuperAdmin ||
+                (me?.adminRole === AdminRole.GameManager && !!listing.game && !!me.staffScopes?.marketplaceGameIds.includes(listing.game.id))) &&
+                !isOwnListing && (
                 <Link className="detail-admin-edit" href={`/admin/listings/${listing.id}`}>
                   რედაქტირება (ადმინი)
                 </Link>

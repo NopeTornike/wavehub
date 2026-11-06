@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 import { moneyTransformer } from '../wallet/money';
 import { AdminRole, UserStatus } from '@wavehub/shared-types';
+import type { StaffGameScopes } from '@wavehub/shared-types';
 
 @Entity('users')
 export class User {
@@ -57,6 +58,10 @@ export class User {
   // this role via the API today, only a direct DB update).
   @Column({ type: 'varchar', nullable: true })
   adminRole: AdminRole | null;
+
+  // Game Manager's games, per area (backend/src/admin/staff-scope.ts). Null for everyone else.
+  @Column({ type: 'jsonb', nullable: true })
+  staffScopes: StaffGameScopes | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

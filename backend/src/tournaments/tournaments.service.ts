@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { assertGameInScope, type StaffScope } from '../admin/staff-scope';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { AdminRole, NotificationType, TournamentMatchStage, TournamentMatchStatus, TournamentStatus, TournamentTeamStatus, UserStatus } from '@wavehub/shared-types';
 import type {
@@ -63,7 +64,9 @@ function normalizeStats(stats: MatchTeamStatsDto | null | undefined, accounts: M
 
 // Staff who manage tournaments (SPECIFICATION.md §5.13); the controller guards its admin routes
 // with the same list.
-export const TOURNAMENT_MANAGEMENT_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager];
+export const TOURNAMENT_MANAGEMENT_ROLES = [AdminRole.OperationLead, AdminRole.MainAdministrator, AdminRole.MarketplaceCoachingOpsManager, AdminRole.GameManager];
+// A Game Manager reaches these routes but only for its tournament games (owner 2026-11-06):
+// the controller checks every tournament's game with assertTournamentInScope.
 
 @Injectable()
 export class TournamentsService {
@@ -275,8 +278,10 @@ export class TournamentsService {
   // --- Public: tournaments ---
 
   // Public list never includes drafts; the admin list (`includeDrafts`) shows everything.
-  async browse(filters: BrowseTournamentsDto, includeDrafts = false): Promise<{ items: PublicTournamentSummary[]; total: number }> {
+  async browse(filters: BrowseTournamentsDto, includeDrafts = false, gameIds: string[] | null = null): Promise<{ items: PublicTournamentSummary[]; total: number }> {
+    if (gameIds && !gameIds.length) return { items: [], total: 0 };
     const qb = this.tournaments.createQueryBuilder('t').leftJoinAndSelect('t.game', 'game');
+    if (gameIds) qb.andWhere('t.gameId IN (:...gameIds)', { gameIds });
     if (!includeDrafts) {
       qb.andWhere('t.status <> :draft', { draft: TournamentStatus.Draft });
     }
@@ -291,6 +296,13 @@ export class TournamentsService {
     const [rows, total] = await qb.getManyAndCount();
     const items = await Promise.all(rows.map((row) => this.toPublic(row)));
     return { items, total };
+  }
+
+  // Game Manager: the tournament's game must be one of its tournament games.
+  async assertTournamentInScope(id: string, scope: StaffScope): Promise<void> {
+    if (scope.tournamentGameIds === null) return;
+    const tournament = await this.getOrThrow(id);
+    assertGameInScope(scope, 'tournaments', tournament.gameId);
   }
 
   async findPublicById(id: string): Promise<PublicTournamentSummary> {
@@ -472,6 +484,7 @@ export class TournamentsService {
       `გუნდი „${team.name}“ დარეგისტრირდა ტურნირზე „${tournament.name}“.`,
       '/admin/tournaments',
       `team:${team.id}`,
+      { game: { area: 'tournaments', gameId: tournament.gameId } },
     );
     return this.toPublicTeam(team, true);
   }

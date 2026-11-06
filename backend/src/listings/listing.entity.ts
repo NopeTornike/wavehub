@@ -91,6 +91,15 @@ export class Listing {
   @Column({ type: 'timestamptz', nullable: true })
   verifiedAt: Date | null;
 
+  // Staff-set SOLD mark (owner 2026-11-06): the card shows the SOLD overlay and nobody can buy it.
+  // 24h later the sweep (ListingsService#sweepSoldListings) pauses it and sets soldRemovedAt, so it
+  // leaves the site; while soldAt is set the seller can't put it back live.
+  @Column({ type: 'timestamptz', nullable: true })
+  soldAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  soldRemovedAt: Date | null;
+
   @Column({ type: 'integer', nullable: true })
   stockQuantity: number | null;
 

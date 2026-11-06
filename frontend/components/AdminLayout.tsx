@@ -4,7 +4,7 @@ import { useEffect, type ReactNode } from 'react'
 import { AdminRole } from '@wavehub/shared-types'
 import Layout from './Layout'
 import { useAuth } from '../lib/auth'
-import { canPublishSteam } from '../lib/roles'
+import { canPublishSteam, GAME_MANAGER_PAGES, gameManagerAreas } from '../lib/roles'
 
 // The admin shell (2026-10-02 redesign): a grouped section sidebar with icons, a breadcrumb header
 // with the viewer's role, and one consistent visual system for every /admin/* page (`adm-` CSS at
@@ -94,6 +94,7 @@ export const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
   [AdminRole.MarketplaceCoachingOpsManager]: 'მარკეტი და ქოუჩინგი',
   [AdminRole.TrustSafetyOfficer]: 'Trust & Safety',
   [AdminRole.SupportSpecialist]: 'მხარდაჭერა',
+  [AdminRole.GameManager]: 'Game Manager',
 }
 
 export function AdminIcon({ name }: { name: IconName }) {
@@ -108,12 +109,18 @@ export default function AdminLayout({ children, title }: { children: ReactNode; 
   const layoutTitle = title ? `${title} · ადმინ პანელი` : 'ადმინ პანელი'
   const router = useRouter()
   const { user, checked } = useAuth()
+  // A Game Manager only gets its areas' pages; anything else sends it to the first one it has.
+  const areas = gameManagerAreas(user)
+  const allowedPages = areas?.map((area) => GAME_MANAGER_PAGES[area]) ?? null
+  const pageAllowed = !allowedPages || allowedPages.some((href) => router.pathname === href || router.pathname.startsWith(`${href}/`))
 
   useEffect(() => {
     if (checked && !user) {
       router.push(`/login?next=${encodeURIComponent(router.asPath)}`)
+    } else if (checked && allowedPages && !pageAllowed && allowedPages[0]) {
+      router.replace(allowedPages[0])
     }
-  }, [checked, user, router])
+  }, [checked, user, router, allowedPages, pageAllowed])
 
   if (!checked || (checked && !user)) {
     return (
@@ -123,7 +130,14 @@ export default function AdminLayout({ children, title }: { children: ReactNode; 
     )
   }
 
-  if (!user!.adminRole) {
+  if (!user!.adminRole || (allowedPages && !pageAllowed)) {
+    if (allowedPages?.length) {
+      return (
+        <Layout title={layoutTitle} noIndex>
+          <div className="adm-loading">იტვირთება…</div>
+        </Layout>
+      )
+    }
     return (
       <Layout title={layoutTitle} noIndex>
         <div className="adm-denied">
@@ -136,7 +150,10 @@ export default function AdminLayout({ children, title }: { children: ReactNode; 
   }
 
   const role = user!.adminRole
-  const visible = (item: NavItem) => (!item.superAdminOnly || role === AdminRole.SuperAdmin) && (!item.steamPublisherOnly || canPublishSteam(user))
+  const visible = (item: NavItem) =>
+    allowedPages
+      ? allowedPages.includes(item.href)
+      : (!item.superAdminOnly || role === AdminRole.SuperAdmin) && (!item.steamPublisherOnly || canPublishSteam(user))
   const isActive = (href: string) => (href === '/admin' ? router.pathname === '/admin' : router.pathname === href || router.pathname.startsWith(`${href}/`))
   const current = NAV_GROUPS.flatMap((g) => g.items).find((item) => isActive(item.href))
 
@@ -168,7 +185,7 @@ export default function AdminLayout({ children, title }: { children: ReactNode; 
         </aside>
         <div className="adm-main">
           <div className="adm-crumbs">
-            <Link href="/admin">ადმინ პანელი</Link>
+            <Link href={allowedPages?.[0] ?? '/admin'}>ადმინ პანელი</Link>
             {current && current.href !== '/admin' && (
               <>
                 <span aria-hidden="true">/</span>

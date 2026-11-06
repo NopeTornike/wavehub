@@ -7,9 +7,17 @@ import { api, errorMessage } from '../../lib/api'
 import { LISTING_STATUS_LABELS } from '../../lib/labels'
 import { useAuth } from '../../lib/auth'
 
-// Super Admin can open any listing in the full editor (/admin/listings/[id]).
+// Super Admin can open any listing in the full editor (/admin/listings/[id]); a Game Manager
+// can for its own games (the API only lists those to it and checks every save).
 function useCanEditListings() {
+  const role = useAuth().user?.adminRole
+  return role === AdminRole.SuperAdmin || role === AdminRole.GameManager
+}
+function useIsSuperAdmin() {
   return useAuth().user?.adminRole === AdminRole.SuperAdmin
+}
+function useIsGameManager() {
+  return useAuth().user?.adminRole === AdminRole.GameManager
 }
 
 function EditLink({ id }: { id: string }) {
@@ -18,6 +26,13 @@ function EditLink({ id }: { id: string }) {
       რედაქტირება
     </Link>
   )
+}
+
+// "SOLD · removed from the site" once the 24h sweep ran, else the hours left.
+function soldNote(soldAt: string): string {
+  const left = new Date(soldAt).getTime() + 24 * 3600 * 1000 - Date.now()
+  if (left <= 0) return 'SOLD · საიტიდან მოხსნილია'
+  return `SOLD · საიტიდან გაქრება ${Math.max(1, Math.ceil(left / 3600000))} საათში`
 }
 
 const TYPE_LABELS: Record<ListingType, string> = {
@@ -47,6 +62,8 @@ export default function AdminListings() {
 // page's "Featured Items" rail shows (POST admin/listings/:id/featured, audit-logged).
 function AllListings() {
   const canEdit = useCanEditListings()
+  const isSuperAdmin = useIsSuperAdmin()
+  const isGameManager = useIsGameManager()
   const [query, setQuery] = useState('')
   const [search, setSearch] = useState('')
   const [onlyFeatured, setOnlyFeatured] = useState(false)
@@ -95,6 +112,22 @@ function AllListings() {
     try {
       const res = await api.adminSetListingVerified(item.id, !item.verified)
       setItems((prev) => (prev ?? []).map((row) => (row.id === item.id ? { ...row, verified: res.verified } : row)))
+    } catch (err) {
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  // SOLD overlay (owner 2026-11-06): marked listings can't be bought and leave the site 24h later.
+  const toggleSold = async (item: AdminListingSummary) => {
+    const marking = !item.soldAt
+    if (marking && !window.confirm(`„${item.title}“ მოინიშნოს SOLD-ად? ყიდვა დაიბლოკება და 24 საათში საიტიდან გაქრება.`)) return
+    setBusyId(item.id)
+    setError('')
+    try {
+      const res = await api.adminSetListingSold(item.id, marking)
+      setItems((prev) => (prev ?? []).map((row) => (row.id === item.id ? { ...row, soldAt: res.soldAt, status: marking ? ListingStatus.Active : row.status } : row)))
     } catch (err) {
       setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
     } finally {
@@ -157,11 +190,13 @@ function AllListings() {
                 <strong>
                   {item.isFeatured && <span className="al-star" aria-hidden="true">★ </span>}
                   {item.title}
+                  {item.soldAt && <span className="al-sold">SOLD</span>}
                 </strong>
                 <span className="note" style={{ margin: 0 }}>
                   @{item.sellerUsername} · {TYPE_LABELS[item.type]} · {LISTING_STATUS_LABELS[item.status]}
                   {item.gameName ? ` · ${item.gameName}` : ''}
                   {item.priceWaveCoin != null ? ` · ${item.priceWaveCoin} GEL` : ''}
+                  {item.soldAt ? ` · ${soldNote(item.soldAt)}` : ''}
                 </span>
               </div>
               <div className="admin-row-actions">
@@ -174,10 +209,17 @@ function AllListings() {
                   <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.verified)} onClick={() => void toggleVerified(item)} title="VERIFIED ბეიჯი: აქაუნთის საკუთრება და მონაცემები შემოწმებულია">
                     {item.verified ? 'VERIFIED ✓ — მოხსნა' : 'VERIFIED-ად მონიშვნა'}
                   </button>
+                  {!isGameManager && (
                   <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.isFeatured)} onClick={() => void toggle(item)}>
                     {item.isFeatured ? 'რჩეულიდან ამოღება' : 'რჩეულად მონიშვნა'}
                   </button>
+                  )}
                   </>
+                )}
+                {item.type === ListingType.Item && (item.soldAt || [ListingStatus.Active, ListingStatus.Paused].includes(item.status)) && (
+                  <button type="button" className={`button${item.soldAt ? '' : ' al-sold-btn'}`} disabled={busyId === item.id} aria-pressed={Boolean(item.soldAt)} onClick={() => void toggleSold(item)}>
+                    {item.soldAt ? 'SOLD — მოხსნა' : 'SOLD-ად მონიშვნა'}
+                  </button>
                 )}
                 {[ListingStatus.Active, ListingStatus.Paused].includes(item.status) && (
                   <button type="button" className="button ghost" disabled={busyId === item.id} onClick={() => void moderate(item, 'take-down')}>
@@ -189,7 +231,7 @@ function AllListings() {
                     აღდგენა
                   </button>
                 )}
-                {canEdit && (
+                {isSuperAdmin && (
                   <button type="button" className="button danger" disabled={busyId === item.id} onClick={() => void moderate(item, 'delete')}>
                     წაშლა
                   </button>

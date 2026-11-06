@@ -123,16 +123,21 @@ export class NotificationsService {
     body: string,
     link: string,
     key: string,
-    opts: { exceptUserId?: string; onlyUserId?: string | null } = {},
+    // `game`: a Game Manager is told only about its own games (owner 2026-11-06).
+    opts: { exceptUserId?: string; onlyUserId?: string | null; game?: { area: 'marketplace' | 'tournaments'; gameId: string | null } } = {},
   ): Promise<void> {
     try {
       const wanted = Array.from(new Set([AdminRole.SuperAdmin, ...roles]));
       const staff = await this.users.find({
         where: opts.onlyUserId ? { id: opts.onlyUserId, status: UserStatus.Active } : { adminRole: In(wanted), status: UserStatus.Active },
-        select: { id: true, adminRole: true },
+        select: { id: true, adminRole: true, staffScopes: true },
       });
       for (const member of staff) {
         if (!member.adminRole || member.id === opts.exceptUserId) continue;
+        if (member.adminRole === AdminRole.GameManager) {
+          const ids = opts.game?.area === 'tournaments' ? member.staffScopes?.tournamentGameIds : member.staffScopes?.marketplaceGameIds;
+          if (!opts.game?.gameId || !ids?.includes(opts.game.gameId)) continue;
+        }
         const pending = await this.notifications
           .createQueryBuilder('n')
           .where('n.userId = :userId AND n.type = :type AND n.readAt IS NULL', { userId: member.id, type: NotificationType.StaffTask })

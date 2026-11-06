@@ -1425,3 +1425,16 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - **Hero video** (`BannerVideo`): the button follows the `<video>`'s real play / pause events (autoplay
   blocked → it shows Play and a tap starts it), and on the big hero a tap anywhere on the video
   (`.banner-video-tap`) pauses / resumes — phones had no hover, so a playing video couldn't be stopped.
+
+## 2026-11-06 Game Manager + SOLD overlay
+- **Game Manager** (`lib/roles.ts#gameManagerAreas`, `GAME_MANAGER_PAGES`): `AdminLayout` shows it
+  only Admin → Listings (marketplace games) and/or Admin → Tournaments, and redirects any other
+  admin page (the dashboard included) to the first one. Admin → Users → role panel: choosing
+  "Game Manager" opens `GameScopePicker` (game chips for marketplace and for tournaments, `au-scope`
+  CSS). It gets the full listing editor (`/admin/listings/[id]`) and the listing page's
+  "რედაქტირება (ადმინი)" link for its games; Featured and delete buttons are hidden for it.
+- **SOLD**: `components/SoldOverlay.tsx` draws `public/assets/sold-overlay.webp` (the owner's banner,
+  black background made transparent) over `ProductCard` covers and the listing hero when
+  `listing.soldAt` is set; the card loses its cart button and the buy button reads "გაყიდულია"
+  (disabled). Admin → Listings → all: "SOLD-ად მონიშვნა" / "SOLD — მოხსნა" on item listings, with
+  the hours until it leaves the site. My Listings shows a SOLD chip.

@@ -426,3 +426,20 @@ Migration `1784390000000-ListingBadges`.
   - Frontend: `components/ListingBadges.tsx` shows up to 2 on product cards and all on the listing
     and Steam pages.
 - e2e: `test/client-round-5.e2e-spec.ts`.
+
+## 2026-11-06 SOLD overlay + Game Manager
+- `listings.soldAt` / `soldRemovedAt` (migration `1784392000000-GameManagerAndSold`).
+  `POST admin/listings/:id/sold {sold}` (`SetSoldDto`; Marketplace Ops, Game Manager for its games,
+  Super Admin; audited `listing.mark_sold|unmark_sold`). Item listings only, Active or Paused
+  (a paused one goes back to Active so the overlay is seen).
+- While `soldAt` is set: `purchase` and `GET order-quote` answer 409 "This listing has been sold";
+  the seller can't edit, add photos/packages, submit or unpause (409, `assertNotSold`); order
+  cancel / dispute restock no longer un-pause it. Public responses carry `soldAt` (entity spread) —
+  the frontend draws the owner's banner (`components/SoldOverlay.tsx`).
+- `sweepSoldListings` (`@Cron('*/10 * * * *')`, `SOLD_VISIBLE_MS` 24h): pauses it, clears Featured,
+  sets `soldRemovedAt` — so it leaves every public read. Kept in the DB (orders/reviews point at
+  it). Unmarking a removed listing puts it back Active.
+- Game Manager: `GET admin/listings` and `GET listings/pending-review` are filtered to its
+  marketplace games; approve / reject / take-down / restore / verified / sold / the
+  `admin/listings/:id` editor routes check `assertInScope`. Featured, delete and Steam stay closed.
+  `AdminListingSummary` gained `soldAt`, `gameId`.

@@ -6,5 +6,7 @@ declare namespace Express {
     userId?: string;
     userStatus?: string;
     adminRole?: string;
+    // Game Manager only: the games it may act on (null lists = the role has no game limit).
+    staffScope?: import('../admin/staff-scope').StaffScope;
   }
 }

@@ -40,3 +40,9 @@ export class SetFeaturedDto {
   @IsBoolean()
   isFeatured: boolean;
 }
+
+// POST admin/listings/:id/sold — the SOLD overlay (owner 2026-11-06).
+export class SetSoldDto {
+  @IsBoolean()
+  sold: boolean;
+}

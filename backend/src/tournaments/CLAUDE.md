@@ -262,3 +262,9 @@ Migration `1784389000000-TournamentGameRoom`.
   password / slot), lock notice (or "team not verified yet"), "View" button, then copyable details,
   info note and "Open <game>".
 - e2e: `test/client-round-5.e2e-spec.ts` ("a pending team sees the card locked…").
+
+## 2026-11-06 Game Manager
+`TOURNAMENT_MANAGEMENT_ROLES` includes `AdminRole.GameManager`. Every admin tournament route checks
+the tournament's game against its tournament games (`assertTournamentInScope`; create and a
+`gameId` change check the new game); `GET admin/tournaments` is filtered to them. Team-registration
+staff notifications go only to Game Managers of that game. See `backend/src/admin/CLAUDE.md`.

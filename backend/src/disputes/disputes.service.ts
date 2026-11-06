@@ -226,7 +226,7 @@ export class DisputesService {
             if (listing.stockQuantity != null) {
               await manager.increment(Listing, { id: listing.id }, 'stockQuantity', 1);
             }
-            if (listing.status === ListingStatus.Paused) {
+            if (listing.status === ListingStatus.Paused && !listing.soldAt) {
               assertValidListingTransition(listing.status, ListingStatus.Active);
               await manager.update(Listing, listing.id, { status: ListingStatus.Active });
             }

@@ -102,6 +102,7 @@ export class OrdersService {
   async quote(listingId: string, packageId?: string): Promise<OrderQuote> {
     const listing = await this.listings.findOne({ where: { id: listingId, status: ListingStatus.Active, seller: { status: UserStatus.Active } } });
     if (!listing) throw new NotFoundException('Listing not found');
+    if (listing.soldAt) throw new ConflictException('This listing has been sold');
     let price: number | null = listing.priceWaveCoin;
     if (listing.type === ListingType.Service) {
       const pkg = packageId ? await this.packages.findOne({ where: { id: packageId, listingId: listing.id } }) : null;
@@ -122,6 +123,8 @@ export class OrdersService {
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
+    // Staff marked it SOLD (owner 2026-11-06): shown with the overlay, never purchasable.
+    if (listing.soldAt) throw new ConflictException('This listing has been sold');
     if (listing.sellerId === buyerId) {
       throw new ForbiddenException("You can't buy your own listing");
     }
@@ -619,7 +622,7 @@ export class OrdersService {
           if (listing.stockQuantity != null) {
             await manager.increment(Listing, { id: listing.id }, 'stockQuantity', 1);
           }
-          if (listing.status === ListingStatus.Paused) {
+          if (listing.status === ListingStatus.Paused && !listing.soldAt) {
             assertValidListingTransition(listing.status, ListingStatus.Active);
             await manager.update(Listing, listing.id, { status: ListingStatus.Active });
           }

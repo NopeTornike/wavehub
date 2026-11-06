@@ -23337,3 +23337,87 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 .wt-next-body { grid-template-columns: minmax(0, 1fr) !important; }
 .wt-next-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .wt-next-meta span { justify-content: center; min-width: 0; }
+
+/* SOLD overlay (owner 2026-11-06): the owner's red "SOLD" banner across a product cover once staff
+   mark the listing sold (Admin → Listings). The cover dims under it; the card can't be added to the
+   cart. The listing leaves the site 24h later. */
+.sold-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 8, 19, 0.45);
+  pointer-events: none;
+}
+.sold-overlay img {
+  width: 82%;
+  max-width: 360px;
+  height: auto;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.55));
+}
+.sold-overlay.sold-hero img {
+  width: 62%;
+  max-width: 460px;
+}
+.marketplace-card.pc-card.is-sold .pc-cover {
+  filter: saturate(0.75);
+}
+.al-sold {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #d0112b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+.adm-main .button.al-sold-btn {
+  border-color: rgba(255, 59, 79, 0.55);
+  color: #ff8c98;
+}
+
+/* Admin → Users: a Game Manager's games (owner 2026-11-06). */
+.au-scopes {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+.au-scope {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  min-width: 0;
+}
+.au-scope legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+.au-scope .au-note {
+  margin: 0 0 8px;
+}
+.au-scope-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.au-scope-chips label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.au-scope-chips label.on {
+  border-color: #ff2fa3;
+  background: rgba(255, 47, 163, 0.14);
+}
+.au-scope-chips input {
+  accent-color: #ff2fa3;
+}

@@ -1,4 +1,5 @@
-import { IsEnum, IsInt, IsOptional, IsString, Length, Max, Min, NotEquals, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Max, Min, NotEquals, ValidateIf, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { AdminRole, ProfileTitle } from '@wavehub/shared-types';
 
 // POST admin/users/:id/wallet-adjustment — Super Admin only. Positive adds, negative removes.
@@ -14,8 +15,27 @@ export class WalletAdjustmentDto {
   reason: string;
 }
 
+// A Game Manager's games (owner 2026-11-06), per area.
+export class StaffGameScopesDto {
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  marketplaceGameIds: string[];
+
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  tournamentGameIds: string[];
+}
+
 // POST admin/users/:id/role — Super Admin only. `adminRole: null` removes staff access.
+// `staffScopes` is read only for the Game Manager role.
 export class SetAdminRoleDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StaffGameScopesDto)
+  staffScopes?: StaffGameScopesDto;
+
   @IsOptional()
   @ValidateIf((_o, v) => v !== null)
   @IsEnum(AdminRole)

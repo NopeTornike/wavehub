@@ -1,4 +1,6 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { assertGameInScope, type StaffScope } from '../admin/staff-scope';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { ListingFavorite } from './listing-favorite.entity';
@@ -46,8 +48,17 @@ const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 // before uploading (frontend/lib/image-resize.ts), so this only rejects what a browser didn't shrink.
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
+// How long a SOLD-marked listing stays on the site with its overlay (owner 2026-11-06).
+export const SOLD_VISIBLE_MS = 24 * 60 * 60 * 1000;
+
+// While staff have a listing marked SOLD the seller can't edit it or put it back live.
+function assertNotSold(listing: Listing): void {
+  if (listing.soldAt) throw new ConflictException('This listing is marked sold — contact support to change it');
+}
+
 @Injectable()
 export class ListingsService {
+  private readonly logger = new Logger(ListingsService.name);
   constructor(
     @InjectRepository(Listing) private readonly listings: Repository<Listing>,
     @InjectRepository(ListingImage) private readonly images: Repository<ListingImage>,
@@ -299,12 +310,15 @@ export class ListingsService {
   }
 
   // Admin → Listings search (any status) with the Featured flag, for picking Featured Items.
-  async adminSearch(query: { q?: string; status?: ListingStatus; type?: ListingType; featured?: boolean; limit?: number }): Promise<AdminListingSummary[]> {
+  async adminSearch(query: { q?: string; status?: ListingStatus; type?: ListingType; featured?: boolean; limit?: number; gameIds?: string[] | null }): Promise<AdminListingSummary[]> {
+    // A Game Manager sees only its games (null = every game).
+    if (query.gameIds && !query.gameIds.length) return [];
     const qb = this.listings
       .createQueryBuilder('l')
       .leftJoinAndSelect('l.seller', 'seller')
       .leftJoinAndSelect('l.category', 'category')
       .leftJoinAndSelect('l.game', 'game');
+    if (query.gameIds) qb.andWhere('l.gameId IN (:...gameIds)', { gameIds: query.gameIds });
     if (query.status) qb.andWhere('l.status = :status', { status: query.status });
     if (query.type) qb.andWhere('l.type = :type', { type: query.type });
     if (query.featured !== undefined) qb.andWhere('l.isFeatured = :featured', { featured: query.featured });
@@ -327,7 +341,55 @@ export class ListingsService {
       isFeatured: row.isFeatured,
       priceWaveCoin: row.priceWaveCoin,
       verified: !!row.verifiedAt,
+      soldAt: row.soldAt?.toISOString() ?? null,
+      gameId: row.gameId ?? null,
     }));
+  }
+
+  // Throws unless a Game Manager's marketplace games include this listing's game (owner
+  // 2026-11-06). Other staff roles pass (their role list is the whole check).
+  async assertInScope(listingId: string, scope: StaffScope): Promise<void> {
+    if (scope.marketplaceGameIds === null) return;
+    const listing = await this.getListingOrThrow(listingId);
+    assertGameInScope(scope, 'marketplace', listing.gameId);
+  }
+
+  // SOLD overlay (owner 2026-11-06). Marking needs a live (or paused) item listing and puts a
+  // paused one back on the site so the overlay is seen; nobody can buy it while it's marked. The
+  // sweep below takes it off the site 24h later. Unmarking a listing the sweep already removed
+  // puts it back live.
+  async setSold(listingId: string, sold: boolean): Promise<{ id: string; soldAt: string | null }> {
+    const listing = await this.getListingOrThrow(listingId);
+    if (sold) {
+      if (listing.type !== ListingType.Item) throw new BadRequestException('Only marketplace products can be marked sold');
+      if (listing.soldAt) return { id: listing.id, soldAt: listing.soldAt.toISOString() };
+      if (listing.status !== ListingStatus.Active && listing.status !== ListingStatus.Paused) {
+        throw new ConflictException('Only a live or paused listing can be marked sold');
+      }
+      const soldAt = new Date();
+      await this.listings.update(listing.id, { soldAt, soldRemovedAt: null, status: ListingStatus.Active });
+      return { id: listing.id, soldAt: soldAt.toISOString() };
+    }
+    if (!listing.soldAt) return { id: listing.id, soldAt: null };
+    const back = listing.soldRemovedAt && listing.status === ListingStatus.Paused;
+    await this.listings.update(listing.id, { soldAt: null, soldRemovedAt: null, ...(back ? { status: ListingStatus.Active } : {}) });
+    return { id: listing.id, soldAt: null };
+  }
+
+  // 24h after the SOLD mark the listing leaves the site: paused (hidden everywhere public),
+  // unfeatured, and soldRemovedAt set. Kept in the database — orders and reviews point at it.
+  @Cron('*/10 * * * *')
+  async sweepSoldListings(now = new Date()): Promise<number> {
+    const cutoff = new Date(now.getTime() - SOLD_VISIBLE_MS);
+    const rows = await this.listings
+      .createQueryBuilder('l')
+      .where('l.soldAt IS NOT NULL AND l.soldAt <= :cutoff AND l.soldRemovedAt IS NULL', { cutoff })
+      .getMany();
+    for (const row of rows) {
+      await this.listings.update(row.id, { status: row.status === ListingStatus.Active ? ListingStatus.Paused : row.status, isFeatured: false, soldRemovedAt: now });
+    }
+    if (rows.length) this.logger.log(`Removed ${rows.length} sold listing(s) from the site`);
+    return rows.length;
   }
 
   // VERIFIED badge: staff checked the account's ownership and the stated details (owner 2026-10-28).
@@ -348,9 +410,10 @@ export class ListingsService {
   // Listing.seller relation would carry the seller's full User row (email, wavecoinBalance, etc.)
   // into an approval-queue table that has no reason to see it. approve/reject already existed
   // (Phase 11a) but had nothing that could actually list the ids to act on.
-  async listPendingReview(): Promise<AdminListingSummary[]> {
+  async listPendingReview(gameIds: string[] | null = null): Promise<AdminListingSummary[]> {
+    if (gameIds && !gameIds.length) return [];
     const rows = await this.listings.find({
-      where: { status: ListingStatus.PendingReview },
+      where: { status: ListingStatus.PendingReview, ...(gameIds ? { gameId: In(gameIds) } : {}) },
       relations: ['seller', 'category', 'game'],
       order: { createdAt: 'ASC' },
     });
@@ -362,6 +425,7 @@ export class ListingsService {
       sellerUsername: row.seller.username,
       categoryName: row.category.name,
       gameName: row.game?.name ?? null,
+      gameId: row.gameId ?? null,
       status: row.status,
       createdAt: row.createdAt.toISOString(),
     }));
@@ -716,11 +780,12 @@ export class ListingsService {
   // Staff who approve listings hear about each one waiting for review (notifications/CLAUDE.md).
   private async notifyReviewers(listing: Listing) {
     await this.notifications.notifyStaff(
-      [AdminRole.MarketplaceCoachingOpsManager],
+      [AdminRole.MarketplaceCoachingOpsManager, AdminRole.GameManager],
       'ახალი განცხადება შესამოწმებლად',
       `„${listing.title}“ ელოდება დამტკიცებას.`,
       '/admin/listings',
       `listing:${listing.id}`,
+      { game: { area: 'marketplace', gameId: listing.gameId ?? null } },
     );
   }
 
@@ -849,6 +914,7 @@ export class ListingsService {
 
   async submitForReview(sellerId: string, listingId: string): Promise<Listing> {
     const listing = await this.getOwnedListing(sellerId, listingId);
+    assertNotSold(listing);
     assertValidTransition(listing.status, ListingStatus.PendingReview);
     if (listing.type === ListingType.Service && (await this.packages.count({ where: { listingId } })) === 0) {
       throw new ConflictException('Add at least one package before submitting a service for review');
@@ -869,6 +935,7 @@ export class ListingsService {
 
   async unpause(sellerId: string, listingId: string): Promise<Listing> {
     const listing = await this.getOwnedListing(sellerId, listingId);
+    assertNotSold(listing);
     assertValidTransition(listing.status, ListingStatus.Active);
     listing.status = ListingStatus.Active;
     return this.listings.save(listing);
@@ -1036,7 +1103,10 @@ export class ListingsService {
   }
 
   private async getEditableListing(editor: ListingEditor, listingId: string): Promise<Listing> {
-    return editor === STAFF_EDITOR ? this.getListingOrThrow(listingId) : this.getOwnedListing(editor, listingId);
+    if (editor === STAFF_EDITOR) return this.getListingOrThrow(listingId);
+    const listing = await this.getOwnedListing(editor, listingId);
+    assertNotSold(listing);
+    return listing;
   }
 
   private async getOwnedListing(sellerId: string, listingId: string): Promise<Listing> {

@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
-import type { AdminUserSummary, StaffPermissions } from '@wavehub/shared-types'
+import type { AdminUserSummary, PublicGame, StaffGameScopes, StaffPermissions } from '@wavehub/shared-types'
 import { AdminRole, PROFILE_TITLE_LABELS, ProfileTitle, UserStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
@@ -15,7 +15,48 @@ const ROLE_LABELS: Record<AdminRole, string> = {
   [AdminRole.MarketplaceCoachingOpsManager]: 'Marketplace & Coaching Ops',
   [AdminRole.TrustSafetyOfficer]: 'Trust & Safety',
   [AdminRole.SupportSpecialist]: 'Support Specialist',
+  [AdminRole.GameManager]: 'Game Manager',
 }
+
+const NO_SCOPES: StaffGameScopes = { marketplaceGameIds: [], tournamentGameIds: [] }
+
+// Game Manager (owner 2026-11-06): pick the games it manages, separately for the marketplace
+// (approve / edit / take down / mark SOLD that game's listings) and for tournaments. It sees
+// nothing else in the admin panel — no statistics, users or finance.
+function GameScopePicker({ value, onChange }: { value: StaffGameScopes; onChange: (next: StaffGameScopes) => void }) {
+  const [games, setGames] = useState<PublicGame[]>([])
+  useEffect(() => {
+    api.listGames().then(setGames).catch(() => setGames([]))
+  }, [])
+  const toggle = (key: keyof StaffGameScopes, id: string) => {
+    const list = value[key]
+    onChange({ ...value, [key]: list.includes(id) ? list.filter((x) => x !== id) : [...list, id] })
+  }
+  const group = (key: keyof StaffGameScopes, label: string, hint: string) => (
+    <fieldset className="au-scope">
+      <legend>{label}</legend>
+      <p className="au-note">{hint}</p>
+      <div className="au-scope-chips">
+        {games.map((game) => (
+          <label key={game.id} className={value[key].includes(game.id) ? 'on' : undefined}>
+            <input type="checkbox" checked={value[key].includes(game.id)} onChange={() => toggle(key, game.id)} />
+            {game.name}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+  return (
+    <div className="au-scopes">
+      {group('marketplaceGameIds', 'მარკეტპლეისი', 'ამ თამაშების განცხადებების დადასტურება, რედაქტირება, მოხსნა და SOLD-ად მონიშვნა.')}
+      {group('tournamentGameIds', 'ტურნირები', 'ამ თამაშების ტურნირების შექმნა და მართვა: გუნდები, მატჩები, ოთახები.')}
+    </div>
+  )
+}
+
+const sameScopes = (a: StaffGameScopes, b: StaffGameScopes) =>
+  [...a.marketplaceGameIds].sort().join() === [...b.marketplaceGameIds].sort().join() &&
+  [...a.tournamentGameIds].sort().join() === [...b.tournamentGameIds].sort().join()
 
 // Management tools for one user, each with a mandatory reason (audit-logged server-side):
 // WaveCoin adjustment (Super Admin; Support when a Super Admin enabled it, up to `walletMax`) and
@@ -35,6 +76,10 @@ function SuperAdminPanel({
   const [walletReason, setWalletReason] = useState('')
   const [role, setRole] = useState<string>(item.adminRole ?? '')
   const [roleReason, setRoleReason] = useState('')
+  const savedScopes = item.staffScopes ?? NO_SCOPES
+  const [scopes, setScopes] = useState<StaffGameScopes>(savedScopes)
+  const isGameManager = role === AdminRole.GameManager
+  const roleUnchanged = role === (item.adminRole ?? '') && (!isGameManager || sameScopes(scopes, savedScopes))
   const [busy, setBusy] = useState('')
   const [message, setMessage] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
 
@@ -69,8 +114,11 @@ function SuperAdminPanel({
   const saveRole = (event: FormEvent) => {
     event.preventDefault()
     if (roleReason.trim().length < 3) return setMessage({ kind: 'error', text: 'მიზეზი: მინიმუმ 3 სიმბოლო.' })
+    if (isGameManager && !scopes.marketplaceGameIds.length && !scopes.tournamentGameIds.length) {
+      return setMessage({ kind: 'error', text: 'აირჩიე მინიმუმ ერთი თამაში მარკეტპლეისისთვის ან ტურნირებისთვის.' })
+    }
     void run('role', async () => {
-      const updated = await api.adminSetUserRole(item.id, (role || null) as AdminRole | null, roleReason.trim())
+      const updated = await api.adminSetUserRole(item.id, (role || null) as AdminRole | null, roleReason.trim(), isGameManager ? scopes : undefined)
       setRoleReason('')
       return updated
     }, 'როლი განახლდა.')
@@ -100,8 +148,9 @@ function SuperAdminPanel({
             </option>
           ))}
         </select>
+        {isGameManager && <GameScopePicker value={scopes} onChange={setScopes} />}
         <input maxLength={300} placeholder="მიზეზი (ჩანს აუდიტში)" value={roleReason} onChange={(e) => setRoleReason(e.target.value)} aria-label="მიზეზი" />
-        <button type="submit" className="button" disabled={busy === 'role' || role === (item.adminRole ?? '')}>
+        <button type="submit" className="button" disabled={busy === 'role' || roleUnchanged}>
           როლის შენახვა
         </button>
       </form>

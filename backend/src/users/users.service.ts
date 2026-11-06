@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { AdminRole, AdminUserSummary, ProfileTitle, UserStatus } from '@wavehub/shared-types';
-import type { PublicUserSearchResult } from '@wavehub/shared-types';
+import type { PublicUserSearchResult, StaffGameScopes } from '@wavehub/shared-types';
 import { User } from './user.entity';
 import { ListUsersDto } from './dto/list-users.dto';
 
@@ -81,6 +81,7 @@ export class UsersService {
       adminRole: user.adminRole,
       wavecoinBalance: user.wavecoinBalance,
       avatarUrl: user.avatarUrl ?? null,
+      staffScopes: user.adminRole === AdminRole.GameManager ? (user.staffScopes ?? { marketplaceGameIds: [], tournamentGameIds: [] }) : null,
     };
   }
 
@@ -99,6 +100,7 @@ export class UsersService {
       createdAt: user.createdAt.toISOString(),
       profileTitle: (user.profileTitle as ProfileTitle | null) ?? null,
       profileTitleByStaff: user.profileTitleByStaff ?? false,
+      staffScopes: user.adminRole === AdminRole.GameManager ? (user.staffScopes ?? { marketplaceGameIds: [], tournamentGameIds: [] }) : null,
     };
   }
 
@@ -173,7 +175,7 @@ export class UsersService {
   // Super Admin grants/changes/removes a staff role (admin-users.controller.ts). Guards: nobody changes
   // their own role (no self-escalation or accidental self-lockout), staff must be an active,
   // email-verified account, and the last Super Admin can't be demoted.
-  async setAdminRole(actorId: string, id: string, role: AdminRole | null): Promise<AdminUserSummary> {
+  async setAdminRole(actorId: string, id: string, role: AdminRole | null, scopes?: StaffGameScopes): Promise<AdminUserSummary> {
     if (actorId === id) throw new BadRequestException("You can't change your own staff role");
     const user = await this.getOrThrow(id);
     if (role && user.status !== UserStatus.Active) {
@@ -183,8 +185,28 @@ export class UsersService {
       const superAdmins = await this.repo.count({ where: { adminRole: AdminRole.SuperAdmin } });
       if (superAdmins <= 1) throw new BadRequestException("The last Super Admin can't be demoted");
     }
-    await this.repo.update(id, { adminRole: role });
-    return this.toAdminUser({ ...user, adminRole: role });
+    // A Game Manager needs its games (owner 2026-11-06); every other role keeps no scope.
+    let staffScopes: StaffGameScopes | null = null;
+    if (role === AdminRole.GameManager) {
+      staffScopes = await this.checkedScopes(scopes ?? { marketplaceGameIds: [], tournamentGameIds: [] });
+      if (!staffScopes.marketplaceGameIds.length && !staffScopes.tournamentGameIds.length) {
+        throw new BadRequestException('Choose at least one game for the marketplace or tournaments');
+      }
+    }
+    await this.repo.update(id, { adminRole: role, staffScopes });
+    return this.toAdminUser({ ...user, adminRole: role, staffScopes });
+  }
+
+  // Unique, existing game ids only.
+  private async checkedScopes(scopes: StaffGameScopes): Promise<StaffGameScopes> {
+    const marketplaceGameIds = [...new Set(scopes.marketplaceGameIds ?? [])];
+    const tournamentGameIds = [...new Set(scopes.tournamentGameIds ?? [])];
+    const all = [...new Set([...marketplaceGameIds, ...tournamentGameIds])];
+    if (all.length) {
+      const rows: Array<{ id: string }> = await this.repo.query(`SELECT "id" FROM "games" WHERE "id" = ANY($1::uuid[])`, [all]);
+      if (rows.length !== all.length) throw new BadRequestException('Unknown game');
+    }
+    return { marketplaceGameIds, tournamentGameIds };
   }
 
   async restore(id: string): Promise<AdminUserSummary> {

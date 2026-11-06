@@ -12,6 +12,7 @@ import { AdminGuard } from '../admin/admin-role.guard';
 import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
+import { assertGameInScope, CurrentStaffScope, scopeGameIds, type StaffScope } from '../admin/staff-scope';
 import { Throttle } from '@nestjs/throttler';
 import { CREATE_THROTTLE, LOOKUP_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { RegisterSoloDto, RegisterTeamDto } from './dto/register-team.dto';
@@ -130,21 +131,23 @@ export class TournamentsController {
   @Get('admin/tournaments')
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
-  adminBrowse(@Query() query: BrowseTournamentsDto) {
-    return this.tournaments.browse(query, true);
+  adminBrowse(@Query() query: BrowseTournamentsDto, @CurrentStaffScope() scope: StaffScope) {
+    return this.tournaments.browse(query, true, scopeGameIds(scope, 'tournaments'));
   }
 
   @Get('admin/tournaments/:id/matches')
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
-  adminListMatches(@Param('id') id: string) {
+  async adminListMatches(@Param('id') id: string, @CurrentStaffScope() scope: StaffScope) {
+    await this.tournaments.assertTournamentInScope(id, scope);
     return this.tournaments.adminListMatches(id);
   }
 
   @Post('admin/tournaments')
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
-  async create(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Body() dto: CreateTournamentDto) {
+  async create(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Body() dto: CreateTournamentDto) {
+    assertGameInScope(scope, 'tournaments', dto.gameId);
     const tournament = await this.tournaments.create(dto);
     await this.audit.log({ adminId, adminRole, action: 'tournament.create', entityType: 'tournament', entityId: tournament.id });
     return tournament;
@@ -157,9 +160,12 @@ export class TournamentsController {
   async update(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id') id: string,
     @Body() dto: UpdateTournamentDto,
   ) {
+    await this.tournaments.assertTournamentInScope(id, scope);
+    if (dto.gameId) assertGameInScope(scope, 'tournaments', dto.gameId);
     const tournament = await this.tournaments.update(id, dto);
     await this.audit.log({ adminId, adminRole, action: 'tournament.update', entityType: 'tournament', entityId: id, metadata: dto as Record<string, unknown> });
     return tournament;
@@ -172,9 +178,11 @@ export class TournamentsController {
   async setCover(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    await this.tournaments.assertTournamentInScope(id, scope);
     const tournament = await this.tournaments.setCoverImage(id, file);
     await this.audit.log({ adminId, adminRole, action: 'tournament.set_cover', entityType: 'tournament', entityId: id });
     return tournament;
@@ -183,7 +191,8 @@ export class TournamentsController {
   @Get('admin/tournaments/:id/teams')
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
-  adminListTeams(@Param('id') id: string) {
+  async adminListTeams(@Param('id') id: string, @CurrentStaffScope() scope: StaffScope) {
+    await this.tournaments.assertTournamentInScope(id, scope);
     return this.tournaments.adminListTeams(id);
   }
 
@@ -194,10 +203,12 @@ export class TournamentsController {
   async setTeamStatus(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id') id: string,
     @Param('teamId') teamId: string,
     @Body() dto: TeamStatusDto,
   ) {
+    await this.tournaments.assertTournamentInScope(id, scope);
     const team = await this.tournaments.adminSetTeamStatus(id, teamId, dto.status);
     await this.audit.log({ adminId, adminRole, action: 'tournament.team_status', entityType: 'tournament_team', entityId: teamId, metadata: { tournamentId: id, status: dto.status } });
     return team;
@@ -206,7 +217,8 @@ export class TournamentsController {
   @Post('admin/tournaments/:id/matches')
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
-  async createMatch(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string, @Body() dto: MatchDto) {
+  async createMatch(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id') id: string, @Body() dto: MatchDto) {
+    await this.tournaments.assertTournamentInScope(id, scope);
     const match = await this.tournaments.adminCreateMatch(id, dto);
     await this.audit.log({ adminId, adminRole, action: 'tournament.match_create', entityType: 'tournament_match', entityId: match.id, metadata: { tournamentId: id } });
     return match;
@@ -219,10 +231,12 @@ export class TournamentsController {
   async updateMatch(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id') id: string,
     @Param('matchId') matchId: string,
     @Body() dto: MatchDto,
   ) {
+    await this.tournaments.assertTournamentInScope(id, scope);
     const match = await this.tournaments.adminUpdateMatch(id, matchId, dto);
     await this.audit.log({ adminId, adminRole, action: 'tournament.match_update', entityType: 'tournament_match', entityId: matchId, metadata: { tournamentId: id } });
     return match;
@@ -236,10 +250,12 @@ export class TournamentsController {
   async setRoom(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('matchId', ParseUUIDPipe) matchId: string,
     @Body() dto: MatchRoomDto,
   ) {
+    await this.tournaments.assertTournamentInScope(id, scope);
     const match = await this.tournaments.adminSetRoom(id, matchId, dto);
     await this.audit.log({
       adminId,
@@ -255,7 +271,8 @@ export class TournamentsController {
   @Delete('admin/tournaments/:id/matches/:matchId')
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
-  async deleteMatch(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string, @Param('matchId') matchId: string) {
+  async deleteMatch(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id') id: string, @Param('matchId') matchId: string) {
+    await this.tournaments.assertTournamentInScope(id, scope);
     const result = await this.tournaments.adminDeleteMatch(id, matchId);
     await this.audit.log({ adminId, adminRole, action: 'tournament.match_delete', entityType: 'tournament_match', entityId: matchId, metadata: { tournamentId: id } });
     return result;
@@ -264,7 +281,8 @@ export class TournamentsController {
   @Delete('admin/tournaments/:id')
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
-  async remove(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id') id: string) {
+  async remove(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id') id: string) {
+    await this.tournaments.assertTournamentInScope(id, scope);
     await this.tournaments.delete(id);
     await this.audit.log({ adminId, adminRole, action: 'tournament.delete', entityType: 'tournament', entityId: id });
     return { ok: true };

@@ -1,5 +1,6 @@
 import { shrinkPhoto } from './image-resize'
 import type {
+  StaffGameScopes,
   MyReviewLikes,
   BadgeKey,
   AdminBadgeGrant,
@@ -146,6 +147,8 @@ export interface MyListing {
   game?: { name: string; slug: string } | null
   images?: Array<{ id: string; url: string }>
   itemAttributes?: ItemAttributes | null
+  // Staff marked it SOLD (owner 2026-11-06); it leaves the site 24h later.
+  soldAt?: string | null
   // Seller panel stats (views / likes / completed orders).
   viewsCount?: number
   favoriteCount?: number
@@ -201,6 +204,12 @@ export function isEmailNotVerifiedError(err: unknown): boolean {
 // anything not listed falls through unchanged rather than being swallowed.
 const KNOWN_MESSAGES: Record<string, string> = {
   'Invalid username or password': 'არასწორი username ან პაროლი.',
+  'This listing has been sold': 'ეს განცხადება გაიყიდა.',
+  'This game is outside your staff access': 'ეს თამაში შენი წვდომის მიღმაა.',
+  'This listing is marked sold — contact support to change it': 'განცხადება მონიშნულია როგორც გაყიდული — შესაცვლელად მიმართე მხარდაჭერას.',
+  'Only marketplace products can be marked sold': 'SOLD-ად მხოლოდ მარკეტის პროდუქტი შეიძლება მოინიშნოს.',
+  'Only a live or paused listing can be marked sold': 'SOLD-ად მხოლოდ აქტიური ან დაპაუზებული განცხადება შეიძლება მოინიშნოს.',
+  'Choose at least one game for the marketplace or tournaments': 'აირჩიე მინიმუმ ერთი თამაში მარკეტპლეისისთვის ან ტურნირებისთვის.',
   'Username already taken': 'ეს username უკვე დაკავებულია.',
   'Email already registered': 'ეს ელფოსტა უკვე რეგისტრირებულია.',
   'Invalid or expired verification link': 'დადასტურების ბმული არასწორია ან ვადაგასულია.',
@@ -541,6 +550,9 @@ export const api = {
   // The listing's VERIFIED badge (staff checked the account and its details).
   adminSetListingVerified: (id: string, verified: boolean) =>
     request<{ id: string; verified: boolean }>(`/admin/listings/${id}/verified`, { method: 'POST', body: JSON.stringify({ verified }) }),
+  // SOLD overlay (owner 2026-11-06): the listing can't be bought and leaves the site 24h later.
+  adminSetListingSold: (id: string, sold: boolean) =>
+    request<{ id: string; soldAt: string | null }>(`/admin/listings/${id}/sold`, { method: 'POST', body: JSON.stringify({ sold }) }),
   adminSetListingFeatured: (id: string, isFeatured: boolean) =>
     request<{ id: string; isFeatured: boolean }>(`/admin/listings/${id}/featured`, { method: 'POST', body: JSON.stringify({ isFeatured }) }),
   addListingPackage: (id: string, payload: PackageInput) => request<PublicPackage>(`/listings/${id}/packages`, { method: 'POST', body: JSON.stringify(payload) }),
@@ -886,8 +898,8 @@ export const api = {
   adminSetProfileTitle: (id: string, title: ProfileTitle | null) =>
     request<AdminUserSummary>(`/admin/users/${id}/profile-title`, { method: 'POST', body: JSON.stringify({ title }) }),
 
-  adminSetUserRole: (id: string, adminRole: AdminRole | null, reason: string) =>
-    request<AdminUserSummary>(`/admin/users/${id}/role`, { method: 'POST', body: JSON.stringify({ adminRole, reason }) }),
+  adminSetUserRole: (id: string, adminRole: AdminRole | null, reason: string, staffScopes?: StaffGameScopes) =>
+    request<AdminUserSummary>(`/admin/users/${id}/role`, { method: 'POST', body: JSON.stringify({ adminRole, reason, ...(staffScopes ? { staffScopes } : {}) }) }),
 
   adminGetPlatformSettings: () => request<PublicPlatformSettings>('/admin/platform-settings'),
 

@@ -297,7 +297,8 @@ role's section lists its own subset verbatim from the source doc — don't infer
 its job title, use the explicit lists.
 
 **Roles**: Super Admin, Operation Lead & Manager, Main Administrator, Marketplace & Coaching
-Operations Manager, Trust & Safety Officer, Support Specialist.
+Operations Manager, Trust & Safety Officer, Support Specialist — plus **Game Manager** (§5.13.6a,
+added at the owner's request 2026-11-06).
 
 #### 5.13.1 Super Admin — full catalog (every other role is a subset of this)
 
@@ -534,6 +535,18 @@ stats, quick actions.
   order status; cannot edit a marketplace listing; cannot suspend a coach or seller; cannot manage
   staff; cannot change platform settings; cannot send system-wide notifications; cannot make final
   decisions on reports.
+
+#### 5.13.6a Game Manager (owner request 2026-11-06 — a 7th role)
+A per-game head ("the PUBG marketplace head"). The Super Admin picks its games separately for two
+areas: **marketplace** and **tournaments**. An empty area means no access to it.
+- **CAN (marketplace, its games only)**: see the review queue and all listings of those games;
+  approve / reject; edit (text, photos, packages); take down / restore; VERIFIED badge; mark SOLD.
+- **CAN (tournaments, its games only)**: create, edit, cover, teams (verify / reject), matches,
+  game rooms, delete.
+- **CANNOT**: statistics, users / online users, finance (withdrawals, subscriptions, promo codes),
+  disputes, reviews, coaches, support, Trust & Safety, content, banners, translations, settings,
+  Featured picks, permanent deletes, Steam games, or any other game.
+- Enforced server-side (`backend/src/admin/staff-scope.ts`); the admin panel shows only its pages.
 
 #### 5.13.7 New entities/concepts this reveals (not previously anywhere in the spec or codebase)
 

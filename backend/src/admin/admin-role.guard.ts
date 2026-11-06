@@ -4,6 +4,7 @@ import type { Request } from 'express';
 import { AdminRole } from '@wavehub/shared-types';
 import { UsersService } from '../users/users.service';
 import { ADMIN_ROLES_KEY } from './require-admin-role.decorator';
+import { staffScopeFor } from './staff-scope';
 
 // Must run AFTER AuthGuard in the same @UseGuards(...) array — it reads `request.userId`, which
 // only AuthGuard sets. Unlike AuthGuard (deliberately cheap, no DB lookup per request — see its
@@ -44,6 +45,7 @@ export class AdminGuard implements CanActivate {
     }
 
     request.adminRole = user.adminRole;
+    request.staffScope = staffScopeFor(user.adminRole, user.staffScopes);
     return true;
   }
 }

@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useState, type MouseEvent } from 'react'
 import { ListingType, type PublicListingSummary } from '@wavehub/shared-types'
 import { useCart } from '../lib/cart'
+import SoldOverlay from './SoldOverlay'
 import { useFavorites } from '../lib/favorites'
 import { gameCover } from '../lib/games'
 import { deliveryTimeLabel } from '../lib/labels'
@@ -137,7 +138,7 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
   // delivery, price with views / likes, and the cart + "View details" buttons.
   const [preview, setPreview] = useState(false)
   return (
-    <article className={`marketplace-card pc-card pc-${kind}${kind === 'account' ? ` pc-rarity-${status}` : ''}`} data-listing-id={listing.id}>
+    <article className={`marketplace-card pc-card${listing.soldAt ? ' is-sold' : ''} pc-${kind}${kind === 'account' ? ` pc-rarity-${status}` : ''}`} data-listing-id={listing.id}>
       <div className={`pc-cover${image ? '' : ' is-empty'}`} style={image ? { backgroundImage: `url("${image}")` } : undefined} onClick={openDetail} data-game={initials(gameName)}>
         <div className="pc-badges">
           <span className="pc-badge pc-game">{gameName}</span>
@@ -149,6 +150,7 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
         <SaveButton listing={listing} className="pc-heart" onCount={setFavoriteCount} />
         {/* Up to two earned badges on the cover (owner 2026-10-28). */}
         <ListingBadges badges={listing.badges} max={2} className="pc-lb" />
+        <SoldOverlay soldAt={listing.soldAt} />
       </div>
 
       <div className="pc-body">
@@ -199,6 +201,7 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
         </div>
 
         <div className="pc-actions">
+          {!listing.soldAt && (
           <button
             className={`pc-cart${inCart ? ' in-cart' : ''}`}
             type="button"
@@ -211,6 +214,7 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
           >
             <img src="/assets/ui/cart-white.png" alt="" aria-hidden="true" />
           </button>
+          )}
           <Link className="pc-details" href={href}>
             დეტალების ნახვა <span aria-hidden="true">→</span>
           </Link>

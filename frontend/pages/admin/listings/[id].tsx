@@ -24,8 +24,8 @@ export default function AdminEditListing() {
   }, [id])
   return (
     <AdminLayout title="განცხადების რედაქტირება">
-      {user?.adminRole !== AdminRole.SuperAdmin ? (
-        <div className="empty-state">განცხადებების რედაქტირება მხოლოდ Super Admin-ს შეუძლია.</div>
+      {user?.adminRole !== AdminRole.SuperAdmin && user?.adminRole !== AdminRole.GameManager ? (
+        <div className="empty-state">განცხადებების რედაქტირება მხოლოდ Super Admin-ს და Game Manager-ს შეუძლია.</div>
       ) : id ? (
         <>
           <ListingEditor listingId={id} mode="admin" />

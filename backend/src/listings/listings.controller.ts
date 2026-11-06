@@ -36,7 +36,13 @@ import { AdminGuard } from '../admin/admin-role.guard';
 import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
-import { AdminListingSearchDto, SetFeaturedDto, SetVerifiedDto } from './dto/admin-listings.dto';
+import { AdminListingSearchDto, SetFeaturedDto, SetSoldDto, SetVerifiedDto } from './dto/admin-listings.dto';
+import { CurrentStaffScope, scopeGameIds, type StaffScope } from '../admin/staff-scope';
+
+// Listing moderation roles. A Game Manager (owner 2026-11-06) gets the same moderation and edit
+// actions, limited to its marketplace games — every such route checks the listing's game first.
+const MODERATORS = [AdminRole.MarketplaceCoachingOpsManager, AdminRole.GameManager];
+const EDITORS = [AdminRole.GameManager];
 
 
 // A short hash of the visitor's IP + user agent: enough to tell visitors apart for view counting.
@@ -82,17 +88,31 @@ export class ListingsController {
   // Moderator search across every status (Admin → Listings → all listings), with the Featured flag.
   @Get('admin/listings')
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
-  adminSearch(@Query() query: AdminListingSearchDto) {
-    return this.listings.adminSearch(query);
+  @RequireAdminRole(...MODERATORS)
+  adminSearch(@Query() query: AdminListingSearchDto, @CurrentStaffScope() scope: StaffScope) {
+    return this.listings.adminSearch({ ...query, gameIds: scopeGameIds(scope, 'marketplace') });
+  }
+
+  // SOLD overlay (owner 2026-11-06): staff mark a listing sold; it can't be bought, and the sweep
+  // removes it from the site 24h later. Unmarking brings back a listing the sweep removed.
+  @Post('admin/listings/:id/sold')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...MODERATORS)
+  async setSold(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SetSoldDto) {
+    await this.listings.assertInScope(id, scope);
+    const result = await this.listings.setSold(id, dto.sold);
+    await this.audit.log({ adminId, adminRole, action: dto.sold ? 'listing.mark_sold' : 'listing.unmark_sold', entityType: 'listing', entityId: id });
+    return result;
   }
 
   // The listing's VERIFIED badge (owner 2026-10-28): staff checked the account and its details.
   @Post('admin/listings/:id/verified')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
-  async setVerified(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SetVerifiedDto) {
+  @RequireAdminRole(...MODERATORS)
+  async setVerified(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SetVerifiedDto) {
+    await this.listings.assertInScope(id, scope);
     const result = await this.listings.setVerified(id, dto.verified);
     await this.audit.log({ adminId, adminRole, action: dto.verified ? 'listing.verify' : 'listing.unverify', entityType: 'listing', entityId: id });
     return result;
@@ -149,13 +169,15 @@ export class ListingsController {
   @Post('admin/listings/:id/take-down')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  @RequireAdminRole(...MODERATORS)
   async adminTakeDown(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RejectListingDto,
   ) {
+    await this.listings.assertInScope(id, scope);
     const listing = await this.listings.adminTakeDown(id, dto.reason);
     await this.audit.log({ adminId, adminRole, action: 'listing.take_down', entityType: 'listing', entityId: id, metadata: { reason: dto.reason } });
     return listing;
@@ -164,8 +186,9 @@ export class ListingsController {
   @Post('admin/listings/:id/restore')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
-  async adminRestore(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string) {
+  @RequireAdminRole(...MODERATORS)
+  async adminRestore(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id', ParseUUIDPipe) id: string) {
+    await this.listings.assertInScope(id, scope);
     const listing = await this.listings.adminRestore(id);
     await this.audit.log({ adminId, adminRole, action: 'listing.restore', entityType: 'listing', entityId: id });
     return listing;
@@ -185,24 +208,27 @@ export class ListingsController {
   // approving or rejecting it — the public GET listings/:id only serves active listings.
   @Get('admin/listings/:id')
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
-  findForReview(@Param('id', ParseUUIDPipe) id: string) {
+  @RequireAdminRole(...MODERATORS)
+  async findForReview(@Param('id', ParseUUIDPipe) id: string, @CurrentStaffScope() scope: StaffScope) {
+    await this.listings.assertInScope(id, scope);
     return this.listings.findForReview(id);
   }
 
-  // --- Super Admin edits any listing (2026-10-01) ---
+  // --- Super Admin (and a Game Manager, for its games) edits any listing (2026-10-01) ---
   // Same rules and DTOs as the seller's own edit, minus ownership and re-review: staff are the
   // moderators, so the change applies as-is. Super Admin only; every change is audit-logged.
 
   @Patch('admin/listings/:id')
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole()
+  @RequireAdminRole(...EDITORS)
   async adminUpdate(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateListingDto,
   ) {
+    await this.listings.assertInScope(id, scope);
     const listing = await this.listings.update(STAFF_EDITOR, id, dto);
     await this.audit.log({ adminId, adminRole, action: 'listing.admin_update', entityType: 'listing', entityId: id, metadata: { fields: Object.keys(dto).join(',') } });
     return listing;
@@ -211,14 +237,16 @@ export class ListingsController {
   @Post('admin/listings/:id/images')
   @Throttle(UPLOAD_THROTTLE)
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole()
+  @RequireAdminRole(...EDITORS)
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_IMAGE_BYTES } }))
   async adminAddImage(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    await this.listings.assertInScope(id, scope);
     const image = await this.listings.addImage(STAFF_EDITOR, id, file);
     await this.audit.log({ adminId, adminRole, action: 'listing.admin_add_image', entityType: 'listing', entityId: id, metadata: { imageId: image.id } });
     return image;
@@ -227,13 +255,15 @@ export class ListingsController {
   @Post('admin/listings/:id/images/:imageId/cover')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole()
+  @RequireAdminRole(...EDITORS)
   async adminSetCover(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('imageId', ParseUUIDPipe) imageId: string,
   ) {
+    await this.listings.assertInScope(id, scope);
     const result = await this.listings.setCoverImage(STAFF_EDITOR, id, imageId);
     await this.audit.log({ adminId, adminRole, action: 'listing.admin_set_cover', entityType: 'listing', entityId: id, metadata: { imageId } });
     return result;
@@ -241,13 +271,15 @@ export class ListingsController {
 
   @Delete('admin/listings/:id/images/:imageId')
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole()
+  @RequireAdminRole(...EDITORS)
   async adminRemoveImage(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('imageId', ParseUUIDPipe) imageId: string,
   ) {
+    await this.listings.assertInScope(id, scope);
     const result = await this.listings.removeImage(STAFF_EDITOR, id, imageId);
     await this.audit.log({ adminId, adminRole, action: 'listing.admin_remove_image', entityType: 'listing', entityId: id, metadata: { imageId } });
     return result;
@@ -255,13 +287,15 @@ export class ListingsController {
 
   @Post('admin/listings/:id/packages')
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole()
+  @RequireAdminRole(...EDITORS)
   async adminAddPackage(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreatePackageDto,
   ) {
+    await this.listings.assertInScope(id, scope);
     const pkg = await this.listings.addPackage(STAFF_EDITOR, id, dto);
     await this.audit.log({ adminId, adminRole, action: 'listing.admin_add_package', entityType: 'listing', entityId: id, metadata: { packageId: pkg.id } });
     return pkg;
@@ -270,13 +304,15 @@ export class ListingsController {
   @Delete('admin/listings/:id/packages/:packageId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole()
+  @RequireAdminRole(...EDITORS)
   async adminRemovePackage(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('packageId', ParseUUIDPipe) packageId: string,
   ) {
+    await this.listings.assertInScope(id, scope);
     await this.listings.removePackage(STAFF_EDITOR, id, packageId);
     await this.audit.log({ adminId, adminRole, action: 'listing.admin_remove_package', entityType: 'listing', entityId: id, metadata: { packageId } });
   }
@@ -286,9 +322,9 @@ export class ListingsController {
   // "pending-review" as an id.
   @Get('listings/pending-review')
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
-  listPendingReview() {
-    return this.listings.listPendingReview();
+  @RequireAdminRole(...MODERATORS)
+  listPendingReview(@CurrentStaffScope() scope: StaffScope) {
+    return this.listings.listPendingReview(scopeGameIds(scope, 'marketplace'));
   }
 
   @Get('listings/:id')
@@ -447,12 +483,14 @@ export class ListingsController {
   @Post('listings/:id/approve')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  @RequireAdminRole(...MODERATORS)
   async approve(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id') id: string,
   ) {
+    await this.listings.assertInScope(id, scope);
     const listing = await this.listings.approve(id);
     await this.audit.log({ adminId, adminRole, action: 'listing.approve', entityType: 'listing', entityId: id });
     return listing;
@@ -461,13 +499,15 @@ export class ListingsController {
   @Post('listings/:id/reject')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard, AdminGuard)
-  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  @RequireAdminRole(...MODERATORS)
   async reject(
     @CurrentUserId() adminId: string,
     @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
     @Param('id') id: string,
     @Body() dto: RejectListingDto,
   ) {
+    await this.listings.assertInScope(id, scope);
     const listing = await this.listings.reject(id, dto.reason);
     await this.audit.log({
       adminId,
