@@ -142,3 +142,16 @@ Supersedes the Status notes above ("doesn't pre-check", "no seller-reply UI").
   - Names and photos are public profile data. Email and balance never appear (covered by the
     security sweep and `client-feedback.e2e-spec.ts`).
 - Frontend: `components/ReviewCard.tsx` on `/listings/[id]`.
+
+## Open product reviews (owner 2026-11-08)
+- `POST listings/:listingId/reviews` (AuthGuard + VerifiedEmailGuard, create throttle): any
+  email-verified user leaves **one** review per product without buying it. Refused on your own
+  listing (403) or a non-active one; a second review of the same product → 409 "You already reviewed
+  this product". `GET listings/:listingId/my-review` → `{ reviewed }`.
+- Stored with `orderId = null` (the column is nullable since migration `1784393000000`); the partial
+  unique index `UQ_reviews_listing_buyer_open (listingId, buyerId) WHERE orderId IS NULL` is the real
+  duplicate guard. Order reviews keep their `orderId` unique constraint.
+- `PublicReview.verifiedPurchase = !!orderId` — the frontend marks those "✓ ნაყიდია".
+- Open reviews count toward the listing / seller rating, but **not** toward seller ranks or the
+  community review counts (`community.service.ts` filters `"orderId" IS NOT NULL`), so they can't be
+  used to farm a rank.

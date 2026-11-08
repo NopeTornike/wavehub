@@ -168,7 +168,7 @@ export default function ManageService() {
             <p className="sv-muted">
               {listing.packages.length > 0 ? (
                 <>
-                  <span>დან</span> {Math.min(...listing.packages.map((p) => p.priceWaveCoin))} GEL · {listing.packages.length}/{MAX_PACKAGES} <span>პაკეტი</span>
+                  {Math.min(...listing.packages.map((p) => p.priceWaveCoin))} GEL<span>-დან</span> · {listing.packages.length}/{MAX_PACKAGES} <span>პაკეტი</span>
                 </>
               ) : (
                 <span>პაკეტები ჯერ არ არის</span>

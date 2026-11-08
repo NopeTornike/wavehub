@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { GameListingCount, WaveRank } from '@wavehub/shared-types'
-import { api } from './api'
+import { api, API_BASE_URL } from './api'
 import { registerGameArt } from './games'
 import { useAuth } from './auth'
 import { pollWhileVisible } from './visible-poll'
@@ -10,7 +10,9 @@ import { pollWhileVisible } from './visible-poll'
 // Everything is real backend data (backend/src/community/, notifications, direct messages); the
 // prototype's equivalents were localStorage mocks or Math.random().
 
-const BADGE_POLL_MS = 15_000
+// The live stream (GET notifications/stream) brings new notifications at once; the poll is the
+// fallback when a proxy or phone drops it.
+const BADGE_POLL_MS = 30_000
 const ONLINE_POLL_MS = 60_000
 
 type ShellContextValue = {
@@ -75,7 +77,24 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     }
     refreshBadges()
     api.getMyWaveRank().then(setWaveRank).catch(() => setWaveRank(null))
-    return pollWhileVisible(refreshBadges, BADGE_POLL_MS)
+    const stopPoll = pollWhileVisible(refreshBadges, BADGE_POLL_MS)
+    // Live push (owner 2026-11-08): runs in background tabs too, so the chime and the desktop alert
+    // fire while the person is on another tab. EventSource reconnects by itself.
+    let source: EventSource | null = null
+    if (typeof EventSource !== 'undefined') {
+      source = new EventSource(`${API_BASE_URL}/notifications/stream`, { withCredentials: true })
+      source.onmessage = (event) => {
+        try {
+          if ((JSON.parse(event.data) as { type?: string }).type === 'notification') refreshBadges()
+        } catch {
+          // ignore a malformed frame
+        }
+      }
+    }
+    return () => {
+      stopPoll()
+      source?.close()
+    }
   }, [userId, refreshBadges])
 
   useEffect(() => {

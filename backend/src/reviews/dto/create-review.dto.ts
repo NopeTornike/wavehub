@@ -30,3 +30,22 @@ export class CreateReviewDto {
   @IsIn(REVIEW_TAGS, { each: true })
   tags?: string[];
 }
+
+// POST listings/:listingId/reviews — an email-verified user's review without a purchase (owner
+// 2026-11-08): one per user per listing. Same fields as an order review, minus the order.
+export class CreateListingReviewDto {
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating: number;
+
+  @IsOptional()
+  @IsString()
+  @Length(10, 1000)
+  body?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(REVIEW_TAGS, { each: true })
+  tags?: string[];
+}

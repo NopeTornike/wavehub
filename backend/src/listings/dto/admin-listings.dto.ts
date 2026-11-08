@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Length, Max, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsIn, IsInt, IsOptional, IsString, Length, Max, Min } from 'class-validator';
 import { ListingStatus, ListingType } from '@wavehub/shared-types';
 
 // GET admin/listings — moderator search across every status.
@@ -45,4 +45,14 @@ export class SetFeaturedDto {
 export class SetSoldDto {
   @IsBoolean()
   sold: boolean;
+}
+
+// POST admin/listings/:id/badges — badges staff assign by hand (owner 2026-11-08). VERIFIED has its
+// own route (it means a real ownership check), so it isn't assignable here.
+export const MANUAL_LISTING_BADGES = ['hot', 'trending', 'price_drop', 'most_popular', 'most_viewed', 'just_updated'] as const;
+export class SetManualBadgesDto {
+  @IsArray()
+  @ArrayMaxSize(6)
+  @IsIn(MANUAL_LISTING_BADGES, { each: true })
+  badges: string[];
 }

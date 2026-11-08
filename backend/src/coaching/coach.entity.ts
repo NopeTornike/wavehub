@@ -105,6 +105,11 @@ export class Coach {
   @Column({ type: 'integer', default: 0 })
   ratingCount: number;
 
+  // Profile views (owner 2026-11-08: shown on coach cards like a product card's 👁 count). One per
+  // visitor per hour (CoachesService#recordView).
+  @Column({ type: 'integer', default: 0 })
+  viewsCount: number;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

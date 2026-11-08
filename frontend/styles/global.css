@@ -23425,3 +23425,84 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 .banner-video-play { transition: opacity .25s ease, transform .2s ease; -webkit-tap-highlight-color: transparent; }
 .banner-video-play .vp-spin { width: 55%; height: 55%; border: 3px solid rgba(255, 255, 255, .25); border-top-color: #fff; border-radius: 50%; animation: wh-vp-spin .8s linear infinite; }
 @keyframes wh-vp-spin { to { transform: rotate(360deg); } }
+
+/* Listing badges v2 (owner 2026-11-08: "badges badly placed, not visible, design must be beautiful"):
+   solid gradient pills with an icon, white text, a soft glow — readable on any photo. */
+.lb-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.lb { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px 0 8px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .22) !important; color: #fff !important; font-size: 11px; font-style: normal; font-weight: 800; letter-spacing: .05em; white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, .35); box-shadow: 0 4px 14px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .25); }
+.lb svg { width: 13px; height: 13px; flex: none; fill: currentColor; stroke: none; }
+.lb svg.is-stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.lb-hot { background: linear-gradient(135deg, #ff7a2e, #ff2d6f) !important; box-shadow: 0 4px 16px rgba(255, 60, 90, .45), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.lb-trending { background: linear-gradient(135deg, #ffb020, #ff6a2b) !important; box-shadow: 0 4px 16px rgba(255, 140, 40, .4), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.lb-price_drop { background: linear-gradient(135deg, #ff4d6d, #c3124a) !important; box-shadow: 0 4px 16px rgba(230, 40, 90, .45), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.lb-most_popular { background: linear-gradient(135deg, #4f8cff, #8b3dff) !important; box-shadow: 0 4px 16px rgba(110, 90, 255, .45), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.lb-most_viewed { background: linear-gradient(135deg, #6b7a99, #39425a) !important; }
+.lb-just_updated { background: linear-gradient(135deg, #17c3d6, #0b7b93) !important; box-shadow: 0 4px 16px rgba(20, 180, 210, .35), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.lb-verified { background: linear-gradient(135deg, #2fd178, #11894a) !important; box-shadow: 0 4px 16px rgba(40, 200, 110, .4), inset 0 1px 0 rgba(255, 255, 255, .3); }
+/* On product cards: a row along the bottom of the photo, over a dark fade so it always reads. */
+.marketplace-card.pc-card .pc-cover:has(.pc-lb)::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 46%; background: linear-gradient(to top, rgba(5, 4, 15, .82), transparent); pointer-events: none; z-index: 1; border-radius: inherit; }
+.marketplace-card.pc-card .pc-lb { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 2; max-width: none; flex-wrap: nowrap; overflow: hidden; }
+.marketplace-card.pc-card .pc-lb .lb { height: 22px; font-size: 10px; padding: 0 9px 0 7px; backdrop-filter: none; }
+.marketplace-card.pc-card .pc-lb .lb svg { width: 12px; height: 12px; }
+/* On the listing page: under the title, a size up. */
+.detail-lb { margin: 12px 0 6px; gap: 8px; }
+.detail-lb .lb { height: 30px; font-size: 12.5px; padding: 0 14px 0 11px; gap: 7px; }
+.detail-lb .lb svg { width: 15px; height: 15px; }
+@media (max-width: 640px) { .detail-lb .lb { height: 26px; font-size: 11px; padding: 0 11px 0 9px; } }
+
+/* Owner 2026-11-08 — product page: the wallet's Bank of Georgia top-up card when the balance is
+   short (BogTopUpButton), a BOG strip under the buy button, the sale price (struck "was" price +
+   discount), and the open review form. */
+.bog-topup { display: grid; gap: 12px; margin: 4px 0 10px; border: 1.5px solid rgba(255, 106, 61, .75); border-radius: 16px; background: radial-gradient(120% 80% at 0% 0%, rgba(255, 47, 143, .14), transparent 55%), radial-gradient(120% 80% at 100% 100%, rgba(255, 120, 40, .12), transparent 55%), #0b0812; box-shadow: 0 0 0 1px rgba(255, 47, 143, .18), 0 0 24px rgba(255, 90, 60, .2); padding: 16px; }
+.bog-topup-head { display: flex; align-items: center; gap: 12px; }
+.bog-topup-plus { flex: 0 0 42px; width: 42px; height: 42px; display: grid; place-items: center; border: 1.5px solid #ff2f8f; border-radius: 50%; color: #ff2f8f; background: rgba(255, 47, 143, .08); font-size: 24px; box-shadow: 0 0 12px rgba(255, 47, 143, .3); }
+.bog-topup-title { display: grid; gap: 2px; min-width: 0; }
+.bog-topup-title strong { color: #fff; font-size: 17px; font-weight: 800; }
+.bog-topup-title small { color: #c9c4d6; font-size: 12px; }
+.bog-topup-rows { display: grid; gap: 6px; margin: 0; }
+.bog-topup-rows div { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.bog-topup-rows dt { color: #c9c4d6; }
+.bog-topup-rows dd { margin: 0; color: #fff; font-weight: 700; }
+.bog-topup-total { display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255, 255, 255, .08); border-radius: 10px; background: #08060e; padding: 12px 14px; }
+.bog-topup-total span { color: #c9c4d6; font-size: 13px; }
+.bog-topup-total strong { color: #fff; font-size: 22px; font-weight: 900; }
+.bog-topup-button { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 52px; border: 0; border-radius: 10px; color: #fff; background: linear-gradient(90deg, #ff1f8e, #ff7a33); font-size: 16px; font-weight: 800; cursor: pointer; padding: 0 16px; box-shadow: 0 8px 22px rgba(255, 60, 110, .3); }
+.bog-topup-button:disabled { opacity: .7; cursor: wait; }
+.bog-topup-button b { margin-left: auto; font-size: 22px; font-weight: 400; }
+.bog-topup-button .bog-checkout-brand { flex: 1 1 auto; min-width: 0; margin: 0; justify-content: center; }
+.bog-topup-button .bog-checkout-brand > span { white-space: nowrap; }
+.bog-topup-note { display: flex; align-items: center; gap: 10px; margin: 0; border: 1px solid rgba(255, 122, 51, .6); border-radius: 10px; color: #f1ece6; background: rgba(255, 106, 40, .08); padding: 10px 12px; font-size: 12px; line-height: 1.4; }
+.bog-topup-note svg { flex: 0 0 24px; width: 24px; height: 24px; fill: none; stroke: #ff7a33; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.bog-paystrip { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 0 0; color: #a9a3b8; font-size: 12px; }
+.bog-paystrip img { height: 18px; width: auto; padding: 3px 7px; border-radius: 5px; background: #fff; object-fit: contain; }
+
+.detail-price-block { display: grid; gap: 2px; }
+.detail-price-was { display: inline-flex; align-items: center; gap: 8px; }
+.detail-price-was s { color: #8e879e; font-size: 15px; font-weight: 600; text-decoration-thickness: 2px; text-decoration-color: rgba(255, 80, 80, .8); }
+.detail-price-was em, .pc-price-was em { font-style: normal; border-radius: 999px; color: #fff; background: linear-gradient(90deg, #ff2f6d, #ff7a33); padding: 2px 8px; font-size: 11.5px; font-weight: 800; }
+#detailPrice.is-sale { color: #ff5f8f; }
+.marketplace-card.pc-card .pc-price-wrap { display: grid; gap: 1px; justify-items: start; }
+.marketplace-card.pc-card .pc-price-was { display: inline-flex; align-items: center; gap: 6px; }
+.marketplace-card.pc-card .pc-price-was s { color: #8e879e; font-size: 11.5px; text-decoration-color: rgba(255, 80, 80, .8); }
+.marketplace-card.pc-card .pc-price-was em { padding: 1px 6px; font-size: 10px; }
+.marketplace-card.pc-card .pc-price.is-sale { color: #ff5f8f; }
+.marketplace-card.pc-card .pc-price small { margin-left: 1px; font-size: .72em; font-weight: 600; opacity: .85; }
+
+.lr-form { margin-top: 12px; }
+.lr-form .wc-stars { display: flex; gap: 6px; }
+.lr-form .wc-stars button { border: 0; background: none; color: #4b4560; font-size: 28px; cursor: pointer; line-height: 1; padding: 0; }
+.lr-form .wc-stars button.on { color: #ffc23d; }
+.lr-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.rv-verified { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; color: #5fe39a; background: rgba(60, 200, 120, .12); padding: 2px 8px; font-size: 11px; font-weight: 700; }
+.od-under-chat { display: grid; gap: 10px; margin: 12px 0 4px; }
+.al-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; border: 1px solid rgba(255, 79, 171, .3); border-radius: 10px; padding: 8px 10px; }
+.al-badges label { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; }
+/* Owner 2026-11-08: the escrow guide on phones looks like the desktop one (icon tiles in a row
+   joined by the glowing line) instead of the vertical list; the row scrolls sideways. */
+@media (max-width: 620px) {
+  .how-steps .how-list { display: grid; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 118px; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; margin: 0 -14px; padding: 10px 14px 6px; scrollbar-width: none; }
+  .how-steps .how-list::-webkit-scrollbar { display: none; }
+  .how-steps .how-list li { grid-template-columns: none; justify-items: center; align-items: start; gap: 10px; text-align: center; padding-bottom: 0; scroll-snap-align: start; }
+  .how-steps .how-list li:not(:last-child)::after { top: 24px; bottom: auto; left: calc(50% + 30px); right: calc(-50% + 24px); width: auto; height: 2px; background: linear-gradient(90deg, rgba(255, 79, 171, .75), rgba(167, 123, 255, .45)); }
+  .how-steps .how-text strong { font-size: 12.5px; }
+}

@@ -150,12 +150,12 @@ export class ProfilesService {
     // The latest three as full review cards (same look as the listing page's reviews).
     const cardRows: Array<Record<string, unknown>> = await this.db.query(
       `SELECT r.*, u."username", u."firstName", u."lastName", u."avatarUrl", u."lastSeenAt" FROM (
-         SELECT 'product' AS kind, rv."id", rv."rating", rv."body", rv."buyerId", rv."createdAt", rv."sellerReply", rv."sellerRepliedAt",
+         SELECT 'product' AS kind, rv."id", rv."rating", rv."body", rv."buyerId", rv."createdAt", rv."sellerReply", rv."sellerRepliedAt", (rv."orderId" IS NOT NULL) AS "verifiedPurchase",
                 (SELECT count(*) FROM "review_likes" l WHERE l."reviewId" = rv."id" AND l."target" = 'review')::int AS "likeCount",
                 (SELECT count(*) FROM "review_likes" l WHERE l."reviewId" = rv."id" AND l."target" = 'reply')::int AS "replyLikeCount"
            FROM "reviews" rv WHERE rv."sellerId" = $1 AND rv."status" = 'published'
          UNION ALL
-         SELECT 'coach', cr."id", cr."rating", cr."body", cr."buyerId", cr."createdAt", NULL, NULL, 0, 0
+         SELECT 'coach', cr."id", cr."rating", cr."body", cr."buyerId", cr."createdAt", NULL, NULL, true, 0, 0
            FROM "coaching_session_reviews" cr WHERE cr."coachId" IN (SELECT "id" FROM "coaches" WHERE "userId" = $1)
        ) r JOIN "users" u ON u."id" = r."buyerId"
        ORDER BY r."createdAt" DESC LIMIT 3`,
@@ -190,6 +190,7 @@ export class ProfilesService {
           seller: { id: userId, username: owner[0]?.username ?? '', firstName: owner[0]?.firstName ?? '', lastName: owner[0]?.lastName ?? '', avatarUrl: owner[0]?.avatarUrl ?? null, rank: ownerRank },
           likeCount: Number(r.likeCount),
           replyLikeCount: Number(r.replyLikeCount),
+          verifiedPurchase: r.verifiedPurchase !== false,
         };
       }),
     );

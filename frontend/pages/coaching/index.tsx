@@ -375,6 +375,14 @@ export default function CoachingDirectory() {
                             <span>შეფასების გარეშე</span>
                           )}
                         </p>
+                        {/* Profile views (owner 2026-11-08), counted once per visitor per hour. */}
+                        <p className="cl-line cl-views">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                          <span>{coach.viewsCount ?? 0} ნახვა</span>
+                        </p>
                         {coach.responseMinutes !== null && (
                           <p className="cl-line cl-response">
                             <svg viewBox="0 0 24 24" aria-hidden="true">

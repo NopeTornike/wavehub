@@ -1,10 +1,12 @@
 import { ArrayMaxSize, IsArray, IsBoolean, IsUUID } from 'class-validator';
 import { CREATE_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AdminRole } from '@wavehub/shared-types';
+import type { Request } from 'express';
+import { viewerKey } from '../common/viewer-key';
 import { CoachesService, MAX_COACH_VIDEO_BYTES } from './coaches.service';
 import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { RejectCoachDto } from './dto/reject-coach.dto';
@@ -165,8 +167,8 @@ export class CoachesController {
   }
 
   @Get('coaches/:id')
-  findOne(@Param('id') id: string) {
-    return this.coaches.findPublicById(id);
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    return this.coaches.findPublicById(id, viewerKey(req));
   }
 
   @Get('coaches/:id/reviews')

@@ -427,8 +427,8 @@ account stays. Audited (`coach.delete`, with username/status).
 
 ## 2026-11-06 25MB intro videos, compressed by the server
 - `MAX_COACH_VIDEO_BYTES` = 25MB (multer limit + service check, 400 "The video must be 25MB or
-  smaller"). `setVideo` stores the original (it plays at once), then `compressVideoLater` hands it
-  to `VideoCompressor` (`storage/video-compressor.ts`, ffmpeg → 720p H.264/AAC MP4, CRF 28,
+  smaller"). `setVideo` stores the original (it plays at once), then `VideoCompressor.replaceLater` compresses it
+  (shared with banner videos) (`storage/video-compressor.ts`, ffmpeg → 720p H.264/AAC MP4, CRF 28,
   faststart, one job at a time on 2 threads). The result replaces `videoFileUrl` only if it is ≥5%
   smaller **and** `videoFileUrl` still equals the original (conditional update — a newer upload or a
   removal wins); the losing file is deleted. Replacing or removing a video deletes the old file
@@ -436,3 +436,8 @@ account stays. Audited (`coach.delete`, with username/status).
 - No ffmpeg (local dev without it) → a warning once, originals kept. The Docker image installs it.
 - e2e: `coach-admin.e2e-spec.ts` "up to 25MB, then … compressed MP4" (the swap part runs only where
   `ffmpeg` is installed).
+
+## Profile views (owner 2026-11-08)
+`coaches.viewsCount` (migration `1784393000000`): `GET coaches/:id` counts one view per visitor
+(`common/viewer-key.ts`, hashed IP + user agent) per hour; `PublicCoachSummary.viewsCount` is shown on
+the `/coaching` cards. Starts at 0 for every coach. Response-time SQL moved to `chat/response-time.ts`.

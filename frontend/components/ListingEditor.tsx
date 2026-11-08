@@ -47,7 +47,8 @@ function attrRows(listing: ListingForEdit): AttrRow[] {
   const rows: AttrRow[] = []
   const seen = new Set<string>()
   for (const [key, raw] of Object.entries(attrs)) {
-    if (raw === null || raw === undefined) continue
+    // The sale "was" price has its own field beside the price.
+    if (raw === null || raw === undefined || key === 'compareAtPrice') continue
     const field = gameFields.find((f) => f.id === key)
     const kind: AttrKind = typeof raw === 'number' ? 'number' : typeof raw === 'boolean' ? 'boolean' : 'string'
     rows.push({
@@ -95,7 +96,7 @@ export default function ListingEditor({ listingId, mode }: { listingId: string; 
   const admin = mode === 'admin'
   const [listing, setListing] = useState<ListingForEdit | null>(null)
   const [loadError, setLoadError] = useState('')
-  const [form, setForm] = useState({ title: '', description: '', price: '' })
+  const [form, setForm] = useState({ title: '', description: '', price: '', compareAt: '' })
   const [attrs, setAttrs] = useState<AttrRow[]>([])
   const [status, setStatus] = useState<{ kind: '' | 'error' | 'success' | 'pending'; text: string }>({ kind: '', text: '' })
   const [busy, setBusy] = useState(false)
@@ -103,7 +104,8 @@ export default function ListingEditor({ listingId, mode }: { listingId: string; 
 
   const apply = useCallback((data: ListingForEdit) => {
     setListing(data)
-    setForm({ title: data.title, description: data.description, price: data.priceWaveCoin === null ? '' : String(data.priceWaveCoin) })
+    const was = (data.itemAttributes as Record<string, unknown> | null)?.compareAtPrice
+    setForm({ title: data.title, description: data.description, price: data.priceWaveCoin === null ? '' : String(data.priceWaveCoin), compareAt: typeof was === 'number' ? String(was) : '' })
     setAttrs(attrRows(data))
   }, [])
 
@@ -159,6 +161,12 @@ export default function ListingEditor({ listingId, mode }: { listingId: string; 
       if (price !== listing.priceWaveCoin) payload.priceWaveCoin = price
       const attributes = rowsToAttributes(attrs)
       if (typeof attributes === 'string') return setStatus({ kind: 'error', text: attributes })
+      // Sale price (owner 2026-11-08): the original price, shown struck through above the real one.
+      if (form.compareAt.trim()) {
+        const was = Number(form.compareAt)
+        if (!Number.isInteger(was) || was <= price) return setStatus({ kind: 'error', text: 'ფასი ფასდაკლებამდე უნდა იყოს მთელი რიცხვი და მიმდინარე ფასზე მეტი.' })
+        ;(attributes as Record<string, ItemAttributeValue>).compareAtPrice = was
+      }
       if (JSON.stringify(attributes) !== JSON.stringify(listing.itemAttributes ?? {})) payload.attributes = attributes
     }
     if (Object.keys(payload).length === 0) return setStatus({ kind: 'success', text: 'ცვლილებები არ არის.' })
@@ -280,6 +288,12 @@ export default function ListingEditor({ listingId, mode }: { listingId: string; 
             <label className="field">
               ფასი (GEL)
               <input type="number" min={1} step={1} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+            </label>
+          )}
+          {!isService && (
+            <label className="field">
+              ფასი ფასდაკლებამდე (GEL) <small>არასავალდებულო — გადახაზული ჩანს ფასის თავზე</small>
+              <input type="number" min={1} step={1} value={form.compareAt} onChange={(e) => setForm({ ...form, compareAt: e.target.value })} />
             </label>
           )}
           <label className="field">

@@ -112,6 +112,7 @@ export default function ReviewCard({
           {'★'.repeat(stars)}
           <span>{'★'.repeat(5 - stars)}</span>
         </span>
+        {'verifiedPurchase' in review && review.verifiedPurchase && <span className="rv-verified">✓ ნაყიდია</span>}
         <p>{review.body || 'კომენტარის გარეშე.'}</p>
         {review.tags.length > 0 && (
           <div className="rv-tags">

@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { viewerKey } from '../common/viewer-key';
 import type { Request } from 'express';
 import { CREATE_THROTTLE, LISTING_PHOTO_THROTTLE, UPLOAD_THROTTLE } from '../common/throttle';
 import { Throttle } from '@nestjs/throttler';
@@ -36,7 +36,7 @@ import { AdminGuard } from '../admin/admin-role.guard';
 import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
-import { AdminListingSearchDto, SetFeaturedDto, SetSoldDto, SetVerifiedDto } from './dto/admin-listings.dto';
+import { AdminListingSearchDto, SetFeaturedDto, SetSoldDto, SetVerifiedDto, SetManualBadgesDto } from './dto/admin-listings.dto';
 import { CurrentStaffScope, scopeGameIds, type StaffScope } from '../admin/staff-scope';
 
 // Listing moderation roles. A Game Manager (owner 2026-11-06) gets the same moderation and edit
@@ -45,10 +45,6 @@ const MODERATORS = [AdminRole.MarketplaceCoachingOpsManager, AdminRole.GameManag
 const EDITORS = [AdminRole.GameManager];
 
 
-// A short hash of the visitor's IP + user agent: enough to tell visitors apart for view counting.
-function viewerKey(req: Request): string {
-  return createHash('sha256').update(`${req.ip ?? ''}|${req.headers['user-agent'] ?? ''}`).digest('base64url').slice(0, 22);
-}
 
 @Controller()
 export class ListingsController {
@@ -115,6 +111,18 @@ export class ListingsController {
     await this.listings.assertInScope(id, scope);
     const result = await this.listings.setVerified(id, dto.verified);
     await this.audit.log({ adminId, adminRole, action: dto.verified ? 'listing.verify' : 'listing.unverify', entityType: 'listing', entityId: id });
+    return result;
+  }
+
+  // Staff assign badges by hand (owner 2026-11-08) — a Game Manager for its own games' listings.
+  @Post('admin/listings/:id/badges')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...MODERATORS)
+  async setManualBadges(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SetManualBadgesDto) {
+    await this.listings.assertInScope(id, scope);
+    const result = await this.listings.setManualBadges(id, dto.badges);
+    await this.audit.log({ adminId, adminRole, action: 'listing.set_badges', entityType: 'listing', entityId: id, metadata: { badges: result.manualBadges } });
     return result;
   }
 

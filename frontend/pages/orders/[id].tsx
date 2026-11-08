@@ -554,85 +554,6 @@ export default function OrderDetail() {
           {order.revisionReason && <p className="od-note">გადასამუშავებელი შენიშვნა: {order.revisionReason}</p>}
         </section>
 
-        {/* Next step for this side (start / deliver / accept / revise / cancel). */}
-        {(isBuyer || isSeller) && (
-          <section className="od-actions">
-            {isSeller && order.status === OrderStatus.Paid && (
-              <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.startOrder(order.id))}>
-                <img className="od-icon-invert" src="/assets/ui/check-solid.png" alt="" aria-hidden="true" />
-                სამუშაოს დაწყება
-              </button>
-            )}
-            {isSeller && order.status === OrderStatus.InProgress && (
-              <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.deliverOrder(order.id))}>
-                <img className="od-icon-invert" src="/assets/ui/check-solid.png" alt="" aria-hidden="true" />
-                მიწოდებულად მონიშვნა
-              </button>
-            )}
-            {isBuyer && order.status === OrderStatus.Delivered && (
-              <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.acceptDelivery(order.id))}>
-                <img src="/assets/ui/check-circle-light.png" alt="" aria-hidden="true" />
-                მიღების დადასტურება
-              </button>
-            )}
-            {isBuyer && order.status === OrderStatus.Delivered && !isKey && (
-              <form
-                className="od-inline-form"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  runAction(() => api.requestRevision(order.id, revisionReason))
-                }}
-              >
-                <input placeholder="რა უნდა შესწორდეს?" aria-label="რა უნდა შესწორდეს" value={revisionReason} onChange={(event) => setRevisionReason(event.target.value)} required />
-                <button className="od-btn" type="submit" disabled={busy}>
-                  გადამუშავება
-                </button>
-              </form>
-            )}
-            {isBuyer && order.status === OrderStatus.Paid && (
-              <button type="button" className="od-btn" disabled={busy} onClick={() => runAction(() => api.cancelOrderAsBuyer(order.id))}>
-                <img src="/assets/ui/x-circle.png" alt="" aria-hidden="true" />
-                შეკვეთის გაუქმება
-              </button>
-            )}
-            {isSeller && (order.status === OrderStatus.Paid || order.status === OrderStatus.InProgress) && (
-              <form
-                className="od-inline-form"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  runAction(() => api.cancelOrderAsSeller(order.id, cancelReason))
-                }}
-              >
-                <input placeholder="გაუქმების მიზეზი" aria-label="გაუქმების მიზეზი" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} required />
-                <button className="od-btn" type="submit" disabled={busy}>
-                  <img src="/assets/ui/x-circle.png" alt="" aria-hidden="true" />
-                  გაუქმება
-                </button>
-              </form>
-            )}
-            {actionError && (
-              <div className="status-text status-error" role="alert">
-                {actionError}
-              </div>
-            )}
-          </section>
-        )}
-
-        {(isBuyer || isSeller) && (
-          <>
-            <button type="button" className="od-cta" disabled={busy} onClick={() => messageOtherParty(otherParty.id)}>
-              <img src="/assets/ui/send-light.png" alt="" aria-hidden="true" />
-              {isBuyer ? 'გამყიდველისთვის მესიჯის გაგზავნა' : 'მყიდველისთვის მესიჯის გაგზავნა'}
-              <span aria-hidden="true">›</span>
-            </button>
-            <Link className="od-cta ghost" href="/support/chat">
-              <img src="/assets/ui/headset.png" alt="" aria-hidden="true" />
-              მხარდაჭერა
-              <span aria-hidden="true">›</span>
-            </Link>
-          </>
-        )}
-
         {isBuyer && isKey && (
           <section className="od-card od-key">
             <h2>გასაღები</h2>
@@ -801,6 +722,87 @@ export default function OrderDetail() {
               </form>
             )}
             {chatError && <div className="status-text status-error">{chatError}</div>}
+          </div>
+          {/* Owner 2026-11-08: cancel / message / support / accept-delivery sit right under the chat box. */}
+          <div className="od-under-chat">
+          {/* Next step for this side (start / deliver / accept / revise / cancel). */}
+          {(isBuyer || isSeller) && (
+            <section className="od-actions">
+              {isSeller && order.status === OrderStatus.Paid && (
+                <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.startOrder(order.id))}>
+                  <img className="od-icon-invert" src="/assets/ui/check-solid.png" alt="" aria-hidden="true" />
+                  სამუშაოს დაწყება
+                </button>
+              )}
+              {isSeller && order.status === OrderStatus.InProgress && (
+                <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.deliverOrder(order.id))}>
+                  <img className="od-icon-invert" src="/assets/ui/check-solid.png" alt="" aria-hidden="true" />
+                  მიწოდებულად მონიშვნა
+                </button>
+              )}
+              {isBuyer && order.status === OrderStatus.Delivered && (
+                <button type="button" className="od-btn primary" disabled={busy} onClick={() => runAction(() => api.acceptDelivery(order.id))}>
+                  <img src="/assets/ui/check-circle-light.png" alt="" aria-hidden="true" />
+                  მიღების დადასტურება
+                </button>
+              )}
+              {isBuyer && order.status === OrderStatus.Delivered && !isKey && (
+                <form
+                  className="od-inline-form"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    runAction(() => api.requestRevision(order.id, revisionReason))
+                  }}
+                >
+                  <input placeholder="რა უნდა შესწორდეს?" aria-label="რა უნდა შესწორდეს" value={revisionReason} onChange={(event) => setRevisionReason(event.target.value)} required />
+                  <button className="od-btn" type="submit" disabled={busy}>
+                    გადამუშავება
+                  </button>
+                </form>
+              )}
+              {isBuyer && order.status === OrderStatus.Paid && (
+                <button type="button" className="od-btn" disabled={busy} onClick={() => runAction(() => api.cancelOrderAsBuyer(order.id))}>
+                  <img src="/assets/ui/x-circle.png" alt="" aria-hidden="true" />
+                  შეკვეთის გაუქმება
+                </button>
+              )}
+              {isSeller && (order.status === OrderStatus.Paid || order.status === OrderStatus.InProgress) && (
+                <form
+                  className="od-inline-form"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    runAction(() => api.cancelOrderAsSeller(order.id, cancelReason))
+                  }}
+                >
+                  <input placeholder="გაუქმების მიზეზი" aria-label="გაუქმების მიზეზი" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} required />
+                  <button className="od-btn" type="submit" disabled={busy}>
+                    <img src="/assets/ui/x-circle.png" alt="" aria-hidden="true" />
+                    გაუქმება
+                  </button>
+                </form>
+              )}
+              {actionError && (
+                <div className="status-text status-error" role="alert">
+                  {actionError}
+                </div>
+              )}
+            </section>
+          )}
+
+          {(isBuyer || isSeller) && (
+            <>
+              <button type="button" className="od-cta" disabled={busy} onClick={() => messageOtherParty(otherParty.id)}>
+                <img src="/assets/ui/send-light.png" alt="" aria-hidden="true" />
+                {isBuyer ? 'გამყიდველისთვის მესიჯის გაგზავნა' : 'მყიდველისთვის მესიჯის გაგზავნა'}
+                <span aria-hidden="true">›</span>
+              </button>
+              <Link className="od-cta ghost" href="/support/chat">
+                <img src="/assets/ui/headset.png" alt="" aria-hidden="true" />
+                მხარდაჭერა
+                <span aria-hidden="true">›</span>
+              </Link>
+            </>
+          )}
           </div>
           {(isBuyer || isSeller) && (
             <p className="od-safety">

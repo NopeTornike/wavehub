@@ -6,9 +6,11 @@ import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
 import { notificationKind, notificationIcon } from '../lib/notifications'
+import { armAlerts, desktopAlert, inOneTab, playChime } from '../lib/alert'
 
-// Pop-up toasts for new notifications (client, 2026-10-02: "should appear … and must show").
-// Driven by the shell's unread-count poll: whenever a newer unread one arrives it fetches the newest
+// Pop-up toasts for new notifications (client, 2026-10-02: "should appear … and must show"), with a
+// chime and, in a background tab, a desktop notification (owner 2026-11-08, lib/alert.ts).
+// Driven by the shell's live stream + unread-count poll: whenever a newer unread one arrives it fetches the newest
 // notifications and pops each unread one this browser hasn't shown yet (remembered per user in
 // localStorage, so a reload doesn't repeat them). Only recent ones pop — an old unread backlog
 // stays in the bell. Clicking opens the target and marks it read.
@@ -53,29 +55,40 @@ export default function NotificationToasts() {
   }, [])
 
   useEffect(() => {
+    if (userId) armAlerts()
+  }, [userId])
+
+  useEffect(() => {
     if (!userId || !latestNotificationAt) return
     let cancelled = false
     api
       .listNotifications(10)
-      .then((items) => {
-        if (cancelled) return
-        const seen = readSeen(userId)
-        const fresh = items.filter((n) => !n.readAt && !seen.includes(n.id) && Date.now() - new Date(n.createdAt).getTime() < MAX_AGE_MS).reverse()
-        if (!fresh.length) return
-        writeSeen(userId, [...seen, ...fresh.map((n) => n.id)])
-        setToasts((list) => [...list, ...fresh].slice(-VISIBLE))
-        for (const n of fresh) {
-          timers.current.set(
-            n.id,
-            setTimeout(() => dismiss(n.id), HIDE_AFTER_MS),
-          )
-        }
-      })
+      .then((items) =>
+        // One tab at a time reads + writes the "already shown" list, so two open tabs don't both
+        // chime for the same notification (the list is shared through localStorage).
+        inOneTab(() => {
+          if (cancelled) return
+          const seen = readSeen(userId)
+          const fresh = items.filter((n) => !n.readAt && !seen.includes(n.id) && Date.now() - new Date(n.createdAt).getTime() < MAX_AGE_MS).reverse()
+          if (!fresh.length) return
+          writeSeen(userId, [...seen, ...fresh.map((n) => n.id)])
+          // Sound for every new batch; a system notification when the site is in a background tab.
+          playChime()
+          for (const n of fresh) desktopAlert(n.id, n.title, n.body, () => void router.push(`/notifications?id=${n.id}`))
+          setToasts((list) => [...list, ...fresh].slice(-VISIBLE))
+          for (const n of fresh) {
+            timers.current.set(
+              n.id,
+              setTimeout(() => dismiss(n.id), HIDE_AFTER_MS),
+            )
+          }
+        }),
+      )
       .catch(() => undefined)
     return () => {
       cancelled = true
     }
-  }, [userId, latestNotificationAt, dismiss])
+  }, [userId, latestNotificationAt, dismiss, router])
 
   useEffect(() => {
     const all = timers.current

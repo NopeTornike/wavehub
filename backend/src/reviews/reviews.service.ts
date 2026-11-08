@@ -1,14 +1,14 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
-import { NotificationType, OrderStatus, ReviewStatus } from '@wavehub/shared-types';
+import { ListingStatus, NotificationType, OrderStatus, ReviewStatus } from '@wavehub/shared-types';
 import type { AdminReviewRow, AdminReviewSummary, OrderReviewState, PendingReview, PublicReview, MyReviewLikes } from '@wavehub/shared-types';
 import { Review } from './review.entity';
 import { ReviewReport } from './review-report.entity';
 import { Order } from '../orders/order.entity';
 import { Listing } from '../listings/listing.entity';
 import { User } from '../users/user.entity';
-import { CreateReviewDto } from './dto/create-review.dto';
+import { CreateListingReviewDto, CreateReviewDto } from './dto/create-review.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CommunityService, ONLINE_WINDOW_MINUTES } from '../community/community.service';
 import { CoachingSessionReview } from '../coaching/coaching-session-review.entity';
@@ -89,6 +89,53 @@ export class ReviewsService {
       }
       return saved;
     });
+  }
+
+  // An email-verified user's review of a product they didn't buy (owner 2026-11-08). One per user per
+  // listing — the partial unique index UQ_reviews_listing_buyer_open is the real guard; someone who
+  // already reviewed it through an order can't add a second one this way. Not on your own listing.
+  async createForListing(userId: string, listingId: string, dto: CreateListingReviewDto): Promise<Review> {
+    const listing = await this.dataSource.getRepository(Listing).findOne({ where: { id: listingId, status: ListingStatus.Active } });
+    if (!listing) throw new NotFoundException('Listing not found');
+    if (listing.sellerId === userId) throw new ForbiddenException("You can't review your own listing");
+    const already = await this.reviews.exist({ where: { listingId, buyerId: userId } });
+    if (already) throw new ConflictException('You already reviewed this product');
+    const saved = await this.dataSource.transaction(async (manager) => {
+      let review: Review;
+      try {
+        review = await manager.save(
+          manager.create(Review, {
+            orderId: null,
+            listingId,
+            buyerId: userId,
+            sellerId: listing.sellerId,
+            rating: dto.rating,
+            body: dto.body ?? null,
+            tags: dto.tags ?? [],
+          }),
+        );
+      } catch (err: any) {
+        if (err?.code === POSTGRES_UNIQUE_VIOLATION) throw new ConflictException('You already reviewed this product');
+        throw err;
+      }
+      await this.recomputeListingRating(manager, listingId);
+      await this.recomputeSellerRating(manager, listing.sellerId);
+      return review;
+    });
+    try {
+      await this.notifications.emit(listing.sellerId, NotificationType.ReviewPosted, 'ახალი შეფასება', `თქვენ მიიღეთ ახალი შეფასება: ${dto.rating} ★`, {
+        reviewId: saved.id,
+        listingId,
+      });
+    } catch (err) {
+      this.logger.error(`Failed to notify seller ${listing.sellerId} of new review`, err as Error);
+    }
+    return saved;
+  }
+
+  // Has this user reviewed the listing yet (any way)? For the listing page's "write a review" form.
+  async hasReviewed(userId: string, listingId: string): Promise<{ reviewed: boolean }> {
+    return { reviewed: await this.reviews.exist({ where: { listingId, buyerId: userId } }) };
   }
 
   async reply(sellerId: string, reviewId: string, body: string): Promise<Review> {
@@ -192,6 +239,7 @@ export class ReviewsService {
         : { id: r.sellerId, username: '', firstName: '', lastName: '', avatarUrl: null, rank: sellerRank },
       likeCount: likes.get(`${r.id}:review`) ?? 0,
       replyLikeCount: likes.get(`${r.id}:reply`) ?? 0,
+      verifiedPurchase: !!r.orderId,
     };
   }
 

@@ -1,5 +1,6 @@
 import { shrinkPhoto } from './image-resize'
 import type {
+  ListingBadge,
   StaffGameScopes,
   MyReviewLikes,
   BadgeKey,
@@ -180,6 +181,7 @@ export interface MyCoachApplication {
 export const SESSION_LOST_EVENT = 'wavehub:session-lost'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+export const API_BASE_URL = API_URL
 
 export class ApiError extends Error {
   constructor(
@@ -257,6 +259,8 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'You cannot follow yourself': 'საკუთარი თავის გამოწერა შეუძლებელია.',
   'Only a completed session can be reviewed': 'შეფასება შესაძლებელია მხოლოდ დასრულებული სესიისთვის.',
   'You are not a coach': 'თქვენ ქოუჩის პროფილი არ გაქვთ.',
+  'You already reviewed this product': 'ამ პროდუქტზე შეფასება უკვე დაწერე.',
+  "You can't review your own listing": 'საკუთარ განცხადებას ვერ შეაფასებ.',
   'The video must be 25MB or smaller': 'ვიდეო 25MB-ზე დიდია.',
   'The video must be a YouTube or Vimeo link': 'ვიდეო უნდა იყოს YouTube ან Vimeo ბმული.',
   'Unknown game': 'უცნობი თამაში.',
@@ -649,6 +653,13 @@ export const api = {
 
   removeListingKey: (listingId: string, keyId: string) =>
     request<void>(`/listings/${listingId}/keys/${keyId}`, { method: 'DELETE' }),
+
+  // Owner 2026-11-08: an email-verified user's one review of a product without buying it.
+  createListingReview: (listingId: string, payload: { rating: number; body?: string; tags?: string[] }) =>
+    request<PublicReview>(`/listings/${listingId}/reviews`, { method: 'POST', body: JSON.stringify(payload) }),
+  myListingReview: (listingId: string) => request<{ reviewed: boolean }>(`/listings/${listingId}/my-review`),
+  adminSetListingBadges: (id: string, badges: ListingBadge[]) =>
+    request<{ id: string; manualBadges: ListingBadge[] }>(`/admin/listings/${id}/badges`, { method: 'POST', body: JSON.stringify({ badges }) }),
 
   createReview: (payload: { orderId: string; rating: number; body?: string; tags?: string[] }) =>
     request<PublicReview>('/reviews', { method: 'POST', body: JSON.stringify(payload) }),

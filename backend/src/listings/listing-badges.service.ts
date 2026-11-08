@@ -83,10 +83,11 @@ export class ListingBadgesService {
                   (SELECT count(*) FROM "listing_favorites" WHERE "listingId" = l."id" AND "createdAt" > now() - interval '48 hours')::int AS f48,
                   (l."priceDroppedAt" > now() - interval '7 days' AND l."previousPriceWaveCoin" IS NOT NULL AND l."priceWaveCoin" <= l."previousPriceWaveCoin" * 0.9) AS dropped,
                   (l."contentUpdatedAt" > now() - interval '48 hours') AS updated,
-                  (l."verifiedAt" IS NOT NULL) AS verified
+                  (l."verifiedAt" IS NOT NULL) AS verified,
+                  l."manualBadges" AS manual
              FROM "listings" l WHERE l."id" = ANY($1::uuid[])`,
           [ids],
-        ) as Promise<Array<{ id: string; v48: number; v24: number; vprev: number; f48: number; dropped: boolean | null; updated: boolean | null; verified: boolean }>>,
+        ) as Promise<Array<{ id: string; v48: number; v24: number; vprev: number; f48: number; dropped: boolean | null; updated: boolean | null; verified: boolean; manual: string[] | null }>>,
       ]);
       for (const r of rows) {
         const earned = new Set<ListingBadge>();
@@ -97,6 +98,8 @@ export class ListingBadgesService {
         if (r.dropped) earned.add('price_drop');
         if (r.updated) earned.add('just_updated');
         if (r.verified) earned.add('verified');
+        // Staff-assigned badges (owner 2026-11-08) show alongside the earned ones.
+        for (const b of r.manual ?? []) earned.add(b as ListingBadge);
         out.set(r.id, LISTING_BADGE_ORDER.filter((b) => earned.has(b)));
       }
     } catch (err) {

@@ -91,6 +91,10 @@ export class Listing {
   @Column({ type: 'timestamptz', nullable: true })
   verifiedAt: Date | null;
 
+  // Badges staff assigned by hand (owner 2026-11-08), shown with the automatic ones.
+  @Column({ type: 'text', array: true, default: '{}' })
+  manualBadges: string[];
+
   // Staff-set SOLD mark (owner 2026-11-06): the card shows the SOLD overlay and nobody can buy it.
   // 24h later the sweep (ListingsService#sweepSoldListings) pauses it and sets soldRemovedAt, so it
   // leaves the site; while soldAt is set the seller can't put it back live.

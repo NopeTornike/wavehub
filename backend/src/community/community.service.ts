@@ -65,7 +65,7 @@ export class CommunityService {
       WITH stats AS (
         SELECT u."id", u."username",
           (SELECT count(*) FROM "orders" o WHERE o."sellerId" = u."id" AND o."status" = 'completed') AS sold,
-          (SELECT count(*) FROM "reviews" r WHERE r."sellerId" = u."id" AND r."status" = 'published') AS reviews,
+          (SELECT count(*) FROM "reviews" r WHERE r."sellerId" = u."id" AND r."status" = 'published' AND r."orderId" IS NOT NULL) AS reviews,
           (SELECT count(*) FROM "listings" l WHERE l."sellerId" = u."id" AND l."status" = 'active') AS listings,
           COALESCE(u."sellerRatingAvg", 0) AS rating
         FROM "users" u
@@ -102,11 +102,11 @@ export class CommunityService {
           + (SELECT count(*) FROM "coaching_sessions" cs WHERE cs."coachId" IN (SELECT "id" FROM coach WHERE "userId" = s."id") AND cs."status" = 'completed'))::int AS sold,
         ((SELECT count(*) FROM "orders" WHERE "buyerId" = s."id" AND "status" = 'completed')
           + (SELECT count(*) FROM "coaching_sessions" WHERE "buyerId" = s."id" AND "status" = 'completed'))::int AS bought,
-        ((SELECT count(*) FROM "reviews" WHERE "sellerId" = s."id" AND "status" = 'published')
+        ((SELECT count(*) FROM "reviews" WHERE "sellerId" = s."id" AND "status" = 'published' AND "orderId" IS NOT NULL)
           + (SELECT count(*) FROM "coaching_session_reviews" r WHERE r."coachId" IN (SELECT "id" FROM coach WHERE "userId" = s."id")))::int AS reviews,
         ((SELECT count(*) FROM "listings" WHERE "sellerId" = s."id" AND "createdAt" > now() - interval '30 days')
           + (SELECT count(*) FROM "orders" WHERE ("sellerId" = s."id" OR "buyerId" = s."id") AND "status" = 'completed' AND "completedAt" > now() - interval '30 days')
-          + (SELECT count(*) FROM "reviews" WHERE "sellerId" = s."id" AND "status" = 'published' AND "createdAt" > now() - interval '30 days')
+          + (SELECT count(*) FROM "reviews" WHERE "sellerId" = s."id" AND "status" = 'published' AND "orderId" IS NOT NULL AND "createdAt" > now() - interval '30 days')
           + (SELECT count(*) FROM "coaching_sessions" WHERE ("buyerId" = s."id" OR "coachId" IN (SELECT "id" FROM coach WHERE "userId" = s."id")) AND "status" = 'completed' AND "updatedAt" > now() - interval '30 days'))::int AS "recentEvents"
       FROM sellers s
     `);
@@ -163,13 +163,13 @@ export class CommunityService {
            + (SELECT count(*) FROM "coaching_sessions" WHERE "buyerId" = $1 AND "status" = 'completed')
          )::int AS bought,
          (
-           (SELECT count(*) FROM "reviews" WHERE "sellerId" = $1 AND "status" = 'published')
+           (SELECT count(*) FROM "reviews" WHERE "sellerId" = $1 AND "status" = 'published' AND "orderId" IS NOT NULL)
            + (SELECT count(*) FROM "coaching_session_reviews" WHERE "coachId" IN (SELECT "id" FROM coach))
          )::int AS reviews,
          (
            (SELECT count(*) FROM "listings" WHERE "sellerId" = $1 AND "createdAt" > now() - interval '30 days')
            + (SELECT count(*) FROM "orders" WHERE ("sellerId" = $1 OR "buyerId" = $1) AND "status" = 'completed' AND "completedAt" > now() - interval '30 days')
-           + (SELECT count(*) FROM "reviews" WHERE "sellerId" = $1 AND "status" = 'published' AND "createdAt" > now() - interval '30 days')
+           + (SELECT count(*) FROM "reviews" WHERE "sellerId" = $1 AND "status" = 'published' AND "orderId" IS NOT NULL AND "createdAt" > now() - interval '30 days')
            + (SELECT count(*) FROM "coaching_sessions" WHERE ("buyerId" = $1 OR "coachId" IN (SELECT "id" FROM coach)) AND "status" = 'completed' AND "updatedAt" > now() - interval '30 days')
          )::int AS "recentEvents"`,
       [userId],

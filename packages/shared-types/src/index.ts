@@ -450,6 +450,8 @@ export interface PublicListingDetail extends PublicListingSummary {
   description: string;
   // The seller's completed orders across all their listings (detail page's seller strip).
   sellerCompletedOrders: number;
+  // The seller's median minutes to answer a chat message (90 days, ≥3 answers) — null = not enough data.
+  sellerResponseMinutes: number | null;
   packages: PublicPackage[];
   requirementsSchema?: RequirementField[];
   faq?: FaqEntry[];
@@ -635,6 +637,9 @@ export interface PublicReview {
   // 👍 counts (review_likes) on the review and on the seller's reply.
   likeCount: number;
   replyLikeCount: number;
+  // True when the review came from a completed order; false for an email-verified user's review
+  // without a purchase (owner 2026-11-08).
+  verifiedPurchase: boolean;
 }
 
 // GET /me/following, /me/followers (client feedback #15).
@@ -756,6 +761,8 @@ export interface PublicCoachSummary {
   // chats); null until there are at least 3 answered messages to measure.
   responseMinutes: number | null;
   completedSessions: number;
+  // Profile views, one per visitor per hour (owner 2026-11-08).
+  viewsCount: number;
 }
 
 export interface PublicCoachGame {
@@ -1026,6 +1033,8 @@ export interface AdminListingSummary {
   priceWaveCoin?: number | null;
   // Staff-checked account / details → the listing's VERIFIED badge.
   verified?: boolean;
+  // Badges staff assigned by hand (owner 2026-11-08), on top of the automatic ones.
+  manualBadges?: ListingBadge[];
   // Staff marked it SOLD (ISO time); it leaves the site 24h later.
   soldAt?: string | null;
   gameId?: string | null;

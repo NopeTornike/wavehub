@@ -149,3 +149,10 @@ Client: "admin/support get no notifications at all".
 
 - Direct messages to staff were already notified (`new_message`).
 - e2e: `test/client-round-4.e2e-spec.ts`.
+
+## Live stream (owner 2026-11-08)
+`GET notifications/stream` (AuthGuard, `@SkipThrottle`) is Server-Sent Events: `{type:'notification'}`
+whenever `emit()` creates one for the caller (an in-process rxjs Subject — single backend instance
+only) and `{type:'ping'}` every 25s to keep proxies from closing it. The frontend (`lib/shell.tsx`)
+refreshes the badges on an event, still polls every 30s as a fallback, plays a chime and shows a
+desktop notification when the tab is hidden (`lib/alert.ts`).

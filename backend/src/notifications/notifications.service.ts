@@ -1,3 +1,4 @@
+import { filter, interval, map, merge, Observable, Subject } from 'rxjs';
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
@@ -61,6 +62,22 @@ export class NotificationsService {
     @InjectRepository(User) private readonly users: Repository<User>,
   ) {}
 
+  // Live push (owner 2026-11-08: notifications arrive without a refresh, with a sound, in any tab).
+  // Every saved notification pings that user's open streams (GET notifications/stream, SSE); the
+  // browser then refetches its bell. One backend process, so an in-memory Subject is enough — with
+  // several instances this would need Postgres LISTEN/NOTIFY or Redis.
+  private readonly live = new Subject<string>();
+  stream(userId: string): Observable<MessageEvent> {
+    return merge(
+      this.live.pipe(
+        filter((id) => id === userId),
+        map(() => ({ data: { type: 'notification' } }) as MessageEvent),
+      ),
+      // Keeps proxies and phones from closing an idle connection.
+      interval(25_000).pipe(map(() => ({ data: { type: 'ping' } }) as MessageEvent)),
+    );
+  }
+
   // Email copy of a key notification: only to active accounts that kept emails on. Fire-and-forget
   // from emit (a slow mail server must never slow down or fail the action), errors only logged —
   // never with the address (PII-free logs, root CLAUDE.md "Security").
@@ -93,6 +110,7 @@ export class NotificationsService {
     const notification = await this.notifications.save(
       this.notifications.create({ userId, type, title, body, metadata: metadata ?? null }),
     );
+    this.live.next(userId);
     if (alsoEmail) {
       await this.email.send(alsoEmail.to, alsoEmail.subject, body);
     } else if (EMAIL_NOTIFICATION_TYPES.has(type)) {

@@ -443,3 +443,15 @@ Migration `1784390000000-ListingBadges`.
   marketplace games; approve / reject / take-down / restore / verified / sold / the
   `admin/listings/:id` editor routes check `assertInScope`. Featured, delete and Steam stay closed.
   `AdminListingSummary` gained `soldAt`, `gameId`.
+
+## Owner round 2026-11-08
+- **Manual badges**: `listings.manualBadges text[]` (migration `1784393000000`). `POST
+  admin/listings/:id/badges { badges }` (MODERATORS + Game Manager scope via `assertInScope`, audited
+  `listing.set_badges`) replaces the list; allowed values are `MANUAL_LISTING_BADGES` (hot, trending,
+  price_drop, most_popular, most_viewed, just_updated). `ListingBadgesService` merges them with the
+  earned ones. Admin → Listings → all → "ბეიჯები".
+- **Sale price**: `itemAttributes.compareAtPrice` (whole number above the price, `assertCompareAtPrice`)
+  is the struck-through "was" price on the card and product page; editable in `ListingEditor` by the
+  seller and by staff.
+- Listing detail adds `sellerResponseMinutes` (median from `chat/response-time.ts`, null below
+  `MIN_RESPONSE_SAMPLES`) for the "response time" tile.

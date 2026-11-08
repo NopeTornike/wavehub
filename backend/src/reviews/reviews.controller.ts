@@ -5,7 +5,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { AdminRole } from '@wavehub/shared-types';
 import { ReviewsService } from './reviews.service';
-import { CreateReviewDto } from './dto/create-review.dto';
+import { CreateListingReviewDto, CreateReviewDto } from './dto/create-review.dto';
 import { ReplyReviewDto } from './dto/reply-review.dto';
 import { ReportReviewDto } from './dto/report-review.dto';
 import { BrowseReviewsDto } from './dto/browse-reviews.dto';
@@ -95,6 +95,20 @@ export class ReviewsController {
   @UseGuards(AuthGuard)
   create(@CurrentUserId() buyerId: string, @Body() dto: CreateReviewDto) {
     return this.reviews.create(buyerId, dto);
+  }
+
+  // Owner 2026-11-08: an email-verified user may write one review of a product without buying it.
+  @Post('listings/:listingId/reviews')
+  @Throttle(CREATE_THROTTLE)
+  @UseGuards(AuthGuard, VerifiedEmailGuard)
+  createForListing(@CurrentUserId() userId: string, @Param('listingId', ParseUUIDPipe) listingId: string, @Body() dto: CreateListingReviewDto) {
+    return this.reviews.createForListing(userId, listingId, dto);
+  }
+
+  @Get('listings/:listingId/my-review')
+  @UseGuards(AuthGuard)
+  myReview(@CurrentUserId() userId: string, @Param('listingId', ParseUUIDPipe) listingId: string) {
+    return this.reviews.hasReviewed(userId, listingId);
   }
 
   @Post('reviews/:id/reply')

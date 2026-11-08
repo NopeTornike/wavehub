@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import type { AdminListingSummary, ListingForEdit } from '@wavehub/shared-types'
+import type { AdminListingSummary, ListingBadge, ListingForEdit } from '@wavehub/shared-types'
 import { AdminRole, ListingStatus, ListingType } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 import { LISTING_STATUS_LABELS } from '../../lib/labels'
 import { useAuth } from '../../lib/auth'
+import { LISTING_BADGE_LABELS } from '../../components/ListingBadges'
 
 // Super Admin can open any listing in the full editor (/admin/listings/[id]); a Game Manager
 // can for its own games (the API only lists those to it and checks every save).
@@ -29,6 +30,54 @@ function EditLink({ id }: { id: string }) {
 }
 
 // "SOLD · removed from the site" once the 24h sweep ran, else the hours left.
+// Staff-set listing badges (owner 2026-11-08): shown on the card and product page next to the
+// earned ones (HOT, TRENDING, PRICE DROP …). Game Managers can set them on their own games.
+const MANUAL_BADGES: ListingBadge[] = ['hot', 'trending', 'price_drop', 'most_popular', 'most_viewed', 'just_updated']
+
+function BadgePicker({ item, onSaved }: { item: AdminListingSummary; onSaved: (badges: ListingBadge[]) => void }) {
+  const [open, setOpen] = useState(false)
+  const [picked, setPicked] = useState<ListingBadge[]>(item.manualBadges ?? [])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const count = (item.manualBadges ?? []).length
+  const save = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const res = await api.adminSetListingBadges(item.id, picked)
+      onSaved(res.manualBadges)
+      setOpen(false)
+    } catch (err) {
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (!open)
+    return (
+      <button type="button" className="button" onClick={() => { setPicked(item.manualBadges ?? []); setOpen(true) }}>
+        ბეიჯები{count ? ` (${count})` : ''}
+      </button>
+    )
+  return (
+    <div className="al-badges">
+      {MANUAL_BADGES.map((b) => (
+        <label key={b}>
+          <input type="checkbox" checked={picked.includes(b)} onChange={(e) => setPicked((prev) => (e.target.checked ? [...prev, b] : prev.filter((x) => x !== b)))} />
+          {LISTING_BADGE_LABELS[b]}
+        </label>
+      ))}
+      <button type="button" className="button" disabled={busy} onClick={() => void save()}>
+        შენახვა
+      </button>
+      <button type="button" className="button ghost" disabled={busy} onClick={() => setOpen(false)}>
+        გაუქმება
+      </button>
+      {error && <span className="seller-status error">{error}</span>}
+    </div>
+  )
+}
+
 function soldNote(soldAt: string): string {
   const left = new Date(soldAt).getTime() + 24 * 3600 * 1000 - Date.now()
   if (left <= 0) return 'SOLD · საიტიდან მოხსნილია'
@@ -209,6 +258,7 @@ function AllListings() {
                   <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.verified)} onClick={() => void toggleVerified(item)} title="VERIFIED ბეიჯი: აქაუნთის საკუთრება და მონაცემები შემოწმებულია">
                     {item.verified ? 'VERIFIED ✓ — მოხსნა' : 'VERIFIED-ად მონიშვნა'}
                   </button>
+                  <BadgePicker item={item} onSaved={(badges) => setItems((prev) => (prev ?? []).map((row) => (row.id === item.id ? { ...row, manualBadges: badges } : row)))} />
                   {!isGameManager && (
                   <button type="button" className="button" disabled={busyId === item.id} aria-pressed={Boolean(item.isFeatured)} onClick={() => void toggle(item)}>
                     {item.isFeatured ? 'რჩეულიდან ამოღება' : 'რჩეულად მონიშვნა'}

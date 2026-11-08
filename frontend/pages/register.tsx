@@ -29,6 +29,8 @@ export default function Register() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [agreed, setAgreed] = useState(false)
+  // Owner 2026-11-08: a second box — the user confirms they are over 13.
+  const [over13, setOver13] = useState(false)
   const [registeredEmail, setRegisteredEmail] = useState('')
   const { openLogin } = useAuthModal()
   const { user, refresh } = useAuth()
@@ -145,6 +147,11 @@ export default function Register() {
       return
     }
 
+    if (!over13) {
+      setError('რეგისტრაციისთვის დაადასტურე, რომ 13 წელზე მეტის ხარ.')
+      return
+    }
+
     setSubmitting(true)
     try {
       await api.register({
@@ -225,6 +232,10 @@ export default function Register() {
             <span>
               ვეთანხმები <Link href="/pages/terms">მომსახურების პირობებს</Link> და <Link href="/pages/privacy">კონფიდენციალურობის პოლიტიკას</Link>
             </span>
+          </label>
+          <label className="ax-check ax-terms">
+            <input type="checkbox" checked={over13} onChange={(e) => setOver13(e.target.checked)} />
+            <span>ვადასტურებ, რომ 13 წელზე მეტის ვარ</span>
           </label>
           {error && (
             <p className="ax-error" role="alert">

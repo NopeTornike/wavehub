@@ -24,6 +24,8 @@ import { gel } from '../../lib/money'
 import { deliveryTimeLabel } from '../../lib/labels'
 import { canPublishSteam } from '../../lib/roles'
 import ListingBadges from '../../components/ListingBadges'
+import BogTopUpButton, { missingTopUp } from '../../components/BogTopUpButton'
+import ListingReviewForm from '../../components/ListingReviewForm'
 
 // The prototype's detail.html (detail.js), section for section: back link, breadcrumb, title with
 // the game's title icon, About card, the game-specific details grid, Access & Delivery, Linked
@@ -99,6 +101,14 @@ export default function ListingDetail() {
       cancelled = true
     }
   }, [id, meId])
+  // Back from a BOG top-up started on this page: re-read the balance so the buy button works.
+  const topupResult = router.query.topup
+  useEffect(() => {
+    if (topupResult === 'success') void refresh()
+  }, [topupResult, refresh])
+  // Bumped after posting a review, to reload the list and the score.
+  const [reviewsVersion, setReviewsVersion] = useState(0)
+
   // Price + buyer fee + total for the current selection (GET /order-quote).
   const [quote, setQuote] = useState<OrderQuote | null>(null)
   const quoteListingId = listing?.id
@@ -173,7 +183,7 @@ export default function ListingDetail() {
     return () => {
       cancelled = true
     }
-  }, [id, sort])
+  }, [id, sort, reviewsVersion])
 
   if (loading || error || !listing) {
     return (
@@ -227,6 +237,19 @@ export default function ListingDetail() {
   const detailForm = DETAIL_FIELDS[slug]
   const gameSpecific = detailForm ? detailForm.fields.filter((f) => attrs[f.id] !== undefined && attrs[f.id] !== '').map((f) => [f.label, attrs[f.id]] as const) : []
   const platformRegion = [attrs.platform, attrs.region].filter(Boolean).join(' / ')
+  // Sale price (owner 2026-11-08): the seller's / staff's "was" price, struck through above the price.
+  const compareAt = price !== null && typeof attrs.compareAtPrice === 'number' && attrs.compareAtPrice > price ? attrs.compareAtPrice : null
+  const discount = compareAt && price !== null ? Math.round((1 - price / compareAt) * 100) : 0
+  // The top shows a short description; the full text is in the "Description" card below (owner:
+  // "the description repeats twice").
+  const firstPara = listing.description.split(/\n\s*\n/)[0].replace(/\s+/g, ' ').trim()
+  const shortDescription = firstPara.length > 180 ? `${firstPara.slice(0, 177).replace(/\s+\S*$/, '')}…` : firstPara
+  // Seller facts for the score tiles: real numbers, never placeholders.
+  const responseMinutes = listing.sellerResponseMinutes ?? null
+  const responseText =
+    responseMinutes === null ? null : responseMinutes < 60 ? `~${responseMinutes} წთ` : responseMinutes < 1440 ? `~${Math.round(responseMinutes / 60)} სთ` : `~${Math.round(responseMinutes / 1440)} დღე`
+  const sellerRating = listing.seller.sellerRatingAvg ? Number(listing.seller.sellerRatingAvg) : null
+  const productRated = rating !== null && listing.ratingCount > 0
 
   const completePurchase = async () => {
     setConfirmOpen(false)
@@ -352,9 +375,12 @@ export default function ListingDetail() {
                 <h1 id="detailTitle">{listing.title}</h1>
               </div>
               <ListingBadges badges={listing.badges} className="detail-lb" />
-              <p className="detail-lead" id="detailDescription">
-                {listing.description}
-              </p>
+              {/* Only when it's shorter than the full text — a short description would just repeat. */}
+              {shortDescription !== listing.description.trim() && (
+                <p className="detail-lead" id="detailDescription">
+                  {shortDescription}
+                </p>
+              )}
             </div>
 
             <div className="detail-tab-panels">
@@ -543,11 +569,15 @@ export default function ListingDetail() {
                 <div className="detail-review-summary" id="detailReviewSummary">
                   {rating !== null && listing.ratingCount > 0 ? `${rating.toFixed(1)}/5 · ${listing.ratingCount} შეფასება` : 'ამ პროდუქტს ჯერ შეფასება არ აქვს.'}
                 </div>
-                {reviewOrderId && (
-                  <Link className="detail-write-review" href={`/orders/${reviewOrderId}#review`}>
-                    ★ შენ იყიდე ეს პროდუქტი — დაწერე შეფასება
-                  </Link>
-                )}
+                <ListingReviewForm
+                  listingId={listing.id}
+                  isOwnListing={isOwnListing}
+                  orderReviewHref={reviewOrderId ? `/orders/${reviewOrderId}#review` : null}
+                  onPosted={() => {
+                    setReviewsVersion((v) => v + 1)
+                    void api.getListing(listing.id).then((data) => setListing(data)).catch(() => undefined)
+                  }}
+                />
                 {reviews.length > 1 && (
                   <label className="detail-review-sort">
                     <span className="sr-only">შეფასებების დალაგება</span>
@@ -588,7 +618,17 @@ export default function ListingDetail() {
 
           <aside className="detail-buy-panel" aria-label="Buy offer">
             <div className="detail-buy-head">
-              <strong id="detailPrice">{price !== null ? `${price} GEL` : '—'}</strong>
+              <span className="detail-price-block">
+                {compareAt && (
+                  <span className="detail-price-was">
+                    <s>{compareAt} GEL</s>
+                    <em>-{discount}%</em>
+                  </span>
+                )}
+                <strong id="detailPrice" className={compareAt ? 'is-sale' : undefined}>
+                  {price !== null ? `${price} GEL` : '—'}
+                </strong>
+              </span>
               <button className="detail-share-button" type="button" aria-label="Share product" onClick={() => void share()}>
                 გაზიარება
               </button>
@@ -621,9 +661,9 @@ export default function ListingDetail() {
                   <svg viewBox="0 0 24 24"><path d="M4 5h2l2 10h10l2-7H7" /><circle cx="10" cy="19" r="1.5" /><circle cx="17" cy="19" r="1.5" /></svg>
                 </span>
                 <div>
-                  <strong id="detailCompletedOrders">{listing.ordersCount}</strong>
+                  <strong id="detailCompletedOrders">{listing.sellerCompletedOrders}</strong>
                   <span>დასრულებული შეკვეთები</span>
-                  <small>რეალური შეკვეთები</small>
+                  <small>{listing.ordersCount > 0 ? `ამ პროდუქტზე: ${listing.ordersCount}` : 'გამყიდველის ყველა'}</small>
                 </div>
               </div>
               <div className="ld-stat">
@@ -631,9 +671,9 @@ export default function ListingDetail() {
                   <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
                 </span>
                 <div>
-                  <strong id="detailResponseTime">—</strong>
+                  <strong id="detailResponseTime">{responseText ?? 'ახალი'}</strong>
                   <span>პასუხის საშ. დრო</span>
-                  <small>გამყიდველის პასუხი</small>
+                  <small>{responseText ? 'გამყიდველის პასუხი' : 'ჯერ ცოტა მონაცემია'}</small>
                 </div>
               </div>
               <div className="ld-stat">
@@ -651,9 +691,15 @@ export default function ListingDetail() {
                   <svg viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3Z" /></svg>
                 </span>
                 <div>
-                  <strong id="detailSideSellerScore">{rating !== null && listing.ratingCount > 0 ? rating.toFixed(1) : '-'}</strong>
-                  <span>პროდუქტის რეიტინგი</span>
-                  <small id="detailSideSellerScoreLabel">{listing.ratingCount > 0 ? `${listing.ratingCount} შეფასება` : 'შეფასება არ არის'}</small>
+                  <strong id="detailSideSellerScore">{productRated ? rating!.toFixed(1) : sellerRating !== null && listing.seller.sellerRatingCount > 0 ? sellerRating.toFixed(1) : '—'}</strong>
+                  <span>{productRated || !(sellerRating !== null && listing.seller.sellerRatingCount > 0) ? 'პროდუქტის რეიტინგი' : 'გამყიდველის რეიტინგი'}</span>
+                  <small id="detailSideSellerScoreLabel">
+                    {productRated
+                      ? `${listing.ratingCount} შეფასება`
+                      : sellerRating !== null && listing.seller.sellerRatingCount > 0
+                        ? `${listing.seller.sellerRatingCount} შეფასება`
+                        : 'შეფასება ჯერ არ არის'}
+                  </small>
                 </div>
               </div>
             </div>
@@ -717,12 +763,11 @@ export default function ListingDetail() {
               </>
             ) : (
               <>
-                {notEnoughBalance && (
-                  <p className="note">
-                    თქვენი ბალანსია {gel(me!.wavecoinBalance)} GEL — ამ შეძენისთვის არ გყოფნით. <Link href="/wallet">შეავსეთ საფულე</Link>
-                  </p>
+                {notEnoughBalance && !listing.soldAt && inStock && (
+                  <BogTopUpButton amount={missingTopUp(payTotal ?? 0, me!.wavecoinBalance)} balance={me!.wavecoinBalance} total={payTotal ?? 0} />
                 )}
                 <button
+                  hidden={notEnoughBalance && !listing.soldAt && inStock}
                   className="detail-buy-button"
                   id="buyButton"
                   type="button"
@@ -731,6 +776,12 @@ export default function ListingDetail() {
                 >
                   {listing.soldAt ? 'გაყიდულია' : purchasing ? 'მიმდინარეობს…' : 'ახლავე ყიდვა'}
                 </button>
+                {!notEnoughBalance && !listing.soldAt && inStock && (
+                  <p className="bog-paystrip">
+                    <span>გადახდა ბალანსიდან · შევსება</span>
+                    <img src="/assets/bog-logo.png" alt="Bank of Georgia" />
+                  </p>
+                )}
               </>
             )}
             <div className="detail-secondary-actions">

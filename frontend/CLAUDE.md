@@ -1438,3 +1438,18 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   `listing.soldAt` is set; the card loses its cart button and the buy button reads "გაყიდულია"
   (disabled). Admin → Listings → all: "SOLD-ად მონიშვნა" / "SOLD — მოხსნა" on item listings, with
   the hours until it leaves the site. My Listings shows a SOLD chip.
+
+## 2026-11-08 Owner list (product page, reviews, alerts)
+- **Product page**: short description at the top only when it differs from the full text; the four
+  stat tiles show real data (completed orders, measured response time or "ახალი", favourites, rating
+  falling back to the seller's); sale price (`compareAtPrice`) struck through with a −% pill; when the
+  balance is short the buy button is replaced by `components/BogTopUpButton.tsx` (the wallet's Bank of
+  Georgia card: amount due, balance, top-up amount, BOG pay button; returns with `?topup=success`), and
+  a BOG strip sits under the buy button otherwise. `components/ListingReviewForm.tsx` = one open
+  review per verified user. Badges (`ListingBadges`) are gradient pills with SVG icons.
+- Prices read "250 GEL-დან" (from after the price) everywhere.
+- Order page: cancel / message / support / accept-delivery are under the chat box (`.od-under-chat`).
+- Registration has a second "over 13" checkbox.
+- The escrow guide on phones is the desktop row of tiles, swipeable.
+- Notifications: live via `EventSource` + chime + desktop alerts (`lib/alert.ts`).
+- Admin → Listings → all: "ბეიჯები" picker for manual badges; `ListingEditor` has "ფასი ფასდაკლებამდე".

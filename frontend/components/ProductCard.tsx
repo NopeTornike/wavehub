@@ -100,6 +100,7 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
   const sellerName = [listing.seller.firstName, listing.seller.lastName].filter(Boolean).join(' ') || listing.seller.username
   const price = listingPrice(listing)
   const canCart = listing.type !== ListingType.Service
+  const compareAt = typeof attrs.compareAtPrice === 'number' && attrs.compareAtPrice > price ? attrs.compareAtPrice : null
   const inCart = cart.has(listing.id)
 
   const addToCart = () => {
@@ -183,10 +184,20 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
         </span>
 
         <div className="pc-price-row">
-          <strong className="pc-price">
-            {kind === 'service' && <small>დან </small>}
-            {count(price)} GEL
-          </strong>
+          <span className="pc-price-wrap">
+            {/* Sale price (owner 2026-11-08): the "was" price struck through above the real one. */}
+            {compareAt && (
+              <span className="pc-price-was">
+                <s>{count(compareAt)} GEL</s>
+                <em>-{Math.round((1 - price / compareAt) * 100)}%</em>
+              </span>
+            )}
+            <strong className={`pc-price${compareAt ? ' is-sale' : ''}`}>
+              {count(price)} GEL
+              {/* Georgian puts "from" after the number: "250 GEL-დან" (owner 2026-11-08). */}
+              {kind === 'service' && <small>-დან</small>}
+            </strong>
+          </span>
           <span className="pc-social">
             <span title="ნახვები">
               <img src="/assets/ui/eye.png" alt="" aria-hidden="true" />

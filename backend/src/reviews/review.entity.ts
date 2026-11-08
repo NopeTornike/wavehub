@@ -12,8 +12,11 @@ export class Review {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
-  orderId: string;
+  // Null for an order-less review (owner 2026-11-08: an email-verified user may write one review of
+  // a product without buying it — one per user per listing, partial unique index
+  // UQ_reviews_listing_buyer_open). `listingId`/`sellerId` then come from the listing.
+  @Column({ type: 'uuid', unique: true, nullable: true })
+  orderId: string | null;
 
   @ManyToOne(() => Order)
   @JoinColumn({ name: 'orderId' })

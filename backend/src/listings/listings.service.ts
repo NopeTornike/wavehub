@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Repository } from 'typeorm';
 import { ListingFavorite } from './listing-favorite.entity';
 import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType, NotificationType, UserStatus } from '@wavehub/shared-types';
-import type { AdminListingSummary, AdminSteamGameSummary, ListingForEdit, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
+import type { AdminListingSummary, ListingBadge, AdminSteamGameSummary, ListingForEdit, PublicSeller, SellerListingKeySummary } from '@wavehub/shared-types';
 import { User } from '../users/user.entity';
 import { Listing } from './listing.entity';
 import { ListingImage } from './listing-image.entity';
@@ -21,6 +21,7 @@ import { UpdateListingDto } from './dto/update-listing.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { BrowseListingsDto } from './dto/browse-listings.dto';
 import { StorageService } from '../storage/storage.service';
+import { medianResponseMinutes } from '../chat/response-time';
 import { encryptKeyValue } from './key-encryption.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ListingBadgesService } from './listing-badges.service';
@@ -341,6 +342,7 @@ export class ListingsService {
       isFeatured: row.isFeatured,
       priceWaveCoin: row.priceWaveCoin,
       verified: !!row.verifiedAt,
+      manualBadges: (row.manualBadges ?? []) as ListingBadge[],
       soldAt: row.soldAt?.toISOString() ?? null,
       gameId: row.gameId ?? null,
     }));
@@ -397,6 +399,14 @@ export class ListingsService {
     const listing = await this.getListingOrThrow(listingId);
     await this.listings.update(listing.id, { verifiedAt: verified ? new Date() : null });
     return { id: listing.id, verified };
+  }
+
+  // Staff-assigned badges (owner 2026-11-08), shown with the automatic ones. Replaces the whole list.
+  async setManualBadges(listingId: string, badges: string[]): Promise<{ id: string; manualBadges: string[] }> {
+    const listing = await this.getListingOrThrow(listingId);
+    const manualBadges = [...new Set(badges)];
+    await this.listings.update(listing.id, { manualBadges });
+    return { id: listing.id, manualBadges };
   }
 
   async setFeatured(listingId: string, isFeatured: boolean): Promise<{ id: string; isFeatured: boolean }> {
@@ -673,13 +683,15 @@ export class ListingsService {
     void this.listings.increment({ id }, 'viewsCount', 1);
     this.badges.recordView(id, viewer);
     const badges = (await this.badges.badgesFor([id])).get(id) ?? [];
-    const [favoriteCount, [{ sellerCompletedOrders }]] = await Promise.all([
+    const [favoriteCount, [{ sellerCompletedOrders }], responseTimes] = await Promise.all([
       this.favorites.count({ where: { listingId: id } }),
       this.listings.query(
         `SELECT count(*)::int AS "sellerCompletedOrders" FROM "orders" WHERE "sellerId" = $1 AND "status" = 'completed'`,
         [listing.sellerId],
       ),
+      medianResponseMinutes(this.listings.manager.connection, [listing.sellerId]).catch(() => new Map<string, number>()),
     ]);
+    const sellerResponseMinutes = responseTimes.get(listing.sellerId) ?? null;
 
     const [{ n: verifiedCount }] = await this.listings.query(
       `SELECT count(*)::int AS n FROM "user_badges" WHERE "userId" = $1 AND "badgeKey" = 'verified'`,
@@ -700,6 +712,7 @@ export class ListingsService {
         itemAttributes: null,
         favoriteCount,
         sellerCompletedOrders,
+        sellerResponseMinutes,
         badges,
       };
     }
@@ -717,12 +730,13 @@ export class ListingsService {
         itemAttributes: keyDetails?.attributes ?? {},
         favoriteCount,
         sellerCompletedOrders,
+        sellerResponseMinutes,
         badges,
       };
     }
 
     const itemDetails = await this.itemDetails.findOne({ where: { listingId: id } });
-    return { ...listing, seller: toPublicSeller(listing.seller, sellerVerified), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount, sellerCompletedOrders, badges };
+    return { ...listing, seller: toPublicSeller(listing.seller, sellerVerified), packages: [], itemAttributes: itemDetails?.attributes ?? {}, favoriteCount, sellerCompletedOrders, sellerResponseMinutes, badges };
   }
 
   // Packages are what a buyer pays for, so changing them on a live (Active/Paused) service sends it

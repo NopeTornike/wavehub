@@ -21,6 +21,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
 import { VideoCompressor } from '../storage/video-compressor';
 import { BadgesService } from '../badges/badges.service';
+import { medianResponseMinutes } from '../chat/response-time';
 
 // Coach intro video: 25MB (owner 2026-11-06; was 5MB from 2026-10-03, 50MB before), re-encoded by
 // the server to a small 720p MP4 right after upload (VideoCompressor.replaceLater).
@@ -28,8 +29,6 @@ export const MAX_COACH_VIDEO_BYTES = 25 * 1024 * 1024;
 type UploadedFile = { buffer: Buffer; originalname: string; size: number };
 
 type CoachStats = { completed: number; cancelled: number; students: number };
-// A response time needs at least this many answered messages before it's shown.
-const MIN_RESPONSE_SAMPLES = 3;
 
 // Sorted, validated working hours: 30-minute steps, from < to, no overlapping ranges on a day, real
 // unique dates for days off.
@@ -96,36 +95,19 @@ export class CoachesService {
     return new Map(rows.map((r) => [r.coachId, { completed: r.completed, cancelled: r.cancelled, students: r.students }]));
   }
 
-  // Median minutes each user took to answer a new message from the other party (order and direct
-  // chats, last 90 days): a "turn" is the other party's first message after the user last spoke;
-  // its answer is the user's next message in that conversation. Real data only — null below
-  // MIN_RESPONSE_SAMPLES answered turns.
-  private async responseMinutes(userIds: string[]): Promise<Map<string, number>> {
-    if (userIds.length === 0) return new Map();
-    const rows: Array<{ uid: string; median: number; n: number }> = await this.dataSource.query(
-      `WITH u AS (SELECT unnest($1::uuid[]) AS uid),
-       m AS (
-         SELECT u.uid, msg."conversationId", msg."senderId", msg."createdAt",
-                lag(msg."senderId") OVER (PARTITION BY u.uid, msg."conversationId" ORDER BY msg."createdAt") AS prev
-         FROM u
-         JOIN "conversations" c ON c."buyerId" = u.uid OR c."sellerId" = u.uid
-         JOIN "messages" msg ON msg."conversationId" = c."id" AND msg."senderId" IS NOT NULL
-         WHERE msg."createdAt" > now() - interval '90 days'
-       ),
-       turns AS (SELECT uid, "conversationId", "createdAt" FROM m WHERE "senderId" <> uid AND (prev IS NULL OR prev = uid)),
-       answered AS (
-         SELECT t.uid, extract(epoch FROM (r.at - t."createdAt")) / 60 AS mins
-         FROM turns t
-         CROSS JOIN LATERAL (
-           SELECT min(x."createdAt") AS at FROM "messages" x
-           WHERE x."conversationId" = t."conversationId" AND x."senderId" = t.uid AND x."createdAt" > t."createdAt"
-         ) r
-         WHERE r.at IS NOT NULL
-       )
-       SELECT uid, percentile_cont(0.5) WITHIN GROUP (ORDER BY mins) AS median, count(*)::int AS n FROM answered GROUP BY uid`,
-      [userIds],
-    );
-    return new Map(rows.filter((r) => r.n >= MIN_RESPONSE_SAMPLES).map((r) => [r.uid, Math.max(1, Math.ceil(Number(r.median)))]));
+  private responseMinutes(userIds: string[]): Promise<Map<string, number>> {
+    return medianResponseMinutes(this.dataSource, userIds);
+  }
+
+  // One view per visitor per hour (owner 2026-11-08: coach cards show views like product cards).
+  private seenViews = new Map<string, number>();
+  recordView(coachId: string, viewer: string): void {
+    const hour = Math.floor(Date.now() / 3_600_000);
+    const key = `${coachId}|${viewer}`;
+    if (this.seenViews.get(key) === hour) return;
+    if (this.seenViews.size > 100_000) this.seenViews.clear();
+    this.seenViews.set(key, hour);
+    void this.coaches.increment({ id: coachId }, 'viewsCount', 1).catch(() => undefined);
   }
 
   // Creates a new application, or — if the user's previous application was rejected — reopens
@@ -277,12 +259,13 @@ export class CoachesService {
     };
   }
 
-  async findPublicById(id: string): Promise<PublicCoachDetail> {
+  async findPublicById(id: string, viewer?: string): Promise<PublicCoachDetail> {
     const coach = await this.coaches.findOne({
       where: { id, verificationStatus: VerificationStatus.Verified, status: CoachStatus.Active, removedAt: IsNull() },
       relations: ['user', 'game'],
     });
     if (!coach) throw new NotFoundException('Coach not found');
+    if (viewer) this.recordView(coach.id, viewer);
     const [perks, stats, response, rank, extraGames, packages] = await Promise.all([
       this.subscriptions.getActivePerks(coach.userId, SubscriptionAudience.SellerCoach),
       this.sessionStats([coach.id]),
@@ -627,6 +610,7 @@ export class CoachesService {
       rank: coach.rank ?? null,
       responseMinutes,
       completedSessions,
+      viewsCount: coach.viewsCount ?? 0,
     };
   }
 

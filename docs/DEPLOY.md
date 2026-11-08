@@ -525,3 +525,18 @@ tournaments to `draft` (new `TournamentStatus.Draft`), with each item's previous
 `ops_visibility_freeze`. Restore with `scripts/visibility-restore.sql` (see its header); listings
 edited while hidden go to admin review rather than straight back to live.
 
+
+### Seventh gotcha: Gmail sometimes defers our mail (2026-11-08)
+About 1 in 8 emails to Gmail got `421-4.7.28 … unusual rate of unsolicited mail originating from
+your IP Netblock` — a reputation flag on OVH's whole address block, not on wavehubx.com (SPF, DKIM
+selector `wh2026` and DMARC all pass). Postfix retried after 5–10 minutes, so those emails looked
+"late". Retries are now every minute:
+
+```bash
+sudo postconf -e minimal_backoff_time=60s maximal_backoff_time=600s queue_run_delay=60s
+sudo postfix reload
+```
+
+The lasting fix is sending through a provider with its own IP reputation: set `EMAIL_PROVIDER=resend`
+and `RESEND_API_KEY` (backend/src/email/CLAUDE.md) after verifying the domain in Resend — needs the
+owner's account.

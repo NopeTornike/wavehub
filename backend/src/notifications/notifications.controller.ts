@@ -1,4 +1,5 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Sse, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Transform } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { NotificationsService } from './notifications.service';
@@ -28,6 +29,14 @@ export class NotificationsController {
   @Get()
   listMine(@CurrentUserId() userId: string, @Query() query: ListNotificationsQueryDto) {
     return this.notifications.listMine(userId, query.limit ?? 20, query.offset ?? 0);
+  }
+
+  // Server-sent events: `{type:'notification'}` whenever one is saved for this user, `{type:'ping'}`
+  // every 25s. The page refetches the bell / toasts on a notification (frontend/lib/shell.tsx).
+  @Sse('stream')
+  @SkipThrottle()
+  stream(@CurrentUserId() userId: string) {
+    return this.notifications.stream(userId);
   }
 
   @Get('unread-count')
