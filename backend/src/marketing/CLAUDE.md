@@ -84,3 +84,13 @@ A used code is deactivated (`PATCH … {active:false}`) instead. Audited (`promo
   `null`, so the chip disappears. It carries no username, email or ids beyond the coach id.
   `AdminBanner.coachId` keeps the stored pick, so Admin can see a coach that has dropped off.
 - e2e: `test/marketing.e2e-spec.ts` ("banner label + featured coach").
+
+## 2026-11-08 Banner videos compressed
+- `setBannerVideo` stores the upload, deletes the previous video file, and hands the upload to
+  `VideoCompressor.replaceLater` (`storage/CLAUDE.md`): a smaller 720p MP4 replaces `videoUrl` when
+  it is still the same upload. `clearBannerVideo` deletes the file. (The live 11s hero loop was 8MB
+  and stuttered on phones.)
+- Frontend: the hero's play/pause control (`components/BannerSlides.tsx` `BannerVideo bigPlay`) is
+  YouTube-style — hidden while playing, flashed after a tap / shown on mouse movement, persistent
+  while paused, a spinner while buffering. No `:hover` visibility rules (a phone tap left `:hover`
+  stuck, which kept the button on screen and made it flicker).

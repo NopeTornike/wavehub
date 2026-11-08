@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, Repository } from 'typeorm';
 import type { AdminBanner, AdminPromoCode, PromoRedemptionResult, PublicBanner } from '@wavehub/shared-types';
@@ -9,6 +9,7 @@ import { Coach } from '../coaching/coach.entity';
 import { BannerDto, CreateBannerDto, CreatePromoCodeDto, UpdatePromoCodeDto } from './dto/marketing.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { StorageService } from '../storage/storage.service';
+import { VideoCompressor } from '../storage/video-compressor';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
@@ -21,6 +22,7 @@ export class MarketingService {
     private readonly dataSource: DataSource,
     private readonly wallet: WalletService,
     private readonly storage: StorageService,
+    @Optional() private readonly videoCompressor?: VideoCompressor,
   ) {}
 
   // --- Promo codes ---
@@ -247,6 +249,12 @@ export class MarketingService {
     // Byte-sniffed: only real MP4/WebM files are accepted.
     const stored = await this.storage.save(file.buffer, file.originalname, 'video');
     await this.banners.update(id, { videoUrl: stored.url });
+    await this.storage.remove(b.videoUrl);
+    // Compressed to a small 720p MP4 in the background (an 8MB 11s hero loop stuttered on phones).
+    this.videoCompressor?.replaceLater(stored.url, file.buffer, async (url) => {
+      const res = await this.banners.update({ id, videoUrl: stored.url }, { videoUrl: url });
+      return !!res.affected;
+    });
     return this.adminOut(await this.banners.findOneOrFail({ where: { id } }));
   }
 
@@ -255,6 +263,7 @@ export class MarketingService {
     const b = await this.banners.findOne({ where: { id } });
     if (!b) throw new NotFoundException('Banner not found');
     await this.banners.update(id, { videoUrl: null, ...(b.imageUrl ? {} : { active: false }) });
+    await this.storage.remove(b.videoUrl);
     return this.adminOut(await this.banners.findOneOrFail({ where: { id } }));
   }
 

@@ -52,8 +52,9 @@ export function useSwipe(onPrev: () => void, onNext: () => void) {
 }
 
 // A video slide: autoplays muted inline, no photo behind it, only a pause / play control.
-// Hero videos loop continuously. The resume button stays until the customer resumes playback;
-// the pause button then remains visible briefly before getting out of the way again.
+// Hero videos loop continuously. Like YouTube (owner 2026-11-08: the old button blinked and stayed
+// on screen during playback — a phone tap left :hover stuck): paused → the play button stays;
+// playing → hidden, flashed briefly after a tap or while the mouse moves; buffering → a spinner.
 // The button follows what the <video> really does (its play / pause events), not only the requested
 // state: when the browser blocks autoplay (iOS Low Power Mode, data saver) the button still says
 // Play and a tap starts it. On the big hero a tap anywhere on the video pauses / resumes it — phones
@@ -79,8 +80,19 @@ export function BannerVideo({
 }) {
   const ref = useRef<HTMLVideoElement>(null)
   const [muted, setMuted] = useState(true)
-  const [showPauseControl, setShowPauseControl] = useState(false)
+  // What the <video> really does (its events), not what was requested — autoplay can be blocked.
   const [playing, setPlaying] = useState(false)
+  const [buffering, setBuffering] = useState(false)
+  // YouTube-style: while playing the control is hidden; it flashes after a tap and shows on mouse
+  // movement, then fades. One timer at a time, so it never flickers between states.
+  const [controlsShown, setControlsShown] = useState(false)
+  const hideTimer = useRef<number | undefined>(undefined)
+  const showControls = useCallback((ms: number) => {
+    window.clearTimeout(hideTimer.current)
+    setControlsShown(true)
+    hideTimer.current = window.setTimeout(() => setControlsShown(false), ms)
+  }, [])
+  useEffect(() => () => window.clearTimeout(hideTimer.current), [])
 
   // The banner shows the whole video, never a zoomed crop (owner 2026-10-24: a vertical phone video
   // filled the wide frame by cropping). The frame learns the video's orientation so phones can give
@@ -99,27 +111,22 @@ export function BannerVideo({
     else void v.play().catch(() => undefined)
   }, [paused, src])
 
-  useEffect(() => {
-    if (paused || !showPauseControl) return
-    const timer = window.setTimeout(() => setShowPauseControl(false), 2000)
-    return () => window.clearTimeout(timer)
-  }, [paused, showPauseControl])
-
   const togglePlayback = () => {
     const v = ref.current
-    if (!v || v.paused) {
-      // Keep the pause icon available for a moment after Resume, then hide it.
-      setShowPauseControl(true)
+    if (!v) return
+    if (v.paused || v.ended) {
       onPausedChange(false)
-      // Already "playing" in state (autoplay was blocked): the effect won't re-run, so start it here.
-      if (v && !paused) void v.play().catch(() => undefined)
-      return
+      void v.play().catch(() => undefined)
+      showControls(700)
+    } else {
+      window.clearTimeout(hideTimer.current)
+      setControlsShown(false)
+      onPausedChange(true)
+      v.pause()
     }
-    setShowPauseControl(false)
-    onPausedChange(true)
-    if (paused) v.pause()
   }
   const stopped = !playing
+  const controlVisible = stopped || buffering || controlsShown
 
   return (
     <>
@@ -137,7 +144,16 @@ export function BannerVideo({
         aria-hidden="true"
         onEnded={onEnded}
         onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
+        onPlaying={() => {
+          setPlaying(true)
+          setBuffering(false)
+        }}
+        onPause={() => {
+          setPlaying(false)
+          setBuffering(false)
+        }}
+        onWaiting={() => setBuffering(true)}
+        onCanPlay={() => setBuffering(false)}
         onLoadedMetadata={(e) => {
           const v = e.currentTarget
           const host = v.parentElement
@@ -156,10 +172,13 @@ export function BannerVideo({
               e.preventDefault()
               togglePlayback()
             }}
+            onPointerMove={(e) => {
+              if (e.pointerType === 'mouse' && playing) showControls(2000)
+            }}
           />
           <button
             type="button"
-            className={`banner-video-play${stopped ? ' is-paused' : ' is-playing'}${showPauseControl ? ' is-temporarily-visible' : ''}`}
+            className={`banner-video-play${stopped ? ' is-paused' : ' is-playing'} ${controlVisible ? 'vp-shown' : 'vp-hidden'}`}
             aria-label={stopped ? 'ვიდეოს გაგრძელება' : 'ვიდეოს პაუზა'}
             onClick={(e) => {
               e.preventDefault()
@@ -167,7 +186,9 @@ export function BannerVideo({
               togglePlayback()
             }}
           >
-            {stopped ? (
+            {buffering && !stopped ? (
+              <span className="vp-spin" aria-hidden="true" />
+            ) : stopped ? (
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />
               </svg>
@@ -191,7 +212,7 @@ export function BannerVideo({
                 v.muted = next
                 if (!next && v.paused) {
                   onPausedChange(false)
-                  if (!paused) void v.play().catch(() => undefined)
+                  void v.play().catch(() => undefined)
                 }
               }
               setMuted(next)

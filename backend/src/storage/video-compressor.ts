@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { StorageService } from './storage.service';
 import { spawn } from 'child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import { setPriority, tmpdir } from 'os';
@@ -21,6 +22,27 @@ export class VideoCompressor {
   private missing = false;
   private queue: Promise<unknown> = Promise.resolve();
 
+  constructor(private readonly storage: StorageService) {}
+
+  /**
+   * After an upload: compress `original` in the background and, if the copy is ≥5% smaller, store it
+   * and call `swap(newUrl)` — which must replace `originalUrl` only if it is still the current one
+   * (a conditional update) and return whether it did. The file that lost is deleted. Never throws.
+   */
+  replaceLater(originalUrl: string, original: Buffer, swap: (newUrl: string) => Promise<boolean>): void {
+    void (async () => {
+      try {
+        const small = await this.compress(original);
+        if (!small || small.length >= original.length * 0.95) return;
+        const stored = await this.storage.save(small, 'video.mp4', 'video');
+        const swapped = await swap(stored.url);
+        await this.storage.remove(swapped ? originalUrl : stored.url);
+      } catch (err) {
+        this.logger.warn(`Video compression skipped: ${(err as Error).message}`);
+      }
+    })();
+  }
+
   /** The compressed MP4, or null when ffmpeg is missing or the input can't be decoded. */
   compress(input: Buffer): Promise<Buffer | null> {
     const job = this.queue.then(() => this.run(input));
@@ -28,7 +50,7 @@ export class VideoCompressor {
     return job;
   }
 
-  /** Resolves once every queued job has finished (tests). */
+  /** Resolves once every queued job has finished (tests; the swap follows a moment later). */
   idle(): Promise<void> {
     return this.queue.then(() => undefined);
   }

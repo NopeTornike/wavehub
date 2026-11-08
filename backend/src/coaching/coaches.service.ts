@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, IsNull, Repository } from 'typeorm';
 import { AdminRole, CoachStatus, DEFAULT_COACH_AVAILABILITY, NotificationType, SubscriptionAudience, UserStatus, VerificationStatus } from '@wavehub/shared-types';
@@ -23,7 +23,7 @@ import { VideoCompressor } from '../storage/video-compressor';
 import { BadgesService } from '../badges/badges.service';
 
 // Coach intro video: 25MB (owner 2026-11-06; was 5MB from 2026-10-03, 50MB before), re-encoded by
-// the server to a small 720p MP4 right after upload (see compressVideoLater).
+// the server to a small 720p MP4 right after upload (VideoCompressor.replaceLater).
 export const MAX_COACH_VIDEO_BYTES = 25 * 1024 * 1024;
 type UploadedFile = { buffer: Buffer; originalname: string; size: number };
 
@@ -67,7 +67,6 @@ export class CoachesService {
     @Optional() private readonly badges?: BadgesService,
     @Optional() private readonly videoCompressor?: VideoCompressor,
   ) {}
-  private readonly logger = new Logger(CoachesService.name);
 
   // Called exactly when a coach becomes verified (approve / admin create) — also grants the
   // system Verified badge (badges/).
@@ -409,23 +408,11 @@ export class CoachesService {
     const stored = await this.storage.save(file.buffer, file.originalname, 'video');
     await this.coaches.update(coachId, { videoFileUrl: stored.url });
     await this.storage.remove(coach.videoFileUrl);
-    void this.compressVideoLater(coachId, stored.url, file.buffer);
+    this.videoCompressor?.replaceLater(stored.url, file.buffer, async (url) => {
+      const res = await this.coaches.update({ id: coachId, videoFileUrl: stored.url }, { videoFileUrl: url });
+      return !!res.affected;
+    });
     return { videoFileUrl: stored.url };
-  }
-
-  // The original plays right away; the compressed copy replaces it when ready — only if it is smaller
-  // and the coach hasn't replaced or removed the video in the meantime (conditional update).
-  private async compressVideoLater(coachId: string, originalUrl: string, original: Buffer): Promise<void> {
-    if (!this.videoCompressor) return;
-    try {
-      const small = await this.videoCompressor.compress(original);
-      if (!small || small.length >= original.length * 0.95) return;
-      const stored = await this.storage.save(small, 'intro.mp4', 'video');
-      const res = await this.coaches.update({ id: coachId, videoFileUrl: originalUrl }, { videoFileUrl: stored.url });
-      await this.storage.remove(res.affected ? originalUrl : stored.url);
-    } catch (err) {
-      this.logger.warn(`Coach video compression skipped: ${(err as Error).message}`);
-    }
   }
 
   async clearVideo(coachId: string): Promise<{ ok: true }> {
