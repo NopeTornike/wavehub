@@ -23714,3 +23714,6 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 .ld-checkout .ld-paywith-bog img { height: 28px; max-width: 150px; padding: 5px 10px; }
 .ld-checkout .fee-breakdown dt { min-width: 0; }
 .ld-checkout .ld-paywith-bog small { white-space: nowrap; }
+/* Tournament Gift badge (transparent PNG) sits over the dimmed photo like the SOLD banner. */
+.sold-overlay.gift-overlay img { width: auto; height: 86%; max-width: 86%; max-height: 260px; object-fit: contain; filter: drop-shadow(0 8px 22px rgba(0, 0, 0, .6)) drop-shadow(0 0 18px rgba(192, 59, 255, .35)); }
+.sold-overlay.gift-overlay.sold-hero img { height: 78%; max-height: 420px; }
