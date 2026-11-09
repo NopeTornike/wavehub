@@ -283,3 +283,12 @@ through Start/Deliver.
   - the order page shows an amber warning under the chat for Paid / InProgress / Delivered orders,
     with the exact time once delivered. The seller sees the mirror text.
 - Covered by `test/client-feedback.e2e-spec.ts` (delivered + 24h, notification text).
+
+## Super Admin read access (2026-11-09)
+
+`GET /orders/:id` and `GET /orders/:id/messages` also answer a **Super Admin** who isn't a party
+(`canStaffRead`), because Admin → Disputes links to the order page and resolving needs the order +
+chat. Before this, staff clicking a dispute got "This order doesn't belong to you" and couldn't reach
+the resolve buttons (owner report). Read-only: posting, files, the digital key and every lifecycle
+action stay buyer/seller-only; other staff roles still get 403. Covered in
+`test/owner-2026-11-09.e2e-spec.ts`.

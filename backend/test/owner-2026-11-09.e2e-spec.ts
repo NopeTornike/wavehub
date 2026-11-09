@@ -1,4 +1,4 @@
-import { assertConserved } from './flows';
+import { assertConserved, buyItem } from './flows';
 import { createApp, credit, E2eApp, makeAdmin, publishItemListing, registerUser, TestUser } from './helpers';
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('fake-but-sniffable')]);
@@ -107,5 +107,36 @@ describe('owner round 2026-11-09 (e2e)', () => {
     expect(profile.reviews.cards).toHaveLength(4);
     expect(profile.reviews.latest).toHaveLength(4);
     expect((await admin.client.get(`/listings/${listingId}`)).body.ratingCount).toBe(4);
+  });
+  it('a Super Admin who is not a party can open a disputed order, read its chat and refund it', async () => {
+    const seller = await registerUser(ctx, 'o9dseller');
+    const buyer = await registerUser(ctx, 'o9dbuyer');
+    const stranger = await registerUser(ctx, 'o9dstranger');
+    const support = await registerUser(ctx, 'o9dsupport');
+    await makeAdmin(ctx, support, 'support_specialist');
+    await credit(ctx, buyer, 200);
+    const orderId = await buyItem(ctx, seller, buyer, admin, 120, 'delivered');
+    expect((await buyer.client.post(`/orders/${orderId}/dispute`, { reason: 'Cannot log in to the account I bought' })).status).toBe(201);
+
+    const view = await admin.client.get(`/orders/${orderId}`);
+    expect(view.status).toBe(200);
+    expect(view.body.status).toBe('disputed');
+    expect((await admin.client.get(`/orders/${orderId}/messages`)).status).toBe(200);
+    expect((await admin.client.get(`/disputes/${orderId}`)).status).toBe(200);
+    // Read-only: staff can't act as a party, and other people still can't see the order.
+    expect((await admin.client.post(`/orders/${orderId}/messages`, { body: 'hi' })).status).toBe(403);
+    expect((await stranger.client.get(`/orders/${orderId}`)).status).toBe(403);
+    expect((await support.client.get(`/orders/${orderId}`)).status).toBe(403);
+
+    const bal = async () => Number((await ctx.dataSource.query(`SELECT "wavecoinBalance" AS b FROM users WHERE id = $1`, [buyer.id]))[0].b);
+    const before = await bal();
+    const resolved = await admin.client.post(`/orders/${orderId}/dispute/resolve`, { resolution: 'refund_buyer', note: 'Account details did not work' });
+    expect(resolved.status).toBe(200);
+    const order = (await buyer.client.get(`/orders/${orderId}`)).body;
+    expect(order.status).toBe('refunded');
+    // The full payment (price + buyer fee) goes back to the buyer's balance; the seller gets nothing.
+    const [{ sum }] = await ctx.dataSource.query(`SELECT COALESCE(SUM("amountWaveCoin"),0)::numeric AS sum FROM wallet_ledger_entries WHERE "orderId" = $1 AND "userId" = $2`, [orderId, seller.id]);
+    expect(Number(sum)).toBe(0);
+    expect((await bal()) - before).toBeCloseTo(Number(order.buyerTotalWaveCoin), 2);
   });
 });

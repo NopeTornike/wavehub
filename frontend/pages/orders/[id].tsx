@@ -174,11 +174,13 @@ export default function OrderDetail() {
     }
   }, [id])
 
+  // Waits for the session: a Super Admin's dispute comes from the admin route, and deciding that
+  // before `me` loaded left staff with no dispute panel (owner report 2026-11-09).
   useEffect(() => {
-    if (!id) return
+    if (!id || !checked) return
     reloadDispute()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [id, checked, isSuperAdmin])
 
   const openDispute = async (event: FormEvent) => {
     event.preventDefault()

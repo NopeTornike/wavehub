@@ -136,3 +136,12 @@ buyer/seller of can still see the thread. See `frontend/CLAUDE.md`.
 ## 2026-10-07
 `PublicDisputeMessage` carries `senderFirstName`, `senderLastName`, `senderAvatarUrl`. The order
 page shows the other side by photo + name.
+
+## Order page for staff (2026-11-09)
+
+A Super Admin opens a dispute from Admin → Disputes → the order page, which now loads for them (see
+`backend/src/orders/CLAUDE.md`). The page waits for the session before fetching the dispute, so it
+uses the admin route (`GET /disputes/:orderId`) instead of failing on the participant-only one.
+Resolutions: **Refund buyer** / **Cancel order** return the buyer's full `buyerTotalWaveCoin` (price +
+buyer fee) to their WaveCoin balance and the seller gets nothing; **Release to seller** pays the seller
+(7-day withdrawal hold). Never top up a buyer by hand for a disputed order: that pays twice.

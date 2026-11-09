@@ -3,7 +3,7 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, LessThanOrEqual, Repository } from 'typeorm';
-import { KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus, UserStatus, MessageType } from '@wavehub/shared-types';
+import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus, UserStatus, MessageType } from '@wavehub/shared-types';
 import type { OrderQuote, PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
 import { Order } from './order.entity';
 import { OrderDeliveryFile } from './order-delivery-file.entity';
@@ -479,7 +479,7 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-    if (order.buyerId !== userId && order.sellerId !== userId) {
+    if (order.buyerId !== userId && order.sellerId !== userId && !(await this.canStaffRead(userId))) {
       throw new ForbiddenException("This order doesn't belong to you");
     }
 
@@ -662,7 +662,7 @@ export class OrdersService {
   // otherwise know about orders — see backend/src/chat/CLAUDE.md.
   async listMessages(userId: string, orderId: string) {
     const order = await this.getOrderOrThrow(orderId);
-    if (order.buyerId !== userId && order.sellerId !== userId) {
+    if (order.buyerId !== userId && order.sellerId !== userId && !(await this.canStaffRead(userId))) {
       throw new ForbiddenException("This order doesn't belong to you");
     }
     return this.chat.listMessages(orderId);
@@ -713,6 +713,14 @@ export class OrdersService {
       throw new NotFoundException('Key not found for this order');
     }
     return { key: decryptKeyValue(row.keyValueEncrypted) };
+  }
+
+  // A Super Admin resolves disputes from the order page (Admin → Disputes links there), so they may
+  // read any order and its chat. Read-only: every action on an order stays buyer/seller-only, and the
+  // digital key is never part of this response (see getRevealedKey).
+  private async canStaffRead(userId: string): Promise<boolean> {
+    const rows: Array<{ adminRole: string | null }> = await this.dataSource.query(`SELECT "adminRole" FROM users WHERE id = $1`, [userId]);
+    return rows[0]?.adminRole === AdminRole.SuperAdmin;
   }
 
   private async getOrderOrThrow(orderId: string): Promise<Order> {
