@@ -658,9 +658,9 @@ export default function ListingDetail() {
               )}
             </div>
             <div className="ld-stats" aria-label="Marketplace scores">
-              <div className="ld-stat">
+              <div className="ld-stat ld-tone-green">
                 <span className="ld-stat-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><path d="M4 5h2l2 10h10l2-7H7" /><circle cx="10" cy="19" r="1.5" /><circle cx="17" cy="19" r="1.5" /></svg>
+                  <svg viewBox="0 0 24 24"><path d="M5.5 8h13l-1.1 11.2a1.5 1.5 0 0 1-1.5 1.3H8.1a1.5 1.5 0 0 1-1.5-1.3L5.5 8Z" /><path d="M9 8V6.5a3 3 0 0 1 6 0V8" /><path d="m9.3 14 1.9 1.9 3.6-3.8" /></svg>
                 </span>
                 <div>
                   <strong id="detailCompletedOrders">{listing.sellerCompletedOrders}</strong>
@@ -668,9 +668,9 @@ export default function ListingDetail() {
                   <small>{listing.ordersCount > 0 ? `ამ პროდუქტზე: ${listing.ordersCount}` : 'გამყიდველის ყველა'}</small>
                 </div>
               </div>
-              <div className="ld-stat">
+              <div className="ld-stat ld-tone-cyan">
                 <span className="ld-stat-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                  <svg viewBox="0 0 24 24"><path d="M13.2 2.8 5 13.4h6.1l-1.3 7.8 8.2-10.6h-6.1l1.3-7.8Z" /></svg>
                 </span>
                 <div>
                   <strong id="detailResponseTime">{responseText ?? 'ახალი'}</strong>
@@ -678,8 +678,8 @@ export default function ListingDetail() {
                   <small>{responseText ? 'გამყიდველის პასუხი' : 'ჯერ ცოტა მონაცემია'}</small>
                 </div>
               </div>
-              <div className="ld-stat">
-                <span className="ld-stat-icon" aria-hidden="true">
+              <div className="ld-stat ld-tone-pink">
+                <span className="ld-stat-icon is-filled" aria-hidden="true">
                   <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg>
                 </span>
                 <div>
@@ -688,8 +688,8 @@ export default function ListingDetail() {
                   <small>შენახვა</small>
                 </div>
               </div>
-              <div className="ld-stat">
-                <span className="ld-stat-icon" aria-hidden="true">
+              <div className="ld-stat ld-tone-amber">
+                <span className="ld-stat-icon is-filled" aria-hidden="true">
                   <svg viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3Z" /></svg>
                 </span>
                 <div>
@@ -749,6 +749,9 @@ export default function ListingDetail() {
               </div>
             )}
 
+            {/* Checkout card (owner 2026-11-09): price breakdown, Buy, then how it's paid — the
+                buyer's WaveHub balance, topped up through Bank of Georgia — and the escrow promise. */}
+            <div className={isOwnListing ? undefined : 'ld-checkout'}>
             {!isOwnListing && <FeeBreakdown quote={quote} />}
             {isOwnListing ? (
               <>
@@ -776,16 +779,37 @@ export default function ListingDetail() {
                   disabled={purchasing || !inStock || blocked || (kind === 'service' && !selectedPackageId)}
                   onClick={requestPurchase}
                 >
+                  {!blocked && !purchasing && (
+                    <svg className="detail-buy-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 8h13l-1.1 11.2a1.5 1.5 0 0 1-1.5 1.3H8.1a1.5 1.5 0 0 1-1.5-1.3L5.5 8Z" /><path d="M9 8V6.5a3 3 0 0 1 6 0V8" /></svg>
+                  )}
                   {listing.soldAt ? 'გაყიდულია' : listing.coverOverlay ? 'ყიდვა შეჩერებულია' : purchasing ? 'მიმდინარეობს…' : 'ახლავე ყიდვა'}
                 </button>
                 {!notEnoughBalance && !blocked && inStock && (
-                  <p className="bog-paystrip">
-                    <span>გადახდა ბალანსიდან · შევსება</span>
-                    <img src="/assets/bog-logo.png" alt="Bank of Georgia" />
+                  <div className="ld-paywith">
+                    <div className="ld-paywith-balance">
+                      <span className="ld-paywith-wallet" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" /><rect x="4" y="8" width="16" height="11" rx="2.5" /><path d="M16 13.5h.01" /></svg>
+                      </span>
+                      <span>
+                        <small>გადახდა ბალანსიდან</small>
+                        <strong>{me ? `${gel(me.wavecoinBalance)} GEL` : 'WaveHub'}</strong>
+                      </span>
+                    </div>
+                    <div className="ld-paywith-bog">
+                      <small>შევსება ბარათით</small>
+                      <img src="/assets/bog-logo.png" alt="Bank of Georgia" />
+                    </div>
+                  </div>
+                )}
+                {!blocked && (
+                  <p className="ld-secure">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 7 3v5c0 4.6-2.9 8.2-7 10-4.1-1.8-7-5.4-7-10V6l7-3Z" /><path d="m9 12 2 2 4-4" /></svg>
+                    თანხა დაცულია და გამყიდველს მიწოდების დადასტურების შემდეგ ერიცხება.
                   </p>
                 )}
               </>
             )}
+            </div>
             <div className="detail-secondary-actions">
               <button id="wishlistButton" type="button" aria-pressed={saved} title="Add to wishlist" onClick={() => void toggleFavorite()}>
                 {saved ? 'რჩეულებშია ♥' : 'რჩეულებში დამატება'}

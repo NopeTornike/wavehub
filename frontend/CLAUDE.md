@@ -1463,3 +1463,6 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   `.detail-review-list.rv-list`, `.sd-reviews`).
 - Tournament page info cards: each fact / summary cell / info row has its own accent colour
   (`.wt-tone-*` sets `--tone`); "მალე გამოცხადდება" placeholders are muted (`.is-tba`).
+- Product page buy panel (2026-11-09): stat tiles are colour-coded (`.ld-tone-*`, icon + value on
+  one line); price breakdown, Buy, the payment method (`.ld-paywith`: buyer balance + Bank of
+  Georgia top-up logo) and the escrow line (`.ld-secure`) sit in one `.ld-checkout` card.

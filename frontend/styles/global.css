@@ -23623,3 +23623,94 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 @media (min-width: 1001px) {
   .prejoin-details .prejoin-grid:has(.prejoin-facts) { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .85fr) !important; }
 }
+
+/* Product page buy panel, redesign (owner 2026-11-09): each stat tile has its own colour and a
+   solid icon badge; price, Buy and the payment method sit in one checkout card with the Bank of
+   Georgia logo in its own "top up" slot next to the buyer's balance. */
+.ld-stat.ld-tone-green { --ld: #34d399; --ld-rgb: 52, 211, 153; }
+.ld-stat.ld-tone-cyan { --ld: #38bdf8; --ld-rgb: 56, 189, 248; }
+.ld-stat.ld-tone-pink { --ld: #ff4fa3; --ld-rgb: 255, 79, 163; }
+.ld-stat.ld-tone-amber { --ld: #fbbf24; --ld-rgb: 251, 191, 36; }
+.ld-stats .ld-stat[class*='ld-tone-'] {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(var(--ld-rgb), .32);
+  background: radial-gradient(120% 90% at 0% 0%, rgba(var(--ld-rgb), .16), transparent 60%), linear-gradient(165deg, #141026, #0a0818);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .04);
+  transition: transform .18s ease, border-color .18s ease;
+}
+.ld-stats .ld-stat[class*='ld-tone-']::after { position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--ld), transparent); opacity: .7; content: ''; }
+.ld-stats .ld-stat[class*='ld-tone-']:hover { transform: translateY(-2px); border-color: rgba(var(--ld-rgb), .6); }
+.ld-stat[class*='ld-tone-'] .ld-stat-icon {
+  border: 0;
+  background: linear-gradient(145deg, rgba(var(--ld-rgb), .32), rgba(var(--ld-rgb), .1));
+  box-shadow: 0 0 0 1px rgba(var(--ld-rgb), .4) inset, 0 6px 16px rgba(var(--ld-rgb), .22);
+}
+.ld-stat[class*='ld-tone-'] .ld-stat-icon svg { stroke: var(--ld); stroke-width: 2; }
+.ld-stat[class*='ld-tone-'] .ld-stat-icon.is-filled svg { fill: var(--ld); stroke: var(--ld); }
+.ld-stat[class*='ld-tone-'] strong { font-size: 24px; letter-spacing: -.01em; }
+.ld-stat[class*='ld-tone-'] span { color: #c9c3da; font-size: 12.5px; font-weight: 600; }
+.ld-stat[class*='ld-tone-'] small { justify-self: start; margin-top: 2px; border-radius: 999px; color: var(--ld); background: rgba(var(--ld-rgb), .12); padding: 2px 9px; font-size: 11.5px; font-weight: 700; }
+
+.ld-checkout {
+  display: grid;
+  gap: 12px;
+  margin: 4px 0 14px;
+  border: 1px solid rgba(255, 79, 163, .35);
+  border-radius: 18px;
+  background: radial-gradient(130% 80% at 100% 0%, rgba(214, 51, 167, .14), transparent 55%), linear-gradient(170deg, #160f27, #0b0919);
+  padding: 16px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .3), 0 0 0 4px rgba(255, 79, 163, .05);
+}
+.ld-checkout .fee-breakdown { margin: 0; border: 0; border-radius: 12px; background: rgba(255, 255, 255, .035); box-shadow: none; padding: 12px 14px; }
+.ld-checkout .fee-breakdown .fee-breakdown-total dd { font-size: 22px; font-weight: 900; }
+.ld-checkout .detail-buy-button { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border-radius: 14px; background: linear-gradient(90deg, #ff2f8f, #c636e8); box-shadow: 0 12px 30px rgba(255, 47, 143, .32); transition: transform .15s ease, box-shadow .15s ease; }
+.ld-checkout .detail-buy-button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 16px 34px rgba(255, 47, 143, .42); }
+.ld-checkout .detail-buy-button:disabled { opacity: .55; box-shadow: none; }
+.detail-buy-icon { width: 21px; height: 21px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ld-checkout .bog-topup { margin: 0; }
+
+.ld-paywith { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border: 1px solid rgba(255, 255, 255, .08); border-radius: 14px; background: rgba(255, 255, 255, .03); padding: 10px 12px; }
+.ld-paywith-balance { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ld-paywith-balance > span:last-child { display: grid; min-width: 0; }
+.ld-paywith-wallet { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(145deg, rgba(168, 85, 247, .35), rgba(255, 47, 143, .2)); }
+.ld-paywith-wallet svg { width: 19px; height: 19px; fill: none; stroke: #f3d9ff; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ld-paywith small { color: #a49eb6; font-size: 11px; font-weight: 600; }
+.ld-paywith strong { overflow: hidden; color: #fff; font-size: 15px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.ld-paywith-bog { display: grid; justify-items: end; gap: 3px; }
+.ld-paywith-bog img { display: block; height: 30px; width: auto; max-width: 150px; border-radius: 9px; background: #fff; padding: 6px 10px; object-fit: contain; box-shadow: 0 4px 14px rgba(255, 120, 40, .18); }
+
+.ld-secure { display: flex; align-items: flex-start; gap: 8px; margin: 0; color: #9f99b2; font-size: 12px; line-height: 1.45; }
+.ld-secure svg { flex: 0 0 auto; width: 17px; height: 17px; margin-top: 1px; fill: none; stroke: #34d399; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+@media (max-width: 620px) {
+  .ld-checkout { padding: 13px; border-radius: 16px; }
+  .ld-stat[class*='ld-tone-'] strong { font-size: 21px; }
+  .ld-paywith-bog img { height: 27px; max-width: 128px; padding: 5px 8px; }
+  .ld-paywith strong { font-size: 14px; }
+}
+@media (max-width: 360px) {
+  .ld-paywith { grid-template-columns: 1fr; }
+  .ld-paywith-bog { grid-template-columns: auto auto; align-items: center; justify-content: space-between; justify-items: start; }
+}
+/* Tile layout: icon + number on one line, the label and chip get the full tile width below. */
+.ld-stats .ld-stat[class*='ld-tone-'] { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'icon value' 'label label' 'chip chip'; align-items: center; row-gap: 8px; }
+.ld-stat[class*='ld-tone-'] > div { display: contents; }
+.ld-stat[class*='ld-tone-'] .ld-stat-icon { grid-area: icon; }
+.ld-stat[class*='ld-tone-'] strong { grid-area: value; }
+.ld-stat[class*='ld-tone-'] span { grid-area: label; overflow-wrap: normal; word-break: normal; }
+.ld-stat[class*='ld-tone-'] small { grid-area: chip; overflow-wrap: normal; word-break: normal; }
+@media (max-width: 620px) {
+  .ld-stats .ld-stat[class*='ld-tone-'] { padding: 12px; row-gap: 7px; }
+  .ld-paywith { gap: 8px; padding: 9px 10px; }
+  .ld-paywith-bog img { height: 25px; max-width: 112px; padding: 4px 7px; }
+}
+/* The buy panel is ~300px wide on desktop too: keep values on one line and stack the payment row
+   (balance on top, the Bank of Georgia top-up line under it). */
+.ld-stat[class*='ld-tone-'] strong { font-size: 21px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ld-checkout .ld-paywith { grid-template-columns: 1fr; gap: 9px; }
+.ld-checkout .ld-paywith-bog { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px dashed rgba(255, 255, 255, .1); padding-top: 9px; }
+.ld-checkout .ld-paywith-bog small { color: #c9c3da; font-size: 12px; }
+.ld-checkout .ld-paywith-bog img { height: 28px; max-width: 150px; padding: 5px 10px; }
+.ld-checkout .fee-breakdown dt { min-width: 0; }
+.ld-checkout .ld-paywith-bog small { white-space: nowrap; }
