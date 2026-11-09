@@ -465,7 +465,7 @@ Migration `1784390000000-ListingBadges`.
   (`assertInScope`); audited `listing.set_cover` / `listing.remove_cover`. Not on Steam keys; only
   Active/Paused (a paused one goes back to Active). While set, `GET order-quote` and `POST orders`
   answer 409 "This listing is not for sale right now". Frontend: `components/SoldOverlay.tsx`
-  draws it (`/assets/gift-overlay.png` is the owner's Tournament Gift badge with a transparent background, centred over the dimmed photo like SOLD; a custom image fills the photo), `purchaseBlocked()`
+  draws it (`/assets/gift-overlay.png` is the owner's Tournament Gift badge with a transparent background, centred over the dimmed photo like SOLD; a custom image renders the same way — the frontend trims its transparent border and keeps alpha before upload, see `frontend/CLAUDE.md`), `purchaseBlocked()`
   hides the cart button and disables Buy.
 - **Pin**: `listings.pinnedAt`. `POST admin/listings/:id/pin { pinned }` (Marketplace Ops + Super
   Admin, like Featured; audited `listing.pin|unpin`; only Active listings). Public browse orders

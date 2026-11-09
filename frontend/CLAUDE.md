@@ -1466,3 +1466,10 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - Product page buy panel (2026-11-09): stat tiles are colour-coded (`.ld-tone-*`, icon + value on
   one line); price breakdown, Buy, the payment method (`.ld-paywith`: buyer balance + Bank of
   Georgia top-up logo) and the escrow line (`.ld-secure`) sit in one `.ld-checkout` card.
+- **Cover overlay rules (owner 2026-11-09, regression-prone):** SOLD, the Tournament Gift badge
+  (`/assets/gift-overlay.png`, transparent) and staff custom covers all render the same way —
+  centred over the dimmed photo (`.sold-overlay.gift-overlay`), never a dark box or `object-fit:
+  cover`. Custom cover uploads go through `prepareCoverImage()` (`lib/image-resize.ts`): keeps
+  transparency (never the JPEG-flattening `shrinkPhoto`) and trims empty transparent borders so the
+  badge isn't tiny. Phones (≤620px) cap the size. Check a 375px card and the product page after any
+  change here.

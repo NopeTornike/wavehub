@@ -23717,3 +23717,8 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 /* Tournament Gift badge (transparent PNG) sits over the dimmed photo like the SOLD banner. */
 .sold-overlay.gift-overlay img { width: auto; height: 86%; max-width: 86%; max-height: 260px; object-fit: contain; filter: drop-shadow(0 8px 22px rgba(0, 0, 0, .6)) drop-shadow(0 0 18px rgba(192, 59, 255, .35)); }
 .sold-overlay.gift-overlay.sold-hero img { height: 78%; max-height: 420px; }
+/* Phones: the gift / custom cover was too big on the small cards and the product photo. */
+@media (max-width: 620px) {
+  .sold-overlay.gift-overlay img { height: 62%; max-width: 64%; max-height: 170px; }
+  .sold-overlay.gift-overlay.sold-hero img { height: 60%; max-width: 62%; max-height: 240px; }
+}

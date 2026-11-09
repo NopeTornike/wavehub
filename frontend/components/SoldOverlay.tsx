@@ -19,20 +19,14 @@ export default function SoldOverlay({ soldAt, coverOverlay, coverOverlayUrl, siz
         <span className="sr-only">გაყიდულია</span>
       </div>
     )
-  // The gift badge is a transparent PNG laid over the dimmed photo, exactly like SOLD.
-  if (coverOverlay === 'gift')
-    return (
-      <div className={`sold-overlay sold-${size} gift-overlay`}>
-        <img src="/assets/gift-overlay.png" alt="" aria-hidden="true" />
-        <span className="sr-only">ტურნირის საჩუქარი — ყიდვა შეჩერებულია</span>
-      </div>
-    )
-  const src = coverOverlay === 'custom' ? coverOverlayUrl : null
+  // Gift badge and custom covers sit centred over the dimmed photo exactly like SOLD (owner
+  // 2026-11-09): transparent images keep their transparency, never a black box behind them.
+  const src = coverOverlay === 'gift' ? '/assets/gift-overlay.png' : coverOverlay === 'custom' ? coverOverlayUrl : null
   if (!src) return null
   return (
-    <div className={`cover-overlay cover-${size}`}>
+    <div className={`sold-overlay sold-${size} gift-overlay`}>
       <img src={src} alt="" aria-hidden="true" />
-      <span className="sr-only">ყიდვა შეჩერებულია</span>
+      <span className="sr-only">{coverOverlay === 'gift' ? 'ტურნირის საჩუქარი — ყიდვა შეჩერებულია' : 'ყიდვა შეჩერებულია'}</span>
     </div>
   )
 }

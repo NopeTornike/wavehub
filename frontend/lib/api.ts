@@ -1,4 +1,4 @@
-import { shrinkPhoto } from './image-resize'
+import { prepareCoverImage, shrinkPhoto } from './image-resize'
 import type {
   ListingBadge,
   StaffGameScopes,
@@ -567,7 +567,7 @@ export const api = {
   adminSetListingCover: (id: string, overlay: 'gift' | 'none') =>
     request<{ id: string; coverOverlay: 'gift' | 'custom' | null; coverOverlayUrl: string | null }>(`/admin/listings/${id}/cover-overlay`, { method: 'POST', body: JSON.stringify({ overlay }) }),
   adminUploadListingCover: async (id: string, file: File) =>
-    upload<{ id: string; coverOverlay: 'custom'; coverOverlayUrl: string }>(`/admin/listings/${id}/cover-overlay/image`, await shrinkPhoto(file)),
+    upload<{ id: string; coverOverlay: 'custom'; coverOverlayUrl: string }>(`/admin/listings/${id}/cover-overlay/image`, await prepareCoverImage(file)),
   adminSetListingPinned: (id: string, pinned: boolean) =>
     request<{ id: string; pinnedAt: string | null }>(`/admin/listings/${id}/pin`, { method: 'POST', body: JSON.stringify({ pinned }) }),
   adminSetListingFeatured: (id: string, isFeatured: boolean) =>
