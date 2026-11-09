@@ -23750,3 +23750,8 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .prejoin-details nav button { padding-inline: 4px; min-width: 0; }
   .prejoin-details nav button span { font-size: 10px; letter-spacing: 0; overflow-wrap: normal; hyphens: none; }
 }
+
+/* Notification sound switch on /notifications (2026-11-09). */
+.orders-page-head:has(.notif-sound-toggle) { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.notif-sound-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; border: 1px solid rgba(139, 155, 190, .35); border-radius: 999px; color: #c9cfdb; background: rgba(12, 10, 22, .7); padding: 8px 16px; font-weight: 700; cursor: pointer; }
+.notif-sound-toggle.is-on { border-color: rgba(255, 79, 171, .6); color: #fff; background: rgba(229, 21, 127, .16); }

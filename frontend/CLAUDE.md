@@ -1480,3 +1480,10 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   the "0 / 8" registered count stays on one line, and the section tab labels fit their buttons.
   Audit method that found these: load each page in a 375px iframe and flag any element whose right
   edge passes its parent's (ignoring scroll/clip containers and absolute/fixed elements).
+- **Notification sound (2026-11-09):** `lib/alert.ts` plays `/assets/sounds/notify.mp3` through an
+  `<audio>` element (the first version's Web Audio tone was silent on phones: iOS mutes Web Audio on
+  the silent switch, only counts touchend/click as an unlock gesture, and the unlock ran once only).
+  Every tap/click/key re-unlocks; Android also gets a short vibration. Per-browser on/off switch on
+  `/notifications` (`localStorage wavehub.notifications.soundOff`). Limit: a phone with the site in
+  the background or the screen locked can't play anything — that needs Web Push (service worker), not
+  built.

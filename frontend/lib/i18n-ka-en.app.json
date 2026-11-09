@@ -2889,5 +2889,7 @@
   "ძველი ფასი უნდა იყოს მთელი რიცხვი და ახალ ფასზე მეტი.": "The old price must be a whole number above the new price.",
   "გადახდა ბალანსიდან": "Pay from balance",
   "შევსება ბარათით": "Top up by card",
-  "თანხა დაცულია და გამყიდველს მიწოდების დადასტურების შემდეგ ერიცხება.": "Your money is protected and reaches the seller only after you confirm delivery."
+  "თანხა დაცულია და გამყიდველს მიწოდების დადასტურების შემდეგ ერიცხება.": "Your money is protected and reaches the seller only after you confirm delivery.",
+  "ხმა ჩართულია": "Sound on",
+  "ხმა გამორთულია": "Sound off"
 }

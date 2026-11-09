@@ -8,6 +8,7 @@ import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useShell } from '../lib/shell'
 import { formatNotificationTime, notificationKind, notificationTarget, notificationIcon } from '../lib/notifications'
+import { setSoundEnabled, soundEnabled } from '../lib/alert'
 
 // Every notification, newest first, 20 per page (the bell panel only shows the latest 12).
 const PAGE = 20
@@ -21,6 +22,10 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
+  // Notification sound on/off, per browser (lib/alert.ts). Read after mount — localStorage.
+  const [soundOn, setSoundOn] = useState(true)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setSoundOn(soundEnabled()), [])
   // The notification opened in full (client feedback #14) — from ?id= (the bell panel / toasts link
   // here) or by tapping one in the list. Its page, if any, is one button away.
   const router = useRouter()
@@ -94,6 +99,20 @@ export default function NotificationsPage() {
           <h1>შეტყობინებები</h1>
           <p>შეკვეთები, ქოუჩინგი, ბალანსი, განცხადებები და შეტყობინებები — ყველაფერი ერთ ადგილას.</p>
         </div>
+        {user && (
+          <button
+            type="button"
+            className={`notif-sound-toggle${soundOn ? ' is-on' : ''}`}
+            aria-pressed={soundOn}
+            onClick={() => {
+              setSoundEnabled(!soundOn)
+              setSoundOn(!soundOn)
+            }}
+          >
+            <span aria-hidden="true">{soundOn ? '🔔' : '🔕'}</span>
+            {soundOn ? 'ხმა ჩართულია' : 'ხმა გამორთულია'}
+          </button>
+        )}
       </section>
 
       {checked && !user && (
