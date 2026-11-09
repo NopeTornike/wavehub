@@ -147,7 +147,8 @@ export class ProfilesService {
        ORDER BY r."createdAt" DESC`,
       [userId],
     );
-    // The latest three as full review cards (same look as the listing page's reviews).
+    // The latest 50 as full review cards (same look as the listing page's reviews); the profile and
+    // the seller preview show them in a scrollable list (owner 2026-11-09 — was the latest three).
     const cardRows: Array<Record<string, unknown>> = await this.db.query(
       `SELECT r.*, u."username", u."firstName", u."lastName", u."avatarUrl", u."lastSeenAt" FROM (
          SELECT 'product' AS kind, rv."id", rv."rating", rv."body", rv."buyerId", rv."createdAt", rv."sellerReply", rv."sellerRepliedAt", (rv."orderId" IS NOT NULL) AS "verifiedPurchase",
@@ -158,7 +159,7 @@ export class ProfilesService {
          SELECT 'coach', cr."id", cr."rating", cr."body", cr."buyerId", cr."createdAt", NULL, NULL, true, 0, 0
            FROM "coaching_session_reviews" cr WHERE cr."coachId" IN (SELECT "id" FROM "coaches" WHERE "userId" = $1)
        ) r JOIN "users" u ON u."id" = r."buyerId"
-       ORDER BY r."createdAt" DESC LIMIT 3`,
+       ORDER BY r."createdAt" DESC LIMIT 50`,
       [userId],
     );
     const owner: Array<{ username: string; firstName: string; lastName: string; avatarUrl: string | null }> = await this.db.query(
@@ -227,7 +228,7 @@ export class ProfilesService {
         average,
         distribution,
         cards,
-        latest: reviewRows.slice(0, 3).map((r) => ({
+        latest: reviewRows.slice(0, 50).map((r) => ({
           rating: Number(r.rating),
           body: r.body,
           buyerUsername: r.buyerUsername,

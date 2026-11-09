@@ -150,6 +150,7 @@ export interface MyListing {
   itemAttributes?: ItemAttributes | null
   // Staff marked it SOLD (owner 2026-11-06); it leaves the site 24h later.
   soldAt?: string | null
+  coverOverlay?: 'gift' | 'custom' | null
   // Seller panel stats (views / likes / completed orders).
   viewsCount?: number
   favoriteCount?: number
@@ -207,6 +208,10 @@ export function isEmailNotVerifiedError(err: unknown): boolean {
 const KNOWN_MESSAGES: Record<string, string> = {
   'Invalid username or password': 'არასწორი username ან პაროლი.',
   'This listing has been sold': 'ეს განცხადება გაიყიდა.',
+  'This listing is not for sale right now': 'ამ პროდუქტის ყიდვა ახლა შეჩერებულია.',
+  'Only a live or paused listing can get a cover': 'ქავერის დადება მხოლოდ აქტიურ ან შეჩერებულ განცხადებაზე შეიძლება.',
+  'Steam games have no cover overlay': 'Steam თამაშებზე ქავერი არ იდება.',
+  'Only a live listing can be pinned': 'მიმაგრება მხოლოდ აქტიურ განცხადებაზე შეიძლება.',
   'This game is outside your staff access': 'ეს თამაში შენი წვდომის მიღმაა.',
   'This listing is marked sold — contact support to change it': 'განცხადება მონიშნულია როგორც გაყიდული — შესაცვლელად მიმართე მხარდაჭერას.',
   'Only marketplace products can be marked sold': 'SOLD-ად მხოლოდ მარკეტის პროდუქტი შეიძლება მოინიშნოს.',
@@ -558,6 +563,13 @@ export const api = {
   // SOLD overlay (owner 2026-11-06): the listing can't be bought and leaves the site 24h later.
   adminSetListingSold: (id: string, sold: boolean) =>
     request<{ id: string; soldAt: string | null }>(`/admin/listings/${id}/sold`, { method: 'POST', body: JSON.stringify({ sold }) }),
+  // Cover over the product photo (owner 2026-11-09): Tournament Gift, a custom image, or none.
+  adminSetListingCover: (id: string, overlay: 'gift' | 'none') =>
+    request<{ id: string; coverOverlay: 'gift' | 'custom' | null; coverOverlayUrl: string | null }>(`/admin/listings/${id}/cover-overlay`, { method: 'POST', body: JSON.stringify({ overlay }) }),
+  adminUploadListingCover: async (id: string, file: File) =>
+    upload<{ id: string; coverOverlay: 'custom'; coverOverlayUrl: string }>(`/admin/listings/${id}/cover-overlay/image`, await shrinkPhoto(file)),
+  adminSetListingPinned: (id: string, pinned: boolean) =>
+    request<{ id: string; pinnedAt: string | null }>(`/admin/listings/${id}/pin`, { method: 'POST', body: JSON.stringify({ pinned }) }),
   adminSetListingFeatured: (id: string, isFeatured: boolean) =>
     request<{ id: string; isFeatured: boolean }>(`/admin/listings/${id}/featured`, { method: 'POST', body: JSON.stringify({ isFeatured }) }),
   addListingPackage: (id: string, payload: PackageInput) => request<PublicPackage>(`/listings/${id}/packages`, { method: 'POST', body: JSON.stringify(payload) }),

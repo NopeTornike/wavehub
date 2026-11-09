@@ -1453,3 +1453,13 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - The escrow guide on phones is the desktop row of tiles, swipeable.
 - Notifications: live via `EventSource` + chime + desktop alerts (`lib/alert.ts`).
 - Admin → Listings → all: "ბეიჯები" picker for manual badges; `ListingEditor` has "ფასი ფასდაკლებამდე".
+
+## Owner round 2026-11-09
+- Staff covers: `components/SoldOverlay.tsx` draws SOLD, the Tournament Gift cover or a custom
+  cover image; `purchaseBlocked(listing)` is the one check for "can't buy" (cart button, Buy,
+  BOG top-up card). Admin → Listings: 🎁 GIFT cover / custom cover / remove, 📌 pin, inline
+  price + old price (`PriceEditor`). Pinned cards show a pin badge (`.pc-pin`).
+- Reviews scroll in place (`.seller-profile-reviews-scroll`, `.up-review-list`,
+  `.detail-review-list.rv-list`, `.sd-reviews`).
+- Tournament page info cards: each fact / summary cell / info row has its own accent colour
+  (`.wt-tone-*` sets `--tone`); "მალე გამოცხადდება" placeholders are muted (`.is-tba`).

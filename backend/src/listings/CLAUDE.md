@@ -455,3 +455,22 @@ Migration `1784390000000-ListingBadges`.
   seller and by staff.
 - Listing detail adds `sellerResponseMinutes` (median from `chat/response-time.ts`, null below
   `MIN_RESPONSE_SAMPLES`) for the "response time" tile.
+
+## Owner round 2026-11-09
+- **Cover over the photo** (like SOLD, but the listing stays on the site): `listings.coverOverlay`
+  (`'gift' | 'custom' | null`) + `coverOverlayUrl` (migration `1784394000000-CoverOverlayAndPin`).
+  `POST admin/listings/:id/cover-overlay { overlay: 'gift' | 'none' }` and multipart
+  `POST admin/listings/:id/cover-overlay/image` (custom image, 2MB, content-sniffed by
+  `StorageService`; the replaced file is removed). MODERATORS + Game Manager for its games
+  (`assertInScope`); audited `listing.set_cover` / `listing.remove_cover`. Not on Steam keys; only
+  Active/Paused (a paused one goes back to Active). While set, `GET order-quote` and `POST orders`
+  answer 409 "This listing is not for sale right now". Frontend: `components/SoldOverlay.tsx`
+  draws it (`/assets/gift-overlay.jpg` is the owner's Tournament Gift artwork), `purchaseBlocked()`
+  hides the cart button and disables Buy.
+- **Pin**: `listings.pinnedAt`. `POST admin/listings/:id/pin { pinned }` (Marketplace Ops + Super
+  Admin, like Featured; audited `listing.pin|unpin`; only Active listings). Public browse orders
+  `pinnedAt ASC NULLS LAST` first under **every** sort (the owner wants pins to stay put), then the
+  chosen sort; Admin → Listings lists pinned rows first too.
+- Admin → Listings row also has "ფასი · ფასდაკლება": price + sale ("old") price for item listings,
+  via `PATCH admin/listings/:id` (Super Admin, Game Manager for its games). e2e:
+  `test/owner-2026-11-09.e2e-spec.ts`.

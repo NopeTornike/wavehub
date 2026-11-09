@@ -104,6 +104,19 @@ export class Listing {
   @Column({ type: 'timestamptz', nullable: true })
   soldRemovedAt: Date | null;
 
+  // Staff-set cover over the product photo (owner 2026-11-09), like SOLD but it stays on the site:
+  // 'gift' = the Tournament Gift artwork, 'custom' = an image staff uploaded (coverOverlayUrl).
+  // While it's set nobody can buy the listing.
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  coverOverlay: 'gift' | 'custom' | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  coverOverlayUrl: string | null;
+
+  // Pinned by staff to the first places of the marketplace (owner 2026-11-09), earliest pin first.
+  @Column({ type: 'timestamptz', nullable: true })
+  pinnedAt: Date | null;
+
   @Column({ type: 'integer', nullable: true })
   stockQuantity: number | null;
 

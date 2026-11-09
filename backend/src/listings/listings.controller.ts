@@ -36,7 +36,7 @@ import { AdminGuard } from '../admin/admin-role.guard';
 import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
-import { AdminListingSearchDto, SetFeaturedDto, SetSoldDto, SetVerifiedDto, SetManualBadgesDto } from './dto/admin-listings.dto';
+import { AdminListingSearchDto, SetFeaturedDto, SetSoldDto, SetVerifiedDto, SetManualBadgesDto, SetCoverOverlayDto, SetPinnedDto } from './dto/admin-listings.dto';
 import { CurrentStaffScope, scopeGameIds, type StaffScope } from '../admin/staff-scope';
 
 // Listing moderation roles. A Game Manager (owner 2026-11-06) gets the same moderation and edit
@@ -99,6 +99,50 @@ export class ListingsController {
     await this.listings.assertInScope(id, scope);
     const result = await this.listings.setSold(id, dto.sold);
     await this.audit.log({ adminId, adminRole, action: dto.sold ? 'listing.mark_sold' : 'listing.unmark_sold', entityType: 'listing', entityId: id });
+    return result;
+  }
+
+  // Cover over the product photo (owner 2026-11-09): the Tournament Gift artwork or none. While a
+  // cover is on, nobody can buy the listing. Same staff as SOLD; audited.
+  @Post('admin/listings/:id/cover-overlay')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...MODERATORS)
+  async setCoverOverlay(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SetCoverOverlayDto) {
+    await this.listings.assertInScope(id, scope);
+    const result = await this.listings.setCoverOverlay(id, dto.overlay);
+    await this.audit.log({ adminId, adminRole, action: dto.overlay === 'none' ? 'listing.remove_cover' : 'listing.set_cover', entityType: 'listing', entityId: id, metadata: { overlay: dto.overlay } });
+    return result;
+  }
+
+  // A custom cover image staff upload (JPG/PNG/WEBP, 2MB, content-sniffed by StorageService).
+  @Post('admin/listings/:id/cover-overlay/image')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(UPLOAD_THROTTLE)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...MODERATORS)
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_IMAGE_BYTES } }))
+  async setCustomCoverOverlay(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    await this.listings.assertInScope(id, scope);
+    const result = await this.listings.setCustomCoverOverlay(id, file);
+    await this.audit.log({ adminId, adminRole, action: 'listing.set_cover', entityType: 'listing', entityId: id, metadata: { overlay: 'custom' } });
+    return result;
+  }
+
+  // Pin to the first places of the marketplace (owner 2026-11-09) — same staff as Featured.
+  @Post('admin/listings/:id/pin')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(AdminRole.MarketplaceCoachingOpsManager)
+  async setPinned(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SetPinnedDto) {
+    const result = await this.listings.setPinned(id, dto.pinned);
+    await this.audit.log({ adminId, adminRole, action: dto.pinned ? 'listing.pin' : 'listing.unpin', entityType: 'listing', entityId: id });
     return result;
   }
 

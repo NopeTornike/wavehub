@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { useState, type MouseEvent } from 'react'
 import { ListingType, type PublicListingSummary } from '@wavehub/shared-types'
 import { useCart } from '../lib/cart'
-import SoldOverlay from './SoldOverlay'
+import SoldOverlay, { purchaseBlocked } from './SoldOverlay'
 import { useFavorites } from '../lib/favorites'
 import { gameCover } from '../lib/games'
 import { deliveryTimeLabel } from '../lib/labels'
@@ -139,7 +139,7 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
   // delivery, price with views / likes, and the cart + "View details" buttons.
   const [preview, setPreview] = useState(false)
   return (
-    <article className={`marketplace-card pc-card${listing.soldAt ? ' is-sold' : ''} pc-${kind}${kind === 'account' ? ` pc-rarity-${status}` : ''}`} data-listing-id={listing.id}>
+    <article className={`marketplace-card pc-card${listing.soldAt ? ' is-sold' : ''}${listing.coverOverlay ? ' is-covered' : ''}${listing.pinnedAt ? ' is-pinned' : ''} pc-${kind}${kind === 'account' ? ` pc-rarity-${status}` : ''}`} data-listing-id={listing.id}>
       <div className={`pc-cover${image ? '' : ' is-empty'}`} style={image ? { backgroundImage: `url("${image}")` } : undefined} onClick={openDetail} data-game={initials(gameName)}>
         <div className="pc-badges">
           <span className="pc-badge pc-game">{gameName}</span>
@@ -151,7 +151,13 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
         <SaveButton listing={listing} className="pc-heart" onCount={setFavoriteCount} />
         {/* Up to two earned badges on the cover (owner 2026-10-28). */}
         <ListingBadges badges={listing.badges} max={2} className="pc-lb" />
-        <SoldOverlay soldAt={listing.soldAt} />
+        <SoldOverlay soldAt={listing.soldAt} coverOverlay={listing.coverOverlay} coverOverlayUrl={listing.coverOverlayUrl} />
+        {listing.pinnedAt && (
+          <span className="pc-pin" title="მიმაგრებული">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4 1-3Z" /></svg>
+            <span className="sr-only">მიმაგრებული</span>
+          </span>
+        )}
       </div>
 
       <div className="pc-body">
@@ -212,7 +218,7 @@ export default function ProductCard({ listing, sellerRank, sellerTier }: { listi
         </div>
 
         <div className="pc-actions">
-          {!listing.soldAt && (
+          {!purchaseBlocked(listing) && (
           <button
             className={`pc-cart${inCart ? ' in-cart' : ''}`}
             type="button"

@@ -23506,3 +23506,120 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .how-steps .how-list li:not(:last-child)::after { top: 24px; bottom: auto; left: calc(50% + 30px); right: calc(-50% + 24px); width: auto; height: 2px; background: linear-gradient(90deg, rgba(255, 79, 171, .75), rgba(167, 123, 255, .45)); }
   .how-steps .how-text strong { font-size: 12.5px; }
 }
+
+/* Reviews scroll in place (owner 2026-11-09): the seller preview, the profile and the product page
+   show about three reviews and the rest scroll inside the box, no separate reviews page needed. */
+.seller-profile-reviews-scroll { max-height: 330px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(251, 43, 129, .45) transparent; }
+.up-review-list, .detail-review-list.rv-list, .sd-reviews { max-height: 720px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; scrollbar-width: thin; scrollbar-color: rgba(251, 43, 129, .45) transparent; }
+.seller-profile-reviews-scroll::-webkit-scrollbar, .up-review-list::-webkit-scrollbar, .detail-review-list.rv-list::-webkit-scrollbar { width: 6px; }
+.seller-profile-reviews-scroll::-webkit-scrollbar-thumb, .up-review-list::-webkit-scrollbar-thumb, .detail-review-list.rv-list::-webkit-scrollbar-thumb { border-radius: 6px; background: rgba(251, 43, 129, .45); }
+@media (max-width: 620px) {
+  .up-review-list, .detail-review-list.rv-list { max-height: 640px; }
+}
+
+/* Staff cover over a product photo (owner 2026-11-09): the Tournament Gift artwork or a custom
+   image fills the cover like the SOLD banner; the product stays listed but can't be bought. */
+.cover-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #05030a;
+  pointer-events: none;
+}
+.cover-overlay img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover-overlay.cover-hero img { object-fit: contain; }
+.marketplace-card.pc-card .pc-cover { position: relative; }
+.pc-pin {
+  position: absolute;
+  z-index: 4;
+  left: 10px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b14dff, #ff2e8a);
+  box-shadow: 0 4px 14px rgba(177, 77, 255, .5);
+}
+.pc-pin svg { width: 16px; height: 16px; fill: #fff; }
+.al-pinned, .al-covered {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.al-pinned { background: rgba(177, 77, 255, .2); color: #d9b3ff; }
+.al-covered { background: rgba(255, 46, 138, .18); color: #ff8fc0; }
+.al-cover { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.al-gift-btn { background: linear-gradient(135deg, #7b2bd6, #c03bff) !important; color: #fff !important; border-color: transparent !important; }
+.al-cover-on, .al-pin-on { border-color: #c03bff !important; box-shadow: 0 0 0 1px rgba(192, 59, 255, .35) inset; }
+.al-cover-upload { cursor: pointer; }
+.al-cover-upload.is-busy { opacity: .6; pointer-events: none; }
+.al-price label { display: grid; gap: 4px; font-size: 12px; }
+.al-price input { width: 120px; }
+
+/* Tournament info cards (owner 2026-11-09): every card had the same pink icon on the same dark
+   background, so they ran together. Each fact, summary cell and info row now has its own accent
+   colour (--tone), its own tinted tile and a coloured icon badge. "To be announced" is muted so the
+   real values stand out. */
+.wt-tone-violet { --tone: #a78bfa; --tone-rgb: 167, 139, 250; }
+.wt-tone-red { --tone: #f87171; --tone-rgb: 248, 113, 113; }
+.wt-tone-cyan { --tone: #22d3ee; --tone-rgb: 34, 211, 238; }
+.wt-tone-blue { --tone: #60a5fa; --tone-rgb: 96, 165, 250; }
+.wt-tone-amber { --tone: #fbbf24; --tone-rgb: 251, 191, 36; }
+.wt-tone-orange { --tone: #fb923c; --tone-rgb: 251, 146, 60; }
+.wt-tone-pink { --tone: #f472b6; --tone-rgb: 244, 114, 182; }
+.wt-tone-green { --tone: #34d399; --tone-rgb: 52, 211, 153; }
+
+.prejoin-grid .prejoin-facts { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px !important; }
+.prejoin-facts .prejoin-fact.wt-tone {
+  min-height: 64px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--tone-rgb), .28);
+  border-left: 3px solid var(--tone);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(var(--tone-rgb), .13), rgba(var(--tone-rgb), .03) 70%), #0a1120;
+}
+.prejoin-facts .prejoin-fact:first-child::before { display: none; }
+.prejoin-fact .wt-fact-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(var(--tone-rgb), .16);
+  box-shadow: 0 0 0 1px rgba(var(--tone-rgb), .3) inset;
+}
+.prejoin-facts .prejoin-fact .wt-fact-icon svg { display: block !important; width: 19px; height: 19px; color: var(--tone); stroke: var(--tone); }
+.prejoin-facts .prejoin-fact.wt-tone small { color: var(--tone) !important; opacity: .9; letter-spacing: .04em; }
+.prejoin-facts .prejoin-fact.wt-tone strong { color: #f4f6fb; font-size: 14px; line-height: 1.2; overflow-wrap: anywhere; }
+.prejoin-grid strong.is-tba { color: #7d8597 !important; font-weight: 600 !important; font-style: italic; font-size: 12px !important; }
+
+/* The info table on the right: a coloured bar and label per row, alternating shades. */
+.prejoin-info p.wt-tone { position: relative; padding-left: 22px !important; }
+.prejoin-info p.wt-tone::before { position: absolute; left: 10px; top: 50%; width: 4px; height: 18px; border-radius: 4px; background: var(--tone); transform: translateY(-50%); content: ''; }
+.prejoin-info p.wt-tone:nth-of-type(even) { background: rgba(255, 255, 255, .025); }
+.prejoin-info p.wt-tone small { color: var(--tone) !important; }
+.prejoin-info p.wt-tone strong { color: #f1f3f8; }
+
+/* The five summary cells under the banner: each its own tint and icon colour. */
+.prejoin-summary > div.wt-tone { position: relative; background: linear-gradient(160deg, rgba(var(--tone-rgb), .14), rgba(var(--tone-rgb), .02) 75%), #070e1a !important; }
+.prejoin-summary > div.wt-tone::after { position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--tone); opacity: .85; content: ''; }
+.prejoin-summary > div.wt-tone > svg { stroke: var(--tone) !important; filter: drop-shadow(0 0 6px rgba(var(--tone-rgb), .35)) !important; }
+.prejoin-summary > div.wt-tone small { color: var(--tone) !important; opacity: .85; }
+
+@media (max-width: 800px) {
+  .prejoin-grid .prejoin-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .prejoin-grid .prejoin-facts { grid-template-columns: 1fr; }
+}
+@media (min-width: 1001px) {
+  .prejoin-details .prejoin-grid:has(.prejoin-facts) { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .85fr) !important; }
+}

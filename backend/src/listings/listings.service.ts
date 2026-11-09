@@ -328,7 +328,7 @@ export class ListingsService {
       const pattern = `%${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
       qb.andWhere(new Brackets((w) => w.where('l.title ILIKE :p', { p: pattern }).orWhere('seller.username ILIKE :p', { p: pattern })));
     }
-    const rows = await qb.orderBy('l.isFeatured', 'DESC').addOrderBy('l.createdAt', 'DESC').take(Math.min(query.limit ?? 50, 100)).getMany();
+    const rows = await qb.orderBy('l.pinnedAt', 'ASC', 'NULLS LAST').addOrderBy('l.isFeatured', 'DESC').addOrderBy('l.createdAt', 'DESC').take(Math.min(query.limit ?? 50, 100)).getMany();
     return rows.map((row) => ({
       id: row.id,
       title: row.title,
@@ -345,6 +345,9 @@ export class ListingsService {
       manualBadges: (row.manualBadges ?? []) as ListingBadge[],
       soldAt: row.soldAt?.toISOString() ?? null,
       gameId: row.gameId ?? null,
+      coverOverlay: row.coverOverlay ?? null,
+      coverOverlayUrl: row.coverOverlayUrl ?? null,
+      pinnedAt: row.pinnedAt?.toISOString() ?? null,
     }));
   }
 
@@ -402,6 +405,58 @@ export class ListingsService {
   }
 
   // Staff-assigned badges (owner 2026-11-08), shown with the automatic ones. Replaces the whole list.
+  // Staff cover over the product photo (owner 2026-11-09): the Tournament Gift artwork ('gift'),
+  // an image staff uploaded ('custom', see setCustomCoverOverlay) or none. While a cover is on the
+  // listing can't be bought (orders quote/purchase answer 409). A paused listing goes back to Active
+  // so the cover is seen, as with SOLD.
+  async setCoverOverlay(listingId: string, overlay: 'gift' | 'none'): Promise<{ id: string; coverOverlay: 'gift' | 'custom' | null; coverOverlayUrl: string | null }> {
+    const listing = await this.getListingOrThrow(listingId);
+    if (overlay === 'none') {
+      const old = listing.coverOverlayUrl;
+      await this.listings.update(listing.id, { coverOverlay: null, coverOverlayUrl: null });
+      if (old) await this.storage.remove(old).catch(() => undefined);
+      return { id: listing.id, coverOverlay: null, coverOverlayUrl: null };
+    }
+    this.assertCoverable(listing);
+    const old = listing.coverOverlayUrl;
+    await this.listings.update(listing.id, { coverOverlay: 'gift', coverOverlayUrl: null, status: ListingStatus.Active });
+    if (old) await this.storage.remove(old).catch(() => undefined);
+    return { id: listing.id, coverOverlay: 'gift', coverOverlayUrl: null };
+  }
+
+  async setCustomCoverOverlay(listingId: string, file: { buffer: Buffer; originalname: string; mimetype: string; size: number }) {
+    const listing = await this.getListingOrThrow(listingId);
+    this.assertCoverable(listing);
+    if (!file) throw new BadRequestException('Choose an image');
+    if (file.size > MAX_IMAGE_BYTES) throw new ForbiddenException('Image exceeds the 2MB size limit');
+    const stored = await this.storage.save(file.buffer, file.originalname, 'image');
+    const old = listing.coverOverlayUrl;
+    await this.listings.update(listing.id, { coverOverlay: 'custom', coverOverlayUrl: stored.url, status: ListingStatus.Active });
+    if (old) await this.storage.remove(old).catch(() => undefined);
+    return { id: listing.id, coverOverlay: 'custom' as const, coverOverlayUrl: stored.url };
+  }
+
+  private assertCoverable(listing: Listing): void {
+    if (listing.type === ListingType.DigitalKey) throw new BadRequestException('Steam games have no cover overlay');
+    if (listing.status !== ListingStatus.Active && listing.status !== ListingStatus.Paused) {
+      throw new ConflictException('Only a live or paused listing can get a cover');
+    }
+  }
+
+  // Pin to the first places of the marketplace (owner 2026-11-09). Earliest pin comes first.
+  async setPinned(listingId: string, pinned: boolean): Promise<{ id: string; pinnedAt: string | null }> {
+    const listing = await this.getListingOrThrow(listingId);
+    if (!pinned) {
+      await this.listings.update(listing.id, { pinnedAt: null });
+      return { id: listing.id, pinnedAt: null };
+    }
+    if (listing.status !== ListingStatus.Active) throw new ConflictException('Only a live listing can be pinned');
+    if (listing.pinnedAt) return { id: listing.id, pinnedAt: listing.pinnedAt.toISOString() };
+    const pinnedAt = new Date();
+    await this.listings.update(listing.id, { pinnedAt });
+    return { id: listing.id, pinnedAt: pinnedAt.toISOString() };
+  }
+
   async setManualBadges(listingId: string, badges: string[]): Promise<{ id: string; manualBadges: string[] }> {
     const listing = await this.getListingOrThrow(listingId);
     const manualBadges = [...new Set(badges)];
@@ -529,16 +584,19 @@ export class ListingsService {
       `COALESCE("listing"."priceWaveCoin", (SELECT MIN(p."priceWaveCoin") FROM "packages" p WHERE p."listingId" = "listing"."id"))`,
       'sort_price',
     );
+    // Staff-pinned listings (owner 2026-11-09) always take the first places, earliest pin first,
+    // whatever the sort — the owner wants them to stay put. Unpinned ones follow in the chosen order.
+    qb.orderBy('listing.pinnedAt', 'ASC', 'NULLS LAST');
     if (filters.sort === 'oldest') {
-      qb.orderBy('listing.createdAt', 'ASC');
+      qb.addOrderBy('listing.createdAt', 'ASC');
     } else if (filters.sort === 'price_asc') {
-      qb.orderBy('sort_price', 'ASC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
+      qb.addOrderBy('sort_price', 'ASC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
     } else if (filters.sort === 'price_desc') {
-      qb.orderBy('sort_price', 'DESC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
+      qb.addOrderBy('sort_price', 'DESC', 'NULLS LAST').addOrderBy('listing.createdAt', 'DESC');
     } else if (filters.sort === 'popular') {
-      qb.orderBy('listing.ordersCount', 'DESC').addOrderBy('listing.createdAt', 'DESC');
+      qb.addOrderBy('listing.ordersCount', 'DESC').addOrderBy('listing.createdAt', 'DESC');
     } else {
-      qb.orderBy('listing.isFeatured', 'DESC').addOrderBy('featured_boost', 'DESC').addOrderBy('listing.createdAt', 'DESC');
+      qb.addOrderBy('listing.isFeatured', 'DESC').addOrderBy('featured_boost', 'DESC').addOrderBy('listing.createdAt', 'DESC');
     }
 
     const [items, total] = await qb

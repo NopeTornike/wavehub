@@ -103,6 +103,7 @@ export class OrdersService {
     const listing = await this.listings.findOne({ where: { id: listingId, status: ListingStatus.Active, seller: { status: UserStatus.Active } } });
     if (!listing) throw new NotFoundException('Listing not found');
     if (listing.soldAt) throw new ConflictException('This listing has been sold');
+    if (listing.coverOverlay) throw new ConflictException('This listing is not for sale right now');
     let price: number | null = listing.priceWaveCoin;
     if (listing.type === ListingType.Service) {
       const pkg = packageId ? await this.packages.findOne({ where: { id: packageId, listingId: listing.id } }) : null;
@@ -125,6 +126,8 @@ export class OrdersService {
     }
     // Staff marked it SOLD (owner 2026-11-06): shown with the overlay, never purchasable.
     if (listing.soldAt) throw new ConflictException('This listing has been sold');
+    // Staff put a cover over it (Tournament Gift or a custom image, owner 2026-11-09): not buyable.
+    if (listing.coverOverlay) throw new ConflictException('This listing is not for sale right now');
     if (listing.sellerId === buyerId) {
       throw new ForbiddenException("You can't buy your own listing");
     }

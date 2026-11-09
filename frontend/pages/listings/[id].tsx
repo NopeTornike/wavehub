@@ -16,7 +16,7 @@ import RankIcon from '../../components/RankIcon'
 import Avatar from '../../components/Avatar'
 import ReportButton from '../../components/ReportButton'
 import ImageLightbox from '../../components/ImageLightbox'
-import SoldOverlay from '../../components/SoldOverlay'
+import SoldOverlay, { purchaseBlocked } from '../../components/SoldOverlay'
 import EscrowExplainer from '../../components/EscrowExplainer'
 import ReviewCard from '../../components/ReviewCard'
 import FeeBreakdown from '../../components/FeeBreakdown'
@@ -250,6 +250,8 @@ export default function ListingDetail() {
     responseMinutes === null ? null : responseMinutes < 60 ? `~${responseMinutes} წთ` : responseMinutes < 1440 ? `~${Math.round(responseMinutes / 60)} სთ` : `~${Math.round(responseMinutes / 1440)} დღე`
   const sellerRating = listing.seller.sellerRatingAvg ? Number(listing.seller.sellerRatingAvg) : null
   const productRated = rating !== null && listing.ratingCount > 0
+  // Staff SOLD mark or cover (Tournament Gift / custom image): shown, never buyable.
+  const blocked = purchaseBlocked(listing)
 
   const completePurchase = async () => {
     setConfirmOpen(false)
@@ -503,7 +505,7 @@ export default function ListingDetail() {
                     data-label={listing.game?.name ?? ''}
                     style={hero ? { backgroundImage: `linear-gradient(rgba(5, 8, 19, 0.03), rgba(5, 8, 19, 0.22)), url("${hero.url}")` } : undefined}
                   >
-                    <SoldOverlay soldAt={listing.soldAt} size="hero" />
+                    <SoldOverlay soldAt={listing.soldAt} coverOverlay={listing.coverOverlay} coverOverlayUrl={listing.coverOverlayUrl} size="hero" />
                     <div className="detail-hero-badges">
                       <span className={`service-tag ${kind === 'account' ? 'account' : kind === 'skin' || kind === 'item' ? 'skin' : 'hot'}`} id="detailHeroTag">
                         {kind === 'account' && (
@@ -763,20 +765,20 @@ export default function ListingDetail() {
               </>
             ) : (
               <>
-                {notEnoughBalance && !listing.soldAt && inStock && (
+                {notEnoughBalance && !blocked && inStock && (
                   <BogTopUpButton amount={missingTopUp(payTotal ?? 0, me!.wavecoinBalance)} balance={me!.wavecoinBalance} total={payTotal ?? 0} />
                 )}
                 <button
-                  hidden={notEnoughBalance && !listing.soldAt && inStock}
+                  hidden={notEnoughBalance && !blocked && inStock}
                   className="detail-buy-button"
                   id="buyButton"
                   type="button"
-                  disabled={purchasing || !inStock || !!listing.soldAt || (kind === 'service' && !selectedPackageId)}
+                  disabled={purchasing || !inStock || blocked || (kind === 'service' && !selectedPackageId)}
                   onClick={requestPurchase}
                 >
-                  {listing.soldAt ? 'გაყიდულია' : purchasing ? 'მიმდინარეობს…' : 'ახლავე ყიდვა'}
+                  {listing.soldAt ? 'გაყიდულია' : listing.coverOverlay ? 'ყიდვა შეჩერებულია' : purchasing ? 'მიმდინარეობს…' : 'ახლავე ყიდვა'}
                 </button>
-                {!notEnoughBalance && !listing.soldAt && inStock && (
+                {!notEnoughBalance && !blocked && inStock && (
                   <p className="bog-paystrip">
                     <span>გადახდა ბალანსიდან · შევსება</span>
                     <img src="/assets/bog-logo.png" alt="Bank of Georgia" />

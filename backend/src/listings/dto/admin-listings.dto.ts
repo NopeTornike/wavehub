@@ -56,3 +56,16 @@ export class SetManualBadgesDto {
   @IsIn(MANUAL_LISTING_BADGES, { each: true })
   badges: string[];
 }
+
+// POST admin/listings/:id/cover-overlay — the Tournament Gift cover or none (owner 2026-11-09). A
+// custom image goes through POST admin/listings/:id/cover-overlay/image (multipart).
+export class SetCoverOverlayDto {
+  @IsIn(['gift', 'none'])
+  overlay: 'gift' | 'none';
+}
+
+// POST admin/listings/:id/pin — pin to the first places of the marketplace (owner 2026-11-09).
+export class SetPinnedDto {
+  @IsBoolean()
+  pinned: boolean;
+}

@@ -138,7 +138,8 @@ export default function SellerPreview({ username, onClose }: { username: string;
               {profile.reviews.latest.length === 0 ? (
                 <p className="seller-profile-reviews-empty">შეფასებები ჯერ არ არის.</p>
               ) : (
-                profile.reviews.latest.map((r) => {
+                <div className="seller-profile-reviews-scroll" tabIndex={0} aria-label="შეფასებები">
+                {profile.reviews.latest.map((r) => {
                   const who = displayName({ firstName: r.buyerFirstName, lastName: r.buyerLastName, username: r.buyerUsername })
                   return (
                     <article key={`${r.buyerUsername}-${r.createdAt}`}>
@@ -153,7 +154,8 @@ export default function SellerPreview({ username, onClose }: { username: string;
                       <time dateTime={r.createdAt}>{kaDate(r.createdAt)}</time>
                     </article>
                   )
-                })
+                })}
+                </div>
               )}
             </section>
             <footer className="seller-profile-actions">

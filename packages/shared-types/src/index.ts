@@ -383,6 +383,11 @@ export interface PublicListingSummary {
   // Staff marked it SOLD (ISO time, owner 2026-11-06): the cover shows the SOLD overlay, it can't
   // be bought, and it leaves the site 24h later. Null otherwise.
   soldAt?: string | null;
+  // Staff cover over the photo (owner 2026-11-09): 'gift' = Tournament Gift artwork, 'custom' =
+  // coverOverlayUrl. Not buyable while set. pinnedAt: pinned to the first places of the marketplace.
+  coverOverlay?: 'gift' | 'custom' | null;
+  coverOverlayUrl?: string | null;
+  pinnedAt?: string | null;
 }
 
 // Seller-entered details on an item listing (backend/src/listings — `item_details.attributes`).
@@ -442,6 +447,11 @@ export interface ListingForEdit {
   itemAttributes: Record<string, unknown> | null;
   createdAt: string;
   soldAt?: string | null;
+  // Staff cover over the photo (owner 2026-11-09): 'gift' = Tournament Gift artwork, 'custom' =
+  // coverOverlayUrl. Not buyable while set. pinnedAt: pinned to the first places of the marketplace.
+  coverOverlay?: 'gift' | 'custom' | null;
+  coverOverlayUrl?: string | null;
+  pinnedAt?: string | null;
 }
 
 // What ListingsService#findPublicById returns — a PublicListingSummary plus the fuller detail-page
@@ -1038,6 +1048,11 @@ export interface AdminListingSummary {
   // Staff marked it SOLD (ISO time); it leaves the site 24h later.
   soldAt?: string | null;
   gameId?: string | null;
+  // Staff cover over the photo (owner 2026-11-09): 'gift' = Tournament Gift artwork, 'custom' =
+  // coverOverlayUrl. Not buyable while set. pinnedAt: pinned to the first places of the marketplace.
+  coverOverlay?: 'gift' | 'custom' | null;
+  coverOverlayUrl?: string | null;
+  pinnedAt?: string | null;
 }
 
 // Admin → Steam (GET admin/steam-games): every Steam game whoever created it, with live key stock.
@@ -1266,7 +1281,7 @@ export interface PublicUserProfile {
     // Index 0 = 5 stars … index 4 = 1 star.
     distribution: [number, number, number, number, number];
     latest: Array<{ rating: number; body: string | null; buyerUsername: string; buyerFirstName: string; buyerLastName: string; buyerAvatarUrl: string | null; createdAt: string }>;
-    // The latest 3 as full review cards (design 2026-10-07: the profile shows reviews exactly like the
+    // The latest 50 (scrollable, owner 2026-11-09) as full review cards (design 2026-10-07: the profile shows reviews exactly like the
     // listing page). `kind: 'coach'` = a coaching-session review (no likes / reply).
     cards: Array<PublicReview & { kind: 'product' | 'coach' }>;
   };

@@ -19,16 +19,19 @@ import { PHOTO_SOURCE_MAX_BYTES } from '../../lib/image-resize'
 
 type Tab = 'general' | 'prize' | 'rules' | 'teams'
 
-const FACTS: Array<[key: string, icon: string]> = [
-  ['format', 'users'],
-  ['mode', 'crosshair'],
-  ['region', 'globe'],
-  ['platform', 'gamepad'],
-  ['checkInTime', 'clock'],
-  ['startTime', 'clock'],
-  ['registrationDeadline', 'calendar'],
-  ['entryFee', 'shield'],
+// Each fact has its own colour (owner 2026-11-09: one colour for every card made them hard to tell
+// apart) — the tone names map to CSS accents in global.css (.wt-tone-*).
+const FACTS: Array<[key: string, icon: string, tone: string]> = [
+  ['format', 'users', 'violet'],
+  ['mode', 'crosshair', 'red'],
+  ['region', 'globe', 'cyan'],
+  ['platform', 'gamepad', 'blue'],
+  ['checkInTime', 'clock', 'amber'],
+  ['startTime', 'clock', 'orange'],
+  ['registrationDeadline', 'calendar', 'pink'],
+  ['entryFee', 'shield', 'green'],
 ]
+const INFO_TONES = ['violet', 'amber', 'cyan', 'blue', 'green', 'pink']
 const INFO_KEYS = ['teamSize', 'minimumRank', 'bracketType', 'matches', 'whoCanJoin', 'communication']
 const LABEL = Object.fromEntries(TOURNAMENT_DETAIL_KEYS.map(([k, l]) => [k, l]))
 const TBA = 'მალე გამოცხადდება'
@@ -45,21 +48,26 @@ function parseRules(text: string | null): Array<{ title: string; description: st
     })
 }
 
-function Fact({ label, value, icon }: { label: string; value?: string; icon?: string }) {
+function Fact({ label, value, icon, tone }: { label: string; value?: string; icon?: string; tone?: string }) {
+  const classes = [icon ? 'prejoin-fact' : '', tone ? `wt-tone wt-tone-${tone}` : ''].filter(Boolean).join(' ')
   return (
-    <p className={icon ? 'prejoin-fact' : undefined}>
-      {icon && <TIcon name={icon} />}
+    <p className={classes || undefined}>
+      {icon && (
+        <i className="wt-fact-icon" aria-hidden="true">
+          <TIcon name={icon} />
+        </i>
+      )}
       <span>
         <small>{label}</small>
-        <strong>{value || TBA}</strong>
+        <strong className={value ? undefined : 'is-tba'}>{value || TBA}</strong>
       </span>
     </p>
   )
 }
 
-function SummaryCell({ icon, label, value, sub, tone }: { icon: string; label: string; value: ReactNode; sub?: string; tone?: string }) {
+function SummaryCell({ icon, label, value, sub, tone, accent }: { icon: string; label: string; value: ReactNode; sub?: string; tone?: string; accent: string }) {
   return (
-    <div>
+    <div className={`wt-tone wt-tone-${accent}`}>
       <TIcon name={icon} />
       <p>
         <span>
@@ -538,17 +546,19 @@ export default function TournamentDetail() {
               label="რეგისტრაცია"
               value={statusLabel.toUpperCase()}
               tone={open ? 'open' : undefined}
+              accent="green"
               sub={details.registrationDeadline ? `ბოლო ვადა: ${details.registrationDeadline}` : undefined}
             />
-            <SummaryCell icon="calendar" label="ტურნირის თარიღი" value={formatDay(t.startDate)} sub={details.startTime || undefined} />
+            <SummaryCell icon="calendar" accent="blue" label="ტურნირის თარიღი" value={formatDay(t.startDate)} sub={details.startTime || undefined} />
             <SummaryCell
               icon="users"
+              accent="violet"
               label={squad ? 'გუნდები' : 'მოთამაშეები'}
               value={squad ? `${t.teamCount} / ${t.maxTeams}` : `${t.registeredCount} / ${t.maxPlayers}`}
               sub="დარეგისტრირებული"
             />
-            <SummaryCell icon="trophy" label="საპრიზო ფონდი" value={t.prize} tone="pink" />
-            <SummaryCell icon="shield" label="შესვლის საფასური" value={entryFee} tone="pink" />
+            <SummaryCell icon="trophy" accent="amber" label="საპრიზო ფონდი" value={t.prize} tone="pink" />
+            <SummaryCell icon="shield" accent="pink" label="შესვლის საფასური" value={entryFee} tone="pink" />
           </section>
 
           <section className="prejoin-details">
@@ -577,8 +587,8 @@ export default function TournamentDetail() {
               {tab === 'general' && (
                 <>
                   <div className="prejoin-facts">
-                    {FACTS.map(([key, icon]) => (
-                      <Fact key={key} label={LABEL[key]} value={key === 'entryFee' ? entryFee : key === 'format' ? tournamentFormat(t) : details[key]} icon={icon} />
+                    {FACTS.map(([key, icon, tone]) => (
+                      <Fact key={key} label={LABEL[key]} value={key === 'entryFee' ? entryFee : key === 'format' ? tournamentFormat(t) : details[key]} icon={icon} tone={tone} />
                     ))}
                   </div>
                   <div className="prejoin-about">
@@ -592,8 +602,8 @@ export default function TournamentDetail() {
                   </div>
                   <div className="prejoin-info">
                     <h2>ტურნირის ინფორმაცია</h2>
-                    {INFO_KEYS.map((key) => (
-                      <Fact key={key} label={LABEL[key]} value={key === 'teamSize' ? details.teamSize || (squad ? `${t.teamSize} მოთამაშე` : 'Solo') : details[key]} />
+                    {INFO_KEYS.map((key, i) => (
+                      <Fact key={key} tone={INFO_TONES[i % INFO_TONES.length]} label={LABEL[key]} value={key === 'teamSize' ? details.teamSize || (squad ? `${t.teamSize} მოთამაშე` : 'Solo') : details[key]} />
                     ))}
                   </div>
                 </>

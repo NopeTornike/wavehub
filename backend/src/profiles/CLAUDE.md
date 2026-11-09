@@ -68,3 +68,6 @@ Self-entered profile fields live on `users` (migration `1784356000000-ProfilesAn
 - **Staff accounts are left out for non-staff viewers.** A staff username is a login name
   (`backend/src/chat/CLAUDE.md`).
 - e2e: `test/client-round-4.e2e-spec.ts`.
+
+- 2026-11-09: `reviews.cards` and `reviews.latest` carry the latest **50** (was 3); the profile, the
+  seller preview and the product page show about three and scroll the rest in place.

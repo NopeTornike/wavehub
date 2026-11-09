@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { AdminListingSummary, ListingBadge, ListingForEdit } from '@wavehub/shared-types'
 import { AdminRole, ListingStatus, ListingType } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
-import { api, errorMessage } from '../../lib/api'
+import { api, errorMessage, type ListingEditPayload } from '../../lib/api'
 import { LISTING_STATUS_LABELS } from '../../lib/labels'
 import { useAuth } from '../../lib/auth'
 import { LISTING_BADGE_LABELS } from '../../components/ListingBadges'
@@ -68,6 +68,130 @@ function BadgePicker({ item, onSaved }: { item: AdminListingSummary; onSaved: (b
         </label>
       ))}
       <button type="button" className="button" disabled={busy} onClick={() => void save()}>
+        შენახვა
+      </button>
+      <button type="button" className="button ghost" disabled={busy} onClick={() => setOpen(false)}>
+        გაუქმება
+      </button>
+      {error && <span className="seller-status error">{error}</span>}
+    </div>
+  )
+}
+
+// Cover over the product photo (owner 2026-11-09): the Tournament Gift artwork or staff's own
+// image. While it's on nobody can buy the product; it stays on the site until removed.
+function CoverPicker({ item, onSaved }: { item: AdminListingSummary; onSaved: (cover: { coverOverlay: 'gift' | 'custom' | null; coverOverlayUrl: string | null }) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const run = async (work: () => Promise<{ coverOverlay: 'gift' | 'custom' | null; coverOverlayUrl: string | null }>) => {
+    setBusy(true)
+    setError('')
+    try {
+      const res = await work()
+      onSaved({ coverOverlay: res.coverOverlay, coverOverlayUrl: res.coverOverlayUrl })
+    } catch (err) {
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const pickFile = (files: FileList | null) => {
+    const file = files?.[0]
+    if (!file) return
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) return setError('ფოტო: JPG, PNG ან WEBP.')
+    void run(() => api.adminUploadListingCover(item.id, file))
+  }
+  return (
+    <div className="al-cover">
+      {item.coverOverlay ? (
+        <button type="button" className="button al-cover-on" disabled={busy} onClick={() => void run(() => api.adminSetListingCover(item.id, 'none'))}>
+          {item.coverOverlay === 'gift' ? '🎁 GIFT ქავერი' : '🖼 ქავერი'} — მოხსნა
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="button al-gift-btn"
+          disabled={busy}
+          onClick={() => {
+            if (window.confirm(`„${item.title}“-ს დაედოს Tournament Gift ქავერი? ყიდვა შეჩერდება, სანამ ქავერს არ მოხსნი.`)) void run(() => api.adminSetListingCover(item.id, 'gift'))
+          }}
+        >
+          🎁 GIFT ქავერი
+        </button>
+      )}
+      <label className={`button ghost al-cover-upload${busy ? ' is-busy' : ''}`} title="საკუთარი ფოტო ქავერად — ყიდვა შეჩერდება">
+        {busy ? 'იტვირთება…' : item.coverOverlay === 'custom' ? 'ქავერის შეცვლა' : 'საკუთარი ქავერი'}
+        <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy} onChange={(e) => { pickFile(e.target.files); e.target.value = '' }} />
+      </label>
+      {error && <span className="seller-status error">{error}</span>}
+    </div>
+  )
+}
+
+// Price + sale price ("old price", struck through on the card) right from the list (owner
+// 2026-11-09: Game Managers set it too). Item listings only — services are priced by packages.
+function PriceEditor({ item, onSaved }: { item: AdminListingSummary; onSaved: (price: number) => void }) {
+  const [open, setOpen] = useState(false)
+  const [price, setPrice] = useState('')
+  const [was, setWas] = useState('')
+  const [attrs, setAttrs] = useState<Record<string, unknown> | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const start = async () => {
+    setOpen(true)
+    setError('')
+    setBusy(true)
+    try {
+      const data = await api.adminGetListing(item.id)
+      const current = (data.itemAttributes ?? {}) as Record<string, unknown>
+      setAttrs(current)
+      setPrice(data.priceWaveCoin == null ? '' : String(data.priceWaveCoin))
+      setWas(typeof current.compareAtPrice === 'number' ? String(current.compareAtPrice) : '')
+    } catch (err) {
+      setError(errorMessage(err, 'ჩატვირთვა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const save = async () => {
+    const p = Number(price)
+    if (!Number.isInteger(p) || p < 1) return setError('ფასი: მთელი რიცხვი, მინიმუმ 1 GEL.')
+    const next: Record<string, unknown> = { ...(attrs ?? {}) }
+    delete next.compareAtPrice
+    if (was.trim()) {
+      const w = Number(was)
+      if (!Number.isInteger(w) || w <= p) return setError('ძველი ფასი უნდა იყოს მთელი რიცხვი და ახალ ფასზე მეტი.')
+      next.compareAtPrice = w
+    }
+    setBusy(true)
+    setError('')
+    try {
+      await api.adminUpdateListing(item.id, { priceWaveCoin: p, attributes: next as ListingEditPayload['attributes'] })
+      onSaved(p)
+      setOpen(false)
+    } catch (err) {
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (!open)
+    return (
+      <button type="button" className="button" onClick={() => void start()}>
+        ფასი · ფასდაკლება
+      </button>
+    )
+  return (
+    <div className="al-badges al-price">
+      <label>
+        ფასი (GEL)
+        <input type="number" min={1} step={1} value={price} onChange={(e) => setPrice(e.target.value)} disabled={busy} />
+      </label>
+      <label>
+        ძველი ფასი (გადახაზული)
+        <input type="number" min={1} step={1} value={was} placeholder="არ არის" onChange={(e) => setWas(e.target.value)} disabled={busy} />
+      </label>
+      <button type="button" className="button" disabled={busy || attrs === null} onClick={() => void save()}>
         შენახვა
       </button>
       <button type="button" className="button ghost" disabled={busy} onClick={() => setOpen(false)}>
@@ -168,6 +292,20 @@ function AllListings() {
     }
   }
 
+  // Pin to the first places of the marketplace (owner 2026-11-09).
+  const togglePin = async (item: AdminListingSummary) => {
+    setBusyId(item.id)
+    setError('')
+    try {
+      const res = await api.adminSetListingPinned(item.id, !item.pinnedAt)
+      setItems((prev) => (prev ?? []).map((row) => (row.id === item.id ? { ...row, pinnedAt: res.pinnedAt } : row)))
+    } catch (err) {
+      setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   // SOLD overlay (owner 2026-11-06): marked listings can't be bought and leave the site 24h later.
   const toggleSold = async (item: AdminListingSummary) => {
     const marking = !item.soldAt
@@ -240,6 +378,8 @@ function AllListings() {
                   {item.isFeatured && <span className="al-star" aria-hidden="true">★ </span>}
                   {item.title}
                   {item.soldAt && <span className="al-sold">SOLD</span>}
+                  {item.pinnedAt && <span className="al-pinned">📌 მიმაგრებული</span>}
+                  {item.coverOverlay && <span className="al-covered">{item.coverOverlay === 'gift' ? '🎁 GIFT' : 'ქავერი'} · ყიდვა შეჩერებულია</span>}
                 </strong>
                 <span className="note" style={{ margin: 0 }}>
                   @{item.sellerUsername} · {TYPE_LABELS[item.type]} · {LISTING_STATUS_LABELS[item.status]}
@@ -264,12 +404,23 @@ function AllListings() {
                     {item.isFeatured ? 'რჩეულიდან ამოღება' : 'რჩეულად მონიშვნა'}
                   </button>
                   )}
+                  {!isGameManager && (
+                  <button type="button" className={`button${item.pinnedAt ? ' al-pin-on' : ''}`} disabled={busyId === item.id} aria-pressed={Boolean(item.pinnedAt)} onClick={() => void togglePin(item)} title="მარკეტპლეისში პირველ ადგილებზე">
+                    {item.pinnedAt ? '📌 მოხსნა' : '📌 მიმაგრება'}
+                  </button>
+                  )}
                   </>
                 )}
                 {item.type === ListingType.Item && (item.soldAt || [ListingStatus.Active, ListingStatus.Paused].includes(item.status)) && (
                   <button type="button" className={`button${item.soldAt ? '' : ' al-sold-btn'}`} disabled={busyId === item.id} aria-pressed={Boolean(item.soldAt)} onClick={() => void toggleSold(item)}>
                     {item.soldAt ? 'SOLD — მოხსნა' : 'SOLD-ად მონიშვნა'}
                   </button>
+                )}
+                {canEdit && item.type === ListingType.Item && (
+                  <PriceEditor item={item} onSaved={(price) => setItems((prev) => (prev ?? []).map((row) => (row.id === item.id ? { ...row, priceWaveCoin: price } : row)))} />
+                )}
+                {item.type !== ListingType.DigitalKey && !item.soldAt && (item.coverOverlay || [ListingStatus.Active, ListingStatus.Paused].includes(item.status)) && (
+                  <CoverPicker item={item} onSaved={(cover) => setItems((prev) => (prev ?? []).map((row) => (row.id === item.id ? { ...row, ...cover, status: cover.coverOverlay ? ListingStatus.Active : row.status } : row)))} />
                 )}
                 {[ListingStatus.Active, ListingStatus.Paused].includes(item.status) && (
                   <button type="button" className="button ghost" disabled={busyId === item.id} onClick={() => void moderate(item, 'take-down')}>
