@@ -1473,3 +1473,10 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   transparency (never the JPEG-flattening `shrinkPhoto`) and trims empty transparent borders so the
   badge isn't tiny. Phones (≤620px) cap the size. Check a 375px card and the product page after any
   change here.
+- **Mobile visual pass (2026-11-09):** `Avatar` falls back to initials when the photo fails to load
+  (deleted upload) instead of a broken image. The Wave-rank profile badge (`.up-badge.tier`) shows its
+  rank art at 64px like the other badge art. Review rank pills wrap inside narrow reply cards. On
+  phones the tournament summary cells wrap long Georgian values and an odd last cell spans the row,
+  the "0 / 8" registered count stays on one line, and the section tab labels fit their buttons.
+  Audit method that found these: load each page in a 375px iframe and flag any element whose right
+  edge passes its parent's (ignoring scroll/clip containers and absolute/fixed elements).

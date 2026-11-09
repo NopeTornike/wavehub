@@ -23722,3 +23722,31 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .sold-overlay.gift-overlay img { height: 62%; max-width: 64%; max-height: 170px; }
   .sold-overlay.gift-overlay.sold-hero img { height: 60%; max-width: 62%; max-height: 240px; }
 }
+
+/* Mobile visual pass 2026-11-09. Wave-rank badge matches the other badge art (was a 30px icon on a
+   purple tile); review rank pills wrap inside narrow reply cards instead of poking past the edge. */
+.up-badge.tier > span { background: transparent; box-shadow: none; }
+.up-badge.tier .up-badge-rank { width: 64px; height: 64px; filter: drop-shadow(0 0 8px rgba(160, 110, 255, .45)); }
+.rv-top { min-width: 0; }
+.rv-rank { max-width: 100%; min-width: 0; }
+.rv-rank > span { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+/* Tournament summary on phones: long Georgian values wrap inside their cell, and an odd last cell
+   spans the full row instead of leaving an empty slot. */
+@media (max-width: 620px) {
+  .prejoin-summary > div { padding: 10px 12px !important; gap: 10px !important; grid-template-columns: 26px minmax(0, 1fr); }
+  .prejoin-summary p, .prejoin-summary p > span { min-width: 0; }
+  .prejoin-summary strong, .prejoin-summary .wt-sub { overflow-wrap: anywhere; }
+  .prejoin-summary strong { font-size: 14px !important; line-height: 1.2; }
+  .prejoin-summary .wt-sub { font-size: 11px; }
+  .prejoin-summary > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+/* Coach name + verified mark wrap instead of pushing the mark off a narrow screen. */
+.coach-profile-title-row { flex-wrap: wrap; max-width: 100%; }
+.coach-profile-title-row h1 { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 620px) {
+  /* "0 / 8" beside the registered-players heading stays on one line. */
+  .teams-toolbar h2 strong, .teams-toolbar h2 > span { white-space: nowrap; flex-shrink: 0; }
+  /* Section tabs: labels fit their button instead of being clipped. */
+  .prejoin-details nav button { padding-inline: 4px; min-width: 0; }
+  .prejoin-details nav button span { font-size: 10px; letter-spacing: 0; overflow-wrap: normal; hyphens: none; }
+}
