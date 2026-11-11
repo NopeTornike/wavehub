@@ -67,6 +67,17 @@ export class TournamentMatch {
   @Column({ type: 'jsonb', default: {} })
   room: { a?: MatchRoomSide | null; b?: MatchRoomSide | null };
 
+  // When the 24h / 1h reminders and the win/loss result went out (TournamentNotifier) — each once.
+  // A new scheduledAt clears the reminder stamps.
+  @Column({ type: 'timestamptz', nullable: true })
+  remindedDayAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  remindedHourAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  resultNotifiedAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

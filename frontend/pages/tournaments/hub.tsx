@@ -9,35 +9,15 @@ import { kaDate, kaTime } from '../../lib/dates'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { useShell } from '../../lib/shell'
-import { formatDay, matchWinner, STAGE_LABEL, TeamMark, TIcon, tournamentCover, tournamentFormat } from '../../lib/tournaments'
+import { formatDay, groupStandings, matchWinner, STAGE_LABEL, TeamMark, TIcon, tournamentCover, tournamentFormat } from '../../lib/tournaments'
+import { MyTeamStatusCard, TeamMembersCard } from '../../components/tournaments/MyTeamCards'
 
 // docs/design-mockups/10-tournament-hub.jpg, for the signed-in user: the selected registration
-// (status: pending verification / verified / rejected), four stats (active registrations, upcoming
-// matches, wins, win rate — all from recorded matches of the user's teams), the next match (its date,
+// (status: pending verification / verified / rejected), the "my team" status + members cards
+// (round-6/06-07, owner 2026-11-10 — they replaced four stat tiles), the next match (its date,
 // time and map; the game room card sits right under it — owner 2026-11-06 replaced the countdown), and the bracket for the selected tournament: group tables
-// (W-L from completed group matches) plus semi-final and final slots from the recorded playoff
+// (W-L and points from completed group matches) plus semi-final and final slots from the recorded playoff
 // matches ("TBD" until staff record them).
-
-type Standing = { team: TournamentTeamRef; wins: number; losses: number }
-
-function groupTables(matches: PublicTournamentMatch[]): Array<[string, Standing[]]> {
-  const groups = new Map<string, Map<string, Standing>>()
-  for (const m of matches.filter((x) => x.stage === TournamentMatchStage.Group)) {
-    const key = m.groupName || 'A'
-    const table = groups.get(key) ?? new Map<string, Standing>()
-    groups.set(key, table)
-    for (const team of [m.teamA, m.teamB]) if (team && !table.has(team.id)) table.set(team.id, { team, wins: 0, losses: 0 })
-    const winner = matchWinner(m)
-    if (winner && m.teamA && m.teamB) {
-      const [w, l] = winner === 'a' ? [m.teamA, m.teamB] : [m.teamB, m.teamA]
-      table.get(w.id)!.wins += 1
-      table.get(l.id)!.losses += 1
-    }
-  }
-  return [...groups.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([name, table]) => [name, [...table.values()].sort((x, y) => y.wins - x.wins || x.losses - y.losses || x.team.name.localeCompare(y.team.name))])
-}
 
 function Slot({ team }: { team: TournamentTeamRef | null }) {
   return (
@@ -101,23 +81,16 @@ export default function TournamentHub() {
   const slugById = useMemo(() => new Map(games.map((g) => [g.gameId, g.slug])), [games])
   const entry = entries?.find((e) => e.tournament.id === selected) ?? null
   const myTeamIds = new Set((entries ?? []).map((e) => e.team.id))
-  const completed = myMatches.filter((m) => matchWinner(m))
-  const wins = completed.filter((m) => {
-    const w = matchWinner(m)
-    return (w === 'a' && m.teamA && myTeamIds.has(m.teamA.id)) || (w === 'b' && m.teamB && myTeamIds.has(m.teamB.id))
-  }).length
   const upcoming = myMatches
     .filter((m) => m.status !== TournamentMatchStatus.Completed && m.scheduledAt && new Date(m.scheduledAt).getTime() > loadedAt - 3_600_000)
     .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''))
   const next = upcoming[0] ?? null
-  const activeCount = (entries ?? []).filter((e) => e.tournament.status !== TournamentStatus.Completed).length
-  const winRate = completed.length ? Math.round((wins / completed.length) * 100) : null
 
   const nextMine = next && next.teamB && myTeamIds.has(next.teamB.id) ? 'b' : 'a'
   const me = next ? (nextMine === 'a' ? next.teamA : next.teamB) : null
   const opponent = next ? (nextMine === 'a' ? next.teamB : next.teamA) : null
 
-  const tables = groupTables(bracket)
+  const tables = groupStandings(bracket, entry?.tournament.pointsPerWin ?? 3, entry?.tournament.pointsPerLoss ?? 0)
   const semis = bracket.filter((m) => m.stage === TournamentMatchStage.SemiFinal).slice(0, 2)
   const final = bracket.find((m) => m.stage === TournamentMatchStage.Final) ?? null
   const finalWinner = final ? matchWinner(final) : null
@@ -231,25 +204,8 @@ export default function TournamentHub() {
               </section>
             )}
 
-            <section className="wt-stat-cards">
-              {(
-                [
-                  ['trophy', 'ტურნირები', String(activeCount), 'აქტიური რეგისტრაცია', 'violet'],
-                  ['calendar', 'მომავალი მატჩები', String(upcoming.length), next ? 'შემდეგი მატჩი' : 'განრიგი მალე', 'pink'],
-                  ['chart', 'მოგებები', String(wins), 'სულ', 'green'],
-                  ['trend', 'მოგების %', winRate === null ? '—' : `${winRate}%`, 'სულ', 'blue'],
-                ] as const
-              ).map(([icon, label, value, sub, tone]) => (
-                <article key={label} className={`wt-stat-card ${tone}`}>
-                  <TIcon name={icon} />
-                  <span>
-                    <small>{label}</small>
-                    <strong>{value}</strong>
-                    <em>{sub}</em>
-                  </span>
-                </article>
-              ))}
-            </section>
+            {entry && <MyTeamStatusCard entry={entry} matches={bracket.length ? bracket : myMatches.filter((m) => m.tournamentId === entry.tournament.id)} />}
+            {entry && <TeamMembersCard entry={entry} myUsername={user?.username} onTeamChange={load} />}
 
             <section className="wt-panel wt-next">
               <header className="wt-panel-head">
@@ -330,6 +286,7 @@ export default function TournamentHub() {
                       <header>
                         <strong>ჯგუფი {name}</strong>
                         <small>W - L</small>
+                        <small className="pts">ქულა</small>
                       </header>
                       {rows.map((row, i) => (
                         <p key={row.team.id} className={myTeamIds.has(row.team.id) ? 'mine' : undefined}>
@@ -339,6 +296,7 @@ export default function TournamentHub() {
                           <b className={row.wins > row.losses ? 'up' : row.wins < row.losses ? 'down' : ''}>
                             {row.wins} - {row.losses}
                           </b>
+                          <b className="pts">{row.points}</b>
                         </p>
                       ))}
                     </div>

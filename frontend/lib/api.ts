@@ -60,6 +60,9 @@ import type {
   MatchRoomView,
   AdminSteamGameSummary,
   PlatformTimings,
+  PlatformFeatures,
+  TournamentLeaderboard,
+  TournamentLeaderboardEntry,
   BannerPlacement,
   AdminBanner,
   PublicSessionDispute,
@@ -939,6 +942,8 @@ export const api = {
 
   // Public: the auto-accept windows in hours (Admin → Settings).
   getPlatformTimings: () => request<PlatformTimings>('/platform/timings'),
+  // Show/hide switches for optional public blocks (owner 2026-11-10).
+  getPlatformFeatures: () => request<PlatformFeatures>('/platform/features'),
 
   // The caller's Super-Admin-controlled powers (WaveCoin adjust + cap, suspend/restore).
   adminMyPermissions: () => request<StaffPermissions>('/admin/platform-settings/my-permissions'),
@@ -1288,6 +1293,21 @@ export const api = {
   adminUpdateTournamentMatch: (id: string, matchId: string, payload: TournamentMatchInput) =>
     request<PublicTournamentMatch>(`/admin/tournaments/${id}/matches/${matchId}`, { method: 'POST', body: JSON.stringify(payload) }),
 
+  // Every pairing of the chosen teams as group matches (owner 2026-11-10).
+  adminTournamentRoundRobin: (id: string, payload: { teamIds: string[]; groupName: string; startAt: string; intervalMinutes: number; map?: string | null; bestOf?: number }) =>
+    request<{ created: number }>(`/admin/tournaments/${id}/matches/round-robin`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  // Hand-entered tournament leaderboard (owner 2026-11-10).
+  getTournamentLeaderboard: (gameId?: string) =>
+    request<TournamentLeaderboard>(`/tournaments/leaderboard${gameId ? `?gameId=${encodeURIComponent(gameId)}` : ''}`),
+  adminListLeaderboard: () => request<{ visible: boolean; entries: TournamentLeaderboardEntry[] }>('/admin/tournament-leaderboard'),
+  adminSaveLeaderboardEntry: (payload: { kind: 'player' | 'team'; gameId: string | null; name: string; wins: number; kills: number; points: number }, id?: string) =>
+    request<TournamentLeaderboardEntry>(`/admin/tournament-leaderboard${id ? `/${id}` : ''}`, { method: 'POST', body: JSON.stringify(payload) }),
+  adminUploadLeaderboardLogo: async (id: string, file: File) => upload<TournamentLeaderboardEntry>(`/admin/tournament-leaderboard/${id}/logo`, await shrinkPhoto(file)),
+  adminDeleteLeaderboardEntry: (id: string) => request<{ ok: boolean }>(`/admin/tournament-leaderboard/${id}`, { method: 'DELETE' }),
+  adminSetLeaderboardVisible: (visible: boolean) =>
+    request<{ visible: boolean }>('/admin/tournament-leaderboard/visibility', { method: 'POST', body: JSON.stringify({ visible }) }),
+
   adminDeleteTournamentMatch: (id: string, matchId: string) =>
     request<{ ok: boolean }>(`/admin/tournaments/${id}/matches/${matchId}`, { method: 'DELETE' }),
 
@@ -1303,6 +1323,9 @@ export const api = {
     rules?: string
     teamSize?: number
     prizes?: TournamentPrizes
+    pointsPerWin?: number
+    pointsPerLoss?: number
+    qualifyPoints?: number | null
   }) => request<PublicTournamentSummary>('/admin/tournaments', { method: 'POST', body: JSON.stringify(payload) }),
 
   adminUpdateTournament: (
@@ -1319,6 +1342,9 @@ export const api = {
       rules: string
       teamSize: number
       prizes: TournamentPrizes
+      pointsPerWin: number
+      pointsPerLoss: number
+      qualifyPoints: number | null
     }>,
   ) => request<PublicTournamentSummary>(`/admin/tournaments/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
 

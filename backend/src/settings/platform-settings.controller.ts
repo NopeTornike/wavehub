@@ -66,4 +66,10 @@ export class PlatformTimingsController {
   timings() {
     return this.settings.getTimings();
   }
+
+  // Which optional public blocks are switched on (owner 2026-11-10). Only these booleans.
+  @Get('features')
+  features() {
+    return this.settings.getFeatures();
+  }
 }

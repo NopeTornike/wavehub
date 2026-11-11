@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { PublicGame, PublicTournamentSummary, TournamentPrizes } from '@wavehub/shared-types'
 import { TOURNAMENT_DETAIL_KEYS, TournamentStatus } from '@wavehub/shared-types'
@@ -25,6 +26,10 @@ const emptyForm = {
   details: {} as Record<string, string>,
   rules: '',
   teamSize: 1,
+  // Group points (owner 2026-11-10): per win / loss and the group-exit threshold ('' = not announced).
+  pointsPerWin: 3,
+  pointsPerLoss: 0,
+  qualifyPoints: '' as string,
   // Prize breakdown as editable text: one place per line "1st Place | 500 GEL | Gaming Gear, Hotel Stay".
   prizePlaces: '',
   specialRewards: '',
@@ -148,6 +153,20 @@ function TournamentFields({
           <input id={`${idPrefix}-team`} type="number" min={1} max={10} step={1} value={form.teamSize} onChange={(e) => onChange({ ...form, teamSize: Number(e.target.value) })} required />
         </label>
       </div>
+      <div className="stack-form-grid">
+        <label className="field" htmlFor={`${idPrefix}-ppw`}>
+          ქულა მოგებაზე <small>ჯგუფის ცხრილი</small>
+          <input id={`${idPrefix}-ppw`} type="number" min={0} max={100} step={1} value={form.pointsPerWin} onChange={(e) => onChange({ ...form, pointsPerWin: Number(e.target.value) })} required />
+        </label>
+        <label className="field" htmlFor={`${idPrefix}-ppl`}>
+          ქულა წაგებაზე
+          <input id={`${idPrefix}-ppl`} type="number" min={0} max={100} step={1} value={form.pointsPerLoss} onChange={(e) => onChange({ ...form, pointsPerLoss: Number(e.target.value) })} required />
+        </label>
+        <label className="field" htmlFor={`${idPrefix}-qual`}>
+          ჯგუფიდან გასვლის ზღვარი <small>ქულა; ცარიელი = არ ჩანს</small>
+          <input id={`${idPrefix}-qual`} type="number" min={0} max={10000} step={1} value={form.qualifyPoints} onChange={(e) => onChange({ ...form, qualifyPoints: e.target.value })} />
+        </label>
+      </div>
       <details className="field" open>
         <summary>საპრიზო ფონდის განაწილება (Prize Pool ჩანართი)</summary>
         <label className="field" htmlFor={`${idPrefix}-places`}>
@@ -263,6 +282,9 @@ export default function AdminTournaments() {
         details: cleanDetails(form.details),
         rules: form.rules.trim() || undefined,
         teamSize: form.teamSize,
+        pointsPerWin: form.pointsPerWin,
+        pointsPerLoss: form.pointsPerLoss,
+        qualifyPoints: form.qualifyPoints === '' ? null : Number(form.qualifyPoints),
         prizes: prizesFromForm(form),
       })
       setForm(emptyForm)
@@ -288,6 +310,9 @@ export default function AdminTournaments() {
       details: { ...(t.details ?? {}) },
       rules: t.rules ?? '',
       teamSize: t.teamSize,
+      pointsPerWin: t.pointsPerWin ?? 3,
+      pointsPerLoss: t.pointsPerLoss ?? 0,
+      qualifyPoints: t.qualifyPoints === null || t.qualifyPoints === undefined ? '' : String(t.qualifyPoints),
       ...prizesToForm(t.prizes),
     })
   }
@@ -314,6 +339,9 @@ export default function AdminTournaments() {
         details: cleanDetails(editForm.details),
         rules: editForm.rules.trim(),
         teamSize: editForm.teamSize,
+        pointsPerWin: editForm.pointsPerWin,
+        pointsPerLoss: editForm.pointsPerLoss,
+        qualifyPoints: editForm.qualifyPoints === '' ? null : Number(editForm.qualifyPoints),
         prizes: prizesFromForm(editForm),
       })
       setEditingId(null)
@@ -363,6 +391,11 @@ export default function AdminTournaments() {
     <AdminLayout title="ტურნირები">
       <h1 className="page-title">ტურნირები</h1>
       <p className="page-subtitle">ტურნირების შექმნა, რედაქტირება და მართვა</p>
+      <p className="lb-admin-link">
+        <Link className="button" href="/admin/tournaments/leaderboard">
+          🏆 ლიდერბორდის მართვა
+        </Link>
+      </p>
 
       {error && (
         <div className="status-text status-error" role="alert">

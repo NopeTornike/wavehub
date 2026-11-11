@@ -268,3 +268,45 @@ Migration `1784389000000-TournamentGameRoom`.
 the tournament's game against its tournament games (`assertTournamentInScope`; create and a
 `gameId` change check the new game); `GET admin/tournaments` is filtered to them. Team-registration
 staff notifications go only to Game Managers of that game. See `backend/src/admin/CLAUDE.md`.
+
+## 2026-11-10 Points, notifications, round-robin, leaderboard (owner round 6)
+Migration `1784395000000-TournamentPointsRemindersLeaderboard`. Mockups: `docs/design-mockups/round-6/`.
+- **Points**: `tournaments.pointsPerWin` (3), `pointsPerLoss` (0), `qualifyPoints` (null = not
+  announced), on create/update DTOs and `PublicTournamentSummary`. The frontend computes the group
+  table (`lib/tournaments.tsx` `groupStandings`) — points come only from completed group matches.
+- **Player notifications** (`tournament-notifier.service.ts`, `TournamentNotifier`). Every player on a
+  team is notified: roster rows plus `captainUserId`. All of it is best-effort, so a failed
+  notification never fails the staff action. Each event:
+  - team verified / rejected → `tournament_team_verified` / `_rejected`;
+  - match created or its teams / time changed → `tournament_match_scheduled`;
+  - staff open a room side (closed → open with details) → `tournament_room_open` for that side only,
+    and it never carries the room details;
+  - result: a match goes `completed` with unequal scores → `tournament_match_won` ("A 2:1 B · +3
+    ქულა") for the winners and `tournament_match_lost` ("წააგეთ — გამარჯვებული: X") for the losers.
+    Sent once, claimed with `resultNotifiedAt`. The migration stamped already-completed matches, so
+    the release notified nobody.
+  - status moved into `in_progress` → `tournament_started` (fire-and-forget);
+  - reminders: `@Cron('*/5 * * * *') sweepReminders` sends the 1-hour reminder and the 24-hour one,
+    each once. Both are claimed with `UPDATE … RETURNING`. The 1-hour reminder also stamps the 24-hour
+    one, so a late-scheduled match gets one message. Changing `scheduledAt` clears both stamps.
+    Draft and completed tournaments are skipped.
+- **Round-robin**: `POST admin/tournaments/:id/matches/round-robin` (`RoundRobinDto`: 2–16 team ids,
+  group, startAt, intervalMinutes, map, bestOf). It creates every pairing of one group using the
+  circle method (`Round N` labels), spaced `intervalMinutes` apart. Pairings already in that group
+  are skipped, so a second click creates 0. Audited as `tournament.round_robin`.
+- **Leaderboard** (`tournament-leaderboard-entry.entity.ts`, `tournament_leaderboard_entries`,
+  `TournamentLeaderboardService`). Entries are hand-entered:
+  - `player` rows link an active account, entered as `@username` or an id;
+  - `team` rows are a name plus an optional logo (`POST …/:entryId/logo`, 2MB, byte-sniffed);
+  - every row has wins / kills / points and an optional game.
+  - Public `GET tournaments/leaderboard?gameId=` returns `{visible, players (top 3), teams (top 5)}`,
+    ordered by points, then wins, then kills. It is cached for 30s per game filter and cleared on any
+    staff change. Player rows show only public profile data.
+  - The show/hide switch is `platform_settings.features.tournamentLeaderboard`, set with
+    `POST admin/tournament-leaderboard/visibility`. When hidden, the response is `visible: false`
+    with no rows.
+  - Staff routes are `GET/POST admin/tournament-leaderboard[/:entryId]`, `DELETE …/:entryId`,
+    `…/logo` and `…/visibility`. They take `TOURNAMENT_MANAGEMENT_ROLES`; Game Managers are limited
+    to their games, and a row with no game is outside their scope. All of them are audited
+    (`tournament.leaderboard_*`).
+- e2e: `test/owner-2026-11-10-tournaments.e2e-spec.ts`.

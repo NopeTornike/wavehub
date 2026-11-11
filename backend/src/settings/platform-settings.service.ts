@@ -4,15 +4,18 @@ import { Repository } from 'typeorm';
 import { PlatformSettings, PLATFORM_SETTINGS_SINGLETON_ID } from './platform-settings.entity';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { AdminRole } from '@wavehub/shared-types';
-import type { PlatformTimings, StaffPermissions, SupportPermissions } from '@wavehub/shared-types';
+import type { PlatformFeatures, PlatformTimings, StaffPermissions, SupportPermissions } from '@wavehub/shared-types';
 
 const NO_SUPPORT_PERMISSIONS: SupportPermissions = { walletAdjust: false, walletAdjustMax: 100, suspendUsers: false };
 
 const MAINTENANCE_CACHE_TTL_MS = 5_000;
+const FEATURES_CACHE_TTL_MS = 15_000;
+export const DEFAULT_FEATURES: PlatformFeatures = { tournamentLeaderboard: true, sellerLeaderboard: true, rewardsHub: true };
 
 @Injectable()
 export class PlatformSettingsService {
   private maintenanceCache?: { value: boolean; expiresAt: number };
+  private featuresCache?: { value: PlatformFeatures; expiresAt: number };
 
   constructor(@InjectRepository(PlatformSettings) private readonly repo: Repository<PlatformSettings>) {}
 
@@ -49,6 +52,24 @@ export class PlatformSettingsService {
   async getTimings(): Promise<PlatformTimings> {
     const s = await this.get();
     return { orderAutoCompleteHours: s.orderAutoCompleteHours, sessionAutoConfirmHours: s.sessionAutoConfirmHours };
+  }
+
+  // Public show/hide switches, read by public pages on every visit — cached a few seconds; a
+  // change through setFeatures/update refreshes it at once.
+  async getFeatures(): Promise<PlatformFeatures> {
+    const now = Date.now();
+    if (this.featuresCache && this.featuresCache.expiresAt > now) return this.featuresCache.value;
+    const value = { ...DEFAULT_FEATURES, ...((await this.get()).features ?? {}) };
+    this.featuresCache = { value, expiresAt: now + FEATURES_CACHE_TTL_MS };
+    return value;
+  }
+
+  async setFeatures(patch: Partial<PlatformFeatures>): Promise<PlatformFeatures> {
+    const current = await this.get();
+    const features = { ...DEFAULT_FEATURES, ...(current.features ?? {}), ...patch };
+    await this.repo.update(PLATFORM_SETTINGS_SINGLETON_ID, { features });
+    this.featuresCache = undefined;
+    return features;
   }
 
   async getMinWithdrawalWaveCoin(): Promise<number> {
@@ -92,8 +113,9 @@ export class PlatformSettingsService {
   }
 
   async update(patch: UpdatePlatformSettingsDto): Promise<PlatformSettings> {
-    const { supportPermissions, ...rest } = patch;
-    await this.repo.update(PLATFORM_SETTINGS_SINGLETON_ID, {
+    const { supportPermissions, features, ...rest } = patch;
+    if (features) await this.setFeatures(features);
+    if (Object.keys(rest).length || supportPermissions) await this.repo.update(PLATFORM_SETTINGS_SINGLETON_ID, {
       ...rest,
       ...(supportPermissions ? { supportPermissions: { ...supportPermissions } } : {}),
     });

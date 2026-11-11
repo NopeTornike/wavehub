@@ -60,4 +60,23 @@ export class UpdateTournamentDto {
   @ValidateNested()
   @Type(() => PrizesDto)
   prizes?: PrizesDto;
+
+  // Group points (owner 2026-11-10): per recorded group win / loss, and the group-exit threshold.
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  pointsPerWin?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  pointsPerLoss?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10000)
+  qualifyPoints?: number | null;
 }

@@ -1490,3 +1490,28 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
 - **Admin → Orders (2026-11-10):** `pages/admin/orders.tsx` (`ao-` CSS) lists every order: number,
   status, time, listing, buyer → seller with avatars, amount, seller email, "message seller" (opens a
   DM) and "open". `?q=` pre-fills the search (the staff bell links there). Nav item "შეკვეთები".
+- **Tournaments, owner round 6 (2026-11-10, `docs/design-mockups/round-6/`):**
+  - `/tournaments/hub`: the four stat tiles (08, circled red) are replaced by two cards from
+    `components/tournaments/MyTeamCards.tsx` (`mt-` CSS).
+    - `MyTeamStatusCard` (07): points / wins / losses, a progress bar toward the group-exit
+      threshold, the last result ("გილოცავთ…" or "წააგეთ — გამარჯვებული: X"), "View bracket", place
+      in group, and the points rule.
+    - `TeamMembersCard` (06): players with the captain crown. "Edit team" lets the captain upload the
+      logo.
+  - The group table has a points column (05), built by `groupStandings`.
+  - `/tournaments/[id]/matches` uses `mh-` cards (04) at every width: stage + round, date, logos with
+    a green / red glow, the score, the win / loss badge from the viewed team's side, then map /
+    format / result and Details.
+  - Home `components/tournaments/MatchCountdownCard.tsx` (`mc-`, 11) sits under the hero banner. It
+    shows from 24h before the player's next scheduled match until 2h after it starts, with an
+    HH:MM:SS countdown and stage. Room ID, password and seat come from the game-room endpoint, show 🔒
+    until staff open the room, and refresh every 30s.
+  - `/tournaments` has `components/tournaments/TournamentLeaderboard.tsx` (`tl-`, 10): top 3
+    podium, top 5 teams and a game filter. It renders nothing when hidden or empty.
+  - Admin → Tournaments:
+    - points fields on the tournament form;
+    - `TournamentOps` gains a 4-step guide, "verify all pending", "⚡ create group matches"
+      (round-robin) and a one-line score entry on every match (`to-` CSS);
+    - `pages/admin/tournaments/leaderboard.tsx` (`lb-admin-`) manages the leaderboard and its
+      show / hide switch. It sits under `/admin/tournaments/`, so Game Managers reach it.
+  - Notification icons cover the new `tournament_*` types.

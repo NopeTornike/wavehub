@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -197,4 +198,37 @@ export class MatchRoomDto {
   @ValidateNested()
   @Type(() => MatchRoomSideDto)
   b?: MatchRoomSideDto;
+}
+
+// One click for a whole group (owner 2026-11-10: "the admin panel is tiring to fill"): every pairing
+// of the chosen teams as a group match, spaced `intervalMinutes` apart from `startAt`.
+export class RoundRobinDto {
+  @IsArray()
+  @ArrayMinSize(2)
+  @ArrayMaxSize(16)
+  @IsUUID('all', { each: true })
+  teamIds: string[];
+
+  @IsString()
+  @MaxLength(10)
+  groupName: string;
+
+  @IsDateString()
+  startAt: string;
+
+  @IsInt()
+  @Min(0)
+  @Max(1440)
+  intervalMinutes: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  map?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(9)
+  bestOf?: number;
 }

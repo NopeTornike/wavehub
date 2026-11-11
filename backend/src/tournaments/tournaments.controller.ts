@@ -18,7 +18,9 @@ import { CREATE_THROTTLE, LOOKUP_THROTTLE, UPLOAD_THROTTLE } from '../common/thr
 import { RegisterSoloDto, RegisterTeamDto } from './dto/register-team.dto';
 import { PlayerLookupDto } from './dto/player-lookup.dto';
 import { TeamStatusDto } from './dto/team-status.dto';
-import { MatchDto, MatchRoomDto } from './dto/match.dto';
+import { MatchDto, MatchRoomDto, RoundRobinDto } from './dto/match.dto';
+import { LeaderboardEntryDto, LeaderboardQueryDto, LeaderboardVisibilityDto } from './dto/leaderboard.dto';
+import { TournamentLeaderboardService } from './tournament-leaderboard.service';
 
 // Same trio as backend/src/coaching/coaches.controller.ts's COACH_MANAGEMENT_ROLES — tournaments
 // aren't in SPECIFICATION.md at all (genuinely new scope, see LAUNCH_PLAN.md §2b), so there's no
@@ -30,6 +32,7 @@ export class TournamentsController {
   constructor(
     private readonly tournaments: TournamentsService,
     private readonly audit: AdminAuditService,
+    private readonly leaderboard: TournamentLeaderboardService,
   ) {}
 
   @Get('tournaments')
@@ -52,6 +55,13 @@ export class TournamentsController {
   @UseGuards(AuthGuard)
   lookupPlayer(@Query() query: PlayerLookupDto) {
     return this.tournaments.lookupPlayer(query.q);
+  }
+
+  // The hand-entered leaderboard (owner 2026-11-10); `visible: false` when staff hid it.
+  // Registered before GET tournaments/:id.
+  @Get('tournaments/leaderboard')
+  publicLeaderboard(@Query() query: LeaderboardQueryDto) {
+    return this.leaderboard.publicBoard(query.gameId);
   }
 
   @Get('tournaments/:id')
@@ -128,6 +138,64 @@ export class TournamentsController {
   }
 
   // Staff list: every tournament including drafts (the public GET tournaments hides drafts).
+  // --- Leaderboard (hand-entered, owner 2026-11-10). Registered before admin/tournaments/:id. ---
+
+  @Get('admin/tournament-leaderboard')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  adminLeaderboard(@CurrentStaffScope() scope: StaffScope) {
+    return this.leaderboard.adminList(scope);
+  }
+
+  @Post('admin/tournament-leaderboard')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async addLeaderboardEntry(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Body() dto: LeaderboardEntryDto) {
+    const entry = await this.leaderboard.save(scope, dto);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.leaderboard_add', entityType: 'tournament_leaderboard_entry', entityId: entry.id, metadata: { ...dto } });
+    return entry;
+  }
+
+  @Post('admin/tournament-leaderboard/visibility')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async leaderboardVisibility(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Body() dto: LeaderboardVisibilityDto) {
+    const result = await this.leaderboard.setVisible(dto.visible);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.leaderboard_visibility', entityType: 'platform_settings', entityId: 'features', metadata: { visible: dto.visible } });
+    return result;
+  }
+
+  @Post('admin/tournament-leaderboard/:entryId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async updateLeaderboardEntry(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('entryId', ParseUUIDPipe) entryId: string, @Body() dto: LeaderboardEntryDto) {
+    const entry = await this.leaderboard.save(scope, dto, entryId);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.leaderboard_update', entityType: 'tournament_leaderboard_entry', entityId: entryId, metadata: { ...dto } });
+    return entry;
+  }
+
+  @Post('admin/tournament-leaderboard/:entryId/logo')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  @Throttle(UPLOAD_THROTTLE)
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } }))
+  async leaderboardLogo(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('entryId', ParseUUIDPipe) entryId: string, @UploadedFile() file: Express.Multer.File) {
+    const entry = await this.leaderboard.setLogo(scope, entryId, file);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.leaderboard_logo', entityType: 'tournament_leaderboard_entry', entityId: entryId });
+    return entry;
+  }
+
+  @Delete('admin/tournament-leaderboard/:entryId')
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async removeLeaderboardEntry(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('entryId', ParseUUIDPipe) entryId: string) {
+    const result = await this.leaderboard.remove(scope, entryId);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.leaderboard_delete', entityType: 'tournament_leaderboard_entry', entityId: entryId });
+    return result;
+  }
+
   @Get('admin/tournaments')
   @UseGuards(AuthGuard, AdminGuard)
   @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
@@ -222,6 +290,18 @@ export class TournamentsController {
     const match = await this.tournaments.adminCreateMatch(id, dto);
     await this.audit.log({ adminId, adminRole, action: 'tournament.match_create', entityType: 'tournament_match', entityId: match.id, metadata: { tournamentId: id } });
     return match;
+  }
+
+  // Every pairing of the chosen teams as group matches in one go (owner 2026-11-10).
+  @Post('admin/tournaments/:id/matches/round-robin')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async roundRobin(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RoundRobinDto) {
+    await this.tournaments.assertTournamentInScope(id, scope);
+    const result = await this.tournaments.adminRoundRobin(id, dto);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.round_robin', entityType: 'tournament', entityId: id, metadata: { group: dto.groupName, teams: dto.teamIds.length, created: result.created } });
+    return result;
   }
 
   @Post('admin/tournaments/:id/matches/:matchId')

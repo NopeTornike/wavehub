@@ -231,6 +231,16 @@ export enum NotificationType {
   // to review, a team to verify, a ticket or reply, a dispute, a coach application, a withdrawal,
   // a report. metadata.link is the admin page.
   StaffTask = 'staff_task',
+  // Tournament events for the players on a team (owner 2026-11-10). metadata.link opens the hub /
+  // the match. Won/Lost are the recorded result ("Lost — winner: X").
+  TournamentTeamVerified = 'tournament_team_verified',
+  TournamentTeamRejected = 'tournament_team_rejected',
+  TournamentMatchScheduled = 'tournament_match_scheduled',
+  TournamentMatchReminder = 'tournament_match_reminder',
+  TournamentRoomOpen = 'tournament_room_open',
+  TournamentMatchWon = 'tournament_match_won',
+  TournamentMatchLost = 'tournament_match_lost',
+  TournamentStarted = 'tournament_started',
 }
 
 // Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
@@ -1648,6 +1658,34 @@ export interface AdminTournamentMatch extends PublicTournamentMatch {
   room: { a: MatchRoomSide | null; b: MatchRoomSide | null };
 }
 
+// Show/hide switches for public blocks (owner 2026-11-10). Public via GET platform/features.
+export interface PlatformFeatures {
+  tournamentLeaderboard: boolean;
+  sellerLeaderboard: boolean;
+  rewardsHub: boolean;
+}
+
+// Hand-entered tournament leaderboard (owner 2026-11-10, mockup round-6/10). Players are WaveHub
+// accounts entered as @username; teams are a name + optional logo. Numbers are what staff typed.
+export type TournamentLeaderboardKind = 'player' | 'team';
+export interface TournamentLeaderboardEntry {
+  id: string;
+  kind: TournamentLeaderboardKind;
+  gameId: string | null;
+  gameName: string | null;
+  username: string | null;
+  name: string;
+  imageUrl: string | null;
+  wins: number;
+  kills: number;
+  points: number;
+}
+export interface TournamentLeaderboard {
+  visible: boolean;
+  players: TournamentLeaderboardEntry[];
+  teams: TournamentLeaderboardEntry[];
+}
+
 // GET /me/tournaments — one row per tournament the caller registered a team for.
 export interface MyTournamentEntry {
   tournament: PublicTournamentSummary;
@@ -1683,6 +1721,11 @@ export interface PublicTournamentSummary {
   teamCount: number;
   maxTeams: number;
   prizes: TournamentPrizes;
+  // Group-table points (owner 2026-11-10): per recorded group win / loss, and the group-exit
+  // threshold (null = not announced).
+  pointsPerWin: number;
+  pointsPerLoss: number;
+  qualifyPoints: number | null;
 }
 
 // Seller-entered Steam game facts on a digital-key listing (docs/design-mockups 04/05), stored in the

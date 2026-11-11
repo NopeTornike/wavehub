@@ -26,7 +26,8 @@ import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { BrowseTournamentsDto } from './dto/browse-tournaments.dto';
 import { RegisterSoloDto, RegisterTeamDto } from './dto/register-team.dto';
-import { MatchDto, MatchRoomDto, MatchRoomSideDto, MatchTeamStatsDto } from './dto/match.dto';
+import { MatchDto, MatchRoomDto, MatchRoomSideDto, MatchTeamStatsDto, RoundRobinDto } from './dto/match.dto';
+import { TournamentNotifier } from './tournament-notifier.service';
 import { StorageService } from '../storage/storage.service';
 import { User } from '../users/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -81,6 +82,8 @@ export class TournamentsService {
     private readonly dataSource: DataSource,
     private readonly storage: StorageService,
     private readonly notifications: NotificationsService,
+    // Optional so unit specs that build the service by hand keep working; Nest always injects it.
+    private readonly notifier?: TournamentNotifier,
   ) {}
 
   // --- Mapping ---
@@ -117,6 +120,9 @@ export class TournamentsService {
       teamCount: teams,
       maxTeams: Math.floor(tournament.maxPlayers / teamSize),
       prizes: { ...EMPTY_PRIZES, ...(tournament.prizes ?? {}) },
+      pointsPerWin: tournament.pointsPerWin ?? 3,
+      pointsPerLoss: tournament.pointsPerLoss ?? 0,
+      qualifyPoints: tournament.qualifyPoints ?? null,
       createdAt: tournament.createdAt.toISOString(),
     };
   }
@@ -224,6 +230,9 @@ export class TournamentsService {
       details: dto.details ?? {},
       rules: dto.rules?.trim() || null,
       teamSize: dto.teamSize ?? 1,
+      pointsPerWin: dto.pointsPerWin ?? 3,
+      pointsPerLoss: dto.pointsPerLoss ?? 0,
+      qualifyPoints: dto.qualifyPoints ?? null,
       prizes: dto.prizes ? { places: dto.prizes.places, specialRewards: dto.prizes.specialRewards, note: dto.prizes.note ?? null } : EMPTY_PRIZES,
     });
     return this.tournaments.save(tournament);
@@ -241,7 +250,12 @@ export class TournamentsService {
     if (dto.prizes) patch.prizes = { places: dto.prizes.places, specialRewards: dto.prizes.specialRewards, note: dto.prizes.note ?? null };
     if (dto.rules !== undefined) patch.rules = dto.rules.trim() || null;
     await this.tournaments.update(id, patch);
-    return this.getOrThrow(id);
+    const saved = await this.getOrThrow(id);
+    // Players hear when play starts (once per move into "in progress").
+    if (dto.status === TournamentStatus.InProgress && current.status !== TournamentStatus.InProgress) {
+      void this.notifier?.tournamentStarted(saved);
+    }
+    return saved;
   }
 
   private validateImage(file: UploadedImage | undefined, maxBytes: number, label: string) {
@@ -552,8 +566,13 @@ export class TournamentsService {
   async adminSetTeamStatus(tournamentId: string, teamId: string, status: TournamentTeamStatus): Promise<PublicTournamentTeam> {
     const team = await this.teams.findOne({ where: { id: teamId, tournamentId }, relations: TEAM_RELATIONS });
     if (!team) throw new NotFoundException('Team not found');
+    const before = team.status;
     await this.teams.update(team.id, { status });
     team.status = status;
+    if (before !== status) {
+      const tournament = await this.getOrThrow(tournamentId);
+      await this.notifier?.teamStatus(tournament, team.id, team.name, status);
+    }
     return this.toPublicTeam(team, true);
   }
 
@@ -625,15 +644,75 @@ export class TournamentsService {
     });
     this.applyMatchDto(match, dto, await this.resolveStatAccounts(dto.stats));
     const saved = await this.matches.save(match);
+    if (saved.status !== TournamentMatchStatus.Completed) await this.notifier?.matchScheduled(saved.id);
+    await this.notifier?.result(saved);
     return this.getMatch(tournamentId, saved.id);
+  }
+
+  // Every pairing of the chosen teams as group matches, spaced from `startAt` (owner 2026-11-10).
+  // Pairings already in that group (either order) are skipped, so a second click adds nothing twice.
+  async adminRoundRobin(tournamentId: string, dto: RoundRobinDto): Promise<{ created: number }> {
+    await this.getOrThrow(tournamentId);
+    const teamIds = [...new Set(dto.teamIds)];
+    if (teamIds.length < 2) throw new BadRequestException('Pick at least two teams');
+    const found = await this.teams.count({ where: { tournamentId, id: In(teamIds) } });
+    if (found !== teamIds.length) throw new BadRequestException('Both teams must be registered in this tournament');
+    const groupName = dto.groupName.trim() || 'A';
+    const existing = await this.matches.find({ where: { tournamentId, stage: TournamentMatchStage.Group }, select: { teamAId: true, teamBId: true, groupName: true } });
+    const taken = new Set(existing.filter((m) => (m.groupName || 'A') === groupName).map((m) => [m.teamAId, m.teamBId].sort().join(':')));
+    // Circle method: rounds where each team plays once, so nobody plays twice in a row early on.
+    const ring: Array<string | null> = teamIds.length % 2 ? [...teamIds, null] : [...teamIds];
+    const pairs: Array<[string, string, number]> = [];
+    for (let round = 0; round < ring.length - 1; round++) {
+      for (let i = 0; i < ring.length / 2; i++) {
+        const a = ring[i];
+        const b = ring[ring.length - 1 - i];
+        if (a && b) pairs.push([a, b, round + 1]);
+      }
+      ring.splice(1, 0, ring.pop()!);
+    }
+    const start = new Date(dto.startAt).getTime();
+    const rows: TournamentMatch[] = [];
+    for (const [a, b, round] of pairs) {
+      if (taken.has([a, b].sort().join(':'))) continue;
+      rows.push(
+        this.matches.create({
+          tournamentId,
+          stage: TournamentMatchStage.Group,
+          groupName,
+          roundLabel: `Round ${round}`,
+          teamAId: a,
+          teamBId: b,
+          map: dto.map?.trim() || null,
+          bestOf: dto.bestOf ?? 1,
+          scheduledAt: new Date(start + rows.length * dto.intervalMinutes * 60_000),
+          status: TournamentMatchStatus.Scheduled,
+          stats: {},
+        }),
+      );
+    }
+    const saved = rows.length ? await this.matches.save(rows) : [];
+    for (const m of saved) await this.notifier?.matchScheduled(m.id);
+    return { created: saved.length };
   }
 
   async adminUpdateMatch(tournamentId: string, matchId: string, dto: MatchDto): Promise<PublicTournamentMatch> {
     const match = await this.matches.findOne({ where: { id: matchId, tournamentId } });
     if (!match) throw new NotFoundException('Match not found');
+    const before = { a: match.teamAId, b: match.teamBId, at: match.scheduledAt?.getTime() ?? null };
     this.applyMatchDto(match, dto, await this.resolveStatAccounts(dto.stats));
     await this.assertTeamsBelong(tournamentId, match.teamAId, match.teamBId);
+    const moved = (match.scheduledAt?.getTime() ?? null) !== before.at;
+    // A new time means new reminders.
+    if (moved) {
+      match.remindedDayAt = null;
+      match.remindedHourAt = null;
+    }
     await this.matches.save(match);
+    if (match.status !== TournamentMatchStatus.Completed && (moved || match.teamAId !== before.a || match.teamBId !== before.b)) {
+      await this.notifier?.matchScheduled(match.id);
+    }
+    await this.notifier?.result(match);
     return this.getMatch(tournamentId, matchId);
   }
 
@@ -692,11 +771,15 @@ export class TournamentsService {
   async adminSetRoom(tournamentId: string, matchId: string, dto: MatchRoomDto): Promise<AdminTournamentMatch> {
     const match = await this.matches.findOne({ where: { id: matchId, tournamentId } });
     if (!match) throw new NotFoundException('Match not found');
+    const wasOpen = (side?: MatchRoomSide | null) => !!side?.open && !!(side.roomId || side.password || side.slot || side.serverUrl);
+    const openBefore = { a: wasOpen(match.room?.a), b: wasOpen(match.room?.b) };
     match.room = {
       a: dto.a !== undefined ? TournamentsService.roomSide(dto.a) : (match.room?.a ?? null),
       b: dto.b !== undefined ? TournamentsService.roomSide(dto.b) : (match.room?.b ?? null),
     };
     await this.matches.save(match);
+    const opened = (['a', 'b'] as const).filter((side) => !openBefore[side] && wasOpen(match.room[side]));
+    await this.notifier?.roomOpened(match.id, opened);
     const all = await this.adminListMatches(tournamentId);
     return all.find((m) => m.id === matchId)!;
   }

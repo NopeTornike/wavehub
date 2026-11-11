@@ -16,6 +16,7 @@ import { useFavorites } from '../lib/favorites'
 import { gel } from '../lib/money'
 import { kaDayMonth } from '../lib/dates'
 import { tournamentPrimaryHref } from '../lib/tournaments'
+import MatchCountdownCard from '../components/tournaments/MatchCountdownCard'
 import { BannerPlacement } from '@wavehub/shared-types'
 
 // The static prototype's home page (index.html + its inline scripts), section for section and in
@@ -402,6 +403,9 @@ export default function Home() {
             {/* The top hero only renders a published CMS banner. The former static marketplace-cover
                 fallback was removed at the owner's request. */}
             {hero && <HeroBanner banner={hero} rotation={heroRotation} banners={heroBanners} />}
+
+            {/* The player's next match, from 24h before it (owner 2026-11-10, round-6/11). */}
+            <MatchCountdownCard />
 
             {/* The same services row on phones and desktop (owner 2026-10-15; phones had their own,
                 different list). */}

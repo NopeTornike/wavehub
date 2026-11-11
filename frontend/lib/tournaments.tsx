@@ -120,6 +120,12 @@ const PATHS: Record<string, ReactNode> = {
   eye: <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
   checkCircle: <><circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" /></>,
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
+  xCircle: <><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6m0-6-6 6" /></>,
+  edit: <path d="M4 20h4L19 9l-4-4L4 16v4Zm9-13 4 4" />,
+  key: <><circle cx="8" cy="15" r="4" /><path d="m11 12 9-9m-4 4 3 3m-6 0 2 2" /></>,
+  seat: <path d="M5 11V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v5M3 11h18v5H3zM5 16v4m14-4v4" />,
+  lock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
+  bars: <path d="M5 20v-6m7 6V8m7 12V4" />,
 }
 
 export function TIcon({ name, className }: { name: keyof typeof PATHS | string; className?: string }) {
@@ -128,4 +134,41 @@ export function TIcon({ name, className }: { name: keyof typeof PATHS | string; 
       {PATHS[name]}
     </svg>
   )
+}
+
+// Group tables with points (owner 2026-11-10): W-L and points from completed group matches,
+// using the tournament's own points per win / loss. Sorted by points, then wins, losses, name.
+export type Standing = { team: TournamentTeamRef; wins: number; losses: number; points: number }
+
+export function groupStandings(matches: PublicTournamentMatch[], pointsPerWin = 3, pointsPerLoss = 0): Array<[string, Standing[]]> {
+  const groups = new Map<string, Map<string, Standing>>()
+  for (const m of matches.filter((x) => x.stage === TournamentMatchStage.Group)) {
+    const key = m.groupName || 'A'
+    const table = groups.get(key) ?? new Map<string, Standing>()
+    groups.set(key, table)
+    for (const team of [m.teamA, m.teamB]) if (team && !table.has(team.id)) table.set(team.id, { team, wins: 0, losses: 0, points: 0 })
+    const winner = matchWinner(m)
+    if (winner && m.teamA && m.teamB) {
+      const [w, l] = winner === 'a' ? [m.teamA, m.teamB] : [m.teamB, m.teamA]
+      const ws = table.get(w.id)!
+      const ls = table.get(l.id)!
+      ws.wins += 1
+      ws.points += pointsPerWin
+      ls.losses += 1
+      ls.points += pointsPerLoss
+    }
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, table]) => [
+      name,
+      [...table.values()].sort((x, y) => y.points - x.points || y.wins - x.wins || x.losses - y.losses || x.team.name.localeCompare(y.team.name)),
+    ])
+}
+
+// The caller's side of a match ('a' / 'b'), or null when neither team is theirs.
+export function mySide(m: PublicTournamentMatch, myTeamIds: Set<string>): 'a' | 'b' | null {
+  if (m.teamA && myTeamIds.has(m.teamA.id)) return 'a'
+  if (m.teamB && myTeamIds.has(m.teamB.id)) return 'b'
+  return null
 }

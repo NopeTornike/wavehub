@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, Column, UpdateDateColumn } from 'typeorm';
-import type { SupportPermissions } from '@wavehub/shared-types';
+import type { PlatformFeatures, SupportPermissions } from '@wavehub/shared-types';
 
 // Deliberately a singleton table — exactly one row, at a fixed well-known id (SINGLETON_ID below),
 // seeded by the CreatePlatformSettings migration. Simpler than a key/value settings table for the
@@ -45,6 +45,11 @@ export class PlatformSettings {
   // What the Support Specialist role may do beyond its defaults — set by Super Admin only.
   @Column({ type: 'jsonb', default: { walletAdjust: false, walletAdjustMax: 100, suspendUsers: false } })
   supportPermissions: SupportPermissions;
+
+  // Show/hide switches for public blocks (owner 2026-11-10): tournament leaderboard, marketplace
+  // sellers leaderboard, rewards hub. Public read: GET platform/features.
+  @Column({ type: 'jsonb', default: { tournamentLeaderboard: true, sellerLeaderboard: true, rewardsHub: true } })
+  features: PlatformFeatures;
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;

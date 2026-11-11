@@ -5,6 +5,10 @@ import { TournamentRegistration } from './tournament-registration.entity';
 import { TournamentTeam } from './tournament-team.entity';
 import { TournamentTeamMember } from './tournament-team-member.entity';
 import { TournamentMatch } from './tournament-match.entity';
+import { TournamentLeaderboardEntry } from './tournament-leaderboard-entry.entity';
+import { TournamentNotifier } from './tournament-notifier.service';
+import { TournamentLeaderboardService } from './tournament-leaderboard.service';
+import { SettingsModule } from '../settings/settings.module';
 import { User } from '../users/user.entity';
 import { Game } from '../listings/game.entity';
 import { TournamentsService } from './tournaments.service';
@@ -15,8 +19,8 @@ import { AdminModule } from '../admin/admin.module';
 import { StorageModule } from '../storage/storage.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Tournament, TournamentRegistration, TournamentTeam, TournamentTeamMember, TournamentMatch, Game, User]), AuthModule, AdminModule, StorageModule, NotificationsModule],
+  imports: [TypeOrmModule.forFeature([Tournament, TournamentRegistration, TournamentTeam, TournamentTeamMember, TournamentMatch, TournamentLeaderboardEntry, Game, User]), AuthModule, SettingsModule, AdminModule, StorageModule, NotificationsModule],
   controllers: [TournamentsController],
-  providers: [TournamentsService],
+  providers: [TournamentsService, TournamentNotifier, TournamentLeaderboardService],
 })
 export class TournamentsModule {}

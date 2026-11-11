@@ -57,6 +57,17 @@ export class Tournament {
   @Column({ type: 'jsonb', default: { places: [], specialRewards: [], note: null } })
   prizes: TournamentPrizes;
 
+  // Group-table points (owner 2026-11-10): per recorded group win / loss, and the points a team needs
+  // to leave the group (null = not announced). Shown on the hub's "my team" card and group tables.
+  @Column({ type: 'integer', default: 3 })
+  pointsPerWin: number;
+
+  @Column({ type: 'integer', default: 0 })
+  pointsPerLoss: number;
+
+  @Column({ type: 'integer', nullable: true })
+  qualifyPoints: number | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

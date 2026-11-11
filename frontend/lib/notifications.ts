@@ -51,7 +51,18 @@ export function notificationIcon(type: NotificationType): string {
     case NotificationType.SessionReviewRequest:
       return icon('star-notify')
     case NotificationType.TournamentTeamAdded:
+    case NotificationType.TournamentMatchWon:
+    case NotificationType.TournamentStarted:
       return icon('trophy')
+    case NotificationType.TournamentTeamVerified:
+      return icon('check-circle-green')
+    case NotificationType.TournamentTeamRejected:
+    case NotificationType.TournamentMatchLost:
+      return icon('warning')
+    case NotificationType.TournamentMatchScheduled:
+    case NotificationType.TournamentMatchReminder:
+    case NotificationType.TournamentRoomOpen:
+      return icon('calendar-coaching')
     case NotificationType.BadgeGranted:
       return icon('shield-check-green')
     default:

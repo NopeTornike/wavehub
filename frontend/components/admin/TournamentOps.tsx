@@ -242,6 +242,123 @@ function RoomEditor({ match, tournamentId, onSaved }: { match: AdminTournamentMa
   )
 }
 
+// One-line result entry on a match row (owner 2026-11-10: "the admin panel is tiring to fill"):
+// two scores + save marks the match completed — points, the group table and the players' win/loss
+// notifications follow from that.
+function QuickScore({ tournamentId, match, onSaved }: { tournamentId: string; match: AdminTournamentMatch; onSaved: () => void }) {
+  const [a, setA] = useState(match.scoreA === null ? '' : String(match.scoreA))
+  const [b, setB] = useState(match.scoreB === null ? '' : String(match.scoreB))
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState('')
+  const save = async () => {
+    const sa = Number(a)
+    const sb = Number(b)
+    if (a.trim() === '' || b.trim() === '' || !Number.isInteger(sa) || !Number.isInteger(sb) || sa < 0 || sb < 0) return setNote('ჩაწერე ორივე ანგარიში.')
+    setBusy(true)
+    setNote('')
+    try {
+      await api.adminUpdateTournamentMatch(tournamentId, match.id, { scoreA: sa, scoreB: sb, status: TournamentMatchStatus.Completed })
+      setNote('შენახულია ✓')
+      onSaved()
+    } catch (err) {
+      setNote(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="to-quick">
+      <span className="to-quick-team">{match.teamA?.name ?? 'TBD'}</span>
+      <input inputMode="numeric" aria-label="ანგარიში A" value={a} onChange={(e) => setA(e.target.value.replace(/\D/g, '').slice(0, 3))} />
+      <b>:</b>
+      <input inputMode="numeric" aria-label="ანგარიში B" value={b} onChange={(e) => setB(e.target.value.replace(/\D/g, '').slice(0, 3))} />
+      <span className="to-quick-team">{match.teamB?.name ?? 'TBD'}</span>
+      <button type="button" className="button" disabled={busy || !match.teamA || !match.teamB} onClick={() => void save()}>
+        {busy ? '…' : 'შედეგი ✓'}
+      </button>
+      {note && <small>{note}</small>}
+    </div>
+  )
+}
+
+// Every pairing of the picked teams as one group's matches, spaced in time (owner 2026-11-10).
+function RoundRobinPanel({ tournamentId, teams, onDone }: { tournamentId: string; teams: PublicTournamentTeam[]; onDone: () => void }) {
+  const verified = teams.filter((t) => t.status === TournamentTeamStatus.Verified)
+  const [picked, setPicked] = useState<string[]>(() => verified.map((t) => t.id))
+  const [group, setGroup] = useState('A')
+  const [startAt, setStartAt] = useState('')
+  const [gap, setGap] = useState(60)
+  const [map, setMap] = useState('')
+  const [bestOf, setBestOf] = useState(1)
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState('')
+  const toggle = (id: string) => setPicked((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]))
+  const n = picked.length
+  const run = async () => {
+    if (n < 2) return setNote('აირჩიე მინიმუმ 2 გუნდი.')
+    if (!startAt) return setNote('მიუთითე პირველი მატჩის დრო.')
+    setBusy(true)
+    setNote('')
+    try {
+      const res = await api.adminTournamentRoundRobin(tournamentId, { teamIds: picked, groupName: group.trim() || 'A', startAt: new Date(startAt).toISOString(), intervalMinutes: gap, map: map.trim() || null, bestOf })
+      setNote(res.created ? `შეიქმნა ${res.created} მატჩი ✓ — მოთამაშეებს შეტყობინება მიუვიდათ.` : 'ახალი წყვილი არ დარჩა — ეს მატჩები უკვე არსებობს.')
+      onDone()
+    } catch (err) {
+      setNote(errorMessage(err, 'შედგენა ვერ მოხერხდა.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <details className="field to-rr">
+      <summary>⚡ ჯგუფის მატჩების ავტომატური შედგენა</summary>
+      <p className="note">მონიშნე გუნდები — ყველა ყველასთან ითამაშებს ერთხელ ({n >= 2 ? `${(n * (n - 1)) / 2} მატჩი` : '—'}). უკვე არსებული წყვილები არ მეორდება.</p>
+      {verified.length < 2 ? (
+        <p className="note">ჯერ დაადასტურე მინიმუმ 2 გუნდი.</p>
+      ) : (
+        <>
+          <div className="to-rr-teams">
+            {verified.map((t) => (
+              <label key={t.id} className={picked.includes(t.id) ? 'on' : undefined}>
+                <input type="checkbox" checked={picked.includes(t.id)} onChange={() => toggle(t.id)} />
+                {t.name}
+              </label>
+            ))}
+          </div>
+          <div className="stack-form-grid">
+            <label className="field">
+              ჯგუფი
+              <input maxLength={10} value={group} onChange={(e) => setGroup(e.target.value)} />
+            </label>
+            <label className="field">
+              პირველი მატჩის დრო
+              <input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+            </label>
+            <label className="field">
+              შუალედი (წუთი)
+              <input type="number" min={0} max={1440} value={gap} onChange={(e) => setGap(Math.max(0, Math.min(1440, Number(e.target.value) || 0)))} />
+            </label>
+            <label className="field">
+              რუკა
+              <input maxLength={40} value={map} onChange={(e) => setMap(e.target.value)} placeholder="მაგ. Erangel" />
+            </label>
+            <label className="field">
+              Best of
+              <input type="number" min={1} max={9} value={bestOf} onChange={(e) => setBestOf(Number(e.target.value) || 1)} />
+            </label>
+          </div>
+          <div className="admin-row-actions">
+            <button type="button" className="button" disabled={busy} onClick={() => void run()}>
+              {busy ? 'იქმნება…' : 'მატჩების შედგენა'}
+            </button>
+          </div>
+        </>
+      )}
+      {note && <p className="note">{note}</p>}
+    </details>
+  )
+}
+
 export default function TournamentOps({ tournament, onChanged }: { tournament: PublicTournamentSummary; onChanged: () => void }) {
   const [teams, setTeams] = useState<PublicTournamentTeam[]>([])
   const [matches, setMatches] = useState<AdminTournamentMatch[]>([])
@@ -308,6 +425,22 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
     }
   }
 
+  const pending = teams.filter((t) => t.status === TournamentTeamStatus.Pending)
+  const verifyAll = async () => {
+    if (!window.confirm(`დავადასტუროთ ${pending.length} გუნდი?`)) return
+    setBusy(true)
+    try {
+      for (const team of pending) await api.adminSetTournamentTeamStatus(tournament.id, team.id, TournamentTeamStatus.Verified)
+      load()
+      onChanged()
+    } catch (err) {
+      setError(errorMessage(err, 'სტატუსის შეცვლა ვერ მოხერხდა.'))
+      load()
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const liveTeams = teams.filter((t) => t.status !== TournamentTeamStatus.Rejected)
   const teamOptions = (
     <>
@@ -328,7 +461,21 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
         </div>
       )}
 
-      <h2>გუნდები ({teams.length})</h2>
+      <ol className="to-steps">
+        <li className={pending.length === 0 && teams.length > 0 ? 'done' : undefined}>გუნდების დადასტურება</li>
+        <li className={matches.length > 0 ? 'done' : undefined}>მატჩების შედგენა</li>
+        <li className={matches.some((m) => m.room.a?.open || m.room.b?.open) ? 'done' : undefined}>ოთახის გახსნა მატჩამდე</li>
+        <li className={matches.some((m) => m.status === TournamentMatchStatus.Completed) ? 'done' : undefined}>შედეგის ჩაწერა</li>
+      </ol>
+
+      <h2>
+        გუნდები ({teams.length})
+        {pending.length > 1 && (
+          <button type="button" className="button to-inline-btn" disabled={busy} onClick={() => void verifyAll()}>
+            ყველა მოლოდინში მყოფის დადასტურება ({pending.length})
+          </button>
+        )}
+      </h2>
       {teams.length === 0 ? (
         <p className="note">ჯერ არავინ დარეგისტრირებულა.</p>
       ) : (
@@ -382,6 +529,7 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
       )}
 
       <h2>მატჩები ({matches.length})</h2>
+      <RoundRobinPanel key={teams.map((t) => `${t.id}${t.status}`).join()} tournamentId={tournament.id} teams={teams} onDone={load} />
       {matches.map((m) =>
         editing === m.id ? null : (
           <div key={m.id} className="admin-row">
@@ -414,6 +562,7 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
                 წაშლა
               </button>
             </div>
+            {m.teamA && m.teamB && <QuickScore key={`${m.id}:${m.scoreA}:${m.scoreB}`} tournamentId={tournament.id} match={m} onSaved={load} />}
             {roomFor === m.id && (
               <RoomEditor
                 match={m}

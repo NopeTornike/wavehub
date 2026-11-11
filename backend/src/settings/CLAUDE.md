@@ -120,3 +120,11 @@ yet.
   The frontend `lib/timings.ts#usePlatformTimings` uses them for the buyer-facing warnings (order
   page, Escrow explainer, coach session text).
 - Covered by `test/client-feedback.e2e-spec.ts`.
+
+## 2026-11-10 Feature switches
+`platform_settings.features` jsonb `{tournamentLeaderboard, sellerLeaderboard, rewardsHub}`, all
+true by default (migration `1784395000000`). Public read is `GET platform/features`, which returns
+only those booleans. `getFeatures()` is cached for 15s, and `setFeatures(patch)` clears the cache.
+Super Admin can set them through `POST admin/platform-settings` `{features: {...}}`. Tournament staff
+set the leaderboard switch through `POST admin/tournament-leaderboard/visibility`. Each public block
+hides itself when its switch is off.

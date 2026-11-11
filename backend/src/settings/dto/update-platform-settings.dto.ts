@@ -16,6 +16,21 @@ export class SupportPermissionsDto {
   suspendUsers: boolean;
 }
 
+// Show/hide switches; send only the ones that change.
+export class PlatformFeaturesDto {
+  @IsOptional()
+  @IsBoolean()
+  tournamentLeaderboard?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  sellerLeaderboard?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  rewardsHub?: boolean;
+}
+
 export class UpdatePlatformSettingsDto {
   @IsOptional()
   @IsInt()
@@ -55,4 +70,9 @@ export class UpdatePlatformSettingsDto {
   @ValidateNested()
   @Type(() => SupportPermissionsDto)
   supportPermissions?: SupportPermissionsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PlatformFeaturesDto)
+  features?: PlatformFeaturesDto;
 }

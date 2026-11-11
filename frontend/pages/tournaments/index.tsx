@@ -7,6 +7,7 @@ import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { BannerPlacement } from '@wavehub/shared-types'
 import HomeBanners from '../../components/HomeBanners'
+import TournamentLeaderboard from '../../components/tournaments/TournamentLeaderboard'
 
 // Every tournament, in the docs/design-mockups/02 board layout. Signed-in users get shortcuts to
 // their own tournaments and the hub.
@@ -52,6 +53,8 @@ export default function Tournaments() {
         emptyTitle="ტურნირი ჯერ არ არის"
         emptyText="ადმინისტრაციის მიერ დამატებული ახალი ჩემპიონატები აქ გამოჩნდება."
       />
+      {/* Hand-entered by staff, hideable (owner 2026-11-10, round-6/10). */}
+      <TournamentLeaderboard />
     </Layout>
   )
 }
