@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { SettingsModule } from '../settings/settings.module';
 import { CommunityController } from './community.controller';
 import { CommunityService } from './community.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, SettingsModule],
   controllers: [CommunityController],
   providers: [CommunityService],
   exports: [CommunityService],

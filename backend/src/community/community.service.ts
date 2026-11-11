@@ -1,7 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { WAVE_RANK_TIERS } from '@wavehub/shared-types';
-import type { GameListingCount, OnlineStats, SellerRanks, WaveRank } from '@wavehub/shared-types';
+import type {
+  GameListingCount,
+  OnlineStats,
+  SellerLeaderboard,
+  SellerLeaderboardPeriod,
+  SellerLeaderboardRow,
+  SellerLeaderboardSort,
+  SellerRanks,
+  WaveRank,
+} from '@wavehub/shared-types';
+import { PlatformSettingsService } from '../settings/platform-settings.service';
 
 // Accounts that made an authenticated request within this window count as "online".
 export const ONLINE_WINDOW_MINUTES = 5;
@@ -52,7 +62,110 @@ export class CommunityService {
 
   private sellerTierCache?: { at: number; value: Record<string, string> };
 
-  constructor(private readonly db: DataSource) {}
+  private leaderboardCache = new Map<string, { at: number; value: Omit<SellerLeaderboard, 'visible'> }>();
+
+  constructor(
+    private readonly db: DataSource,
+    @Optional() private readonly settings?: PlatformSettingsService,
+  ) {}
+
+  // Marketplace sellers leaderboard (owner 2026-11-10, round-6/03): top 5 by the chosen tab plus
+  // site-wide totals for the same period. One cached SQL per (sort, period) for 60s, so a busy
+  // marketplace costs at most a handful of queries a minute. Off → { visible: false } and no query.
+  async sellerLeaderboard(sort: SellerLeaderboardSort, period: SellerLeaderboardPeriod): Promise<SellerLeaderboard> {
+    const features = this.settings ? await this.settings.getFeatures() : null;
+    if (features && !features.sellerLeaderboard) {
+      return { visible: false, sort, period, rows: [], totals: { products: 0, sales: 0, rating: null, ratingCount: 0 } };
+    }
+    const key = `${sort}:${period}`;
+    const hit = this.leaderboardCache.get(key);
+    if (hit && Date.now() - hit.at < SELLER_RANK_TTL_MS) return { visible: true, ...hit.value };
+
+    const days = period === '7d' ? 7 : period === '30d' ? 30 : null;
+    // $1 = start of the period (NULL = all time).
+    const since = days ? new Date(Date.now() - days * 86_400_000) : null;
+    const order =
+      sort === 'products'
+        ? 'products DESC, sales DESC, rating DESC NULLS LAST'
+        : sort === 'sales'
+          ? 'sales DESC, products DESC, rating DESC NULLS LAST'
+          : sort === 'rating'
+            ? 'rating DESC NULLS LAST, "ratingCount" DESC, sales DESC'
+            : 'sales DESC, "ratingCount" DESC, products DESC, rating DESC NULLS LAST';
+    // "Highest rating" ranks only sellers who have a rating in the period.
+    const where = sort === 'rating' ? '"ratingCount" > 0' : '(products > 0 OR sales > 0 OR "ratingCount" > 0)';
+    const rows: Array<{
+      id: string;
+      username: string;
+      firstName: string | null;
+      lastName: string | null;
+      avatarUrl: string | null;
+      verified: boolean;
+      products: number;
+      sales: number;
+      rating: string | null;
+      ratingCount: number;
+    }> = await this.db.query(
+      `WITH p AS (
+         SELECT l."sellerId" AS id, count(*)::int AS n FROM "listings" l
+         WHERE l."status" = 'active' AND l."type" <> 'digital_key' GROUP BY 1
+       ), s AS (
+         SELECT o."sellerId" AS id, count(*)::int AS n FROM "orders" o
+         JOIN "listings" l ON l."id" = o."listingId" AND l."type" <> 'digital_key'
+         WHERE o."status" = 'completed' AND ($1::timestamptz IS NULL OR o."completedAt" >= $1) GROUP BY 1
+       ), r AS (
+         SELECT rv."sellerId" AS id, count(*)::int AS n, avg(rv."rating")::numeric(4,2) AS avg FROM "reviews" rv
+         WHERE rv."status" = 'published' AND ($1::timestamptz IS NULL OR rv."createdAt" >= $1) GROUP BY 1
+       ), stats AS (
+         SELECT u."id", u."username", u."firstName", u."lastName", u."avatarUrl",
+           COALESCE(p.n, 0) AS products, COALESCE(s.n, 0) AS sales, r.avg AS rating, COALESCE(r.n, 0) AS "ratingCount"
+         FROM "users" u
+         LEFT JOIN p ON p.id = u."id" LEFT JOIN s ON s.id = u."id" LEFT JOIN r ON r.id = u."id"
+         WHERE u."status" = 'active' AND (p.id IS NOT NULL OR s.id IS NOT NULL OR r.id IS NOT NULL)
+       )
+       SELECT stats.*, EXISTS (SELECT 1 FROM "user_badges" b WHERE b."userId" = stats."id" AND b."badgeKey" = 'verified') AS verified
+       FROM stats WHERE ${where}
+       ORDER BY ${order}, "username" ASC
+       LIMIT 5`,
+      [since],
+    );
+    const [totals]: Array<{ products: number; sales: number; rating: string | null; ratingCount: number }> = await this.db.query(
+      `SELECT
+         (SELECT count(*) FROM "listings" l JOIN "users" u ON u."id" = l."sellerId" AND u."status" = 'active'
+            WHERE l."status" = 'active' AND l."type" <> 'digital_key')::int AS products,
+         (SELECT count(*) FROM "orders" o JOIN "listings" l ON l."id" = o."listingId" AND l."type" <> 'digital_key'
+            WHERE o."status" = 'completed' AND ($1::timestamptz IS NULL OR o."completedAt" >= $1))::int AS sales,
+         (SELECT avg("rating")::numeric(4,2) FROM "reviews" WHERE "status" = 'published' AND ($1::timestamptz IS NULL OR "createdAt" >= $1)) AS rating,
+         (SELECT count(*) FROM "reviews" WHERE "status" = 'published' AND ($1::timestamptz IS NULL OR "createdAt" >= $1))::int AS "ratingCount"`,
+      [since],
+    );
+    const value: Omit<SellerLeaderboard, 'visible'> = {
+      sort,
+      period,
+      rows: rows.map(
+        (row, index): SellerLeaderboardRow => ({
+          rank: index + 1,
+          username: row.username,
+          firstName: row.firstName ?? '',
+          lastName: row.lastName ?? '',
+          avatarUrl: row.avatarUrl,
+          verified: !!row.verified,
+          products: Number(row.products),
+          sales: Number(row.sales),
+          rating: row.rating === null ? null : Number(row.rating),
+          ratingCount: Number(row.ratingCount),
+        }),
+      ),
+      totals: {
+        products: totals?.products ?? 0,
+        sales: totals?.sales ?? 0,
+        rating: totals?.rating == null ? null : Number(totals.rating),
+        ratingCount: totals?.ratingCount ?? 0,
+      },
+    };
+    this.leaderboardCache.set(key, { at: Date.now(), value });
+    return { visible: true, ...value };
+  }
 
   // The prototype's getMarketplaceSellerWaveRank ordering: completed sales, then published reviews
   // received, then active listings, then average rating, then username — over every account that

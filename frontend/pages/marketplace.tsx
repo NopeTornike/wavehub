@@ -12,6 +12,7 @@ import { gel } from '../lib/money'
 import StepsGuide, { type StepIcon } from '../components/StepsGuide'
 import { escrowSteps } from '../components/EscrowExplainer'
 import HomeBanners from '../components/HomeBanners'
+import SellerLeaderboard from '../components/SellerLeaderboard'
 import { BannerPlacement } from '@wavehub/shared-types'
 import { restoreScroll, saveSnapshot, takeSnapshot } from '../lib/scroll-memory'
 
@@ -350,6 +351,8 @@ export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boole
           </div>
         )}
       </section>
+
+      {!servicesOnly && <SellerLeaderboard />}
 
       <footer className={`marketplace-cart-footer${cart.count === 0 ? ' is-empty' : ''}`} aria-label="კალათა">
         <Link className="marketplace-cart-button" id="cartButton" href="/cart">

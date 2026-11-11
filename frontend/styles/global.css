@@ -24158,3 +24158,87 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 .stack-form .to-quick .button { flex: 0 0 auto; width: auto; margin: 0; }
 .lb-admin-switch .button { flex: 0 0 auto; width: auto; padding-inline: 22px; }
 .lb-admin-switch > span { flex: 1 1 auto; }
+
+/* Marketplace sellers leaderboard (owner 2026-11-10, docs/design-mockups/round-6/03) —
+   components/SellerLeaderboard.tsx. Desktop = the mockup's table; ≤760px each seller is a card
+   with the three numbers in a row under the name. */
+.sl-board { margin: 28px 0 24px; padding: 20px; border: 1px solid rgba(214, 74, 255, .45); border-radius: 22px; background: radial-gradient(80% 120% at 0% 0%, rgba(150, 40, 200, .2), transparent 60%), linear-gradient(160deg, rgba(26, 10, 38, .96), rgba(10, 6, 20, .97)); box-shadow: 0 0 30px rgba(200, 60, 255, .14); color: #f3eaff; }
+.sl-board svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sl-head { display: flex; align-items: center; gap: 14px; }
+.sl-head-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .12); }
+.sl-head-icon svg { width: 28px; height: 28px; }
+.sl-head-text { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
+.sl-head-text h2 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 800; letter-spacing: -.01em; background: linear-gradient(90deg, #f5ecff, #d9a8ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sl-head-text small { color: #bfb0d6; font-size: 14px; }
+.sl-period { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; height: 44px; border-radius: 999px; border: 1px solid rgba(214, 74, 255, .45); background: rgba(255, 255, 255, .04); }
+.sl-period select { appearance: none; -webkit-appearance: none; border: 0; background: transparent; color: #fff; font: inherit; font-weight: 600; padding-right: 16px; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, #fff 50%), linear-gradient(135deg, #fff 50%, transparent 50%); background-position: right 4px center, right 0 center; background-size: 4px 4px; background-repeat: no-repeat; }
+.sl-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 18px 0 14px; padding: 6px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .1); background: rgba(255, 255, 255, .03); }
+.sl-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: #e3d8f5; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.sl-tabs button:hover { background: rgba(255, 255, 255, .05); }
+.sl-tabs button.active { color: #fff; border-color: #d64aff; background: linear-gradient(180deg, rgba(190, 60, 255, .35), rgba(120, 30, 190, .3)); box-shadow: 0 0 18px rgba(214, 74, 255, .45), inset 0 0 12px rgba(255, 255, 255, .08); }
+.sl-table { display: grid; gap: 8px; padding: 10px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, .08); background: rgba(255, 255, 255, .02); }
+.sl-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) 130px 130px 170px; align-items: center; gap: 10px; }
+.sl-cols { padding: 4px 14px 6px; color: #d7cbe9; font-weight: 600; font-size: 15px; }
+.sl-cols span { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.sl-cols span:nth-child(2) { justify-content: flex-start; }
+.sl-seller { min-height: 68px; padding: 8px 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, .08); background: rgba(255, 255, 255, .03); }
+.sl-seller.p1 { border-color: #f2c14e; background: linear-gradient(90deg, rgba(160, 110, 10, .38), rgba(80, 50, 10, .18) 45%, rgba(255, 255, 255, .02)); box-shadow: 0 0 22px rgba(242, 193, 78, .28); }
+.sl-seller.p2 { background: linear-gradient(90deg, rgba(160, 170, 200, .16), rgba(255, 255, 255, .02) 45%); }
+.sl-seller.p3 { background: linear-gradient(90deg, rgba(200, 100, 40, .2), rgba(255, 255, 255, .02) 45%); }
+.sl-rank { display: grid; place-items: center; }
+.sl-medal { width: 56px !important; height: 44px !important; stroke: none !important; }
+.sl-num { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); font-size: 18px; font-weight: 800; }
+.sl-who { display: flex; align-items: center; gap: 14px; min-width: 0; color: inherit; text-decoration: none; }
+.sl-who .wh-avatar { flex: none; box-shadow: 0 0 0 2px #d64aff, 0 0 12px rgba(214, 74, 255, .45); border-radius: 50%; }
+.sl-who > span { display: grid; min-width: 0; }
+.sl-who strong { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 17px; font-weight: 800; }
+.sl-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-who .wh-verified { flex: none; color: #d64aff; }
+.sl-who small { color: #b9abd0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-who:hover strong .sl-name { text-decoration: underline; }
+.sl-stat { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; border-left: 1px solid rgba(255, 255, 255, .1); }
+.sl-stat b { font-weight: 800; }
+.sl-stat small { color: #c9bddc; font-size: 15px; }
+.sl-stat em { font-style: normal; color: #c9bddc; font-size: 14px; }
+.sl-star { fill: #ffc531 !important; stroke: #ffc531 !important; }
+.sl-empty { margin: 0; padding: 22px; text-align: center; color: #bfb0d6; }
+.sl-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; padding: 14px 10px; border-radius: 18px; border: 1px solid rgba(214, 74, 255, .5); background: rgba(255, 255, 255, .02); box-shadow: inset 0 0 22px rgba(214, 74, 255, .1); }
+.sl-totals > span { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.sl-totals > span + span { border-left: 1px solid rgba(255, 255, 255, .1); }
+.sl-totals svg { width: 40px; height: 40px; }
+.sl-totals svg.pink { color: #e05cff; }
+.sl-totals svg.gold { color: #ffc531; }
+.sl-totals > span > span { display: grid; }
+.sl-totals small { color: #d7cbe9; font-size: 14px; }
+.sl-totals b { font-size: 26px; font-weight: 800; }
+@media (max-width: 1100px) {
+  .sl-row { grid-template-columns: 64px minmax(0, 1fr) 96px 96px 140px; }
+  .sl-tabs button { font-size: 14px; padding: 0 8px; }
+}
+@media (max-width: 760px) {
+  .sl-board { padding: 14px; border-radius: 18px; }
+  .sl-head { flex-wrap: wrap; gap: 10px; }
+  .sl-head-icon { width: 40px; height: 40px; }
+  .sl-period { order: 3; width: 100%; justify-content: center; }
+  .sl-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 18px; }
+  .sl-tabs button { min-height: 40px; font-size: 13px; white-space: normal; text-align: center; line-height: 1.15; }
+  .sl-table { padding: 6px; }
+  .sl-cols { display: none; }
+  .sl-seller { grid-template-columns: 48px minmax(0, 1fr); grid-template-areas: "rank who" "stats stats"; row-gap: 8px; padding: 10px; }
+  .sl-seller .sl-rank { grid-area: rank; }
+  .sl-seller .sl-who { grid-area: who; }
+  .sl-medal { width: 46px !important; height: 36px !important; }
+  .sl-num { width: 34px; height: 34px; font-size: 16px; }
+  .sl-seller .sl-stat { grid-row: 2; font-size: 15px; border-left: 0; flex-direction: column; gap: 2px; padding: 6px 2px; border-radius: 10px; background: rgba(255, 255, 255, .04); }
+  .sl-seller .sl-stat::after { content: attr(data-label); font-size: 11px; color: #b9abd0; }
+  .sl-seller { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: none; }
+  .sl-seller .sl-rank { grid-row: 1; grid-column: 1; justify-self: start; }
+  .sl-seller .sl-who { grid-row: 1; grid-column: 1 / -1; padding-left: 52px; }
+  .sl-seller .sl-stat svg { width: 16px; height: 16px; }
+  .sl-seller .sl-stat small { font-size: 12px; }
+  .sl-totals { padding: 10px 4px; }
+  .sl-totals > span { flex-direction: column; gap: 4px; text-align: center; }
+  .sl-totals svg { width: 26px; height: 26px; }
+  .sl-totals small { font-size: 11px; }
+  .sl-totals b { font-size: 18px; }
+}

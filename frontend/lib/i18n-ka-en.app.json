@@ -3010,5 +3010,14 @@
   "„{0}“ დადასტურებულია ტურნირზე „{1}“. მატჩების განრიგი ჰაბში გამოჩნდება.": "“{0}” is verified for “{1}”. The match schedule will appear in the hub.",
   "„{0}“-ის რეგისტრაცია ტურნირზე „{1}“ უარყოფილია. დეტალებისთვის მიმართე მხარდაჭერას.": "“{0}”'s registration for “{1}” was rejected. Contact support for details.",
   "Room ID, პაროლი და შენი ადგილი უკვე ხელმისაწვდომია — {0} vs {1}.": "Room ID, password and your seat are available now — {0} vs {1}.",
-  "„{0}“ დაიწყო — მატჩები, ოთახი და ცხრილი ჰაბშია.": "“{0}” has started — matches, the room and the table are in the hub."
+  "„{0}“ დაიწყო — მატჩები, ოთახი და ცხრილი ჰაბშია.": "“{0}” has started — matches, the room and the table are in the hub.",
+  "ბოლო 30 დღე": "Last 30 days",
+  "ბოლო 7 დღე": "Last 7 days",
+  "ამ პერიოდში მონაცემები ჯერ არ არის.": "No data for this period yet.",
+  "დალაგება": "Sort",
+  "საიტის ბლოკები": "Site blocks",
+  "გამორთული ბლოკი საიტზე საერთოდ არ ჩანს. რიცხვები ყოველთვის რეალური მონაცემებიდანაა.": "A switched-off block doesn't appear on the site at all. Numbers always come from real data.",
+  "Marketplace Leaderboard — Top 5 გამყიდველი მარკეტის გვერდზე": "Marketplace Leaderboard — top 5 sellers on the marketplace page",
+  "ტურნირების Leaderboard — /tournaments გვერდზე": "Tournament Leaderboard — on the /tournaments page",
+  "{0} ადგილი": "Place {0}"
 }

@@ -18,6 +18,9 @@ export default function AdminSettings() {
   const [sessionAutoConfirmHours, setSessionAutoConfirmHours] = useState(48)
   const [minWithdrawalWaveCoin, setMinWithdrawalWaveCoin] = useState(20)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
+  // Public blocks staff can switch off (owner 2026-11-10).
+  const [sellerLeaderboard, setSellerLeaderboard] = useState(true)
+  const [tournamentLeaderboard, setTournamentLeaderboard] = useState(true)
   // What the Support Specialist role may do beyond its defaults (both off by default).
   const [supportPerms, setSupportPerms] = useState<SupportPermissions>({ walletAdjust: false, walletAdjustMax: 100, suspendUsers: false })
 
@@ -36,6 +39,8 @@ export default function AdminSettings() {
         setSessionAutoConfirmHours(data.sessionAutoConfirmHours)
         setMinWithdrawalWaveCoin(data.minWithdrawalWaveCoin)
         setMaintenanceMode(data.maintenanceMode)
+        setSellerLeaderboard(data.features?.sellerLeaderboard !== false)
+        setTournamentLeaderboard(data.features?.tournamentLeaderboard !== false)
         if (data.supportPermissions) setSupportPerms(data.supportPermissions)
       })
       .catch((err) => {
@@ -73,6 +78,7 @@ export default function AdminSettings() {
         minWithdrawalWaveCoin,
         maintenanceMode,
         supportPermissions: supportPerms,
+        features: { sellerLeaderboard, tournamentLeaderboard },
       })
       setSettings(updated)
       setSaved(true)
@@ -182,6 +188,19 @@ export default function AdminSettings() {
               ჩართვისას საიტი უარყოფს ცვლილებებს ყველასგან, გარდა ადმინისტრაციისა.
             </p>
           </div>
+
+          <fieldset className="form-group sp-perms">
+            <legend>საიტის ბლოკები</legend>
+            <p className="note">გამორთული ბლოკი საიტზე საერთოდ არ ჩანს. რიცხვები ყოველთვის რეალური მონაცემებიდანაა.</p>
+            <label>
+              <input type="checkbox" checked={sellerLeaderboard} onChange={(event) => setSellerLeaderboard(event.target.checked)} style={{ marginRight: 8 }} />
+              Marketplace Leaderboard — Top 5 გამყიდველი მარკეტის გვერდზე
+            </label>
+            <label>
+              <input type="checkbox" checked={tournamentLeaderboard} onChange={(event) => setTournamentLeaderboard(event.target.checked)} style={{ marginRight: 8 }} />
+              ტურნირების Leaderboard — /tournaments გვერდზე
+            </label>
+          </fieldset>
 
           <fieldset className="form-group sp-perms">
             <legend>Support-ის უფლებები</legend>

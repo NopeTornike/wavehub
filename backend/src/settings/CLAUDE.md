@@ -128,3 +128,6 @@ only those booleans. `getFeatures()` is cached for 15s, and `setFeatures(patch)`
 Super Admin can set them through `POST admin/platform-settings` `{features: {...}}`. Tournament staff
 set the leaderboard switch through `POST admin/tournament-leaderboard/visibility`. Each public block
 hides itself when its switch is off.
+- Admin → Settings has a "საიტის ბლოკები" section with the `sellerLeaderboard` and
+  `tournamentLeaderboard` switches (saved through the normal `features` patch; the tournament one is
+  the same flag as the switch on Admin → Tournaments → Leaderboard).

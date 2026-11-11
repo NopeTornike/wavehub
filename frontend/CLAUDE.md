@@ -1515,3 +1515,9 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
     - `pages/admin/tournaments/leaderboard.tsx` (`lb-admin-`) manages the leaderboard and its
       show / hide switch. It sits under `/admin/tournaments/`, so Game Managers reach it.
   - Notification icons cover the new `tournament_*` types.
+- **Marketplace sellers leaderboard (2026-11-12, round-6/03):** `components/SellerLeaderboard.tsx`
+  (`sl-` CSS) under the product grid on `/marketplace` (not `/services`): period select (All Time /
+  30 / 7 days), tabs Overall / Most Products / Most Sales / Highest Rating, top 5 with gold / silver /
+  bronze crowns, totals footer. Phones (≤760px): each seller is a card with three number boxes. It
+  renders nothing while switched off (Admin → Settings → საიტის ბლოკები) or before any seller exists.
+  Data rules: `backend/src/community/CLAUDE.md`.

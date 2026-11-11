@@ -61,3 +61,18 @@ are recent events. `CommunityService` is exported (coach profiles show the coach
 
 - 2026-10-15: `GET stats/games` counts **item** listings only (services live on `/services`, keys on
   `/steam-keys`), matching the marketplace, which now lists items only.
+
+## Marketplace sellers leaderboard (owner 2026-11-10, `docs/design-mockups/round-6/03`)
+- Public `GET stats/seller-leaderboard?sort=overall|products|sales|rating&period=all|30d|7d` →
+  `SellerLeaderboard` (top 5 rows + site-wide totals). Unknown values fall back to `overall` / `all`.
+- Numbers (Steam keys excluded everywhere, since staff publish them):
+  - **products** = the seller's `active` listings now (not period-bound);
+  - **sales** = `completed` orders, `completedAt` inside the period;
+  - **rating** = average + count of `published` reviews created inside the period.
+- Order: overall = sales, review count, products, rating; each tab sorts by its own number first.
+  "Highest rating" lists only sellers with ≥1 review in the period. Only `active` accounts. The
+  verified mark is the `verified` badge in `user_badges`.
+- Cached 60s per (sort, period) per process; `features.sellerLeaderboard = false` (Admin → Settings →
+  site blocks) returns `{ visible: false, rows: [] }` without querying. `CommunityModule` imports
+  `SettingsModule` for this (the settings service is `@Optional` so unit specs can build it bare).
+- e2e: `test/owner-2026-11-12-seller-leaderboard.e2e-spec.ts`.

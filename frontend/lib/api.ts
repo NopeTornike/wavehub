@@ -23,6 +23,9 @@ import type {
   ProfileTitle,
   OnlineStats,
   SellerRanks,
+  SellerLeaderboard,
+  SellerLeaderboardPeriod,
+  SellerLeaderboardSort,
   WaveRank,
   PublicUser,
   PublicCategory,
@@ -839,6 +842,10 @@ export const api = {
 
   getSellerRanks: () => request<SellerRanks>('/stats/seller-ranks'),
 
+  // Marketplace sellers leaderboard (top 5 + totals); { visible: false } when staff switched it off.
+  getSellerLeaderboard: (sort: SellerLeaderboardSort, period: SellerLeaderboardPeriod) =>
+    request<SellerLeaderboard>(`/stats/seller-leaderboard?sort=${sort}&period=${period}`),
+
   // --- Admin panel --- (backend/src/admin/, plus admin-only routes on each domain module).
   // Server-side role checks are the real enforcement (AdminGuard/@RequireAdminRole) — the
   // frontend's role checks in components/AdminLayout.tsx only decide what to *show*, calling one
@@ -956,6 +963,7 @@ export const api = {
     sessionAutoConfirmHours?: number
     maintenanceMode?: boolean
     supportPermissions?: SupportPermissions
+    features?: Partial<PlatformFeatures>
   }) =>
     request<PublicPlatformSettings>('/admin/platform-settings', {
       method: 'POST',

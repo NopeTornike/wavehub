@@ -1196,6 +1196,8 @@ export interface PublicPlatformSettings {
   sessionAutoConfirmHours: number;
   maintenanceMode: boolean;
   supportPermissions: SupportPermissions;
+  // Show/hide switches for public blocks (see PlatformFeatures).
+  features?: Partial<PlatformFeatures>;
   updatedAt: string;
 }
 
@@ -1887,6 +1889,31 @@ export function waveRankIcon(name: string | null | undefined): string {
 // getMarketplaceSellerWaveRank order: completed sales, then reviews, then active listings, then
 // average rating. Keyed by username; sellers with no activity are absent ("unranked").
 export type SellerRanks = Record<string, number>;
+
+// Marketplace sellers leaderboard (owner 2026-11-10, docs/design-mockups/round-6/03). Every number is
+// live data: products = the seller's active listings now; sales = completed orders (in the period);
+// rating = published buyer reviews (in the period). Steam keys are excluded (staff-published).
+export type SellerLeaderboardSort = 'overall' | 'products' | 'sales' | 'rating';
+export type SellerLeaderboardPeriod = 'all' | '30d' | '7d';
+export interface SellerLeaderboardRow {
+  rank: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  verified: boolean;
+  products: number;
+  sales: number;
+  rating: number | null;
+  ratingCount: number;
+}
+export interface SellerLeaderboard {
+  visible: boolean;
+  sort: SellerLeaderboardSort;
+  period: SellerLeaderboardPeriod;
+  rows: SellerLeaderboardRow[];
+  totals: { products: number; sales: number; rating: number | null; ratingCount: number };
+}
 
 // GET /admin/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD — Super Admin only
 // (backend/src/analytics/). Money is WaveCoin, which is 1:1 GEL; subscription and top-up
