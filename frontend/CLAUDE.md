@@ -1487,3 +1487,6 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   `/notifications` (`localStorage wavehub.notifications.soundOff`). Limit: a phone with the site in
   the background or the screen locked can't play anything — that needs Web Push (service worker), not
   built.
+- **Admin → Orders (2026-11-10):** `pages/admin/orders.tsx` (`ao-` CSS) lists every order: number,
+  status, time, listing, buyer → seller with avatars, amount, seller email, "message seller" (opens a
+  DM) and "open". `?q=` pre-fills the search (the staff bell links there). Nav item "შეკვეთები".

@@ -292,3 +292,16 @@ chat. Before this, staff clicking a dispute got "This order doesn't belong to yo
 the resolve buttons (owner report). Read-only: posting, files, the digital key and every lifecycle
 action stay buyer/seller-only; other staff roles still get 403. Covered in
 `test/owner-2026-11-09.e2e-spec.ts`.
+
+## Admin → Orders + staff sale bell (2026-11-10)
+
+Owner: "orders come in and I can't see whose order sold, so I can warn the seller." `ORDER_STAFF_ROLES`
+(`orders.service.ts`: Super Admin, Main Administrator, Operation Lead, Marketplace & Coaching Ops) can:
+- `GET /admin/orders?status=&q=&page=` (`admin-orders.controller.ts` → `OrdersService.adminList`):
+  every order newest first, 30 per page, `{items: AdminOrderRow[], total}`. `q` matches order number,
+  listing title, buyer or seller username (ILIKE, parameterised). Each row carries buyer + seller
+  (id/username/name/email/avatar) — staff-only data, the route is role-guarded.
+- open any order page read-only (`canStaffRead` widened from Super Admin to `ORDER_STAFF_ROLES`).
+- get one bell item per new order (`notifyStaffOfSale`, key `order:<id>`, links to
+  `/admin/orders?q=<number>`). Best-effort: a failure is logged and never fails the purchase.
+Covered in `test/owner-2026-11-10.e2e-spec.ts`.

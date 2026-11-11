@@ -10,6 +10,8 @@ import { ItemDetails } from '../listings/item-details.entity';
 import { ListingKeyInventory } from '../listings/listing-key-inventory.entity';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
+import { AdminOrdersController } from './admin-orders.controller';
+import { AdminModule } from '../admin/admin.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { StorageModule } from '../storage/storage.module';
 import { AuthModule } from '../auth/auth.module';
@@ -29,8 +31,9 @@ import { BadgesModule } from '../badges/badges.module';
     NotificationsModule,
     SettingsModule,
     SubscriptionsModule,
+    AdminModule,
   ],
-  controllers: [OrdersController, OrderQuoteController],
+  controllers: [OrdersController, OrderQuoteController, AdminOrdersController],
   providers: [OrdersService],
   exports: [OrdersService],
 })

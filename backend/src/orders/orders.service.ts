@@ -4,7 +4,7 @@ import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, LessThanOrEqual, Repository } from 'typeorm';
 import { AdminRole, KeyInventoryStatus, ListingStatus, ListingType, NotificationType, OrderStatus, UserStatus, MessageType } from '@wavehub/shared-types';
-import type { OrderQuote, PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
+import type { AdminOrderPage, AdminOrderParty, OrderQuote, PublicOrderDetail, PublicOrderSummary } from '@wavehub/shared-types';
 import { Order } from './order.entity';
 import { OrderDeliveryFile } from './order-delivery-file.entity';
 import { Listing } from '../listings/listing.entity';
@@ -43,6 +43,10 @@ const ALLOWED_DELIVERY_MIME_TYPES = [
 const MAX_DELIVERY_FILE_BYTES = 20 * 1024 * 1024;
 // Order-chat attachments (photos, PDFs, archives).
 export const MAX_CHAT_FILE_BYTES = 10 * 1024 * 1024;
+// Staff who see every order (Admin → Orders, read-only order page + chat, a bell item per new order).
+// Super Admin + the roles that run the marketplace day to day; Support / Trust & Safety / Game
+// Manager are not included.
+export const ORDER_STAFF_ROLES: AdminRole[] = [AdminRole.SuperAdmin, AdminRole.MainAdministrator, AdminRole.OperationLead, AdminRole.MarketplaceCoachingOpsManager];
 // Every status a DigitalKey order's key is revealable from — see getRevealedKey's own comment.
 const KEY_REVEALABLE_STATUSES = [OrderStatus.Paid, OrderStatus.InProgress, OrderStatus.Delivered, OrderStatus.Completed];
 
@@ -306,6 +310,7 @@ export class OrdersService {
       `თქვენ მიიღეთ ახალი შეკვეთა #${saved.orderNumber}.`,
       saved.id,
     );
+    await this.notifyStaffOfSale(saved, listing.title);
     await this.notify(
       saved.buyerId,
       NotificationType.OrderPlaced,
@@ -715,12 +720,88 @@ export class OrdersService {
     return { key: decryptKeyValue(row.keyValueEncrypted) };
   }
 
-  // A Super Admin resolves disputes from the order page (Admin → Disputes links there), so they may
+  // Staff see every sale as it happens (owner 2026-11-10: to warn a slow seller) — one bell item per
+  // order for ORDER_STAFF_ROLES, linking Admin → Orders. Best-effort: never fails the purchase.
+  private async notifyStaffOfSale(order: Order, title: string): Promise<void> {
+    try {
+      const parties: Array<{ id: string; username: string }> = await this.dataSource.query(
+        `SELECT id, username FROM users WHERE id = ANY($1::uuid[])`,
+        [[order.buyerId, order.sellerId]],
+      );
+      const handle = (id: string) => `@${parties.find((p) => p.id === id)?.username ?? '—'}`;
+      await this.notifications.notifyStaff(
+        ORDER_STAFF_ROLES,
+        'ახალი შეკვეთა',
+        `#${order.orderNumber} · „${title}“ · მყიდველი ${handle(order.buyerId)} → გამყიდველი ${handle(order.sellerId)} · ${formatGel(order.buyerTotalWaveCoin)} GEL`,
+        `/admin/orders?q=${encodeURIComponent(order.orderNumber)}`,
+        `order:${order.id}`,
+      );
+    } catch (err) {
+      this.logger.error(`Failed to notify staff of order ${order.orderNumber}`, err as Error);
+    }
+  }
+
+  // Admin → Orders: newest first, optional status filter and a search over the order number, listing
+  // title and buyer/seller usernames. Two indexed queries (rows + count), parameterised.
+  async adminList(opts: { status?: string; q?: string; limit: number; offset: number; gameIds?: string[] | null }): Promise<AdminOrderPage> {
+    const where: string[] = [];
+    const params: unknown[] = [];
+    if (opts.status && (Object.values(OrderStatus) as string[]).includes(opts.status)) {
+      params.push(opts.status);
+      where.push(`o.status = $${params.length}`);
+    }
+    const q = opts.q?.trim().replace(/^@/, '').slice(0, 80);
+    if (q) {
+      params.push(`%${q.replace(/[%_\\]/g, (c) => '\\' + c)}%`);
+      const n = params.length;
+      where.push(`(o."orderNumber" ILIKE $${n} OR l.title ILIKE $${n} OR b.username ILIKE $${n} OR s.username ILIKE $${n})`);
+    }
+    if (opts.gameIds) {
+      params.push(opts.gameIds);
+      where.push(`l."gameId" = ANY($${params.length}::uuid[])`);
+    }
+    const from = `FROM orders o JOIN listings l ON l.id = o."listingId" JOIN users b ON b.id = o."buyerId" JOIN users s ON s.id = o."sellerId" LEFT JOIN games g ON g.id = l."gameId"`;
+    const filter = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const limit = Math.min(Math.max(Math.floor(opts.limit) || 30, 1), 100);
+    const offset = Math.max(Math.floor(opts.offset) || 0, 0);
+    const [{ total }] = await this.dataSource.query(`SELECT count(*)::int AS total ${from} ${filter}`, params);
+    const rows: Array<Record<string, any>> = await this.dataSource.query(
+      `SELECT o.id, o."orderNumber", o.status, o."createdAt", o."priceWaveCoin", o."buyerTotalWaveCoin",
+              l.id AS "listingId", l.title, l.type, g.name AS "gameName",
+              b.id AS "bId", b.username AS "bUser", b."firstName" AS "bFirst", b."lastName" AS "bLast", b.email AS "bEmail", b."avatarUrl" AS "bAvatar",
+              s.id AS "sId", s.username AS "sUser", s."firstName" AS "sFirst", s."lastName" AS "sLast", s.email AS "sEmail", s."avatarUrl" AS "sAvatar"
+         ${from} ${filter} ORDER BY o."createdAt" DESC LIMIT ${limit} OFFSET ${offset}`,
+      params,
+    );
+    const party = (r: Record<string, any>, p: 'b' | 's'): AdminOrderParty => ({
+      id: r[`${p}Id`],
+      username: r[`${p}User`],
+      name: [r[`${p}First`], r[`${p}Last`]].filter(Boolean).join(' ').trim() || r[`${p}User`],
+      email: r[`${p}Email`] ?? null,
+      avatarUrl: r[`${p}Avatar`] ?? null,
+    });
+    return {
+      total,
+      items: rows.map((r) => ({
+        id: r.id,
+        orderNumber: r.orderNumber,
+        status: r.status,
+        createdAt: new Date(r.createdAt).toISOString(),
+        priceWaveCoin: Number(r.priceWaveCoin),
+        buyerTotalWaveCoin: Number(r.buyerTotalWaveCoin),
+        listing: { id: r.listingId, title: r.title, type: r.type, gameName: r.gameName ?? null },
+        buyer: party(r, 'b'),
+        seller: party(r, 's'),
+      })),
+    };
+  }
+
+  // Order staff (ORDER_STAFF_ROLES) open orders from Admin → Orders / Disputes, so they may
   // read any order and its chat. Read-only: every action on an order stays buyer/seller-only, and the
   // digital key is never part of this response (see getRevealedKey).
   private async canStaffRead(userId: string): Promise<boolean> {
     const rows: Array<{ adminRole: string | null }> = await this.dataSource.query(`SELECT "adminRole" FROM users WHERE id = $1`, [userId]);
-    return rows[0]?.adminRole === AdminRole.SuperAdmin;
+    return ORDER_STAFF_ROLES.includes(rows[0]?.adminRole as AdminRole);
   }
 
   private async getOrderOrThrow(orderId: string): Promise<Order> {

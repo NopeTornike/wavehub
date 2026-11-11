@@ -2891,5 +2891,18 @@
   "შევსება ბარათით": "Top up by card",
   "თანხა დაცულია და გამყიდველს მიწოდების დადასტურების შემდეგ ერიცხება.": "Your money is protected and reaches the seller only after you confirm delivery.",
   "ხმა ჩართულია": "Sound on",
-  "ხმა გამორთულია": "Sound off"
+  "ხმა გამორთულია": "Sound off",
+  "ყველა შეკვეთა — ვინ იყიდა, ვისგან და რა. ახალ შეკვეთაზე შეტყობინებაც მოდის.": "Every order — who bought what from whom. A new order also sends you a notification.",
+  "შეკვეთის ნომერი, განცხადება ან @username": "Order number, listing or @username",
+  "ახალი (გადახდილი)": "New (paid)",
+  "მიწოდებული": "Delivered",
+  "დავაში": "In dispute",
+  "დასრულებული": "Completed",
+  "შეკვეთები არ მოიძებნა.": "No orders found.",
+  "სულ {0} შეკვეთა": "{0} orders in total",
+  "ფასი {0}": "Price {0}",
+  "გამყიდველს მიწერა": "Message seller",
+  "‹ წინა": "‹ Previous",
+  "შემდეგი ›": "Next ›",
+  "მიწერა ვერ მოხერხდა.": "Couldn't start the conversation."
 }

@@ -23755,3 +23755,52 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 .orders-page-head:has(.notif-sound-toggle) { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .notif-sound-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; border: 1px solid rgba(139, 155, 190, .35); border-radius: 999px; color: #c9cfdb; background: rgba(12, 10, 22, .7); padding: 8px 16px; font-weight: 700; cursor: pointer; }
 .notif-sound-toggle.is-on { border-color: rgba(255, 79, 171, .6); color: #fff; background: rgba(229, 21, 127, .16); }
+
+/* Admin → Orders (2026-11-10, `ao-`): one card per order — number, status, time; listing; buyer →
+   seller; amount + seller contact + actions. Stacks on phones. */
+.ao-toolbar { display: flex; gap: 8px; margin: 14px 0 10px; }
+.ao-toolbar input { flex: 1 1 auto; width: auto; min-width: 0; max-width: none; }
+.ao-toolbar .button { flex: 0 0 auto; width: auto; padding-inline: 18px; }
+.ao-filters { flex-wrap: wrap; }
+.ao-count { margin: 10px 0; color: #9aa3b5; font-size: 13px; }
+.ao-list { display: grid; gap: 10px; }
+.ao-card { display: grid; gap: 10px; border: 1px solid rgba(139, 155, 190, .2); border-left: 3px solid rgba(139, 155, 190, .45); border-radius: 12px; background: rgba(12, 10, 22, .7); padding: 12px 14px; }
+.ao-card.is-paid { border-left-color: #ff4fab; }
+.ao-card.is-in_progress, .ao-card.is-delivered { border-left-color: #f5c044; }
+.ao-card.is-disputed { border-left-color: #ff5a5a; }
+.ao-card.is-completed { border-left-color: #2ecc8a; }
+.ao-card header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.ao-card header strong { color: #fff; font-size: 15px; }
+.ao-card header time { margin-left: auto; color: #9aa3b5; font-size: 12px; }
+.ao-status { border-radius: 999px; background: rgba(139, 155, 190, .16); color: #d6dbe6; padding: 2px 10px; font-size: 12px; font-weight: 700; }
+.ao-status.is-paid { background: rgba(255, 79, 171, .18); color: #ff8cc8; }
+.ao-status.is-in_progress, .ao-status.is-delivered { background: rgba(245, 192, 68, .15); color: #f5c044; }
+.ao-status.is-disputed { background: rgba(255, 90, 90, .16); color: #ff8a8a; }
+.ao-status.is-completed { background: rgba(46, 204, 138, .15); color: #4ee58a; }
+.ao-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; }
+.ao-title a { color: #fff; font-weight: 700; overflow-wrap: anywhere; }
+.ao-title small { color: #9aa3b5; }
+.ao-parties { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.ao-party { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.ao-party > span:last-child { display: grid; min-width: 0; line-height: 1.25; }
+.ao-party small { color: #9aa3b5; font-size: 11px; }
+.ao-party a { color: #fff; font-weight: 700; overflow-wrap: anywhere; }
+.ao-party em { color: #9aa3b5; font-size: 12px; font-style: normal; }
+.ao-arrow { color: #ff4fab; font-size: 18px; }
+.ao-card footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; border-top: 1px solid rgba(139, 155, 190, .14); padding-top: 10px; }
+.ao-amount { display: grid; line-height: 1.2; }
+.ao-amount b { color: #fff; }
+.ao-amount small { color: #9aa3b5; font-size: 11px; }
+.ao-mail { color: #c9b3ff; font-size: 13px; overflow-wrap: anywhere; }
+.ao-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.ao-pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 16px 0; }
+@media (max-width: 620px) {
+  .ao-card header time { margin-left: 0; width: 100%; }
+  .ao-actions { margin-left: 0; width: 100%; }
+  .ao-actions > * { flex: 1 1 0; text-align: center; }
+}
+@media (max-width: 640px) {
+  .ao-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .ao-filters::-webkit-scrollbar { display: none; }
+  .ao-filters button { flex: 0 0 auto; white-space: nowrap; }
+}

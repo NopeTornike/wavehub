@@ -12,7 +12,7 @@ import { canPublishSteam, GAME_MANAGER_PAGES, gameManagerAreas } from '../lib/ro
 // Access is enforced server-side per route (@RequireAdminRole). Links a role can never open
 // (Super-Admin-only sections, Steam publishing) are hidden; others show the API's 403 in-page.
 
-type IconName = 'shield' | 'tag' | 'image' | 'dashboard' | 'chart' | 'listing' | 'game' | 'steam' | 'star' | 'scale' | 'cash' | 'users' | 'ticket' | 'coach' | 'trophy' | 'crown' | 'doc' | 'gear'
+type IconName = 'shield' | 'tag' | 'image' | 'dashboard' | 'chart' | 'listing' | 'game' | 'steam' | 'star' | 'scale' | 'cash' | 'users' | 'ticket' | 'coach' | 'trophy' | 'crown' | 'doc' | 'gear' | 'bag'
 
 const ICONS: Record<IconName, ReactNode> = {
   shield: <path d="M12 3 4 6v6c0 4.4 3.4 8.4 8 9 4.6-.6 8-4.6 8-9V6l-8-3Zm-3 9 2 2 4-4" />,
@@ -32,6 +32,7 @@ const ICONS: Record<IconName, ReactNode> = {
   trophy: <path d="M8 4h8v5a4 4 0 0 1-8 0V4Zm0 2H4v1a4 4 0 0 0 4 4m8-5h4v1a4 4 0 0 1-4 4m-4 2v4m-4 3h8" />,
   crown: <path d="m3 7 4 4 5-7 5 7 4-4-2 12H5L3 7Z" />,
   doc: <path d="M6 3h9l4 4v14H6V3Zm8 0v5h5M9 13h7M9 17h5" />,
+  bag: <path d="M5 8h14l-1 12H6L5 8Zm4 0V6a3 3 0 0 1 6 0v2" />,
   gear: <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.3l2-1.6-2-3.4-2.4 1a7.3 7.3 0 0 0-2.2-1.3L14.3 3h-4l-.4 2.4a7.3 7.3 0 0 0-2.2 1.3l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.6l-2 1.6 2 3.4 2.4-1a7.3 7.3 0 0 0 2.2 1.3l.4 2.4h4l.4-2.4a7.3 7.3 0 0 0 2.2-1.3l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.3Z" />,
 }
 
@@ -47,6 +48,7 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
   {
     label: 'მარკეტი',
     items: [
+      { href: '/admin/orders', label: 'შეკვეთები', icon: 'bag' },
       { href: '/admin/listings', label: 'განცხადებები', icon: 'listing' },
       { href: '/admin/games', label: 'თამაშები', icon: 'game' },
       { href: '/admin/steam', label: 'Steam თამაშები', icon: 'steam', steamPublisherOnly: true },

@@ -1132,6 +1132,31 @@ export interface AdminDisputeSummary {
   createdAt: string;
 }
 
+// Admin → Orders (owner 2026-11-10: "orders come in and I can't see whose order sold, so I can warn
+// the seller"). Staff-only rows: who bought what from whom, with the seller's email for contact.
+export interface AdminOrderParty {
+  id: string;
+  username: string;
+  name: string;
+  email: string | null;
+  avatarUrl: string | null;
+}
+export interface AdminOrderRow {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  createdAt: string;
+  priceWaveCoin: number;
+  buyerTotalWaveCoin: number;
+  listing: { id: string; title: string; type: ListingType; gameName: string | null };
+  buyer: AdminOrderParty;
+  seller: AdminOrderParty;
+}
+export interface AdminOrderPage {
+  items: AdminOrderRow[];
+  total: number;
+}
+
 // What WithdrawalsService.listPending() returns for the admin `GET withdrawals/pending` queue —
 // unlike PublicWithdrawRequest (the seller's own view), this includes `sellerId`/`sellerUsername`
 // (whose request is it) and `payoutDetails` (an admin actually paying this out manually needs the

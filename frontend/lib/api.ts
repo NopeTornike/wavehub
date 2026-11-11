@@ -1,5 +1,6 @@
 import { prepareCoverImage, shrinkPhoto } from './image-resize'
 import type {
+  AdminOrderPage,
   ListingBadge,
   StaffGameScopes,
   MyReviewLikes,
@@ -875,6 +876,15 @@ export const api = {
   adminDeleteCoachReview: (id: string) => request<{ ok: true }>(`/admin/reviews/coach/${id}`, { method: 'DELETE' }),
 
   adminListOpenDisputes: () => request<AdminDisputeSummary[]>('/disputes'),
+
+  // Admin → Orders: every order with buyer / seller (owner 2026-11-10).
+  adminListOrders: (opts: { status?: string; q?: string; page?: number }) => {
+    const qs = new URLSearchParams()
+    if (opts.status) qs.set('status', opts.status)
+    if (opts.q) qs.set('q', opts.q)
+    if (opts.page && opts.page > 1) qs.set('page', String(opts.page))
+    return request<AdminOrderPage>(`/admin/orders${qs.size ? `?${qs}` : ''}`)
+  },
 
   // Full thread for one dispute, no participant check — for an admin viewing a case they aren't
   // the buyer/seller of. Participants should keep using getDispute above (works for them too, but
