@@ -9,6 +9,7 @@ import { FavoritesProvider } from '../lib/favorites'
 import { LanguageProvider } from '../lib/i18n'
 import { ShellProvider } from '../lib/shell'
 import NotificationToasts from '../components/NotificationToasts'
+import { RewardCheckIn } from '../lib/rewards'
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -20,6 +21,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <CartProvider>
               <Component {...pageProps} />
               <NotificationToasts />
+              <RewardCheckIn />
             </CartProvider>
           </FavoritesProvider>
         </ShellProvider>

@@ -13,6 +13,7 @@ import StepsGuide, { type StepIcon } from '../components/StepsGuide'
 import { escrowSteps } from '../components/EscrowExplainer'
 import HomeBanners from '../components/HomeBanners'
 import SellerLeaderboard from '../components/SellerLeaderboard'
+import { useRewardVisit } from '../lib/rewards'
 import { BannerPlacement } from '@wavehub/shared-types'
 import { restoreScroll, saveSnapshot, takeSnapshot } from '../lib/scroll-memory'
 
@@ -53,6 +54,8 @@ export default function Marketplace() {
 // `servicesOnly` = the separate Services page (/services, client feedback #7): services only, its
 // own heading, and "Sell a service" where the marketplace has "Become a seller".
 export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boolean }) {
+  // User Hub "Visit Marketplace" task (the services page counts too — it is part of the market).
+  useRewardVisit('marketplace')
   const router = useRouter()
   const { games } = useShell()
   const cart = useCart()

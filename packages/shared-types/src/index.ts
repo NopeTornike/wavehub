@@ -241,6 +241,9 @@ export enum NotificationType {
   TournamentMatchWon = 'tournament_match_won',
   TournamentMatchLost = 'tournament_match_lost',
   TournamentStarted = 'tournament_started',
+  // User Hub rewards (owner 2026-11-10).
+  RewardStreak = 'reward_streak',
+  RewardWeeklyPrize = 'reward_weekly_prize',
 }
 
 // Support ticketing (build-plan Phase 11d). Categories match SPECIFICATION.md §5.13.6's example
@@ -2222,4 +2225,105 @@ export interface AdminUiTranslation {
   en: string | null;
   ka: string | null;
   updatedAt: string;
+}
+
+
+// --- User Hub rewards (owner 2026-11-10, docs/design-mockups/round-6/02) — backend/src/rewards/ ---
+// Staff write the tasks; completion is checked from real activity (never self-reported, except the
+// three page visits, which the pages report themselves). Days and weeks are Tbilisi time.
+export type RewardTrigger =
+  | 'login'
+  | 'visit_marketplace'
+  | 'visit_tournaments'
+  | 'visit_coaching'
+  | 'purchase'
+  | 'topup'
+  | 'follow'
+  | 'follow_coach'
+  | 'review'
+  | 'book_session'
+  | 'tournament_join'
+  | 'list_item';
+export const REWARD_TRIGGERS: RewardTrigger[] = [
+  'login', 'visit_marketplace', 'visit_tournaments', 'visit_coaching', 'purchase', 'topup',
+  'follow', 'follow_coach', 'review', 'book_session', 'tournament_join', 'list_item',
+];
+// daily = repeats every Tbilisi day; once = an achievement, counted over all time.
+export type RewardPeriod = 'daily' | 'once';
+export interface RewardTaskView {
+  id: string;
+  title: string;
+  description: string | null;
+  trigger: RewardTrigger;
+  target: number;
+  xp: number;
+  period: RewardPeriod;
+  progress: number;
+  done: boolean;
+}
+export interface RewardLeaderRow {
+  place: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  verified: boolean;
+  xp: number;
+}
+export interface RewardPrizeView {
+  place: number;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+}
+export interface RewardWinView {
+  id: string;
+  weekStart: string;
+  place: number;
+  xp: number;
+  prize: RewardPrizeView;
+  openedAt: string | null;
+  deliveredAt: string | null;
+}
+export interface RewardHub {
+  enabled: boolean;
+  today: string; // Tbilisi date YYYY-MM-DD
+  resetsAt: string; // next Tbilisi midnight (ISO)
+  weekStart: string;
+  weekEndsAt: string;
+  xp: { total: number; week: number; level: number; levelFloor: number; nextLevelAt: number };
+  streak: { days: number; todayDone: boolean; position: number; bonusXp: number };
+  daily: RewardTaskView[];
+  achievements: RewardTaskView[];
+  leaderboard: RewardLeaderRow[];
+  me: { place: number | null; xp: number };
+  prizes: RewardPrizeView[];
+  wins: RewardWinView[];
+  // Just credited by this request (for the toast / XP pop).
+  justEarned: Array<{ title: string; xp: number }>;
+}
+export interface AdminRewardTask {
+  id: string;
+  title: string;
+  description: string | null;
+  trigger: RewardTrigger;
+  target: number;
+  xp: number;
+  period: RewardPeriod;
+  isActive: boolean;
+  sortOrder: number;
+  completions: number;
+}
+export interface AdminRewardWinner extends RewardWinView {
+  username: string;
+  firstName: string;
+  lastName: string;
+}
+export interface AdminRewards {
+  tasks: AdminRewardTask[];
+  prizes: RewardPrizeView[];
+  streakBonusXp: number;
+  enabled: boolean;
+  winners: AdminRewardWinner[];
+  leaderboard: RewardLeaderRow[];
 }

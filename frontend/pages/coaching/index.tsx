@@ -10,6 +10,7 @@ import { useCoachingFromPrice } from '../../lib/coaching-price'
 import StepsGuide from '../../components/StepsGuide'
 import { BannerPlacement } from '@wavehub/shared-types'
 import HomeBanners from '../../components/HomeBanners'
+import { useRewardVisit } from '../../lib/rewards'
 
 /* eslint-disable @next/next/no-img-element */
 // The prototype's coaching.html (coaching.js), on real data: the filter panel (Game checkboxes with
@@ -55,6 +56,7 @@ function pageList(total: number, active: number): number[] {
 }
 
 export default function CoachingDirectory() {
+  useRewardVisit('coaching')
   const fromPrice = useCoachingFromPrice()
   const router = useRouter()
   const { games } = useShell()

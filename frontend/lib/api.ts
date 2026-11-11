@@ -64,6 +64,12 @@ import type {
   AdminSteamGameSummary,
   PlatformTimings,
   PlatformFeatures,
+  RewardHub,
+  RewardWinView,
+  AdminRewards,
+  RewardTrigger,
+  RewardPeriod,
+  RewardPrizeView,
   TournamentLeaderboard,
   TournamentLeaderboardEntry,
   BannerPlacement,
@@ -951,6 +957,27 @@ export const api = {
   getPlatformTimings: () => request<PlatformTimings>('/platform/timings'),
   // Show/hide switches for optional public blocks (owner 2026-11-10).
   getPlatformFeatures: () => request<PlatformFeatures>('/platform/features'),
+
+  // --- User Hub rewards --- (backend/src/rewards/)
+  getRewardHub: () => request<RewardHub>('/rewards/hub'),
+  rewardCheckIn: () => request<{ ok: true }>('/rewards/checkin', { method: 'POST' }),
+  rewardVisit: (page: 'marketplace' | 'tournaments' | 'coaching') => request<{ ok: true }>('/rewards/visit', { method: 'POST', body: JSON.stringify({ page }) }),
+  openRewardWin: (id: string) => request<RewardWinView>(`/rewards/wins/${id}/open`, { method: 'POST' }),
+  adminGetRewards: () => request<AdminRewards>('/admin/rewards'),
+  adminSaveRewardTask: (
+    task: { title: string; description: string | null; trigger: RewardTrigger; target: number; xp: number; period: RewardPeriod; isActive: boolean; sortOrder: number },
+    id?: string,
+  ) => request<{ id: string }>(id ? `/admin/rewards/tasks/${id}` : '/admin/rewards/tasks', { method: 'POST', body: JSON.stringify(task) }),
+  adminDeleteRewardTask: (id: string) => request<{ ok: true }>(`/admin/rewards/tasks/${id}`, { method: 'DELETE' }),
+  adminSaveRewardPrize: (place: number, title: string, description: string | null) =>
+    request<RewardPrizeView[]>(`/admin/rewards/prizes/${place}`, { method: 'POST', body: JSON.stringify({ title, description }) }),
+  adminUploadRewardPrizeImage: async (place: number, file: File) => upload<RewardPrizeView[]>(`/admin/rewards/prizes/${place}/image`, await prepareCoverImage(file)),
+  adminSaveRewardSettings: (patch: { streakBonusXp?: number; enabled?: boolean }) =>
+    request<{ ok: true }>('/admin/rewards/settings', { method: 'POST', body: JSON.stringify(patch) }),
+  adminSetRewardDelivered: (id: string, delivered: boolean) =>
+    request<{ ok: true }>(`/admin/rewards/wins/${id}/delivered`, { method: 'POST', body: JSON.stringify({ delivered }) }),
+  adminFinalizeRewardWeek: (weekStart: string) =>
+    request<{ created: number }>('/admin/rewards/finalize', { method: 'POST', body: JSON.stringify({ weekStart }) }),
 
   // The caller's Super-Admin-controlled powers (WaveCoin adjust + cap, suspend/restore).
   adminMyPermissions: () => request<StaffPermissions>('/admin/platform-settings/my-permissions'),

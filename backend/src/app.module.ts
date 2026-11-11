@@ -64,6 +64,7 @@ import { CoachingSessionDispute, CoachingSessionDisputeMessage } from './coachin
 import { ContentModule } from './content/content.module';
 import { ContentPage } from './content/content-page.entity';
 import { TournamentsModule } from './tournaments/tournaments.module';
+import { RewardsModule } from './rewards/rewards.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { BadgesModule } from './badges/badges.module';
 import { UserFollow } from './profiles/user-follow.entity';
@@ -185,6 +186,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
     TranslationsModule,
     TrustModule,
     TournamentsModule,
+    RewardsModule,
     ProfilesModule,
     BadgesModule,
     SubscriptionsModule,

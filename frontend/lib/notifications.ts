@@ -53,6 +53,8 @@ export function notificationIcon(type: NotificationType): string {
     case NotificationType.TournamentTeamAdded:
     case NotificationType.TournamentMatchWon:
     case NotificationType.TournamentStarted:
+    case NotificationType.RewardStreak:
+    case NotificationType.RewardWeeklyPrize:
       return icon('trophy')
     case NotificationType.TournamentTeamVerified:
       return icon('check-circle-green')

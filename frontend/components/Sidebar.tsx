@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../lib/auth'
 import { useCart } from '../lib/cart'
 import { useShell } from '../lib/shell'
+import { useFeatures } from '../lib/features'
 
 // The sidebar's owner-defined navigation order plus the Marketplace flyout listing games. Real
 // data behind it: the game list is the games table (GET /stats/games), the Messages pill is the real
@@ -43,6 +44,8 @@ const NAV: NavItem[] = [
 
 // Signed-in only (docs/design-mockups/09).
 const DASHBOARD: NavItem = { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'dashboard-icon.svg', iconClass: 'nav-icon-home', match: (p) => p === '/dashboard' }
+// Signed-in, while Super Admin keeps the rewards hub on (owner 2026-11-10, round-6/02).
+const USER_HUB: NavItem = { id: 'user-hub', label: 'User Hub', href: '/hub', icon: 'user-hub-icon.svg', iconClass: 'nav-icon-home', match: (p) => p === '/hub' }
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter()
@@ -52,6 +55,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const [gameMenuOpen, setGameMenuOpen] = useState(false)
   const gameMenuRef = useRef<HTMLDivElement>(null)
   const path = router.pathname
+  const features = useFeatures()
 
   useEffect(() => {
     if (!gameMenuOpen) return
@@ -93,7 +97,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         </Link>
 
         <nav className="side-nav" aria-label="Main pages">
-          {(user ? [NAV[0], DASHBOARD, ...NAV.slice(1)] : NAV).map((item) => {
+          {(user ? [NAV[0], DASHBOARD, ...(features?.rewardsHub ? [USER_HUB] : []), ...NAV.slice(1)] : NAV).map((item) => {
             const active = item.match(path)
             if (item.id === 'marketplace') {
               return (

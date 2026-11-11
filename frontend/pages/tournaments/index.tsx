@@ -8,10 +8,12 @@ import { useAuth } from '../../lib/auth'
 import { BannerPlacement } from '@wavehub/shared-types'
 import HomeBanners from '../../components/HomeBanners'
 import TournamentLeaderboard from '../../components/tournaments/TournamentLeaderboard'
+import { useRewardVisit } from '../../lib/rewards'
 
 // Every tournament, in the docs/design-mockups/02 board layout. Signed-in users get shortcuts to
 // their own tournaments and the hub.
 export default function Tournaments() {
+  useRewardVisit('tournaments')
   const { user } = useAuth()
   const [items, setItems] = useState<PublicTournamentSummary[] | null>(null)
   const [error, setError] = useState('')

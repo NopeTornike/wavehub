@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 // A person's photo, or their initials when they have none (client feedback #9/#13, 2026-10-04:
 // people are shown by name + photo everywhere). Optional online dot and role marker.
@@ -30,11 +30,12 @@ export default function Avatar({
     .join('')
     .toUpperCase()
   // A photo that fails to load (deleted upload, bad URL) falls back to the initials, never a broken image.
-  const [failed, setFailed] = useState(false)
-  useEffect(() => setFailed(false), [src])
+  // Remembers which URL failed, so a new photo gets a fresh try without resetting state in an effect.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const failed = !!src && failedSrc === src
   return (
     <span className={`wh-avatar${ring ? ' has-ring' : ''} ${className}`.trim()} style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }} aria-hidden="true">
-      {src && !failed ? <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} /> : <span>{initials || '?'}</span>}
+      {src && !failed ? <img src={src} alt="" loading="lazy" onError={() => setFailedSrc(src)} /> : <span>{initials || '?'}</span>}
       {online && <i className="wh-avatar-online" />}
     </span>
   )

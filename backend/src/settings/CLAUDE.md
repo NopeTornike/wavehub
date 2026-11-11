@@ -131,3 +131,6 @@ hides itself when its switch is off.
 - Admin → Settings has a "საიტის ბლოკები" section with the `sellerLeaderboard` and
   `tournamentLeaderboard` switches (saved through the normal `features` patch; the tournament one is
   the same flag as the switch on Admin → Tournaments → Leaderboard).
+- `rewardStreakBonusXp` (int, default 200) is read and written by `backend/src/rewards/` with raw SQL
+  (Admin → User Hub rewards), not through this module's DTO. The `rewardsHub` feature switch lives on
+  that page too.

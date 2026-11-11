@@ -1521,3 +1521,14 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   bronze crowns, totals footer. Phones (≤760px): each seller is a card with three number boxes. It
   renders nothing while switched off (Admin → Settings → საიტის ბლოკები) or before any seller exists.
   Data rules: `backend/src/community/CLAUDE.md`.
+- **User Hub (2026-11-12, round-6/02):** `/hub` (`pages/hub.tsx`, `uh-` CSS): hero with the drawn
+  WaveHubX chest (`components/rewards/RewardChest.tsx`, unique gradient ids via `useId`), profile card
+  (level hexagon, real Wave rank name, XP bar, this week's XP + place, section links), Daily Tasks
+  with the Tbilisi-midnight countdown (each undone task links to where it's done), Daily Streak
+  (7 boxes + bonus banner), Achievements, Community Leaderboard (this week's top 10), Weekly Rewards
+  (prizes 1–3, the winner's pulsing box → `PrizeOpener` modal: shake, lid opens, rays, prize card),
+  an "+XP" toast for what this visit credited. Sidebar "User Hub" (signed-in, while
+  `features.rewardsHub` is on — `lib/features.ts#useFeatures` caches `GET platform/features` once per
+  load). `lib/rewards.ts`: `RewardCheckIn` (in `_app`) and `useRewardVisit(page)` on marketplace /
+  services, tournaments and coaching — once per Tbilisi day per browser. Admin → "User Hub ·
+  ჯილდოები" (`pages/admin/rewards.tsx`, `rw-` CSS). Rules: `backend/src/rewards/CLAUDE.md`.
