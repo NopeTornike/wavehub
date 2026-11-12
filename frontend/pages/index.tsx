@@ -405,7 +405,7 @@ export default function Home() {
             {hero && <HeroBanner banner={hero} rotation={heroRotation} banners={heroBanners} />}
 
             {/* The player's next match, from 24h before it (owner 2026-11-10, round-6/11). */}
-            <MatchCountdownCard />
+            <MatchCountdownCard tournaments={tournaments} />
 
             {/* The same services row on phones and desktop (owner 2026-10-15; phones had their own,
                 different list). */}

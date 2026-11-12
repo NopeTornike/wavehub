@@ -3111,5 +3111,12 @@
   "{0} XP-ით {1} ადგილი დაიკავე. პრიზი: {2}.": "You finished in place {1} with {0} XP. Prize: {2}.",
   "კვირის პრიზის გამარჯვებული": "Weekly prize winner",
   "@{0} — {1} ადგილი ({2}). გადაეცით პრიზი და მონიშნეთ „გადაცემულია“.": "@{0} — place {1} ({2}). Hand over the prize and mark it \"Delivered\".",
-  "Marketplace Leaderboard": "Marketplace Leaderboard"
+  "Marketplace Leaderboard": "Marketplace Leaderboard",
+  "ტურნირის დაწყებამდე დარჩენილია:": "Time left until the tournament starts:",
+  "ტურნირი მიმდინარეობს": "Tournament in progress",
+  "ტურნირის დაწყების დრო მალე გამოცხადდება": "Tournament start time will be announced soon",
+  "რეგისტრაცია": "Registration",
+  "მალე იწყება": "Starting soon",
+  "გუნდები:": "Teams:",
+  "ტურნირის დაწყება": "Tournament start"
 }

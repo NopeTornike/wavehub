@@ -1502,10 +1502,15 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   - `/tournaments/[id]/matches` uses `mh-` cards (04) at every width: stage + round, date, logos with
     a green / red glow, the score, the win / loss badge from the viewed team's side, then map /
     format / result and Details.
-  - Home `components/tournaments/MatchCountdownCard.tsx` (`mc-`, 11) sits under the hero banner. It
-    shows from 24h before the player's next scheduled match until 2h after it starts, with an
-    HH:MM:SS countdown and stage. Room ID, password and seat come from the game-room endpoint, show 🔒
-    until staff open the room, and refresh every 30s.
+  - Home `components/tournaments/MatchCountdownCard.tsx` (`mc-`, 11) sits right under the hero
+    banner and (since 2026-11-12) is always there when a tournament exists. It counts down to, in
+    order: the player's next scheduled match (until 2h after it starts; Room ID / password / seat
+    from the game-room endpoint, 🔒 "მალე" until staff open the room, refreshed every 30s); else the
+    start of a tournament their team is in (their team vs TBA); else the featured open / upcoming
+    tournament (teams n / max + register button). A tournament start = `startDate` + the
+    `startTime` detail ("18:00 (GMT+4)", Tbilisi). Starts still ahead win over passed ones; a passed
+    start on a tournament that hasn't begun shows "--" and "start time will be announced". From
+    100h out the clock is days / hours / minutes. Phone sizes are measured from the mockup.
   - `/tournaments` has `components/tournaments/TournamentLeaderboard.tsx` (`tl-`, 10): top 3
     podium, top 5 teams and a game filter. It renders nothing when hidden or empty.
   - Admin → Tournaments:

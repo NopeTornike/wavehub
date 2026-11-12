@@ -23964,72 +23964,6 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .mh-title-icon { width: 46px; height: 46px; }
 }
 
-/* --- Home: next-match countdown (owner 2026-11-10, round-6/11) --- */
-.mc-card { margin: 14px 0; padding: 18px 20px; border: 1px solid rgba(190, 150, 255, .45); border-radius: 20px; background: linear-gradient(115deg, rgba(40, 18, 60, .96), rgba(14, 9, 26, .97) 55%, rgba(34, 16, 54, .96)); box-shadow: 0 0 26px rgba(160, 80, 255, .18); }
-.mc-card svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
-.mc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.mc-brand { display: inline-flex; align-items: center; gap: 14px; }
-.mc-brand img { width: 52px; height: 52px; object-fit: contain; }
-.mc-brand > span { display: grid; padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, .2); letter-spacing: .28em; font-size: 14px; }
-.mc-brand em { font-style: normal; color: #c46cff; font-weight: 800; }
-.mc-name { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; padding: 8px 18px; border: 1px solid rgba(190, 150, 255, .5); border-radius: 12px; transform: skewX(-12deg); background: rgba(80, 40, 120, .35); color: #fff; text-decoration: none; font-weight: 700; text-transform: uppercase; }
-.mc-name > * { transform: skewX(12deg); }
-.mc-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mc-label { margin: 14px 0 8px; text-align: center; color: #e6e1f0; font-size: 16px; }
-.mc-clock { display: flex; justify-content: center; align-items: flex-start; gap: 6px; }
-.mc-unit { display: inline-flex; align-items: flex-start; gap: 10px; }
-.mc-unit > i { font-style: normal; font-size: 40px; font-weight: 900; line-height: 64px; color: #fff; }
-.mc-unit > span { display: grid; justify-items: center; gap: 6px; }
-.mc-unit b { display: grid; place-items: center; min-width: 108px; height: 64px; border: 1px solid #c46cff; border-radius: 14px; background: rgba(0, 0, 0, .3); font-size: 46px; font-weight: 900; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 18px rgba(196, 108, 255, .18); }
-.mc-unit small { color: #d6d0e4; }
-.mc-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 16px 0 12px; padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, .1); border-bottom: 1px solid rgba(255, 255, 255, .1); }
-.mc-facts > span { display: flex; align-items: center; justify-content: center; gap: 12px; min-width: 0; padding: 0 8px; }
-.mc-facts > span + span { border-left: 1px solid rgba(255, 255, 255, .18); }
-.mc-facts > span > svg { width: 30px; height: 30px; color: #e04cff; }
-.mc-facts > span > span { display: grid; min-width: 0; }
-.mc-facts small { color: #d6d0e4; font-size: 13px; }
-.mc-facts b { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mc-locked { display: inline-flex; align-items: center; gap: 4px; color: #ffcf6e; font-size: 14px; font-weight: 700; }
-.mc-locked svg { width: 15px; height: 15px; }
-.mc-vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 14px; }
-.mc-team { display: flex; align-items: center; justify-content: center; gap: 14px; min-width: 0; padding: 10px 16px; border: 1px solid rgba(190, 150, 255, .35); border-radius: 12px; transform: skewX(-12deg); background: rgba(60, 40, 90, .45); }
-.mc-team > * { transform: skewX(12deg); }
-.mc-team strong { font-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mc-team .wt-team-mark { width: 52px; height: 52px; }
-.mc-vs-mark { font-size: 40px; font-style: italic; font-weight: 900; background: linear-gradient(180deg, #ff6bd8, #9a4bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.mc-secret { display: grid; grid-template-columns: 1fr 1fr; margin: 14px auto 0; max-width: 820px; padding: 10px 14px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 12px; background: rgba(255, 255, 255, .04); }
-.mc-secret > span { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
-.mc-secret > span + span { border-left: 1px solid rgba(255, 255, 255, .18); }
-.mc-secret > span > svg { color: #e04cff; }
-.mc-secret small { color: #d6d0e4; font-size: 15px; }
-.mc-secret b { font-size: 17px; overflow-wrap: anywhere; }
-.mc-note { margin: 10px 0 0; text-align: center; color: #ffcf6e; font-size: 13px; }
-@media (max-width: 640px) {
-  .mc-card { padding: 14px 12px; border-radius: 16px; }
-  .mc-brand img { width: 40px; height: 40px; }
-  .mc-brand > span { font-size: 11px; padding-left: 10px; }
-  .mc-name { padding: 6px 12px; font-size: 12px; }
-  .mc-name svg { width: 16px; height: 16px; }
-  .mc-label { font-size: 14px; }
-  .mc-unit { gap: 4px; }
-  .mc-unit > i { font-size: 26px; line-height: 52px; }
-  .mc-unit b { min-width: 74px; height: 52px; font-size: 32px; border-radius: 12px; }
-  .mc-unit small { font-size: 12px; }
-  .mc-facts > span { flex-direction: column; gap: 4px; text-align: center; padding: 0 4px; }
-  .mc-facts > span > svg { width: 24px; height: 24px; }
-  .mc-facts small { font-size: 11px; }
-  .mc-facts b { font-size: 13px; white-space: normal; overflow-wrap: anywhere; }
-  .mc-vs { gap: 6px; }
-  .mc-team { padding: 8px; gap: 8px; }
-  .mc-team .wt-team-mark { width: 36px; height: 36px; }
-  .mc-team strong { font-size: 14px; }
-  .mc-vs-mark { font-size: 26px; }
-  .mc-secret { grid-template-columns: 1fr; gap: 8px; padding: 10px; }
-  .mc-secret > span { justify-content: flex-start; }
-  .mc-secret > span + span { border-left: 0; border-top: 1px solid rgba(255, 255, 255, .12); padding-top: 8px; }
-  .mc-secret small, .mc-secret b { font-size: 14px; }
-}
-
 /* --- Tournament leaderboard (owner 2026-11-10, round-6/10) --- */
 .tl-board { margin: 24px 0; padding: 18px; border: 1px solid rgba(214, 74, 255, .5); border-radius: 22px; background: radial-gradient(90% 120% at 0% 0%, rgba(150, 40, 200, .18), transparent 60%), linear-gradient(160deg, rgba(26, 10, 38, .96), rgba(10, 6, 20, .97)); box-shadow: 0 0 30px rgba(200, 60, 255, .16); }
 .tl-board svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
@@ -24148,11 +24082,6 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .tl-team-list li > .tl-rank { grid-row: span 2; }
   .tl-team-list .tl-stats { grid-column: 3; justify-content: flex-start; }
   .tl-team-list .tl-stats > span:first-child { padding-left: 0; }
-}
-@media (max-width: 640px) {
-  .mc-team, .mc-team.b { flex-direction: column; gap: 6px; padding: 10px 6px; }
-  .mc-team.b { flex-direction: column-reverse; }
-  .mc-team strong { white-space: normal; text-align: center; overflow-wrap: anywhere; line-height: 1.2; font-size: 13px; }
 }
 .stack-form .to-quick input, .admin-row .to-quick input { display: inline-block; flex: 0 0 56px; width: 56px; min-width: 0; margin: 0; }
 .stack-form .to-quick .button { flex: 0 0 auto; width: auto; margin: 0; }
@@ -24445,3 +24374,101 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
 .adm-main .stack-form.rw-inline .button { width: auto; flex: none; }
 .adm-main .rw-actions { margin: 0 0 12px; }
 .adm-main .rw-actions .button { width: auto; }
+
+/* --- Home: countdown card under the hero (owner 2026-11-10 / 2026-11-12, round-6/11, 1:1) ---
+   Counts down to the player's next match, else to the start of their / the featured tournament
+   (components/tournaments/MatchCountdownCard.tsx). Phone sizes follow the mockup; desktop scales up. */
+.mc-card { position: relative; overflow: hidden; margin: 18px 0; padding: 22px 28px 20px; border: 2px solid rgba(176, 150, 230, .62); border-radius: 22px; background: linear-gradient(118deg, transparent 0 58%, rgba(255, 255, 255, .035) 58% 74%, transparent 74%), radial-gradient(70% 90% at 0% 100%, rgba(140, 60, 255, .16), transparent 60%), linear-gradient(160deg, #1a1428, #0f0c18 60%, #141020); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .03), 0 12px 30px rgba(0, 0, 0, .35); color: #fff; }
+.mc-card svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+.mc-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.mc-brand { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 18px; }
+.mc-game { display: inline-grid; justify-items: center; flex: 0 0 auto; font-family: "Arial Black", "Arial", sans-serif; text-transform: uppercase; line-height: 1; }
+.mc-game b { padding: 2px 7px 3px; border: 2.5px solid #fff; border-radius: 7px; font-size: 24px; font-weight: 900; letter-spacing: .01em; }
+.mc-game small { margin-top: 3px; font-size: 10px; font-weight: 900; letter-spacing: .14em; }
+.mc-wordmark { display: grid; gap: 2px; padding-left: 18px; border-left: 2px solid rgba(255, 255, 255, .55); line-height: 1.15; }
+.mc-wordmark b { font-size: 17px; font-weight: 700; letter-spacing: .34em; }
+.mc-wordmark em { font-size: 17px; font-style: normal; font-weight: 800; letter-spacing: .2em; color: #c25bff; }
+.mc-name { display: inline-flex; align-items: center; flex: 0 1 auto; gap: 10px; min-width: 0; margin-right: 6px; padding: 9px 24px; border: 1.5px solid rgba(200, 172, 255, .62); border-radius: 10px; transform: skewX(-14deg); background: linear-gradient(180deg, rgba(86, 64, 130, .42), rgba(52, 38, 84, .42)); color: #fff; text-decoration: none; font-size: 17px; font-weight: 600; text-transform: uppercase; }
+.mc-name > * { transform: skewX(14deg); }
+.mc-name svg { color: #d77bff; }
+.mc-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-name:hover { border-color: #e08bff; }
+.mc-label { margin: 18px 0 10px; text-align: center; color: #f2edfa; font-size: 18px; font-weight: 500; }
+.mc-clock { display: flex; justify-content: center; align-items: flex-start; }
+.mc-unit { display: inline-flex; align-items: flex-start; }
+.mc-unit > i { margin: 0 16px; font-style: normal; font-size: 40px; font-weight: 800; line-height: 68px; color: #fff; }
+.mc-unit > span { display: grid; justify-items: center; gap: 8px; }
+.mc-unit b { display: grid; place-items: center; min-width: 124px; height: 68px; border: 2px solid #b65cff; border-radius: 14px; background: rgba(18, 10, 32, .65); font-size: 48px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 0 14px rgba(182, 92, 255, .28), inset 0 0 12px rgba(182, 92, 255, .12); }
+.mc-unit small { color: #e8e2f2; font-size: 15px; }
+.mc-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 18px 0 16px; padding: 14px 0; border-top: 1px solid rgba(190, 150, 255, .2); border-bottom: 1px solid rgba(190, 150, 255, .2); }
+.mc-facts > span { display: flex; align-items: center; justify-content: center; gap: 14px; min-width: 0; padding: 0 10px; }
+.mc-facts > span + span { border-left: 1.5px solid rgba(255, 255, 255, .7); }
+.mc-facts > span > svg { width: 34px; height: 34px; color: #e052ff; }
+.mc-facts > span > span { display: grid; gap: 2px; min-width: 0; }
+.mc-facts small { color: #e3ddee; font-size: 14px; }
+.mc-facts b { font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
+.mc-locked { display: inline-flex; align-items: center; gap: 5px; color: #ffcf6e; font-size: 14px; font-weight: 700; white-space: nowrap; }
+.mc-card .mc-locked svg { width: 15px; height: 15px; }
+.mc-vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 24px; padding: 4px 20px; }
+.mc-team { display: flex; align-items: center; justify-content: center; gap: 20px; min-width: 0; height: 64px; padding: 0 22px; border: 1.5px solid rgba(190, 160, 255, .45); border-radius: 10px; transform: skewX(-14deg); background: linear-gradient(180deg, rgba(64, 54, 96, .62), rgba(30, 24, 50, .62)); }
+.mc-team > * { transform: skewX(14deg); }
+.mc-team strong { min-width: 0; font-size: 24px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-team .wt-team-mark { flex: 0 0 auto; width: 62px; height: 62px; margin: -8px 0; border-radius: 12px; font-size: 18px; box-shadow: 0 0 14px rgba(200, 120, 255, .35); }
+.mc-team.is-tba strong { color: #a9a1bb; font-weight: 500; }
+.mc-team.is-tba .wt-team-mark { border: 1.5px dashed rgba(200, 170, 255, .5); background: rgba(255, 255, 255, .04); box-shadow: none; }
+.mc-vs-mark { padding: 0 4px; font-size: 50px; font-style: italic; font-weight: 900; letter-spacing: -.04em; background: linear-gradient(180deg, #ff6bd8, #9a4bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mc-secret, .mc-cta { display: grid; grid-template-columns: 1fr 1fr; align-items: center; width: min(100%, 860px); margin: 18px auto 0; padding: 12px 20px; border: 1px solid rgba(255, 255, 255, .13); border-radius: 12px; background: rgba(255, 255, 255, .04); }
+.mc-secret > span, .mc-cta > span { display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 0; }
+.mc-secret > span + span { border-left: 1.5px solid rgba(255, 255, 255, .7); }
+.mc-secret > span > svg, .mc-cta > span > svg { width: 28px; height: 28px; color: #e052ff; }
+.mc-secret small, .mc-cta small { color: #e6e0f0; font-size: 17px; white-space: nowrap; }
+.mc-secret b, .mc-cta b { font-size: 19px; font-weight: 700; overflow-wrap: anywhere; }
+.mc-register { justify-self: center; display: inline-flex; align-items: center; gap: 10px; padding: 10px 26px; border-radius: 999px; background: linear-gradient(90deg, #ff3fb4, #9b4dff); color: #fff; font-weight: 700; text-decoration: none; box-shadow: 0 0 18px rgba(220, 70, 255, .35); }
+.mc-note { margin: 10px 0 0; text-align: center; color: #ffcf6e; font-size: 13px; }
+@media (max-width: 900px) {
+  .mc-card { padding: 18px 18px 16px; }
+  .mc-unit b { min-width: 96px; height: 58px; font-size: 38px; }
+  .mc-unit > i { margin: 0 10px; font-size: 32px; line-height: 58px; }
+  .mc-facts b { font-size: 16px; }
+  .mc-team strong { font-size: 19px; }
+}
+@media (max-width: 620px) {
+  .mc-card { margin: 12px 0; padding: 14px 12px 14px; border-width: 1.5px; border-radius: 14px; }
+  .mc-head { gap: 8px; }
+  .mc-brand { gap: 10px; }
+  .mc-game b { padding: 1px 4px 2px; border-width: 1.5px; border-radius: 4px; font-size: 15px; }
+  .mc-game small { margin-top: 2px; font-size: 6.5px; }
+  .mc-wordmark { padding-left: 10px; border-left-width: 1px; }
+  .mc-wordmark b, .mc-wordmark em { font-size: 8.5px; letter-spacing: .28em; }
+  .mc-wordmark em { letter-spacing: .12em; }
+  .mc-name { gap: 6px; padding: 5px 10px; border-width: 1px; border-radius: 7px; font-size: 9.5px; }
+  .mc-name svg { width: 13px; height: 13px; }
+  .mc-label { margin: 12px 0 6px; font-size: 12.5px; }
+  .mc-unit > i { margin: 0 9px; font-size: 20px; line-height: 32px; }
+  .mc-unit > span { gap: 4px; }
+  .mc-unit b { min-width: 50px; height: 32px; padding: 0 4px; border-width: 1.5px; border-radius: 7px; font-size: 22px; }
+  .mc-unit small { font-size: 10.5px; }
+  .mc-facts { margin: 12px 0 10px; padding: 9px 0; }
+  .mc-facts > span { gap: 6px; padding: 0 4px; }
+  .mc-facts > span + span { border-left-width: 1px; }
+  .mc-facts > span > svg { width: 18px; height: 18px; }
+  .mc-facts small { font-size: 9.5px; }
+  .mc-facts b { font-size: 11px; line-height: 1.25; overflow-wrap: normal; }
+  .mc-facts > span { gap: 5px; padding: 0 3px; }
+  .mc-facts > span > svg { width: 16px; height: 16px; }
+  .mc-locked { font-size: 10.5px; gap: 3px; }
+  .mc-card .mc-locked svg { width: 11px; height: 11px; }
+  .mc-vs { gap: 8px; padding: 2px 2px; }
+  .mc-team { gap: 8px; height: 38px; padding: 0 10px; border-width: 1px; border-radius: 7px; }
+  .mc-team strong { font-size: 12.5px; }
+  .mc-team .wt-team-mark { width: 34px; height: 34px; margin: -4px 0; border-radius: 8px; font-size: 11px; }
+  .mc-vs-mark { font-size: 25px; }
+  .mc-secret, .mc-cta { margin-top: 12px; padding: 8px 8px; border-radius: 9px; }
+  .mc-secret > span, .mc-cta > span { gap: 5px; }
+  .mc-secret > span + span { border-left-width: 1px; }
+  .mc-secret > span > svg, .mc-cta > span > svg { width: 17px; height: 17px; }
+  .mc-secret small, .mc-cta small { font-size: 10.5px; }
+  .mc-secret b, .mc-cta b { font-size: 12px; }
+  .mc-register { gap: 6px; padding: 7px 14px; font-size: 12px; }
+  .mc-note { font-size: 11px; }
+}
