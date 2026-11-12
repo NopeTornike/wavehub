@@ -1542,3 +1542,7 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   subtitle on desktop (02); on phones the my-team "next action" and "place / points rule" rows stay
   side by side (07), and match cards keep stage + date and map / format / result / Details on one
   row each, dropping the fact icons below 420px so the values aren't cut (04).
+- **Home Rewards Center strip (2026-11-12, round-6/12)**: `components/rewards/RewardsCenterCard.tsx`
+  (`rc-` CSS) sits right under the hero banner, above the countdown card: drawn gift box, "Rewards
+  Center", one line about daily tasks, chevron. Opens `/hub`; signed out it opens the login window
+  and lands on `/hub` after. Hidden while `features.rewardsHub` is off.

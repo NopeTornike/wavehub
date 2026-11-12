@@ -24517,3 +24517,21 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .mh-card > footer > span { grid-template-columns: minmax(0, 1fr); }
   .mh-card > footer b { text-overflow: clip; }
 }
+
+/* --- Home: Rewards Center strip under the hero (owner 2026-11-12, round-6/12) --- */
+.rc-card { position: relative; display: flex; align-items: center; gap: 18px; margin: 16px 0; padding: 10px 22px 10px 14px; min-height: 92px; border: 1.5px solid rgba(232, 92, 255, .75); border-radius: 18px; background: radial-gradient(40% 140% at 8% 50%, rgba(224, 76, 255, .38), transparent 70%), linear-gradient(90deg, rgba(70, 18, 100, .95), rgba(28, 10, 46, .96) 45%, rgba(46, 12, 70, .95)); box-shadow: 0 0 22px rgba(224, 76, 255, .28), inset 0 0 18px rgba(224, 76, 255, .1); color: #fff; text-decoration: none; overflow: hidden; transition: transform .15s ease, box-shadow .15s ease; }
+.rc-card:hover { transform: translateY(-1px); box-shadow: 0 0 30px rgba(224, 76, 255, .42), inset 0 0 18px rgba(224, 76, 255, .14); }
+.rc-card:active { transform: scale(.99); }
+.rc-gift { flex: 0 0 auto; width: 104px; height: 95px; margin: -8px 0; filter: drop-shadow(0 0 12px rgba(224, 76, 255, .55)); }
+.rc-copy { display: grid; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.rc-copy strong { font-size: 26px; font-weight: 800; letter-spacing: .01em; line-height: 1.1; }
+.rc-copy small { color: #eadff7; font-size: 15px; line-height: 1.35; }
+.rc-arrow { flex: 0 0 auto; width: 30px; height: 30px; fill: none; stroke: #e05cff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px rgba(224, 92, 255, .6)); }
+@media (max-width: 620px) {
+  .rc-card { gap: 10px; margin: 12px 0; padding: 6px 12px 6px 6px; min-height: 66px; border-radius: 12px; }
+  .rc-gift { width: 80px; height: 73px; margin: -8px 0; }
+  .rc-copy { gap: 2px; }
+  .rc-copy strong { font-size: 17px; }
+  .rc-copy small { font-size: 11px; }
+  .rc-arrow { width: 22px; height: 22px; }
+}
