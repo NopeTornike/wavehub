@@ -1537,3 +1537,8 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   load). `lib/rewards.ts`: `RewardCheckIn` (in `_app`) and `useRewardVisit(page)` on marketplace /
   services, tournaments and coaching — once per Tbilisi day per browser. Admin → "User Hub ·
   ჯილდოები" (`pages/admin/rewards.tsx`, `rw-` CSS). Rules: `backend/src/rewards/CLAUDE.md`.
+- **Round-6 re-check against the mockups (2026-11-12)**: marketplace leaderboard header got the
+  WAVEHUBX wordmark + divider and larger crowns (03); User Hub hero is lower with a one-line
+  subtitle on desktop (02); on phones the my-team "next action" and "place / points rule" rows stay
+  side by side (07), and match cards keep stage + date and map / format / result / Details on one
+  row each, dropping the fact icons below 420px so the values aren't cut (04).

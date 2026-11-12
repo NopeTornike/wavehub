@@ -23894,10 +23894,18 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .mt-goal p b { font-size: 16px; }
   .mt-last-icon { width: 44px; height: 44px; }
   .mt-last strong { font-size: 15px; }
-  .mt-next { flex-wrap: wrap; }
-  .mt-next-btn { margin-left: 0; width: 100%; justify-content: center; }
-  .mt-foot { grid-template-columns: 1fr; }
-  .mt-place { padding-right: 0; padding-bottom: 12px; border-right: 0; border-bottom: 1px solid rgba(255, 255, 255, .12); }
+  /* Mockup 07 keeps these two rows side by side on a phone too. */
+  .mt-next { gap: 8px; padding: 10px; }
+  .mt-next > span { gap: 6px; min-width: 0; font-size: 13px; }
+  .mt-next-btn { gap: 6px; padding: 9px 12px; font-size: 13px; }
+  .mt-foot { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 10px; padding: 10px; }
+  .mt-place { min-width: 0; }
+  .mt-place > span:last-child { min-width: 0; }
+  .mt-place { gap: 8px; padding-right: 10px; }
+  .mt-place-icon { width: 36px; height: 36px; }
+  .mt-place small { font-size: 11px; }
+  .mt-place b { font-size: 20px; }
+  .mt-note small { font-size: 11px; line-height: 1.35; }
   .mt-members-head { flex-wrap: wrap; }
   .mt-members-head h2 { font-size: 17px; flex: 1 1 0; }
   .mt-edit { margin-left: 0; width: 100%; justify-content: center; }
@@ -23956,11 +23964,19 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .mh-team strong { font-size: 14px; }
   .mh-score { font-size: 26px; padding: 6px 12px; gap: 8px; }
   .mh-outcome { font-size: 12px; padding: 3px 10px; }
-  .mh-card > footer { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .mh-card > footer > span { grid-template-columns: 1fr; justify-items: center; text-align: center; row-gap: 2px; }
-  .mh-card > footer svg { grid-row: auto; width: 22px; height: 22px; }
-  .mh-card > footer > span + span { padding-left: 6px; }
-  .mh-btn { grid-column: 1 / -1; justify-content: center; }
+  /* Mockup 04 (a phone screen): stage + date on one row, the facts and Details on one row. */
+  .mh-card > header { flex-wrap: nowrap; gap: 6px; }
+  .mh-stage { min-width: 0; gap: 5px; padding: 4px 8px; font-size: 11px; white-space: nowrap; }
+  .mh-when { flex: 0 0 auto; gap: 5px; font-size: 11px; white-space: nowrap; }
+  .mh-card > header svg { width: 15px; height: 15px; }
+  .mh-card > footer { grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 5px; }
+  .mh-card > footer > span { column-gap: 4px; }
+  .mh-card > footer svg { width: 17px; height: 17px; }
+  .mh-card > footer > span + span { padding-left: 5px; }
+  .mh-card > footer small { font-size: 10px; }
+  .mh-card > footer b { font-size: 12px; }
+  .mh-btn { gap: 4px; padding: 7px 9px; font-size: 12px; border-radius: 10px; }
+  .mh-btn svg { width: 14px; height: 14px; }
   .mh-title-icon { width: 46px; height: 46px; }
 }
 
@@ -24471,4 +24487,33 @@ main :is(h1, h2, h3, h4, p, li, dd, dt, blockquote) { overflow-wrap: break-word;
   .mc-secret b, .mc-cta b { font-size: 12px; }
   .mc-register { gap: 6px; padding: 7px 14px; font-size: 12px; }
   .mc-note { font-size: 11px; }
+}
+
+/* Marketplace leaderboard, closer to mockup 03 (2026-11-12): wordmark + divider, bare bag icon,
+   bigger crowns / avatars, divided stat columns. */
+.sl-brand { display: inline-flex; align-items: center; gap: 8px; padding-right: 18px; margin-right: 4px; border-right: 1px solid rgba(255, 255, 255, .2); font-weight: 900; font-size: 22px; letter-spacing: .02em; color: #fff; white-space: nowrap; }
+.sl-brand i { font-style: italic; font-size: 30px; line-height: 1; background: linear-gradient(180deg, #ff5fd2, #b23cff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sl-brand em { font-style: normal; color: #e05cff; }
+.sl-head-icon { width: auto; height: auto; border: 0; background: none; }
+.sl-head-icon svg { width: 34px; height: 34px; }
+.sl-medal { width: 64px !important; height: 50px !important; }
+.sl-seller { min-height: 72px; }
+.sl-cols span:nth-child(n+3) { border-left: 1px solid rgba(255, 255, 255, .1); }
+@media (max-width: 900px) {
+  .sl-brand { display: none; }
+}
+@media (max-width: 760px) {
+  .sl-medal { width: 46px !important; height: 36px !important; }
+}
+/* User Hub hero, closer to mockup 02: one-line subtitle on desktop, a lower hero. */
+@media (min-width: 901px) {
+  .uh-hero { min-height: 128px; padding: 18px 32px; }
+  .uh-hero p { max-width: 760px; font-size: 17px; }
+  .uh-hero-chest { width: clamp(150px, 16vw, 220px); }
+}
+/* Match cards at phone width: the map / format values need the room more than their icons do. */
+@media (max-width: 420px) {
+  .mh-card > footer > span > svg { display: none; }
+  .mh-card > footer > span { grid-template-columns: minmax(0, 1fr); }
+  .mh-card > footer b { text-overflow: clip; }
 }

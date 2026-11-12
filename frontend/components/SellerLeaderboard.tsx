@@ -112,6 +112,13 @@ export default function SellerLeaderboard() {
   return (
     <section className="sl-board" aria-labelledby="slTitle">
       <header className="sl-head">
+        {/* Mockup 03: the WAVEHUBX wordmark, a divider, then the bag icon and the title. */}
+        <span className="sl-brand" aria-hidden="true">
+          <i>W</i>
+          <span>
+            WAVE<em>HUBX</em>
+          </span>
+        </span>
         <span className="sl-head-icon">
           <Icon name="bag" />
         </span>
