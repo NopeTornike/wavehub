@@ -70,7 +70,10 @@ export function tournamentFormat(t: PublicTournamentSummary): string {
 
 export function teamInitials(team: Pick<TournamentTeamRef, 'name' | 'tag'> | null | undefined): string {
   if (!team) return '?'
-  return (team.tag || team.name).slice(0, 3).toUpperCase()
+  if (team.tag) return team.tag.slice(0, 3).toUpperCase()
+  // "Team Alpha" → "TA", "Crimson Falcons" → "CF", "Wolves" → "WOL" (round 7: "TEA" read as a word).
+  const words = team.name.trim().split(/\s+/).filter(Boolean)
+  return (words.length > 1 ? words.map((w) => w[0]).join('').slice(0, 3) : team.name.slice(0, 3)).toUpperCase()
 }
 
 export function TeamMark({ team, className = '' }: { team: TournamentTeamRef | null; className?: string }) {
@@ -126,6 +129,9 @@ const PATHS: Record<string, ReactNode> = {
   seat: <path d="M5 11V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v5M3 11h18v5H3zM5 16v4m14-4v4" />,
   lock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
   bars: <path d="M5 20v-6m7 6V8m7 12V4" />,
+  flag: <path d="M5 21V4m0 0h11l-2 4 2 4H5" />,
+  doubleChevron: <path d="m6 6 6 6-6 6m6-12 6 6-6 6" />,
+  path: <path d="M4 4h5v5H4zM4 15h5v5H4zM9 6.5h4v11H9m4-5.5h4M17 9.5h3v5h-3z" />,
 }
 
 export function TIcon({ name, className }: { name: keyof typeof PATHS | string; className?: string }) {

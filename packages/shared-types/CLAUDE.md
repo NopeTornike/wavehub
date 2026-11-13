@@ -112,3 +112,7 @@ public shape's surface area the same across all three listing types.
 `SubscriptionAudience`, `SubscriptionStatus`, `SubscriptionPerks` (all keys optional, extend here),
 `PublicSubscriptionPlan`, `PublicUserSubscription`, `AdminSubscriptionPlanSummary`;
 `profileBadge: string | null` on `PublicUserProfile` and `PublicCoachSummary`.
+- **Battle-royale tournaments (2026-11-14)**: `TournamentFormat` / `TOURNAMENT_FORMATS`,
+  `BR_PLACEMENT_POINTS` + `brMatchPoints(placement, kills)`, and the pure `brBracket` / `brMatchTeams`
+  that both the backend (room access, "my matches") and the dashboard pages use — keep them pure so
+  both sides always agree on who is in which stage (`backend/src/tournaments/CLAUDE.md`).

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { MatchPlayerStat, MatchTeamStats, PublicTournamentMatch, PublicTournamentSummary, TournamentTeamRef } from '@wavehub/shared-types'
 import Layout from '../../../../components/Layout'
 import { api, errorMessage } from '../../../../lib/api'
+import { TournamentMatchStatus } from '@wavehub/shared-types'
 import { matchWinner, MATCH_STATUS_LABEL, STAGE_LABEL, TeamMark, TIcon, tournamentFormat } from '../../../../lib/tournaments'
 
 // docs/design-mockups/07-match-details.jpg: scoreboard (teams, WINNER / DEFEATED, round, best-of,
@@ -129,6 +130,9 @@ export default function MatchDetails() {
   }
 
   const winner = matchWinner(match)
+  const br = tournament?.format === 'battle_royale'
+  // Round-7/39: no score before the match starts.
+  const started = match.status !== TournamentMatchStatus.Scheduled
   const lines: Line[] = [
     ...(match.stats.a?.players ?? []).map((p) => ({ ...p, team: match.teamA })),
     ...(match.stats.b?.players ?? []).map((p) => ({ ...p, team: match.teamB })),
@@ -145,7 +149,7 @@ export default function MatchDetails() {
   const winnerName = winner === 'a' ? match.teamA?.name : winner === 'b' ? match.teamB?.name : null
 
   return (
-    <Layout title={`${match.teamA?.name ?? 'TBD'} vs ${match.teamB?.name ?? 'TBD'}`}>
+    <Layout title={br ? `${match.tournamentName} — ${match.roundLabel || STAGE_LABEL[match.stage]}` : `${match.teamA?.name ?? 'TBD'} vs ${match.teamB?.name ?? 'TBD'}`}>
       <section className="wt-page wt-match">
         <Link className="wt-back" href="/tournaments/hub">
           <TIcon name="back" /> ტურნირის ჰაბზე დაბრუნება
@@ -157,6 +161,40 @@ export default function MatchDetails() {
           </p>
         </header>
 
+        {br ? (
+          <section className="wt-panel wt-br-results">
+            <header className="wt-panel-head">
+              <h2>
+                {match.groupName ? `Group ${match.groupName} • ` : `${STAGE_LABEL[match.stage]} • `}
+                {match.roundLabel || 'Match'}
+              </h2>
+              <span className={`wt-score-pill ${match.status}`}>{MATCH_STATUS_LABEL[match.status]}</span>
+            </header>
+            {match.results.length === 0 ? (
+              <p className="rules-pending">შედეგები მატჩის შემდეგ გამოქვეყნდება.</p>
+            ) : (
+              <div className="wt-br-table" role="table" aria-label="მატჩის შედეგები">
+                <div className="head" role="row">
+                  <span>Place</span>
+                  <span>Team</span>
+                  <span>Kills</span>
+                  <span>Pts</span>
+                </div>
+                {match.results.map((r) => (
+                  <div key={r.team.id} role="row" className={r.placement === 1 ? 'first' : undefined}>
+                    <span>{r.placement ? `#${r.placement}` : '—'}</span>
+                    <span className="team">
+                      <TeamMark team={r.team} />
+                      <strong>{r.team.name}</strong>
+                    </span>
+                    <span>{r.kills}</span>
+                    <b>{r.points}</b>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : (
         <section className="wt-scoreboard">
           <div className={`wt-score-team side-a${winner === 'a' ? ' won' : winner === 'b' ? ' lost' : ''}`}>
             <TeamMark team={match.teamA} className="lg" />
@@ -170,9 +208,9 @@ export default function MatchDetails() {
               {match.roundLabel || STAGE_LABEL[match.stage]} • BEST OF {match.bestOf}
             </small>
             <div className="wt-score">
-              <b className={winner === 'b' ? 'lost' : ''}>{match.scoreA ?? '–'}</b>
+              <b className={winner === 'b' ? 'lost' : ''}>{started ? (match.scoreA ?? '–') : '–'}</b>
               <i>:</i>
-              <b className={winner === 'a' ? 'lost' : ''}>{match.scoreB ?? '–'}</b>
+              <b className={winner === 'a' ? 'lost' : ''}>{started ? (match.scoreB ?? '–') : '–'}</b>
             </div>
             <span className={`wt-score-pill ${match.status}`}>{winnerName ? `${winnerName} won` : MATCH_STATUS_LABEL[match.status]}</span>
           </div>
@@ -184,6 +222,7 @@ export default function MatchDetails() {
             <TeamMark team={match.teamB} className="lg" />
           </div>
         </section>
+        )}
 
         <section className="wt-facts-bar">
           {(
@@ -205,10 +244,12 @@ export default function MatchDetails() {
           ))}
         </section>
 
+        {!br && (
         <div className="wt-team-stats-grid">
           <TeamTable team={match.teamA} stats={match.stats.a} side="a" />
           <TeamTable team={match.teamB} stats={match.stats.b} side="b" />
         </div>
+        )}
 
         {lines.length > 0 && (
           <section className="wt-panel wt-performers">
@@ -240,7 +281,7 @@ export default function MatchDetails() {
         )}
 
         <div className="wt-match-actions">
-          <Link className="wt-outline-btn lg" href={`/tournaments/hub?t=${match.tournamentId}#bracket`}>
+          <Link className="wt-outline-btn lg" href={`/tournaments/${match.tournamentId}/dashboard`}>
             <TIcon name="bracket" /> სრული ბრეკეტი
           </Link>
           <Link className="wt-primary-btn" href="/tournaments/hub">

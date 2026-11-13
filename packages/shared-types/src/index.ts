@@ -1562,6 +1562,8 @@ export interface PublicTournamentTeam {
   // Discord invite/username (client feedback #6) — only in staff views and the caller's own team.
   discord?: string | null;
   status: TournamentTeamStatus;
+  // Battle-royale group (owner 2026-11-14), set by staff; null = not assigned yet.
+  groupName: string | null;
   createdAt: string;
 }
 
@@ -1656,6 +1658,16 @@ export interface PublicTournamentMatch {
   scoreA: number | null;
   scoreB: number | null;
   stats: { a: MatchTeamStats | null; b: MatchTeamStats | null };
+  // Battle-royale matches (owner 2026-11-14): every team's placement / kills / points, best first.
+  // Empty for versus matches (CS2-style A vs B).
+  results: MatchTeamResult[];
+}
+
+export interface MatchTeamResult {
+  team: TournamentTeamRef;
+  placement: number | null;
+  kills: number;
+  points: number;
 }
 
 // GET admin/tournaments/:id/matches — the public match plus the game-room details staff entered.
@@ -1731,6 +1743,141 @@ export interface PublicTournamentSummary {
   pointsPerWin: number;
   pointsPerLoss: number;
   qualifyPoints: number | null;
+  // Owner 2026-11-14 (Gio): `versus` = A-vs-B matches (CS2) with knockout playoffs; `battle_royale` =
+  // all teams of a group / stage in one match (PUBG), points from placement + kills.
+  format: TournamentFormat;
+  // How many teams leave each group, and how many leave the semifinals (battle royale).
+  groupAdvance: number;
+  semifinalAdvance: number;
+}
+
+export type TournamentFormat = 'versus' | 'battle_royale';
+export const TOURNAMENT_FORMATS: TournamentFormat[] = ['versus', 'battle_royale'];
+
+// The standard PUBG Mobile esports placement table (1st 10 … 7th–8th 1, 9th+ 0) plus 1 per kill.
+export const BR_PLACEMENT_POINTS = [10, 6, 5, 4, 3, 2, 1, 1];
+export function brMatchPoints(placement: number | null, kills: number): number {
+  const place = placement && placement > 0 ? BR_PLACEMENT_POINTS[placement - 1] ?? 0 : 0;
+  return place + Math.max(0, Math.floor(kills || 0));
+}
+
+// --- Battle-royale standings (owner 2026-11-14, docs/design-mockups/round-7/31-38) ---
+// Pure: the backend uses it to know who plays which match, the pages to draw the tables.
+// A "win" is a match the team finished 1st; losses = matches played − wins.
+export interface BrStanding {
+  team: TournamentTeamRef;
+  played: number;
+  wins: number;
+  losses: number;
+  kills: number;
+  points: number;
+}
+export interface BrStage {
+  rows: BrStanding[];
+  // Matches of this stage that are completed / that exist; `live` = one is being played.
+  played: number;
+  total: number;
+  live: boolean;
+  done: boolean;
+}
+export interface BrGroup extends BrStage {
+  name: string;
+}
+export type BrPhase = 'group' | 'semifinal' | 'final' | 'completed';
+export interface BrBracket {
+  groups: BrGroup[];
+  groupDone: boolean;
+  semifinal: BrStage;
+  final: BrStage;
+  // Each team's group and its place there (for "Group A – 1st").
+  groupPlace: Record<string, { group: string; place: number }>;
+  champion: TournamentTeamRef | null;
+  phase: BrPhase;
+}
+type BrMatchInput = Pick<PublicTournamentMatch, 'stage' | 'groupName' | 'status' | 'results'>;
+type BrTeamInput = TournamentTeamRef & { groupName: string | null };
+
+export function brBracket(
+  matches: BrMatchInput[],
+  teams: BrTeamInput[],
+  opts: { groupAdvance: number; semifinalAdvance: number; completed?: boolean },
+): BrBracket {
+  const done = (m: BrMatchInput) => m.status === TournamentMatchStatus.Completed;
+  const sort = (rows: BrStanding[]) =>
+    rows.sort((a, b) => b.points - a.points || b.wins - a.wins || b.kills - a.kills || a.team.name.localeCompare(b.team.name));
+  const tally = (list: BrMatchInput[], start: BrTeamInput[] | TournamentTeamRef[]): BrStanding[] => {
+    const rows = new Map<string, BrStanding>();
+    for (const t of start) rows.set(t.id, { team: { id: t.id, name: t.name, tag: t.tag, logoUrl: t.logoUrl }, played: 0, wins: 0, losses: 0, kills: 0, points: 0 });
+    for (const m of list.filter(done)) {
+      for (const r of m.results) {
+        const row = rows.get(r.team.id) ?? { team: r.team, played: 0, wins: 0, losses: 0, kills: 0, points: 0 };
+        row.played += 1;
+        if (r.placement === 1) row.wins += 1;
+        else row.losses += 1;
+        row.kills += r.kills;
+        row.points += r.points;
+        rows.set(r.team.id, row);
+      }
+    }
+    return sort([...rows.values()]);
+  };
+  const stageInfo = (list: BrMatchInput[]) => ({
+    played: list.filter(done).length,
+    total: list.length,
+    live: list.some((m) => m.status === TournamentMatchStatus.Live),
+    done: list.length > 0 && list.every(done),
+  });
+
+  // Groups: staff-assigned team groups, plus any group a match names.
+  const groupMatches = matches.filter((m) => m.stage === TournamentMatchStage.Group);
+  const names = new Set<string>();
+  for (const t of teams) if (t.groupName) names.add(t.groupName);
+  for (const m of groupMatches) if (m.groupName) names.add(m.groupName);
+  const groups: BrGroup[] = [...names]
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => {
+      const list = groupMatches.filter((m) => m.groupName === name);
+      return { name, rows: tally(list, teams.filter((t) => t.groupName === name)), ...stageInfo(list) };
+    });
+  const groupDone = groupMatches.length > 0 && groupMatches.every(done);
+  const groupPlace: Record<string, { group: string; place: number }> = {};
+  for (const g of groups) g.rows.forEach((r, i) => (groupPlace[r.team.id] ??= { group: g.name, place: i + 1 }));
+  const fromGroups = groupDone ? groups.flatMap((g) => g.rows.slice(0, Math.max(0, opts.groupAdvance)).map((r) => r.team)) : [];
+
+  const semiMatches = matches.filter((m) => m.stage === TournamentMatchStage.SemiFinal);
+  const semiTeams = new Map<string, TournamentTeamRef>(fromGroups.map((t) => [t.id, t]));
+  for (const m of semiMatches) for (const r of m.results) semiTeams.set(r.team.id, r.team);
+  const semifinal: BrStage = { rows: tally(semiMatches, [...semiTeams.values()]), ...stageInfo(semiMatches) };
+
+  const finalMatches = matches.filter((m) => m.stage === TournamentMatchStage.Final);
+  const finalists = semifinal.done
+    ? semifinal.rows.slice(0, Math.max(0, opts.semifinalAdvance)).map((r) => r.team)
+    : semiMatches.length === 0
+      ? fromGroups
+      : [];
+  const finalTeams = new Map<string, TournamentTeamRef>(finalists.map((t) => [t.id, t]));
+  for (const m of finalMatches) for (const r of m.results) finalTeams.set(r.team.id, r.team);
+  const final: BrStage = { rows: tally(finalMatches, [...finalTeams.values()]), ...stageInfo(finalMatches) };
+
+  const champion = (final.done || (opts.completed && final.played > 0)) && final.rows[0]?.played ? final.rows[0].team : null;
+  const phase: BrPhase = champion
+    ? 'completed'
+    : finalMatches.length > 0 || semifinal.done
+      ? 'final'
+      : semiMatches.length > 0 || groupDone
+        ? 'semifinal'
+        : 'group';
+  return { groups, groupDone, semifinal, final, groupPlace, champion, phase };
+}
+
+// Which teams take part in a battle-royale match: its results, else the group's teams (group
+// stage) or the stage's qualified teams.
+export function brMatchTeams(match: BrMatchInput & { id?: string }, bracket: BrBracket, teams: BrTeamInput[]): string[] {
+  if (match.results.length) return match.results.map((r) => r.team.id);
+  if (match.stage === TournamentMatchStage.Group) return teams.filter((t) => t.groupName && t.groupName === match.groupName).map((t) => t.id);
+  if (match.stage === TournamentMatchStage.SemiFinal) return bracket.semifinal.rows.map((r) => r.team.id);
+  if (match.stage === TournamentMatchStage.Final) return bracket.final.rows.map((r) => r.team.id);
+  return [];
 }
 
 // Seller-entered Steam game facts on a digital-key listing (docs/design-mockups 04/05), stored in the

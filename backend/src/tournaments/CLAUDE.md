@@ -310,3 +310,35 @@ Migration `1784395000000-TournamentPointsRemindersLeaderboard`. Mockups: `docs/d
     to their games, and a row with no game is outside their scope. All of them are audited
     (`tournament.leaderboard_*`).
 - e2e: `test/owner-2026-11-10-tournaments.e2e-spec.ts`.
+
+## 2026-11-14 Battle royale format + Tournament Dashboard (owner round 7, Gio; docs/design-mockups/round-7)
+
+- **`tournaments.format`** — `versus` (A-vs-B matches; CS2) or `battle_royale` (all teams of a group /
+  stage in one lobby match; PUBG). Migration `1784398000000-BattleRoyaleTournaments` adds it (default
+  `versus`) and sets existing `pubg-mobile` / `free-fire` / `fortnite` tournaments to `battle_royale`;
+  a new tournament without `format` gets that game-based default (`defaultFormat`, `BR_GAME_SLUGS`).
+  Also `groupAdvance` (Top N per group → semifinal / playoffs, default 2) and `semifinalAdvance` (Top N
+  of the semifinal → final, default 4), and `tournament_teams.groupName` (staff-assigned, `A`–`H`).
+- **`tournament_match_results`** (unique `matchId`+`teamId`): placement (nullable), kills, points.
+  Points are computed server-side by shared-types `brMatchPoints` — the standard PUBG table
+  `BR_PLACEMENT_POINTS = [10,6,5,4,3,2,1,1]` + 1 per kill. A "win" = 1st place in a match.
+- **Standings are never stored** — shared-types `brBracket(matches, teams, {groupAdvance,
+  semifinalAdvance, completed})` derives group tables, the semifinal table (top `groupAdvance` of every
+  group once all group matches are completed, plus any team with a semifinal result), the final
+  (top `semifinalAdvance` of a completed semifinal, plus any team with a final result) and the
+  champion (final completed). `brMatchTeams` says who plays a match: its results, else the group's
+  teams / the stage's qualified teams. The backend uses it for room access and `/me/tournament-matches`.
+- Staff routes (all audited, tournament-scope checked, declared before `matches/:matchId`):
+  `POST admin/tournaments/:id/teams/:teamId/group {groupName|null}`,
+  `POST admin/tournaments/:id/groups/auto {groups, reset?}` (verified teams, smallest group first),
+  `POST admin/tournaments/:id/matches/battle-royale {stage, groupName?, count 1–12, startAt,
+  intervalMinutes, map?}` (roundLabel "Match k/N"), `POST admin/tournaments/:id/matches/:matchId/results
+  {results:[{teamId, placement|null, kills}], complete?}` (replaces the match's results; duplicate team
+  or place → 400).
+- **Game room**: a battle-royale match has ONE lobby — `room.a`, shown to every team `brMatchTeams`
+  puts in the match (side `a`); staff edit it as one "lobby" in Admin → Tournaments.
+- **Versus fix (round-7/39)**: a scheduled match given both scores without a status is completed
+  (`applyMatchDto`); the match list / details pages also show "VS" instead of a score until a match is
+  live or completed.
+- Known gap: the match-scheduled / result notifications still go to team A / B only, so battle-royale
+  matches send none yet. e2e: `test/battle-royale.e2e-spec.ts`.

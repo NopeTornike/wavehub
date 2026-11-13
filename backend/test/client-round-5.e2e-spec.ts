@@ -26,7 +26,7 @@ describe('client round 5 (e2e)', () => {
   it('game room: locked until staff open a side, details only for that side, gone for rejected teams', async () => {
     const t = await admin.client.post('/admin/tournaments', {
       gameId, name: `Room Cup ${Date.now() % 100000}`, description: 'A squad tournament for the game room test.',
-      prize: '100 GEL', status: 'open', startDate, maxPlayers: 8, teamSize: 2,
+      prize: '100 GEL', status: 'open', startDate, maxPlayers: 8, teamSize: 2, format: 'versus', // A-vs-B rooms (battle royale = one lobby, battle-royale.e2e-spec)
     });
     expect(t.status).toBeLessThan(300);
     const id = t.body.id as string;
@@ -82,7 +82,7 @@ describe('client round 5 (e2e)', () => {
   it('game room: a pending team sees the card locked with no details until verified', async () => {
     const t = await admin.client.post('/admin/tournaments', {
       gameId, name: `Pending Cup ${Date.now() % 100000}`, description: 'A squad tournament for the pending room test.',
-      prize: '50 GEL', status: 'open', startDate, maxPlayers: 8, teamSize: 2,
+      prize: '50 GEL', status: 'open', startDate, maxPlayers: 8, teamSize: 2, format: 'versus',
     });
     const id = t.body.id as string;
     const [p1, p2, q1, q2] = await Promise.all(['pa1', 'pa2', 'pb1', 'pb2'].map((p) => registerUser(ctx, p)));

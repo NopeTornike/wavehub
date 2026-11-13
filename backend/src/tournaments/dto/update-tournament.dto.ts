@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min, ValidateNested } from 'class-validator';
-import { TournamentStatus } from '@wavehub/shared-types';
+import { IsIn, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import type { TournamentFormat } from '@wavehub/shared-types';
+import { TOURNAMENT_FORMATS, TournamentStatus } from '@wavehub/shared-types';
 import { IsItemAttributes } from '../../listings/dto/item-attributes.validator';
 import { PrizesDto } from './prizes.dto';
 
@@ -79,4 +80,22 @@ export class UpdateTournamentDto {
   @Min(0)
   @Max(10000)
   qualifyPoints?: number | null;
+
+  // Owner 2026-11-14: versus (CS2) or battle_royale (PUBG). Omitted on create = from the game
+  // (PUBG Mobile / Free Fire / Fortnite are battle royale).
+  @IsOptional()
+  @IsIn(TOURNAMENT_FORMATS)
+  format?: TournamentFormat;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(16)
+  groupAdvance?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(32)
+  semifinalAdvance?: number;
 }

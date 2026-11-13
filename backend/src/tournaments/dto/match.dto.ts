@@ -232,3 +232,90 @@ export class RoundRobinDto {
   @Max(9)
   bestOf?: number;
 }
+
+// --- Battle royale (owner 2026-11-14) ---
+
+export class MatchResultLineDto {
+  @IsUUID()
+  teamId: string;
+
+  // null = the team didn't finish / no placement recorded (0 placement points).
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  placement?: number | null;
+
+  @IsInt()
+  @Min(0)
+  @Max(999)
+  kills: number;
+}
+
+// PUT admin/tournaments/:id/matches/:matchId/results — replaces the match's results. Points are
+// computed server-side (brMatchPoints). `complete` also marks the match completed.
+export class MatchResultsDto {
+  @IsArray()
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => MatchResultLineDto)
+  results: MatchResultLineDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  complete?: boolean;
+}
+
+// POST admin/tournaments/:id/teams/:teamId/group
+export class TeamGroupDto {
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== '')
+  @IsString()
+  @Matches(/^[A-Za-z0-9]{1,10}$/, { message: 'Group: letters / digits, up to 10' })
+  groupName?: string | null;
+}
+
+// POST admin/tournaments/:id/groups/auto — spread the verified teams over N groups (A, B, …) in
+// registration order, round-robin. Teams that already have a group keep it unless `reset`.
+export class AutoGroupsDto {
+  @IsInt()
+  @Min(1)
+  @Max(16)
+  groups: number;
+
+  @IsOptional()
+  @IsBoolean()
+  reset?: boolean;
+}
+
+// POST admin/tournaments/:id/br-matches — `count` battle-royale matches for one group (or a
+// semifinal / final), `intervalMinutes` apart from `startAt`, named "Match 1/N" …
+export class BrMatchesDto {
+  @IsEnum(TournamentMatchStage)
+  stage: TournamentMatchStage;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== '')
+  @IsString()
+  @MaxLength(10)
+  groupName?: string | null;
+
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  count: number;
+
+  @IsDateString()
+  startAt: string;
+
+  @IsInt()
+  @Min(0)
+  @Max(1440)
+  intervalMinutes: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  map?: string | null;
+}

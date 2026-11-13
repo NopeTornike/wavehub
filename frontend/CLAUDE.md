@@ -1553,3 +1553,27 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   (`rc-` CSS) sits right under the hero banner, above the countdown card: drawn gift box, "Rewards
   Center", one line about daily tasks, chevron. Opens `/hub`; signed out it opens the login window
   and lands on `/hub` after. Hidden while `features.rewardsHub` is off.
+- **Tournament round 7 (2026-11-14, Gio; `docs/design-mockups/round-7/`)** — layout 1:1 with the
+  mockups, site colours (pink / violet; green = qualifying rows, gold = champion, red = LIVE), `td-` CSS:
+  - **`/tournaments/hub` is "My Tournament" (33)**: game banner, "My Tournament Hub", a Tournament
+    Dashboard link; battle royale → NEXT MATCH card (stage, "Group A • Match 4/5", HRS:MIN:SEC,
+    date | Tbilisi time) + "Match Completed" (place, match points, stage total); versus (CS2) → the
+    old next-match panel, now first. Then the game room, `MyTeamStatusCard` (battle-royale numbers via
+    its `br` prop; its "Bracket" button opens the dashboard) and `TeamMembersCard`. The tournament card
+    (32) and the bracket are gone from this page.
+  - **`/tournaments/[id]/dashboard`** (31, 34–38): banner with Teams | Groups, Group Stage » Semifinals
+    » Final stepper (✓ when a stage is done), group tabs + table (top `groupAdvance` green, LIVE /
+    "Match x/y"), pager dots, Semifinals / Final link cards, Tournament Format card; semifinal table
+    with laurels (top `semifinalAdvance` green); final with drawn trophy, finalist cards ("Group A –
+    1st", TBD slots), Final Match date / time / status, Tournament Path; CHAMPION banner + Final
+    Standings (1st gold) + Tournament Results. Versus tournaments use the same page with their
+    knockout matches as link cards (CS2's match cards, 39, stay as they are). Data: `lib/
+    tournament-dashboard.ts#buildDashboard` (battle royale through shared-types `brBracket`), pieces in
+    `components/tournaments/TournamentStages.tsx`. Linked from the tournament page, the match list and
+    the match details page.
+  - Match list / details: battle-royale matches show placements (place, team, kills, points) instead of
+    "TBD vs TBD"; a versus score shows only once the match is live or completed (39).
+  - Admin → Tournaments: format / Top N per group / Top N from the semifinal; for battle royale the
+    ops panel has auto groups, a per-team group select, a lobby-match generator (all groups at once),
+    a per-match results editor (place + kills, live points preview) and a one-lobby room editor
+    (`components/admin/BattleRoyaleOps.tsx`). `teamInitials` now uses word initials ("Team Alpha" → TA).

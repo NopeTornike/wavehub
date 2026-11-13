@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { PublicGame, PublicTournamentSummary, TournamentPrizes } from '@wavehub/shared-types'
+import type { PublicGame, PublicTournamentSummary, TournamentFormat, TournamentPrizes } from '@wavehub/shared-types'
 import { TOURNAMENT_DETAIL_KEYS, TournamentStatus } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import TournamentOps from '../../components/admin/TournamentOps'
@@ -30,6 +30,11 @@ const emptyForm = {
   pointsPerWin: 3,
   pointsPerLoss: 0,
   qualifyPoints: '' as string,
+  // Round 7 (owner 2026-11-14): '' = by game (PUBG / Free Fire / Fortnite → battle royale), and how
+  // many go through from each group / from the semifinal.
+  format: '' as '' | TournamentFormat,
+  groupAdvance: 2,
+  semifinalAdvance: 4,
   // Prize breakdown as editable text: one place per line "1st Place | 500 GEL | Gaming Gear, Hotel Stay".
   prizePlaces: '',
   specialRewards: '',
@@ -167,6 +172,24 @@ function TournamentFields({
           <input id={`${idPrefix}-qual`} type="number" min={0} max={10000} step={1} value={form.qualifyPoints} onChange={(e) => onChange({ ...form, qualifyPoints: e.target.value })} />
         </label>
       </div>
+      <div className="stack-form-grid">
+        <label className="field" htmlFor={`${idPrefix}-format`}>
+          ტურნირის ფორმატი <small>Battle Royale = ჯგუფის ყველა გუნდი ერთ მატჩში (PUBG)</small>
+          <select id={`${idPrefix}-format`} value={form.format} onChange={(e) => onChange({ ...form, format: e.target.value as '' | TournamentFormat })}>
+            <option value="">თამაშის მიხედვით</option>
+            <option value="battle_royale">Battle Royale (ჯგუფები → ნახევარფინალი → ფინალი)</option>
+            <option value="versus">გუნდი გუნდის წინააღმდეგ (CS2: ჯგუფები → პლეიოფი)</option>
+          </select>
+        </label>
+        <label className="field" htmlFor={`${idPrefix}-gadv`}>
+          ჯგუფიდან გადის <small>Top N თითო ჯგუფიდან</small>
+          <input id={`${idPrefix}-gadv`} type="number" min={1} max={16} step={1} value={form.groupAdvance} onChange={(e) => onChange({ ...form, groupAdvance: Number(e.target.value) })} required />
+        </label>
+        <label className="field" htmlFor={`${idPrefix}-sadv`}>
+          ნახევარფინალიდან ფინალში <small>Top N (Battle Royale)</small>
+          <input id={`${idPrefix}-sadv`} type="number" min={1} max={32} step={1} value={form.semifinalAdvance} onChange={(e) => onChange({ ...form, semifinalAdvance: Number(e.target.value) })} required />
+        </label>
+      </div>
       <details className="field" open>
         <summary>საპრიზო ფონდის განაწილება (Prize Pool ჩანართი)</summary>
         <label className="field" htmlFor={`${idPrefix}-places`}>
@@ -285,6 +308,9 @@ export default function AdminTournaments() {
         pointsPerWin: form.pointsPerWin,
         pointsPerLoss: form.pointsPerLoss,
         qualifyPoints: form.qualifyPoints === '' ? null : Number(form.qualifyPoints),
+        ...(form.format ? { format: form.format } : {}),
+        groupAdvance: form.groupAdvance,
+        semifinalAdvance: form.semifinalAdvance,
         prizes: prizesFromForm(form),
       })
       setForm(emptyForm)
@@ -313,6 +339,9 @@ export default function AdminTournaments() {
       pointsPerWin: t.pointsPerWin ?? 3,
       pointsPerLoss: t.pointsPerLoss ?? 0,
       qualifyPoints: t.qualifyPoints === null || t.qualifyPoints === undefined ? '' : String(t.qualifyPoints),
+      format: t.format,
+      groupAdvance: t.groupAdvance,
+      semifinalAdvance: t.semifinalAdvance,
       ...prizesToForm(t.prizes),
     })
   }
@@ -342,6 +371,9 @@ export default function AdminTournaments() {
         pointsPerWin: editForm.pointsPerWin,
         pointsPerLoss: editForm.pointsPerLoss,
         qualifyPoints: editForm.qualifyPoints === '' ? null : Number(editForm.qualifyPoints),
+        ...(editForm.format ? { format: editForm.format } : {}),
+        groupAdvance: editForm.groupAdvance,
+        semifinalAdvance: editForm.semifinalAdvance,
         prizes: prizesFromForm(editForm),
       })
       setEditingId(null)

@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { InjectRepository } from '@nestjs/typeorm';
 import { assertGameInScope, type StaffScope } from '../admin/staff-scope';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
-import { AdminRole, NotificationType, TournamentMatchStage, TournamentMatchStatus, TournamentStatus, TournamentTeamStatus, UserStatus } from '@wavehub/shared-types';
+import { AdminRole, brBracket, brMatchPoints, brMatchTeams, NotificationType, TournamentMatchStage, TournamentMatchStatus, TournamentStatus, TournamentTeamStatus, UserStatus } from '@wavehub/shared-types';
 import type {
   AdminTournamentMatch,
   MatchRoomSide,
@@ -15,6 +15,7 @@ import type {
   TournamentPlayerLookup,
   TournamentPrizes,
   TournamentTeamPlayer,
+  TournamentFormat,
   TournamentTeamRef,
 } from '@wavehub/shared-types';
 import { Tournament } from './tournament.entity';
@@ -26,7 +27,9 @@ import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { BrowseTournamentsDto } from './dto/browse-tournaments.dto';
 import { RegisterSoloDto, RegisterTeamDto } from './dto/register-team.dto';
-import { MatchDto, MatchRoomDto, MatchRoomSideDto, MatchTeamStatsDto, RoundRobinDto } from './dto/match.dto';
+import { AutoGroupsDto, BrMatchesDto, MatchDto, MatchResultsDto, MatchRoomDto, MatchRoomSideDto, MatchTeamStatsDto, RoundRobinDto, TeamGroupDto } from './dto/match.dto';
+import { TournamentMatchResult } from './tournament-match-result.entity';
+import { Game } from '../listings/game.entity';
 import { TournamentNotifier } from './tournament-notifier.service';
 import { StorageService } from '../storage/storage.service';
 import { User } from '../users/user.entity';
@@ -37,6 +40,7 @@ const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const EMPTY_PRIZES: TournamentPrizes = { places: [], specialRewards: [], note: null };
+const BR_GAME_SLUGS = ['pubg-mobile', 'free-fire', 'fortnite'];
 // Withdrawing (or registering) is only possible before play starts.
 const REGISTRATION_EDITABLE = [TournamentStatus.Open, TournamentStatus.Upcoming];
 
@@ -123,6 +127,9 @@ export class TournamentsService {
       pointsPerWin: tournament.pointsPerWin ?? 3,
       pointsPerLoss: tournament.pointsPerLoss ?? 0,
       qualifyPoints: tournament.qualifyPoints ?? null,
+      format: tournament.format ?? 'versus',
+      groupAdvance: tournament.groupAdvance ?? 2,
+      semifinalAdvance: tournament.semifinalAdvance ?? 4,
       createdAt: tournament.createdAt.toISOString(),
     };
   }
@@ -150,6 +157,7 @@ export class TournamentsService {
       players,
       ...(withInGameIds ? { discord: team.discord } : {}),
       status: team.status,
+      groupName: team.groupName ?? null,
       createdAt: team.createdAt.toISOString(),
     };
   }
@@ -213,10 +221,20 @@ export class TournamentsService {
       scoreA: match.scoreA,
       scoreB: match.scoreB,
       stats: { a: match.stats?.a ?? null, b: match.stats?.b ?? null },
+      results: (match.results ?? [])
+        .filter((r) => r.team)
+        .map((r) => ({ team: this.teamRef(r.team)!, placement: r.placement, kills: r.kills, points: r.points }))
+        .sort((a, b) => b.points - a.points || (a.placement ?? 999) - (b.placement ?? 999) || a.team.name.localeCompare(b.team.name)),
     };
   }
 
   // --- Admin: tournaments ---
+
+  // Battle-royale games (PUBG Mobile, Free Fire, Fortnite) default to that format.
+  private async defaultFormat(gameId: string): Promise<TournamentFormat> {
+    const game = await this.dataSource.getRepository(Game).findOne({ where: { id: gameId }, select: { slug: true } });
+    return game && BR_GAME_SLUGS.includes(game.slug) ? 'battle_royale' : 'versus';
+  }
 
   async create(dto: CreateTournamentDto): Promise<Tournament> {
     const tournament = this.tournaments.create({
@@ -233,6 +251,9 @@ export class TournamentsService {
       pointsPerWin: dto.pointsPerWin ?? 3,
       pointsPerLoss: dto.pointsPerLoss ?? 0,
       qualifyPoints: dto.qualifyPoints ?? null,
+      format: dto.format ?? (await this.defaultFormat(dto.gameId)),
+      groupAdvance: dto.groupAdvance ?? 2,
+      semifinalAdvance: dto.semifinalAdvance ?? 4,
       prizes: dto.prizes ? { places: dto.prizes.places, specialRewards: dto.prizes.specialRewards, note: dto.prizes.note ?? null } : EMPTY_PRIZES,
     });
     return this.tournaments.save(tournament);
@@ -583,7 +604,9 @@ export class TournamentsService {
       .createQueryBuilder('m')
       .leftJoinAndSelect('m.teamA', 'teamA')
       .leftJoinAndSelect('m.teamB', 'teamB')
-      .leftJoinAndSelect('m.tournament', 'tournament');
+      .leftJoinAndSelect('m.tournament', 'tournament')
+      .leftJoinAndSelect('m.results', 'results')
+      .leftJoinAndSelect('results.team', 'resultTeam');
   }
 
   async listMatches(tournamentId: string, includeDraft = false): Promise<PublicTournamentMatch[]> {
@@ -624,6 +647,11 @@ export class TournamentsService {
     if (dto.status !== undefined) match.status = dto.status;
     if (dto.scoreA !== undefined) match.scoreA = dto.scoreA;
     if (dto.scoreB !== undefined) match.scoreB = dto.scoreB;
+    // A score typed without a status finishes a scheduled match (round-7/39: a card showed "1 - 0"
+    // under "scheduled" because the quick score entry left the status alone).
+    if (dto.status === undefined && (dto.scoreA !== undefined || dto.scoreB !== undefined) && match.scoreA !== null && match.scoreB !== null && match.status === TournamentMatchStatus.Scheduled) {
+      match.status = TournamentMatchStatus.Completed;
+    }
     if (dto.stats !== undefined) {
       match.stats = {
         a: dto.stats.a !== undefined ? normalizeStats(dto.stats.a, accounts) : (match.stats?.a ?? null),
@@ -716,6 +744,112 @@ export class TournamentsService {
     return this.getMatch(tournamentId, matchId);
   }
 
+  // --- Battle royale (owner 2026-11-14, docs/design-mockups/round-7) ---
+
+  // Public matches + team refs (with groups) + the computed standings for a BR tournament.
+  private async brState(tournament: Tournament) {
+    const rows = await this.matchQuery().where('m.tournamentId = :id', { id: tournament.id }).getMany();
+    const matches = rows.map((r) => this.toPublicMatch(r));
+    const teamRows = await this.teams.find({ where: { tournamentId: tournament.id }, select: { id: true, name: true, tag: true, logoUrl: true, groupName: true, status: true } });
+    const teams = teamRows
+      .filter((t) => t.status !== TournamentTeamStatus.Rejected)
+      .map((t) => ({ id: t.id, name: t.name, tag: t.tag, logoUrl: t.logoUrl, groupName: t.groupName }));
+    const bracket = brBracket(matches, teams, {
+      groupAdvance: tournament.groupAdvance ?? 2,
+      semifinalAdvance: tournament.semifinalAdvance ?? 4,
+      completed: tournament.status === TournamentStatus.Completed,
+    });
+    return { rows, matches, teams, bracket };
+  }
+
+  // Replaces a BR match's results; points come from placement + kills (brMatchPoints).
+  async adminSetResults(tournamentId: string, matchId: string, dto: MatchResultsDto): Promise<PublicTournamentMatch> {
+    const match = await this.matches.findOne({ where: { id: matchId, tournamentId } });
+    if (!match) throw new NotFoundException('Match not found');
+    const teamIds = dto.results.map((r) => r.teamId);
+    if (new Set(teamIds).size !== teamIds.length) throw new BadRequestException('A team is listed twice');
+    const placements = dto.results.map((r) => r.placement).filter((p): p is number => typeof p === 'number');
+    if (new Set(placements).size !== placements.length) throw new BadRequestException('Two teams have the same place');
+    if (teamIds.length) {
+      const found = await this.teams.count({ where: { tournamentId, id: In(teamIds) } });
+      if (found !== teamIds.length) throw new BadRequestException('Every team must be registered in this tournament');
+    }
+    await this.dataSource.transaction(async (m) => {
+      await m.delete(TournamentMatchResult, { matchId });
+      if (dto.results.length) {
+        await m.insert(
+          TournamentMatchResult,
+          dto.results.map((r) => ({ matchId, teamId: r.teamId, placement: r.placement ?? null, kills: r.kills, points: brMatchPoints(r.placement ?? null, r.kills) })),
+        );
+      }
+      if (dto.complete) await m.update(TournamentMatch, { id: matchId }, { status: TournamentMatchStatus.Completed });
+    });
+    return this.getMatch(tournamentId, matchId).catch(async () => {
+      const row = await this.matchQuery().where('m.id = :matchId', { matchId }).getOneOrFail();
+      return this.toPublicMatch(row);
+    });
+  }
+
+  async adminSetTeamGroup(tournamentId: string, teamId: string, dto: TeamGroupDto): Promise<PublicTournamentTeam> {
+    const team = await this.teams.findOne({ where: { id: teamId, tournamentId } });
+    if (!team) throw new NotFoundException('Team not found');
+    team.groupName = dto.groupName?.trim().toUpperCase() || null;
+    await this.teams.save(team);
+    return this.toPublicTeam(await this.teams.findOneOrFail({ where: { id: teamId }, relations: TEAM_RELATIONS }), true);
+  }
+
+  // Verified teams spread over N groups (A, B, …) in registration order.
+  async adminAutoGroups(tournamentId: string, dto: AutoGroupsDto): Promise<{ assigned: number }> {
+    await this.getOrThrow(tournamentId);
+    const teams = await this.teams.find({ where: { tournamentId, status: TournamentTeamStatus.Verified }, order: { createdAt: 'ASC' } });
+    const names = Array.from({ length: dto.groups }, (_, i) => String.fromCharCode(65 + i));
+    const sizes = new Map(names.map((n) => [n, 0]));
+    if (!dto.reset) for (const t of teams) if (t.groupName && sizes.has(t.groupName)) sizes.set(t.groupName, sizes.get(t.groupName)! + 1);
+    let assigned = 0;
+    for (const t of teams) {
+      if (!dto.reset && t.groupName) continue;
+      // The smallest group (first by name on a tie) gets the next team.
+      const target = [...sizes.entries()].sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))[0][0];
+      t.groupName = target;
+      sizes.set(target, sizes.get(target)! + 1);
+      assigned += 1;
+    }
+    await this.teams.save(teams);
+    return { assigned };
+  }
+
+  // `count` BR matches for a group / semifinal / final, "Match k/N", spaced from `startAt`.
+  async adminBrMatches(tournamentId: string, dto: BrMatchesDto): Promise<{ created: number }> {
+    await this.getOrThrow(tournamentId);
+    const groupName = dto.stage === TournamentMatchStage.Group ? dto.groupName?.trim().toUpperCase() || 'A' : null;
+    const start = new Date(dto.startAt).getTime();
+    const rows = Array.from({ length: dto.count }, (_, i) =>
+      this.matches.create({
+        tournamentId,
+        stage: dto.stage,
+        groupName,
+        roundLabel: `Match ${i + 1}/${dto.count}`,
+        teamAId: null,
+        teamBId: null,
+        map: dto.map?.trim() || null,
+        bestOf: 1,
+        scheduledAt: new Date(start + i * dto.intervalMinutes * 60_000),
+        status: TournamentMatchStatus.Scheduled,
+        stats: {},
+      }),
+    );
+    await this.matches.save(rows);
+    return { created: rows.length };
+  }
+
+  // The caller's non-rejected team in a tournament (captain or roster member), or null.
+  private async myTeamIn(tournamentId: string, userId: string): Promise<TournamentTeam | null> {
+    const captain = await this.teams.findOne({ where: { tournamentId, captainUserId: userId } });
+    if (captain && captain.status !== TournamentTeamStatus.Rejected) return captain;
+    const member = await this.members.findOne({ where: { userId, tournamentId }, relations: { team: true } });
+    return member?.team && member.team.status !== TournamentTeamStatus.Rejected ? member.team : null;
+  }
+
   async adminDeleteMatch(tournamentId: string, matchId: string): Promise<{ ok: true }> {
     const result = await this.matches.delete({ id: matchId, tournamentId });
     if (!result.affected) throw new NotFoundException('Match not found');
@@ -792,6 +926,25 @@ export class TournamentsService {
   async myMatchRoom(userId: string, matchId: string): Promise<MatchRoomView> {
     const match = await this.matches.findOne({ where: { id: matchId }, relations: { tournament: { game: true }, teamA: true, teamB: true } });
     if (!match || match.tournament.status === TournamentStatus.Draft) throw new NotFoundException('Match not found');
+    // Battle royale: one shared lobby (stored as side "a") for every team playing this match.
+    if (match.tournament.format === 'battle_royale') {
+      const team = await this.myTeamIn(match.tournamentId, userId);
+      const { matches, teams, bracket } = await this.brState(match.tournament);
+      const pub = matches.find((m) => m.id === match.id);
+      if (!team || !pub || !brMatchTeams(pub, bracket, teams).includes(team.id)) throw new ForbiddenException('You are not a player in this match');
+      const teamPending = team.status !== TournamentTeamStatus.Verified;
+      const info = teamPending ? null : (match.room?.a ?? null);
+      const open = !!info?.open && !!(info.roomId || info.password || info.slot || info.serverUrl);
+      return {
+        matchId: match.id,
+        status: open ? 'available' : 'locked',
+        side: 'a',
+        teamPending,
+        room: open && info ? { roomId: info.roomId, password: info.password, slot: info.slot, serverUrl: info.serverUrl } : null,
+        gameName: match.tournament.game?.name ?? '',
+        launchUrl: match.tournament.game?.launchUrl ?? null,
+      };
+    }
     const teamIds = [match.teamAId, match.teamBId].filter((x): x is string => !!x);
     const membership = teamIds.length
       ? await this.members.findOne({ where: { userId, teamId: In(teamIds) } })
@@ -824,9 +977,20 @@ export class TournamentsService {
     const rows = await this.matchQuery()
       .where('(m.teamAId IN (:...teamIds) OR m.teamBId IN (:...teamIds))', { teamIds })
       .andWhere('tournament.status <> :draft', { draft: TournamentStatus.Draft })
+      .andWhere(`tournament.format <> 'battle_royale'`)
       .orderBy('m.scheduledAt', 'DESC', 'NULLS LAST')
       .addOrderBy('m.createdAt', 'DESC')
       .getMany();
-    return this.withPlayerAccounts(rows);
+    const versus = await this.withPlayerAccounts(rows);
+    // Battle royale: the matches the caller's team takes part in (its group's, then the stages it reached).
+    const myTeams = await this.teams.find({ where: { id: In(teamIds) }, relations: { tournament: true } });
+    const br: PublicTournamentMatch[] = [];
+    for (const team of myTeams) {
+      const t = team.tournament;
+      if (!t || t.format !== 'battle_royale' || t.status === TournamentStatus.Draft || team.status === TournamentTeamStatus.Rejected) continue;
+      const { matches, teams, bracket } = await this.brState(t);
+      br.push(...matches.filter((m) => brMatchTeams(m, bracket, teams).includes(team.id)));
+    }
+    return [...versus, ...br].sort((a, b) => (b.scheduledAt ?? '').localeCompare(a.scheduledAt ?? ''));
   }
 }

@@ -55,6 +55,10 @@ export class TournamentTeam {
   @Column({ type: 'varchar', default: TournamentTeamStatus.Pending })
   status: TournamentTeamStatus;
 
+  // Battle-royale group, set by staff (owner 2026-11-14). null = not assigned.
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  groupName: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }

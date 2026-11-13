@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { TournamentMatchStage, TournamentMatchStatus } from '@wavehub/shared-types';
 import type { MatchRoomSide, MatchTeamStats } from '@wavehub/shared-types';
 import { Tournament } from './tournament.entity';
 import { TournamentTeam } from './tournament-team.entity';
+import { TournamentMatchResult } from './tournament-match-result.entity';
 
 // Admin-entered match (match history, match details, hub bracket). Nothing is simulated: scores and
 // per-player stats are whatever tournament staff record after the match is played.
@@ -83,4 +84,8 @@ export class TournamentMatch {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
+
+  // Battle-royale results, one row per team (empty for versus matches).
+  @OneToMany(() => TournamentMatchResult, (r) => r.match)
+  results?: TournamentMatchResult[];
 }

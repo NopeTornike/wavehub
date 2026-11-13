@@ -3,6 +3,7 @@ import type { AdminTournamentMatch, MatchRoomSide, MatchTeamStats, PublicTournam
 import { TournamentMatchStage, TournamentMatchStatus, TournamentTeamStatus } from '@wavehub/shared-types'
 import { api, errorMessage, type TournamentMatchInput } from '../../lib/api'
 import { MATCH_STATUS_LABEL, STAGE_LABEL } from '../../lib/tournaments'
+import { BrPanel, BrResultsEditor, TeamGroupSelect } from './BattleRoyaleOps'
 
 // Staff side of tournament teams and matches (backend admin/tournaments/:id/teams|matches): verify
 // or reject registered teams, and record matches — stage, teams, map, best-of, time, status, score
@@ -177,7 +178,7 @@ function PlayerChips({ team, onPick }: { team: PublicTournamentTeam | undefined;
 // Only that team's players see them, on their tournament dashboard; locked shows "დაბლოკილია".
 const EMPTY_SIDE: MatchRoomSide = { open: false, roomId: null, password: null, slot: null, serverUrl: null }
 
-function RoomEditor({ match, tournamentId, onSaved }: { match: AdminTournamentMatch; tournamentId: string; onSaved: (m: AdminTournamentMatch) => void }) {
+function RoomEditor({ match, tournamentId, onSaved, lobby }: { match: AdminTournamentMatch; tournamentId: string; onSaved: (m: AdminTournamentMatch) => void; lobby?: boolean }) {
   const [sides, setSides] = useState({ a: { ...EMPTY_SIDE, ...(match.room.a ?? {}) }, b: { ...EMPTY_SIDE, ...(match.room.b ?? {}) } })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -188,7 +189,7 @@ function RoomEditor({ match, tournamentId, onSaved }: { match: AdminTournamentMa
     setError('')
     try {
       const clean = (x: MatchRoomSide): MatchRoomSide => ({ open: x.open, roomId: x.roomId?.trim() || null, password: x.password?.trim() || null, slot: x.slot?.trim() || null, serverUrl: x.serverUrl?.trim() || null })
-      onSaved(await api.adminSetMatchRoom(tournamentId, match.id, { a: clean(sides.a), b: clean(sides.b) }))
+      onSaved(await api.adminSetMatchRoom(tournamentId, match.id, lobby ? { a: clean(sides.a) } : { a: clean(sides.a), b: clean(sides.b) }))
     } catch (err) {
       setError(errorMessage(err, 'შენახვა ვერ მოხერხდა.'))
     } finally {
@@ -197,14 +198,18 @@ function RoomEditor({ match, tournamentId, onSaved }: { match: AdminTournamentMa
   }
   return (
     <form className="stack-form to-room" onSubmit={save}>
-      <p className="note">თითო გუნდს ცალკე: ჩართეთ „ხელმისაწვდომია“ და შეავსეთ მონაცემები. PUBG — Room ID, პაროლი, ადგილი; CS2 — სერვერის ბმული (steam://connect/…). ცარიელი ან გამორთული = „დაბლოკილია“.</p>
+      <p className="note">
+        {lobby
+          ? 'Battle Royale: ერთი ლობი მატჩის ყველა გუნდისთვის — ჩართეთ „ხელმისაწვდომია“ და შეავსეთ Room ID და პაროლი. ცარიელი ან გამორთული = „დაბლოკილია“.'
+          : 'თითო გუნდს ცალკე: ჩართეთ „ხელმისაწვდომია“ და შეავსეთ მონაცემები. PUBG — Room ID, პაროლი, ადგილი; CS2 — სერვერის ბმული (steam://connect/…). ცარიელი ან გამორთული = „დაბლოკილია“.'}
+      </p>
       <div className="stack-form-grid">
-        {(['a', 'b'] as const).map((side) => {
-          const team = side === 'a' ? match.teamA : match.teamB
+        {(lobby ? (['a'] as const) : (['a', 'b'] as const)).map((side) => {
+          const team = lobby ? { id: 'lobby', name: 'ლობი — ყველა გუნდი', tag: null, logoUrl: null } : side === 'a' ? match.teamA : match.teamB
           const v = sides[side]
           return (
             <fieldset key={side} className="to-room-side" disabled={!team}>
-              <legend>{team ? `გუნდი ${side.toUpperCase()} — ${team.name}` : `გუნდი ${side.toUpperCase()} — TBD`}</legend>
+              <legend>{lobby ? team!.name : team ? `გუნდი ${side.toUpperCase()} — ${team.name}` : `გუნდი ${side.toUpperCase()} — TBD`}</legend>
               <label className="to-room-open">
                 <input type="checkbox" checked={v.open} onChange={(e) => set(side, { open: e.target.checked })} /> ხელმისაწვდომია
               </label>
@@ -363,6 +368,8 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
   const [teams, setTeams] = useState<PublicTournamentTeam[]>([])
   const [matches, setMatches] = useState<AdminTournamentMatch[]>([])
   const [roomFor, setRoomFor] = useState<string | null>(null)
+  const [resultsFor, setResultsFor] = useState<string | null>(null)
+  const br = tournament.format === 'battle_royale'
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState<string | 'new' | null>(null)
@@ -486,6 +493,7 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
                 <strong>
                   {team.name}
                   {team.tag ? ` [${team.tag}]` : ''} — {TEAM_STATUS_LABEL[team.status]}
+                  {br && team.groupName ? ` · ჯგუფი ${team.groupName}` : ''}
                 </strong>
                 <span className="note" style={{ margin: 0 }}>
                   კაპიტანი @{team.captainUsername}
@@ -512,6 +520,7 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
                 </ul>
               </div>
               <div className="admin-row-actions">
+                {br && team.status !== TournamentTeamStatus.Rejected && <TeamGroupSelect tournamentId={tournament.id} team={team} onSaved={load} />}
                 {team.status !== TournamentTeamStatus.Verified && (
                   <button type="button" className="button" disabled={busy} onClick={() => void setTeamStatus(team, TournamentTeamStatus.Verified)}>
                     დადასტურება
@@ -529,13 +538,19 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
       )}
 
       <h2>მატჩები ({matches.length})</h2>
-      <RoundRobinPanel key={teams.map((t) => `${t.id}${t.status}`).join()} tournamentId={tournament.id} teams={teams} onDone={load} />
+      {br ? (
+        <BrPanel tournament={tournament} teams={teams} matches={matches} onDone={load} />
+      ) : (
+        <RoundRobinPanel key={teams.map((t) => `${t.id}${t.status}`).join()} tournamentId={tournament.id} teams={teams} onDone={load} />
+      )}
       {matches.map((m) =>
         editing === m.id ? null : (
           <div key={m.id} className="admin-row">
             <div className="admin-row-main">
               <strong>
-                {m.teamA?.name ?? 'TBD'} vs {m.teamB?.name ?? 'TBD'} {m.scoreA !== null && m.scoreB !== null ? `(${m.scoreA}:${m.scoreB})` : ''}
+                {br
+                  ? `${m.stage === TournamentMatchStage.Group && m.groupName ? `Group ${m.groupName}` : STAGE_LABEL[m.stage]}${m.roundLabel ? ` • ${m.roundLabel}` : ''}${m.results.length ? ` — 1-ლი: ${m.results.find((r) => r.placement === 1)?.team.name ?? '—'}` : ''}`
+                  : `${m.teamA?.name ?? 'TBD'} vs ${m.teamB?.name ?? 'TBD'} ${m.scoreA !== null && m.scoreB !== null ? `(${m.scoreA}:${m.scoreB})` : ''}`}
               </strong>
               <span className="note" style={{ margin: 0 }}>
                 {STAGE_LABEL[m.stage]}
@@ -555,6 +570,11 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
               >
                 რედაქტირება
               </button>
+              {br && (
+                <button type="button" className="button" onClick={() => setResultsFor((id) => (id === m.id ? null : m.id))}>
+                  {`შედეგები${m.results.length ? ` (${m.results.length})` : ''}`}
+                </button>
+              )}
               <button type="button" className="button" onClick={() => setRoomFor((id) => (id === m.id ? null : m.id))}>
                 {`თამაშის ოთახი${m.room.a?.open || m.room.b?.open ? ' · ღიაა' : ''}`}
               </button>
@@ -562,9 +582,23 @@ export default function TournamentOps({ tournament, onChanged }: { tournament: P
                 წაშლა
               </button>
             </div>
-            {m.teamA && m.teamB && <QuickScore key={`${m.id}:${m.scoreA}:${m.scoreB}`} tournamentId={tournament.id} match={m} onSaved={load} />}
+            {br && resultsFor === m.id && (
+              <BrResultsEditor
+                key={`${m.id}:${m.results.length}:${m.status}`}
+                tournament={tournament}
+                match={m}
+                matches={matches}
+                teams={teams}
+                onSaved={() => {
+                  load()
+                  onChanged()
+                }}
+              />
+            )}
+            {!br && m.teamA && m.teamB && <QuickScore key={`${m.id}:${m.scoreA}:${m.scoreB}`} tournamentId={tournament.id} match={m} onSaved={load} />}
             {roomFor === m.id && (
               <RoomEditor
+                lobby={br}
                 match={m}
                 onSaved={(next) => {
                   setMatches((list) => list.map((x) => (x.id === next.id ? next : x)))

@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { TournamentStatus } from '@wavehub/shared-types';
-import type { TournamentPrizes } from '@wavehub/shared-types';
+import type { TournamentFormat, TournamentPrizes } from '@wavehub/shared-types';
 import { Game } from '../listings/game.entity';
 
 // Admin-managed tournaments — teams register, staff verify teams and record matches/results (see
@@ -67,6 +67,16 @@ export class Tournament {
 
   @Column({ type: 'integer', nullable: true })
   qualifyPoints: number | null;
+
+  // Owner 2026-11-14: versus (CS2) or battle_royale (PUBG) — see TournamentFormat.
+  @Column({ type: 'varchar', length: 20, default: 'versus' })
+  format: TournamentFormat;
+
+  @Column({ type: 'integer', default: 2 })
+  groupAdvance: number;
+
+  @Column({ type: 'integer', default: 4 })
+  semifinalAdvance: number;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

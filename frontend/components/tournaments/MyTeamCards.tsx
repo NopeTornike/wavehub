@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useRef, useState } from 'react'
 import type { MyTournamentEntry, PublicTournamentMatch } from '@wavehub/shared-types'
 import { TournamentMatchStage, TournamentStatus, TournamentTeamStatus } from '@wavehub/shared-types'
@@ -8,7 +9,17 @@ import { groupStandings, matchWinner, mySide, TeamMark, TIcon } from '../../lib/
 // The hub's "my team" cards (owner 2026-11-10, docs/design-mockups/round-6/06 + 07). They replace the
 // four stat tiles. Everything is computed from the matches staff recorded for this tournament.
 
-export function MyTeamStatusCard({ entry, matches }: { entry: MyTournamentEntry; matches: PublicTournamentMatch[] }) {
+// Battle-royale numbers for the card (owner 2026-11-14): the team's row in its current stage and
+// its latest finished match.
+export type BrTeamSummary = {
+  points: number
+  wins: number
+  losses: number
+  place: number | null
+  last: { placement: number | null; points: number; label: string } | null
+}
+
+export function MyTeamStatusCard({ entry, matches, br, dashboardHref }: { entry: MyTournamentEntry; matches: PublicTournamentMatch[]; br?: BrTeamSummary | null; dashboardHref: string }) {
   const { tournament, team } = entry
   const mine = new Set([team.id])
   const tables = groupStandings(matches, tournament.pointsPerWin, tournament.pointsPerLoss)
@@ -18,9 +29,10 @@ export function MyTeamStatusCard({ entry, matches }: { entry: MyTournamentEntry;
 
   // Wins / losses across every recorded match of this tournament; points from the group table.
   const played = matches.filter((m) => matchWinner(m) && mySide(m, mine))
-  const wins = played.filter((m) => matchWinner(m) === mySide(m, mine)).length
-  const losses = played.length - wins
-  const points = groupRow?.points ?? wins * tournament.pointsPerWin + losses * tournament.pointsPerLoss
+  const wins = br ? br.wins : played.filter((m) => matchWinner(m) === mySide(m, mine)).length
+  const losses = br ? br.losses : played.length - wins
+  const points = br ? br.points : (groupRow?.points ?? wins * tournament.pointsPerWin + losses * tournament.pointsPerLoss)
+  const groupPlace = br ? br.place : place
   const target = tournament.qualifyPoints
   const last = [...played].sort((a, b) => (b.scheduledAt ?? '').localeCompare(a.scheduledAt ?? ''))[0] ?? null
   const lastWon = last ? matchWinner(last) === mySide(last, mine) : false
@@ -86,7 +98,21 @@ export function MyTeamStatusCard({ entry, matches }: { entry: MyTournamentEntry;
         </div>
       )}
 
-      {last && (
+      {br?.last && (
+        <div className={`mt-last ${br.last.placement === 1 ? 'won' : 'lost'}`}>
+          <span className="mt-last-icon">
+            <TIcon name={br.last.placement === 1 ? 'trophy' : 'flag'} />
+          </span>
+          <span>
+            <strong>{br.last.placement === 1 ? 'გილოცავთ, თქვენ გაიმარჯვეთ!' : `ბოლო მატჩი: ${br.last.placement ? `${br.last.placement} ადგილი` : 'ადგილი არ ჩაიწერა'}`}</strong>
+            <em>
+              {br.last.label} <i>+{br.last.points} ქულა</i>
+            </em>
+          </span>
+        </div>
+      )}
+
+      {!br && last && (
         <div className={`mt-last ${lastWon ? 'won' : 'lost'}`}>
           <span className="mt-last-icon">
             <TIcon name={lastWon ? 'trophy' : 'xCircle'} />
@@ -106,9 +132,9 @@ export function MyTeamStatusCard({ entry, matches }: { entry: MyTournamentEntry;
           <TIcon name="gamepad" />
           შემდეგი მოქმედება
         </span>
-        <a className="mt-next-btn" href="#bracket">
+        <Link className="mt-next-btn" href={dashboardHref}>
           იხილეთ Bracket <TIcon name="chevron" />
-        </a>
+        </Link>
       </div>
 
       <footer className="mt-foot">
@@ -119,14 +145,16 @@ export function MyTeamStatusCard({ entry, matches }: { entry: MyTournamentEntry;
           <span>
             <small>თქვენი ადგილი ჯგუფში:</small>
             <b>
-              N: <em>{place ?? '—'}</em>
+              N: <em>{groupPlace ?? '—'}</em>
             </b>
           </span>
         </span>
         <span className="mt-note">
           <TIcon name="info" />
           <small>
-            მოგება = {tournament.pointsPerWin} ქულა, წაგება = {tournament.pointsPerLoss} ქულა. ქულების სისტემა განისაზღვრება ტურნირის წესებით.
+            {tournament.format === 'battle_royale'
+              ? 'ქულა = ადგილი (1-ლი 10, მე-2 6, მე-3 5, მე-4 4, მე-5 3, მე-6 2, მე-7–8 1) + 1 ყოველ Kill-ზე. მოგება = 1-ლი ადგილი მატჩში.'
+              : `მოგება = ${tournament.pointsPerWin} ქულა, წაგება = ${tournament.pointsPerLoss} ქულა. ქულების სისტემა განისაზღვრება ტურნირის წესებით.`}
           </small>
         </span>
       </footer>

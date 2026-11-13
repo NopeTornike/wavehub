@@ -75,6 +75,7 @@ import { TournamentRegistration } from './tournaments/tournament-registration.en
 import { TournamentTeam } from './tournaments/tournament-team.entity';
 import { TournamentTeamMember } from './tournaments/tournament-team-member.entity';
 import { TournamentMatch } from './tournaments/tournament-match.entity';
+import { TournamentMatchResult } from './tournaments/tournament-match-result.entity';
 import { TournamentLeaderboardEntry } from './tournaments/tournament-leaderboard-entry.entity';
 import { CommonModule } from './common/common.module';
 import { CommunityModule } from './community/community.module';
@@ -156,6 +157,7 @@ import { SubscriptionChargeAttempt } from './subscriptions/subscription-charge-a
         TournamentTeam,
         TournamentTeamMember,
         TournamentMatch,
+        TournamentMatchResult,
         TournamentLeaderboardEntry,
         UserFollow,
         UserBadge,

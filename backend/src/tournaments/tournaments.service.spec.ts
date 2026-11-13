@@ -67,7 +67,7 @@ describe('TournamentsService', () => {
         return row;
       }),
     };
-    const dataSource: any = { manager, transaction: jest.fn(async (cb: any) => cb(manager)) };
+    const dataSource: any = { manager, transaction: jest.fn(async (cb: any) => cb(manager)), getRepository: () => ({ findOne: jest.fn(async () => null) }) };
 
     const tournaments = {
       findOne: jest.fn(async () => tournamentRow),

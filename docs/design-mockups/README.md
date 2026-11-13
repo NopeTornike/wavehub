@@ -27,3 +27,14 @@ mockup element has no real data source yet, the plan below builds one.
 
 Build order: tournaments (01, 02, 03, 07, 08, 10, 11, 13) → Steam (04, 05) → coaching (06, 14) →
 home (15–18) → profile (12) → dashboard (09). Progress is tracked in `frontend/CLAUDE.md`.
+
+## Round 7 (owner 2026-11-14, Gio — tournaments)
+
+| Mockup | Route | Data |
+|---|---|---|
+| `round-7/31-dashboard-format-TARGET.jpg`, `34-…`, `35-…` | `/tournaments/[id]/dashboard` (Group Stage) | `GET tournaments/:id`, `/matches`, `/teams` → `buildDashboard` |
+| `round-7/36-semifinals-TARGET.jpg` | dashboard → Semifinals | battle-royale results (`brBracket`) |
+| `round-7/37-final-TARGET.jpg`, `38-champion-TARGET.jpg` | dashboard → Final | final results; champion when the final is completed |
+| `round-7/33-my-tournament-TARGET.jpg` | `/tournaments/hub` | `/me/tournaments`, `/me/tournament-matches` + the dashboard data |
+| `round-7/32-hub-tournament-card-REMOVE.jpg` | removed from `/tournaments/hub` | — |
+| `round-7/39-cs2-match-history-KEEP.jpg` | `/tournaments/[id]/matches` (unchanged; score only once live/completed) | — |

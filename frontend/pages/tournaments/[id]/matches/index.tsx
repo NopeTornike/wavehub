@@ -67,8 +67,16 @@ export default function MatchHistory() {
   const focusTeam = teams.find((t) => t.id === teamParam) ?? mine?.team ?? null
   const focusId = focusTeam?.id ?? null
 
+  const br = tournament?.format === 'battle_royale'
+  const viewedTeam = teams.find((t) => t.id === teamParam) ?? null
+  // Battle royale (owner 2026-11-14): a team plays the matches it has a result in, else its group's.
+  const playsIn = (m: PublicTournamentMatch, teamId: string) =>
+    m.teamA?.id === teamId ||
+    m.teamB?.id === teamId ||
+    m.results.some((r) => r.team.id === teamId) ||
+    (br && !m.results.length && m.stage === TournamentMatchStage.Group && !!viewedTeam?.groupName && m.groupName === viewedTeam.groupName)
   const shown = (matches ?? [])
-    .filter((m) => !teamParam || m.teamA?.id === teamParam || m.teamB?.id === teamParam)
+    .filter((m) => !teamParam || playsIn(m, teamParam))
     .filter((m) => filter === 'all' || (filter === 'group' ? m.stage === TournamentMatchStage.Group : m.stage !== TournamentMatchStage.Group))
 
   const cover = tournament ? tournamentCover(tournament, slugById) : null
@@ -77,9 +85,14 @@ export default function MatchHistory() {
     <Layout title={tournament ? `${tournament.name} — მატჩები` : 'მატჩები'}>
       <section className="wt-page wt-history">
         {id && (
-          <Link className="wt-tournament-info-link" href={`/tournaments/${id}`}>
-            ტურნირის სრული ინფოს ნახვა <TIcon name="chevron" />
-          </Link>
+          <span className="wt-info-links">
+            <Link className="wt-tournament-info-link" href={`/tournaments/${id}/dashboard`}>
+              Tournament Dashboard <TIcon name="chevron" />
+            </Link>
+            <Link className="wt-tournament-info-link" href={`/tournaments/${id}`}>
+              ტურნირის სრული ინფოს ნახვა <TIcon name="chevron" />
+            </Link>
+          </span>
         )}
         <Link className="wt-back" href={mine ? '/tournaments/mine' : id ? `/tournaments/${id}` : '/tournaments'}>
           <TIcon name="back" /> {mine ? 'ჩემს ტურნირებზე დაბრუნება' : 'ტურნირზე დაბრუნება'}
@@ -172,7 +185,8 @@ export default function MatchHistory() {
                 const winner = matchWinner(m)
                 const focusSide = focusId ? (m.teamA?.id === focusId ? 'a' : m.teamB?.id === focusId ? 'b' : null) : null
                 const outcome = winner && focusSide ? (winner === focusSide ? 'win' : 'loss') : null
-                const played = m.scoreA !== null && m.scoreB !== null
+                // Round-7/39: a score typed on a match that hasn't started isn't a result — VS until live / completed.
+                const played = m.scoreA !== null && m.scoreB !== null && m.status !== TournamentMatchStatus.Scheduled
                 const stageText = m.stage === TournamentMatchStage.Group ? `${STAGE_LABEL[m.stage]}${m.groupName ? ` ${m.groupName}` : ''}` : STAGE_LABEL[m.stage]
                 // Docs round-6/04: the winner's side glows green, the loser's red; the winner's score is
                 // green when it's the viewed team (or nobody is viewed), red when the viewed team lost.
@@ -196,6 +210,26 @@ export default function MatchHistory() {
                         {formatDateTime(m.scheduledAt) || 'დრო დაზუსტდება'}
                       </span>
                     </header>
+                    {br ? (
+                      <div className="mh-br">
+                        {m.results.length === 0 ? (
+                          <p>
+                            {m.groupName ? `Group ${m.groupName}` : STAGE_LABEL[m.stage]} — შედეგები მატჩის შემდეგ გამოჩნდება.
+                          </p>
+                        ) : (
+                          m.results.slice(0, 3).map((r) => (
+                            <span key={r.team.id} className={focusId === r.team.id ? 'mine' : undefined}>
+                              <b>{r.placement ? `#${r.placement}` : '—'}</b>
+                              <TeamMark team={r.team} />
+                              <strong>{r.team.name}</strong>
+                              <em>
+                                {r.kills} kills · +{r.points} Pts
+                              </em>
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    ) : (
                     <div className="mh-versus">
                       <span className={`mh-team a ${tone('a')}`}>
                         <TeamMark team={m.teamA} className="mh-logo" />
@@ -222,6 +256,7 @@ export default function MatchHistory() {
                         <strong>{m.teamB?.name ?? 'TBD'}</strong>
                       </span>
                     </div>
+                    )}
                     <footer>
                       <span>
                         <TIcon name="map" />
@@ -231,12 +266,12 @@ export default function MatchHistory() {
                       <span>
                         <TIcon name="layers" />
                         <small>ფორმატი:</small>
-                        <b>Best of {m.bestOf}</b>
+                        <b>{br ? 'Battle Royale' : `Best of ${m.bestOf}`}</b>
                       </span>
                       <span>
                         <TIcon name="target" />
-                        <small>შედეგი:</small>
-                        <b>{played ? `${m.scoreA} - ${m.scoreB}` : '—'}</b>
+                        <small>{br ? 'სტატუსი:' : 'შედეგი:'}</small>
+                        <b>{br ? MATCH_STATUS_LABEL[m.status] : played ? `${m.scoreA} - ${m.scoreB}` : '—'}</b>
                       </span>
                       <Link className="mh-btn" href={`/tournaments/${m.tournamentId}/matches/${m.id}`}>
                         დეტალები <TIcon name="arrow" />

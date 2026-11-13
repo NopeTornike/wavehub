@@ -495,7 +495,7 @@ export default function TournamentDetail() {
         : Number(b.status === TournamentTeamStatus.Verified) - Number(a.status === TournamentTeamStatus.Verified) || a.createdAt.localeCompare(b.createdAt),
     )
 
-  const matchCount = (teamId: string) => matches.filter((m) => m.teamA?.id === teamId || m.teamB?.id === teamId).length
+  const matchCount = (teamId: string) => matches.filter((m) => m.teamA?.id === teamId || m.teamB?.id === teamId || m.results.some((r) => r.team.id === teamId)).length
 
   const registerButton: ReactNode = (
       <button id="tdRegisterNow" type="button" disabled={busy || full || !open} onClick={register}>
@@ -860,6 +860,21 @@ export default function TournamentDetail() {
                 <b className="wt-matches-card-count">{matches.length}</b>
               </span>
               <small>ნახე მატჩების ინფორმაცია და შედეგები.</small>
+            </span>
+            <span className="wt-matches-card-chevron" aria-hidden="true">
+              <TIcon name="chevron" />
+            </span>
+          </Link>
+          {/* Round-7 (owner 2026-11-14): groups, semifinals, final and the champion. */}
+          <Link className="wt-matches-card" href={`/tournaments/${t.id}/dashboard`}>
+            <span className="wt-matches-card-icon" aria-hidden="true">
+              <TIcon name="bracket" />
+            </span>
+            <span className="wt-matches-card-copy">
+              <span className="wt-matches-card-title">
+                <strong>Tournament Dashboard</strong>
+              </span>
+              <small>ჯგუფები, ნახევარფინალი, ფინალი და ჩემპიონი.</small>
             </span>
             <span className="wt-matches-card-chevron" aria-hidden="true">
               <TIcon name="chevron" />

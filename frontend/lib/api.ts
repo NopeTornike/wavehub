@@ -119,6 +119,7 @@ import type {
   TournamentTeamStatus,
   TournamentMatchStage,
   TournamentMatchStatus,
+  TournamentFormat,
   MatchTeamStats,
   PublicConversationSummary,
   SellerListingKeySummary,
@@ -1334,6 +1335,16 @@ export const api = {
   adminTournamentRoundRobin: (id: string, payload: { teamIds: string[]; groupName: string; startAt: string; intervalMinutes: number; map?: string | null; bestOf?: number }) =>
     request<{ created: number }>(`/admin/tournaments/${id}/matches/round-robin`, { method: 'POST', body: JSON.stringify(payload) }),
 
+  // Battle royale (owner 2026-11-14): N matches for a group / stage, results, team groups.
+  adminTournamentBrMatches: (id: string, payload: { stage: TournamentMatchStage; groupName?: string | null; count: number; startAt: string; intervalMinutes: number; map?: string | null }) =>
+    request<{ created: number }>(`/admin/tournaments/${id}/matches/battle-royale`, { method: 'POST', body: JSON.stringify(payload) }),
+  adminSetTournamentMatchResults: (id: string, matchId: string, payload: { results: Array<{ teamId: string; placement: number | null; kills: number }>; complete?: boolean }) =>
+    request<PublicTournamentMatch>(`/admin/tournaments/${id}/matches/${matchId}/results`, { method: 'POST', body: JSON.stringify(payload) }),
+  adminSetTournamentTeamGroup: (id: string, teamId: string, groupName: string | null) =>
+    request<PublicTournamentTeam>(`/admin/tournaments/${id}/teams/${teamId}/group`, { method: 'POST', body: JSON.stringify({ groupName }) }),
+  adminTournamentAutoGroups: (id: string, groups: number, reset = false) =>
+    request<{ assigned: number }>(`/admin/tournaments/${id}/groups/auto`, { method: 'POST', body: JSON.stringify({ groups, reset }) }),
+
   // Hand-entered tournament leaderboard (owner 2026-11-10).
   getTournamentLeaderboard: (gameId?: string) =>
     request<TournamentLeaderboard>(`/tournaments/leaderboard${gameId ? `?gameId=${encodeURIComponent(gameId)}` : ''}`),
@@ -1363,6 +1374,9 @@ export const api = {
     pointsPerWin?: number
     pointsPerLoss?: number
     qualifyPoints?: number | null
+    format?: TournamentFormat
+    groupAdvance?: number
+    semifinalAdvance?: number
   }) => request<PublicTournamentSummary>('/admin/tournaments', { method: 'POST', body: JSON.stringify(payload) }),
 
   adminUpdateTournament: (
@@ -1382,6 +1396,9 @@ export const api = {
       pointsPerWin: number
       pointsPerLoss: number
       qualifyPoints: number | null
+      format: TournamentFormat
+      groupAdvance: number
+      semifinalAdvance: number
     }>,
   ) => request<PublicTournamentSummary>(`/admin/tournaments/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
 

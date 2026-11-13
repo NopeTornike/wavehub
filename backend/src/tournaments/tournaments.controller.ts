@@ -18,7 +18,7 @@ import { CREATE_THROTTLE, LOOKUP_THROTTLE, UPLOAD_THROTTLE } from '../common/thr
 import { RegisterSoloDto, RegisterTeamDto } from './dto/register-team.dto';
 import { PlayerLookupDto } from './dto/player-lookup.dto';
 import { TeamStatusDto } from './dto/team-status.dto';
-import { MatchDto, MatchRoomDto, RoundRobinDto } from './dto/match.dto';
+import { AutoGroupsDto, BrMatchesDto, MatchDto, MatchResultsDto, MatchRoomDto, RoundRobinDto, TeamGroupDto } from './dto/match.dto';
 import { LeaderboardEntryDto, LeaderboardQueryDto, LeaderboardVisibilityDto } from './dto/leaderboard.dto';
 import { TournamentLeaderboardService } from './tournament-leaderboard.service';
 
@@ -301,6 +301,68 @@ export class TournamentsController {
     await this.tournaments.assertTournamentInScope(id, scope);
     const result = await this.tournaments.adminRoundRobin(id, dto);
     await this.audit.log({ adminId, adminRole, action: 'tournament.round_robin', entityType: 'tournament', entityId: id, metadata: { group: dto.groupName, teams: dto.teamIds.length, created: result.created } });
+    return result;
+  }
+
+  // --- Battle royale (owner 2026-11-14) ---
+
+  // N matches for one group / semifinal / final.
+  @Post('admin/tournaments/:id/matches/battle-royale')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async brMatches(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id', ParseUUIDPipe) id: string, @Body() dto: BrMatchesDto) {
+    await this.tournaments.assertTournamentInScope(id, scope);
+    const result = await this.tournaments.adminBrMatches(id, dto);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.br_matches', entityType: 'tournament', entityId: id, metadata: { stage: dto.stage, group: dto.groupName ?? null, created: result.created } });
+    return result;
+  }
+
+  // Placement + kills per team; points computed server-side.
+  @Post('admin/tournaments/:id/matches/:matchId/results')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async setResults(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('matchId', ParseUUIDPipe) matchId: string,
+    @Body() dto: MatchResultsDto,
+  ) {
+    await this.tournaments.assertTournamentInScope(id, scope);
+    const match = await this.tournaments.adminSetResults(id, matchId, dto);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.match_results', entityType: 'tournament_match', entityId: matchId, metadata: { tournamentId: id, teams: dto.results.length, complete: !!dto.complete } });
+    return match;
+  }
+
+  @Post('admin/tournaments/:id/teams/:teamId/group')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async setTeamGroup(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @CurrentStaffScope() scope: StaffScope,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('teamId', ParseUUIDPipe) teamId: string,
+    @Body() dto: TeamGroupDto,
+  ) {
+    await this.tournaments.assertTournamentInScope(id, scope);
+    const team = await this.tournaments.adminSetTeamGroup(id, teamId, dto);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.team_group', entityType: 'tournament_team', entityId: teamId, metadata: { tournamentId: id, group: team.groupName } });
+    return team;
+  }
+
+  @Post('admin/tournaments/:id/groups/auto')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard, AdminGuard)
+  @RequireAdminRole(...TOURNAMENT_MANAGEMENT_ROLES)
+  async autoGroups(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @CurrentStaffScope() scope: StaffScope, @Param('id', ParseUUIDPipe) id: string, @Body() dto: AutoGroupsDto) {
+    await this.tournaments.assertTournamentInScope(id, scope);
+    const result = await this.tournaments.adminAutoGroups(id, dto);
+    await this.audit.log({ adminId, adminRole, action: 'tournament.auto_groups', entityType: 'tournament', entityId: id, metadata: { groups: dto.groups, reset: !!dto.reset, assigned: result.assigned } });
     return result;
   }
 
