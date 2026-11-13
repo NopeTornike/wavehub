@@ -11,6 +11,7 @@ import { canPublishSteam } from '../lib/roles'
 import { TIcon } from '../lib/tournaments'
 import { BannerPlacement } from '@wavehub/shared-types'
 import HomeBanners from '../components/HomeBanners'
+import { useRewardVisit } from '../lib/rewards'
 
 // docs/design-mockups/04-steam-games-list.jpg: title, search, sort (no genre filter — owner decision 2026-09-26), a row of large
 // cards then a row of compact ones, and pagination — over the platform's real digital-key
@@ -59,6 +60,7 @@ function SteamCard({ listing, size }: { listing: PublicListingSummary; size: 'lg
 }
 
 export default function SteamGames() {
+  useRewardVisit('steam')
   const router = useRouter()
   const { user } = useAuth()
   const [query, setQuery] = useState('')

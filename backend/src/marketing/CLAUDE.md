@@ -6,13 +6,20 @@ Promo codes and homepage banners (SPECIFICATION.md §5.13 "Marketing" + "Content
 ## Promo codes
 - `promo-code.entity.ts`: `promo_codes` (code uppercase `^[A-Z0-9_-]{3,30}$`, `amountWaveCoin` 1–1000,
   `maxRedemptions` 1–100000, `redeemedCount`, optional `startsAt`/`expiresAt`, `active`, internal
-  `note`) and `promo_redemptions` (UNIQUE `promoCodeId,userId`). Migration `1784374000000-PromoCodesBanners`.
+  `note`, `assignedUserId`) and `promo_redemptions` (UNIQUE `promoCodeId,userId`). Migration
+  `1784374000000-PromoCodesBanners`; `assignedUserId` from `1784397000000-PromoCodeAssignedUser`.
+- **How limits work** (owner question 2026-11-14): every account can use a code once (the UNIQUE
+  row); `maxRedemptions` caps how many accounts can use it in total (2–3 = the first 2–3 accounts);
+  `assignedUserId` makes it **personal** — only that account can redeem it, everyone else gets the
+  same 404 "not valid" as an unknown code, so sharing it is useless. Set by username
+  (`assignedUsername` on create / PATCH, `''`/null clears; unknown username → 400). Admin → Promo
+  codes has a "ვისთვის" field, a "random code" button and a "ვისთვის" action per row.
 - A code adds **spendable credit**: `WalletService.creditPromo` writes a `promo_credit` ledger row. It is
   not an earning, so it never becomes withdrawable (`availableToWithdraw` only counts order/session
   releases). `test/flows.ts#assertConserved` counts `promo_credit` with admin adjustments.
 - `POST promo-codes/redeem` — AuthGuard + VerifiedEmailGuard, 5/min per IP. One transaction locks the
   code row (the cap holds under bursts), inserts the redemption (UNIQUE → 409 on reuse), bumps the
-  counter and credits the wallet. Unknown / inactive / outside-window codes all answer the same 404
+  counter and credits the wallet. Unknown / inactive / outside-window / someone else's personal codes all answer the same 404
   "This code is not valid" so codes can't be probed.
 - Admin (Super Admin only, audit-logged `promo_code.create|update`): `GET/POST admin/promo-codes`,
   `PATCH admin/promo-codes/:id` (`maxRedemptions` can't go below `redeemedCount`).

@@ -11,7 +11,7 @@ import { RequireAdminRole } from '../admin/require-admin-role.decorator';
 import { CurrentAdminRole } from '../admin/current-admin-role.decorator';
 import { AdminAuditService } from '../admin/admin-audit.service';
 import { WalletService } from '../wallet/wallet.service';
-import { SetAdminRoleDto, SetProfileTitleDto, WalletAdjustmentDto } from './dto/admin-user-powers.dto';
+import { SetAdminRoleDto, SetProfileTitleDto, WalletAdjustmentDto, WalletZeroDto } from './dto/admin-user-powers.dto';
 import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -96,6 +96,44 @@ export class AdminUsersController {
       const code = (err as Error).message;
       if (code === 'USER_NOT_FOUND') throw new NotFoundException('User not found');
       if (code === 'INSUFFICIENT_BALANCE') throw new BadRequestException('The balance would go below zero');
+      throw err;
+    }
+  }
+
+  // Super Admin only (owner 2026-11-14): set a user's spendable balance to exactly 0, tetri included.
+  // Escrow held for open orders/sessions isn't in the balance and is untouched. Audited.
+  @Post(':id/wallet-zero')
+  @HttpCode(HttpStatus.OK)
+  @RequireAdminRole()
+  async zeroWallet(
+    @CurrentUserId() adminId: string,
+    @CurrentAdminRole() adminRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: WalletZeroDto,
+  ) {
+    try {
+      const entry = await this.wallet.adminZero(id, adminId, `admin-zero-${randomUUID()}`);
+      const removed = Math.abs(Number(entry.amountWaveCoin));
+      await this.audit.log({
+        adminId,
+        adminRole,
+        action: 'user.wallet_zero',
+        entityType: 'user',
+        entityId: id,
+        metadata: { amountWaveCoin: -removed, balanceAfter: 0, reason: dto.reason },
+      });
+      await this.notifications.tryEmit(
+        id,
+        NotificationType.WalletAdjusted,
+        'ბალანსიდან ჩამოიჭრა თანხა',
+        `WaveHub-ის ადმინისტრაციამ ჩამოჭრა ${removed} GEL. ახალი ბალანსი: 0 GEL.`,
+        { link: '/wallet' },
+      );
+      return this.users.getAdminOne(id);
+    } catch (err) {
+      const code = (err as Error).message;
+      if (code === 'USER_NOT_FOUND') throw new NotFoundException('User not found');
+      if (code === 'ALREADY_ZERO') throw new BadRequestException('The balance is already 0');
       throw err;
     }
   }

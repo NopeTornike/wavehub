@@ -37,7 +37,9 @@ export function useRewardCheckIn() {
   }, [userId])
 }
 
-export function useRewardVisit(page: 'marketplace' | 'tournaments' | 'coaching') {
+export type RewardVisitPage = 'marketplace' | 'services' | 'steam' | 'tournaments' | 'coaching'
+
+export function useRewardVisit(page: RewardVisitPage) {
   const { user } = useAuth()
   const userId = user?.id
   useEffect(() => {

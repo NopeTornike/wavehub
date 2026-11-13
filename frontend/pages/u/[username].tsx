@@ -15,9 +15,9 @@ import { kaDate } from '../../lib/dates'
 import ReviewCard from '../../components/ReviewCard'
 import FollowListModal from '../../components/FollowListModal'
 
-// docs/design-mockups/12-public-profile.jpg: hero (photo with real online dot, name, @handle,
+// docs/design-mockups/12-public-profile.jpg: hero (photo, name, @handle,
 // WaveHubX ID with copy, role, location, join date, tagline, Message / Follow), the Wave Rank panel,
-// the stats bar (followers, following, Wave Score, rating, online), Game Profile, About Me, earned
+// the stats bar (followers, following, Wave Score, rating), Game Profile, About Me, earned
 // Badges and Reviews with the star distribution and latest review. Self-entered: photo, bio,
 // tagline, location, main game, platform, preferred role, notable achievement (Settings). Computed:
 // everything else. A field the member hasn't filled in is left out rather than invented.
@@ -152,7 +152,6 @@ export default function PublicProfile() {
             >
               {p.avatarUrl ? '' : initials}
             </div>
-            {p.online && <i className="up-online-dot" title="ონლაინ" aria-label="ონლაინ"></i>}
           </div>
           <div className="up-identity">
             <h1>
@@ -308,13 +307,6 @@ export default function PublicProfile() {
               <div key={label}>{body}</div>
             )
           })}
-          <div>
-            <i className={`up-dot${p.online ? ' on' : ''}`} aria-hidden="true"></i>
-            <span>
-              <strong>{p.online ? 'ონლაინ' : 'ოფლაინ'}</strong>
-              <small>{p.online ? 'ახლა აქტიურია' : 'ამჟამად არ არის'}</small>
-            </span>
-          </div>
         </section>
 
         <div className="up-grid">

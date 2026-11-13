@@ -68,7 +68,6 @@ export default function SellerPreview({ username, onClose }: { username: string;
               <div className="seller-profile-person">
                 <span className="seller-profile-photo" style={profile.avatarUrl ? { backgroundImage: `url("${profile.avatarUrl}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
                   {!profile.avatarUrl && <b>{name.slice(0, 2).toUpperCase()}</b>}
-                  {profile.online && <i aria-label="ონლაინ" />}
                 </span>
                 <div className="seller-profile-identity">
                   <h2>

@@ -134,6 +134,12 @@ computed facts from `backend/src/profiles/` (follows, role, deals, reviews, badg
   5–300) — Super Admin only (SPECIFICATION.md §5.13 explicitly forbids Support from changing
   balances), audit `user.wallet_adjust`. Goes through `WalletService#adminAdjust` (see
   `backend/src/wallet/CLAUDE.md`). `AdminModule` imports `WalletModule` for this.
+- `POST admin/users/:id/wallet-zero` (`WalletZeroDto`: `reason` 5–300) — Super Admin only
+  (owner 2026-11-14): sets the spendable balance to exactly 0, tetri included (`adminAdjust` takes
+  whole GEL only), via `WalletService#adminZero` (one `admin_adjustment` row for −balance). Escrow
+  held for open orders/sessions isn't in the balance and isn't touched. 400 if already 0. Audit
+  `user.wallet_zero`, `wallet_adjusted` notification. UI: "ბალანსის განულება" in the same panel
+  (uses the reason field).
 - UI: Admin → Users "მართვა" panel, rendered for Super Admins only. e2e: `test/admin-powers.e2e-spec.ts`.
 
 ## 2026-10-01 Public user search (feature 11)

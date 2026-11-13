@@ -44,6 +44,13 @@ export class CreatePromoCodeDto {
   @IsString()
   @MaxLength(200)
   note?: string | null;
+
+  // Personal code: the one account allowed to redeem it (username, leading @ ok). null/empty = anyone.
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== '')
+  @IsString()
+  @MaxLength(40)
+  assignedUsername?: string | null;
 }
 
 export class UpdatePromoCodeDto {
@@ -78,6 +85,13 @@ export class UpdatePromoCodeDto {
   @IsString()
   @MaxLength(200)
   note?: string | null;
+
+  // Personal code: the one account allowed to redeem it (username, leading @ ok). null/empty = anyone.
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== '')
+  @IsString()
+  @MaxLength(40)
+  assignedUsername?: string | null;
 }
 
 export class BannerDto {

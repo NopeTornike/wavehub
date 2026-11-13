@@ -105,6 +105,31 @@ export class WalletService {
     });
   }
 
+  // Super Admin "set the balance to 0" (owner 2026-11-14): removes the whole spendable balance,
+  // tetri included (adminAdjust takes whole GEL only, so 84.80 could never reach exactly 0). Money
+  // held in escrow for open orders/sessions is not part of wavecoinBalance and is untouched.
+  async adminZero(userId: string, adminId: string, reference: string): Promise<WalletLedgerEntry> {
+    return this.dataSource.transaction(async (m) => {
+      const user = await m.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
+      if (!user) throw new Error('USER_NOT_FOUND');
+      const amount = roundMoney(Number(user.wavecoinBalance));
+      if (amount <= 0) throw new Error('ALREADY_ZERO');
+      await m.update(User, userId, { wavecoinBalance: 0 });
+      return m.save(
+        m.create(WalletLedgerEntry, {
+          userId,
+          orderId: null,
+          type: WalletLedgerType.AdminAdjustment,
+          amountWaveCoin: -amount,
+          balanceAfter: 0,
+          status: WalletLedgerStatus.Available,
+          reference,
+          createdBy: adminId,
+        }),
+      );
+    });
+  }
+
   // A redeemed promo code: spendable credit inside the caller's transaction (marketing/). Like an
   // admin adjustment it is not an earning, so it never becomes withdrawable cash.
   async creditPromo(userId: string, amountWaveCoin: number, reference: string, manager: EntityManager): Promise<WalletLedgerEntry> {

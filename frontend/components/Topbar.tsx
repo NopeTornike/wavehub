@@ -368,7 +368,6 @@ export default function Topbar({
                 <span className={avatarClass} id="profilePanelAvatar" style={avatarStyle}>
                   {avatarText}
                 </span>
-                {signedIn && <i aria-label="ონლაინ"></i>}
               </span>
               <div className="profile-dropdown-identity">
                 <div className="profile-dropdown-name-row">

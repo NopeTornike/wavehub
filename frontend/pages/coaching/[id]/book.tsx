@@ -495,11 +495,6 @@ export default function CoachBooking() {
             <span>ახალი ქოუჩი — შეფასებები ჯერ არ აქვს</span>
           )}
         </div>
-        {step >= 3 && coach.online && (
-          <div className="booking-online">
-            <i></i> ონლაინ
-          </div>
-        )}
         <div className="booking-coach-stats">
           <Icon name="user" /> {coach.completedSessions} დასრულებული სესია
           {coach.stats.successRate !== null && (

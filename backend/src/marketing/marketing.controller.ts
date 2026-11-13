@@ -60,7 +60,7 @@ export class MarketingController {
   @RequireAdminRole()
   async createCode(@CurrentUserId() adminId: string, @CurrentAdminRole() adminRole: string, @Body() dto: CreatePromoCodeDto) {
     const code = await this.marketing.createCode(adminId, dto);
-    await this.audit.log({ adminId, adminRole, action: 'promo_code.create', entityType: 'promo_code', entityId: code.id, metadata: { code: code.code, amountWaveCoin: code.amountWaveCoin, maxRedemptions: code.maxRedemptions } });
+    await this.audit.log({ adminId, adminRole, action: 'promo_code.create', entityType: 'promo_code', entityId: code.id, metadata: { code: code.code, amountWaveCoin: code.amountWaveCoin, maxRedemptions: code.maxRedemptions, assignedUser: code.assignedUser?.username ?? null } });
     return code;
   }
 

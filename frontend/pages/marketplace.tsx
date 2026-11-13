@@ -54,8 +54,10 @@ export default function Marketplace() {
 // `servicesOnly` = the separate Services page (/services, client feedback #7): services only, its
 // own heading, and "Sell a service" where the marketplace has "Become a seller".
 export function MarketplaceView({ servicesOnly = false }: { servicesOnly?: boolean }) {
-  // User Hub "Visit Marketplace" task (the services page counts too — it is part of the market).
+  // User Hub "Visit Marketplace" task (the services page counts too — it is part of the market),
+  // plus "Visit Services" on /services.
   useRewardVisit('marketplace')
+  useRewardVisit(servicesOnly ? 'services' : 'marketplace')
   const router = useRouter()
   const { games } = useShell()
   const cart = useCart()

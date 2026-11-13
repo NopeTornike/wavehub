@@ -355,7 +355,6 @@ export default function Home() {
             <span className="mobile-account-level">
               Lv. <strong id="mobileProfileLevel">{waveRank?.level ?? 1}</strong>
             </span>
-            {user && <span className="mobile-account-online" aria-label="ონლაინ"></span>}
           </div>
           <div className="mobile-account-copy">
             <h2>
@@ -573,11 +572,6 @@ export default function Home() {
                         <span className="fc-initials" aria-hidden="true">
                           {`${coach.firstName.charAt(0)}${coach.lastName.charAt(0)}`.toUpperCase()}
                         </span>
-                      )}
-                      {coach.online && (
-                        <em className="fc-online">
-                          <i aria-hidden="true"></i>ონლაინ
-                        </em>
                       )}
                       <span className="fc-bottom">
                         <span className="fc-name-row">

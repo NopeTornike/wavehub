@@ -38,6 +38,7 @@ export class MarketingService {
       expiresAt: iso(c.expiresAt),
       active: c.active,
       note: c.note,
+      assignedUser: c.assignedUser ? { id: c.assignedUser.id, username: c.assignedUser.username } : null,
       createdAt: c.createdAt.toISOString(),
     };
   }
@@ -50,7 +51,21 @@ export class MarketingService {
   }
 
   async listCodes(): Promise<AdminPromoCode[]> {
-    return (await this.codes.find({ order: { createdAt: 'DESC' }, take: 500 })).map((c) => this.toAdminCode(c));
+    return (await this.codes.find({ relations: { assignedUser: true }, order: { createdAt: 'DESC' }, take: 500 })).map((c) => this.toAdminCode(c));
+  }
+
+  private async withUser(id: string): Promise<PromoCode> {
+    return this.codes.findOneOrFail({ where: { id }, relations: { assignedUser: true } });
+  }
+
+  // "@name" / "name" → the account id; '' / null clears; undefined = leave as is.
+  private async resolveAssignee(raw: string | null | undefined): Promise<string | null | undefined> {
+    if (raw === undefined) return undefined;
+    const name = (raw ?? '').trim().replace(/^@/, '');
+    if (!name) return null;
+    const [row] = await this.dataSource.query(`SELECT "id" FROM "users" WHERE lower("username") = lower($1) LIMIT 1`, [name]);
+    if (!row) throw new BadRequestException(`No account with the username @${name}`);
+    return row.id as string;
   }
 
   async createCode(adminId: string, dto: CreatePromoCodeDto): Promise<AdminPromoCode> {
@@ -62,11 +77,12 @@ export class MarketingService {
           maxRedemptions: dto.maxRedemptions,
           ...this.window(dto.startsAt, dto.expiresAt),
           note: dto.note?.trim() || null,
+          assignedUserId: (await this.resolveAssignee(dto.assignedUsername)) ?? null,
           active: true,
           createdBy: adminId,
         }),
       );
-      return this.toAdminCode(saved);
+      return this.toAdminCode(await this.withUser(saved.id));
     } catch (err) {
       if ((err as { code?: string }).code === POSTGRES_UNIQUE_VIOLATION) throw new ConflictException('This code already exists');
       throw err;
@@ -84,9 +100,11 @@ export class MarketingService {
     if (dto.maxRedemptions !== undefined) patch.maxRedemptions = dto.maxRedemptions;
     if (dto.active !== undefined) patch.active = dto.active;
     if (dto.note !== undefined) patch.note = dto.note?.trim() || null;
-    const before = { amountWaveCoin: c.amountWaveCoin, maxRedemptions: c.maxRedemptions, active: c.active, startsAt: iso(c.startsAt), expiresAt: iso(c.expiresAt) };
+    const assignee = await this.resolveAssignee(dto.assignedUsername);
+    if (assignee !== undefined) patch.assignedUserId = assignee;
+    const before = { amountWaveCoin: c.amountWaveCoin, maxRedemptions: c.maxRedemptions, active: c.active, startsAt: iso(c.startsAt), expiresAt: iso(c.expiresAt), assignedUserId: c.assignedUserId };
     await this.codes.update(id, patch);
-    return { code: this.toAdminCode(await this.codes.findOneOrFail({ where: { id } })), before };
+    return { code: this.toAdminCode(await this.withUser(id)), before };
   }
 
   // One transaction: lock the code row (so the cap can't be overshot by a burst), the per-account
@@ -97,8 +115,9 @@ export class MarketingService {
       return await this.dataSource.transaction(async (manager) => {
         const c = await manager.findOne(PromoCode, { where: { code }, lock: { mode: 'pessimistic_write' } });
         const now = new Date();
-        // One message for "unknown", "inactive" and "outside its window", so codes can't be probed.
-        if (!c || !c.active || (c.startsAt && c.startsAt > now) || (c.expiresAt && c.expiresAt <= now)) {
+        // One message for "unknown", "inactive", "outside its window" and "someone else's personal
+        // code", so codes can't be probed and a shared personal code is useless to anyone else.
+        if (!c || !c.active || (c.startsAt && c.startsAt > now) || (c.expiresAt && c.expiresAt <= now) || (c.assignedUserId && c.assignedUserId !== userId)) {
           throw new NotFoundException('This code is not valid');
         }
         if (c.redeemedCount >= c.maxRedemptions) throw new ForbiddenException('This code has been fully used');

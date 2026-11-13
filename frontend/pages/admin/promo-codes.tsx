@@ -11,7 +11,7 @@ const fmt = (iso: string | null) => (iso ? localInput(iso).replace('T', ' ') : '
 
 export default function AdminPromoCodes() {
   const [codes, setCodes] = useState<AdminPromoCode[] | null>(null)
-  const [form, setForm] = useState({ code: '', amount: 5, max: 100, startsAt: '', expiresAt: '', note: '' })
+  const [form, setForm] = useState({ code: '', amount: 5, max: 100, startsAt: '', expiresAt: '', note: '', assignee: '' })
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<{ kind: '' | 'error' | 'success'; text: string }>({ kind: '', text: '' })
 
@@ -37,9 +37,10 @@ export default function AdminPromoCodes() {
         startsAt: fromLocal(form.startsAt),
         expiresAt: fromLocal(form.expiresAt),
         note: form.note.trim() || null,
+        assignedUsername: form.assignee.trim() || null,
       })
       setCodes((list) => [created, ...(list ?? [])])
-      setForm({ code: '', amount: 5, max: 100, startsAt: '', expiresAt: '', note: '' })
+      setForm({ code: '', amount: 5, max: 100, startsAt: '', expiresAt: '', note: '', assignee: '' })
       setStatus({ kind: 'success', text: `კოდი ${created.code} შეიქმნა.` })
     } catch (err) {
       setStatus({ kind: 'error', text: errorMessage(err, 'შექმნა ვერ მოხერხდა.') })
@@ -68,6 +69,25 @@ export default function AdminPromoCodes() {
     }
   }
 
+  const reassign = async (c: AdminPromoCode) => {
+    const value = window.prompt('ვისთვის? ჩაწერე username (ცარიელი = ნებისმიერისთვის)', c.assignedUser ? `@${c.assignedUser.username}` : '')
+    if (value === null) return
+    try {
+      const next = await api.adminUpdatePromoCode(c.id, { assignedUsername: value.trim() || null })
+      setCodes((list) => list?.map((x) => (x.id === c.id ? next : x)) ?? null)
+    } catch (err) {
+      setStatus({ kind: 'error', text: errorMessage(err, 'ცვლილება ვერ მოხერხდა.') })
+    }
+  }
+
+  // A random, hard-to-guess code for a personal one.
+  const randomCode = () => {
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    const bytes = new Uint8Array(8)
+    crypto.getRandomValues(bytes)
+    setForm((f) => ({ ...f, code: `WH-${Array.from(bytes, (b) => abc[b % abc.length]).join('')}` }))
+  }
+
   const raiseCap = async (c: AdminPromoCode) => {
     const value = window.prompt(`ახალი ლიმიტი (ახლა ${c.maxRedemptions}, გამოყენებულია ${c.redeemedCount})`, String(c.maxRedemptions))
     if (!value) return
@@ -83,13 +103,33 @@ export default function AdminPromoCodes() {
     <AdminLayout title="პრომო კოდები">
       <h1 className="page-title">პრომო კოდები</h1>
       <p className="page-subtitle">კოდი ბალანსს ამატებს თანხას (GEL) — ერთხელ თითო ანგარიშზე, მხოლოდ დადასტურებული ელფოსტით. ბონუსი იხარჯება, მაგრამ არ გაიტანება.</p>
+      <ul className="apc-how">
+        <li>
+          <b>მაქს. გამოყენება</b> — ჯამში რამდენ ანგარიშს შეუძლია კოდის გამოყენება (მაგ. 3 = პირველი სამი). ერთი ანგარიში ერთ კოდს მხოლოდ ერთხელ იყენებს.
+        </li>
+        <li>
+          <b>პერსონალური კოდი</b> — ჩაწერე username „ვისთვის“ ველში: კოდს მხოლოდ ის ანგარიში გამოიყენებს, სხვისთვის „კოდი არ არის ვალიდური“, გაზიარების შემთხვევაშიც.
+        </li>
+        <li>
+          <b>ვადა</b> — დაწყება / დასრულება არასავალდებულოა; „გამორთვა“ კოდს მაშინვე აჩერებს.
+        </li>
+      </ul>
 
       <form className="stack-form apc-form" onSubmit={create}>
         <h2>ახალი კოდი</h2>
         <div className="apc-grid">
           <label className="field">
             კოდი
-            <input value={form.code} maxLength={30} placeholder="WELCOME5" onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} />
+            <span className="apc-code">
+              <input value={form.code} maxLength={30} placeholder="WELCOME5" onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} />
+              <button type="button" className="button ghost" onClick={randomCode}>
+                შემთხვევითი
+              </button>
+            </span>
+          </label>
+          <label className="field">
+            ვისთვის (არასავალდ.)
+            <input value={form.assignee} maxLength={40} placeholder="@username — ცარიელი = ყველასთვის" onChange={(e) => setForm({ ...form, assignee: e.target.value })} />
           </label>
           <label className="field">
             თანხა (GEL)
@@ -136,10 +176,14 @@ export default function AdminPromoCodes() {
                 </strong>
                 <span className="note">
                   +{c.amountWaveCoin} GEL · გამოყენებულია {c.redeemedCount}/{c.maxRedemptions} · {fmt(c.startsAt)} → {fmt(c.expiresAt)}
+                  {c.assignedUser ? ` · მხოლოდ @${c.assignedUser.username}` : ' · ყველასთვის'}
                   {c.note ? ` · ${c.note}` : ''}
                 </span>
               </div>
               <div className="admin-row-actions">
+                <button type="button" className="button ghost" onClick={() => void reassign(c)}>
+                  ვისთვის
+                </button>
                 <button type="button" className="button ghost" onClick={() => void raiseCap(c)}>
                   ლიმიტი
                 </button>

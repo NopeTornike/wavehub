@@ -2015,6 +2015,8 @@ export interface AdminPromoCode {
   expiresAt: string | null;
   active: boolean;
   note: string | null;
+  // Personal code: only this account can redeem it (null = anyone).
+  assignedUser: { id: string; username: string } | null;
   createdAt: string;
 }
 
@@ -2236,18 +2238,40 @@ export type RewardTrigger =
   | 'visit_marketplace'
   | 'visit_tournaments'
   | 'visit_coaching'
+  | 'visit_services'
+  | 'visit_steam'
   | 'purchase'
+  | 'buy_skin'
+  | 'buy_account'
+  | 'buy_game_item'
+  | 'buy_steam_key'
+  | 'buy_service'
+  | 'spend_amount'
+  | 'complete_order'
   | 'topup'
+  | 'topup_amount'
+  | 'redeem_promo'
+  | 'favorite_listing'
+  | 'favorite_coach'
   | 'follow'
   | 'follow_coach'
+  | 'send_message'
   | 'review'
+  | 'review_coach'
   | 'book_session'
+  | 'complete_session'
   | 'tournament_join'
-  | 'list_item';
+  | 'list_item'
+  | 'sell';
 export const REWARD_TRIGGERS: RewardTrigger[] = [
-  'login', 'visit_marketplace', 'visit_tournaments', 'visit_coaching', 'purchase', 'topup',
-  'follow', 'follow_coach', 'review', 'book_session', 'tournament_join', 'list_item',
+  'login', 'visit_marketplace', 'visit_services', 'visit_steam', 'visit_tournaments', 'visit_coaching',
+  'purchase', 'buy_skin', 'buy_account', 'buy_game_item', 'buy_steam_key', 'buy_service', 'spend_amount', 'complete_order',
+  'topup', 'topup_amount', 'redeem_promo',
+  'favorite_listing', 'favorite_coach', 'follow', 'follow_coach', 'send_message',
+  'review', 'review_coach', 'book_session', 'complete_session', 'tournament_join', 'list_item', 'sell',
 ];
+// Triggers whose target is a GEL amount (summed), not a count.
+export const REWARD_AMOUNT_TRIGGERS: RewardTrigger[] = ['topup_amount', 'spend_amount'];
 // daily = repeats every Tbilisi day; once = an achievement, counted over all time.
 export type RewardPeriod = 'daily' | 'once';
 export interface RewardTaskView {

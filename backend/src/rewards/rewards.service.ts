@@ -33,7 +33,7 @@ const DAY_MS = 86_400_000;
 const LEADERBOARD_SIZE = 10;
 const LEADERBOARD_TTL_MS = 30_000;
 export const REWARD_STAFF_ROLES = [AdminRole.SuperAdmin, AdminRole.OperationLead, AdminRole.MainAdministrator];
-export const VISIT_PAGES = ['marketplace', 'tournaments', 'coaching'] as const;
+export const VISIT_PAGES = ['marketplace', 'services', 'steam', 'tournaments', 'coaching'] as const;
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 type UploadedImage = { buffer: Buffer; originalname: string; mimetype: string; size: number };
@@ -125,21 +125,45 @@ export class RewardsService {
 
   // One query: how many qualifying rows of each trigger the user has in [from, to) (null = all time).
   private async counts(userId: string, from: Date | null, to: Date | null): Promise<Record<RewardTrigger, number>> {
+    // `in(alias)` = the row's createdAt falls in the window (null bounds = open).
+    const inW = (a: string) => `(w.f IS NULL OR ${a}."createdAt" >= w.f) AND (w.t IS NULL OR ${a}."createdAt" < w.t)`;
+    const visit = (page: string) => `(SELECT count(*) FROM "reward_visits" v, w WHERE v."userId" = $1 AND v."page" = '${page}' AND ${inW('v')})::int`;
+    // Orders the buyer really paid for (not cancelled / refunded / unpaid).
+    const bought = (extra: string) =>
+      `(SELECT count(*) FROM "orders" o JOIN "listings" l ON l."id" = o."listingId" LEFT JOIN "categories" c ON c."id" = l."categoryId", w
+        WHERE o."buyerId" = $1 AND o."status" NOT IN ('pending_payment', 'cancelled', 'refunded', 'expired') AND ${inW('o')} ${extra})::int`;
     const [row] = await this.db.query(
       `WITH w AS (SELECT $2::timestamptz AS f, $3::timestamptz AS t)
        SELECT
-         (SELECT count(*) FROM "reward_visits" v, w WHERE v."userId" = $1 AND v."page" = 'login' AND (w.f IS NULL OR v."createdAt" >= w.f) AND (w.t IS NULL OR v."createdAt" < w.t))::int AS "login",
-         (SELECT count(*) FROM "reward_visits" v, w WHERE v."userId" = $1 AND v."page" = 'marketplace' AND (w.f IS NULL OR v."createdAt" >= w.f) AND (w.t IS NULL OR v."createdAt" < w.t))::int AS "visit_marketplace",
-         (SELECT count(*) FROM "reward_visits" v, w WHERE v."userId" = $1 AND v."page" = 'tournaments' AND (w.f IS NULL OR v."createdAt" >= w.f) AND (w.t IS NULL OR v."createdAt" < w.t))::int AS "visit_tournaments",
-         (SELECT count(*) FROM "reward_visits" v, w WHERE v."userId" = $1 AND v."page" = 'coaching' AND (w.f IS NULL OR v."createdAt" >= w.f) AND (w.t IS NULL OR v."createdAt" < w.t))::int AS "visit_coaching",
-         (SELECT count(*) FROM "orders" o, w WHERE o."buyerId" = $1 AND o."status" NOT IN ('pending_payment', 'cancelled', 'refunded', 'expired') AND (w.f IS NULL OR o."createdAt" >= w.f) AND (w.t IS NULL OR o."createdAt" < w.t))::int AS "purchase",
-         (SELECT count(*) FROM "wallet_ledger_entries" e, w WHERE e."userId" = $1 AND e."type" = 'topup' AND e."amountWaveCoin" > 0 AND (w.f IS NULL OR e."createdAt" >= w.f) AND (w.t IS NULL OR e."createdAt" < w.t))::int AS "topup",
-         (SELECT count(*) FROM "user_follows" uf, w WHERE uf."followerId" = $1 AND (w.f IS NULL OR uf."createdAt" >= w.f) AND (w.t IS NULL OR uf."createdAt" < w.t))::int AS "follow",
-         (SELECT count(*) FROM "user_follows" uf JOIN "coaches" c ON c."userId" = uf."followeeId" AND c."verificationStatus" = 'verified', w WHERE uf."followerId" = $1 AND (w.f IS NULL OR uf."createdAt" >= w.f) AND (w.t IS NULL OR uf."createdAt" < w.t))::int AS "follow_coach",
-         (SELECT count(*) FROM "reviews" r, w WHERE r."buyerId" = $1 AND (w.f IS NULL OR r."createdAt" >= w.f) AND (w.t IS NULL OR r."createdAt" < w.t))::int AS "review",
-         (SELECT count(*) FROM "coaching_sessions" cs, w WHERE cs."buyerId" = $1 AND cs."status" <> 'cancelled' AND (w.f IS NULL OR cs."createdAt" >= w.f) AND (w.t IS NULL OR cs."createdAt" < w.t))::int AS "book_session",
-         (SELECT count(*) FROM "tournament_teams" tt, w WHERE (tt."captainUserId" = $1 OR EXISTS (SELECT 1 FROM "tournament_team_members" m WHERE m."teamId" = tt."id" AND m."userId" = $1)) AND (w.f IS NULL OR tt."createdAt" >= w.f) AND (w.t IS NULL OR tt."createdAt" < w.t))::int AS "tournament_join",
-         (SELECT count(*) FROM "listings" l, w WHERE l."sellerId" = $1 AND (w.f IS NULL OR l."createdAt" >= w.f) AND (w.t IS NULL OR l."createdAt" < w.t))::int AS "list_item"`,
+         ${visit('login')} AS "login",
+         ${visit('marketplace')} AS "visit_marketplace",
+         ${visit('services')} AS "visit_services",
+         ${visit('steam')} AS "visit_steam",
+         ${visit('tournaments')} AS "visit_tournaments",
+         ${visit('coaching')} AS "visit_coaching",
+         ${bought('')} AS "purchase",
+         ${bought(`AND c."slug" = 'skins'`)} AS "buy_skin",
+         ${bought(`AND c."slug" = 'accounts'`)} AS "buy_account",
+         ${bought(`AND c."slug" = 'items'`)} AS "buy_game_item",
+         ${bought(`AND o."listingType" = 'digital_key'`)} AS "buy_steam_key",
+         ${bought(`AND o."listingType" = 'service'`)} AS "buy_service",
+         (SELECT COALESCE(floor(sum(COALESCE(o."buyerTotalWaveCoin", o."priceWaveCoin"))), 0) FROM "orders" o, w WHERE o."buyerId" = $1 AND o."status" NOT IN ('pending_payment', 'cancelled', 'refunded', 'expired') AND ${inW('o')})::int AS "spend_amount",
+         (SELECT count(*) FROM "orders" o, w WHERE o."buyerId" = $1 AND o."status" = 'completed' AND (w.f IS NULL OR o."completedAt" >= w.f) AND (w.t IS NULL OR o."completedAt" < w.t))::int AS "complete_order",
+         (SELECT count(*) FROM "wallet_ledger_entries" e, w WHERE e."userId" = $1 AND e."type" = 'topup' AND e."amountWaveCoin" > 0 AND ${inW('e')})::int AS "topup",
+         (SELECT COALESCE(floor(sum(e."amountWaveCoin")), 0) FROM "wallet_ledger_entries" e, w WHERE e."userId" = $1 AND e."type" = 'topup' AND e."amountWaveCoin" > 0 AND ${inW('e')})::int AS "topup_amount",
+         (SELECT count(*) FROM "promo_redemptions" pr, w WHERE pr."userId" = $1 AND ${inW('pr')})::int AS "redeem_promo",
+         (SELECT count(*) FROM "listing_favorites" lf, w WHERE lf."userId" = $1 AND ${inW('lf')})::int AS "favorite_listing",
+         (SELECT count(*) FROM "coach_favorites" cf, w WHERE cf."userId" = $1 AND ${inW('cf')})::int AS "favorite_coach",
+         (SELECT count(*) FROM "user_follows" uf, w WHERE uf."followerId" = $1 AND ${inW('uf')})::int AS "follow",
+         (SELECT count(*) FROM "user_follows" uf JOIN "coaches" c ON c."userId" = uf."followeeId" AND c."verificationStatus" = 'verified', w WHERE uf."followerId" = $1 AND ${inW('uf')})::int AS "follow_coach",
+         (SELECT count(*) FROM "messages" m, w WHERE m."senderId" = $1 AND ${inW('m')})::int AS "send_message",
+         (SELECT count(*) FROM "reviews" r, w WHERE r."buyerId" = $1 AND ${inW('r')})::int AS "review",
+         (SELECT count(*) FROM "coaching_session_reviews" sr, w WHERE sr."buyerId" = $1 AND ${inW('sr')})::int AS "review_coach",
+         (SELECT count(*) FROM "coaching_sessions" cs, w WHERE cs."buyerId" = $1 AND cs."status" <> 'cancelled' AND ${inW('cs')})::int AS "book_session",
+         (SELECT count(*) FROM "coaching_sessions" cs, w WHERE cs."buyerId" = $1 AND cs."status" = 'completed' AND (w.f IS NULL OR cs."completedAt" >= w.f) AND (w.t IS NULL OR cs."completedAt" < w.t))::int AS "complete_session",
+         (SELECT count(*) FROM "tournament_teams" tt, w WHERE (tt."captainUserId" = $1 OR EXISTS (SELECT 1 FROM "tournament_team_members" m WHERE m."teamId" = tt."id" AND m."userId" = $1)) AND ${inW('tt')})::int AS "tournament_join",
+         (SELECT count(*) FROM "listings" l, w WHERE l."sellerId" = $1 AND ${inW('l')})::int AS "list_item",
+         (SELECT count(*) FROM "orders" o, w WHERE o."sellerId" = $1 AND o."status" = 'completed' AND (w.f IS NULL OR o."completedAt" >= w.f) AND (w.t IS NULL OR o."completedAt" < w.t))::int AS "sell"`,
       [userId, from, to],
     );
     return row as Record<RewardTrigger, number>;
@@ -189,17 +213,36 @@ export class RewardsService {
       onceTasks.length ? this.counts(userId, null, null) : null,
     ]);
 
+    // Which tasks are done (for the check marks), from the ledger — by task id, so editing a task
+    // (title, target, trigger, even daily ↔ once) never turns a finished task back into a to-do.
+    // Daily: a credit for today's Tbilisi day; once: any credit ever.
+    const claimed: Array<{ taskId: string; key: string; createdAt: Date }> = await this.db.query(
+      `SELECT "taskId", "key", "createdAt" FROM "reward_xp" WHERE "userId" = $1 AND "taskId" IS NOT NULL`,
+      [userId],
+    );
+    const doneToday = new Set<string>();
+    const doneEver = new Set<string>();
+    const dayStart = dayStartUtc(today).getTime();
+    for (const r of claimed) {
+      doneEver.add(r.taskId);
+      if (r.key.endsWith(`:${today}`) || (r.key.endsWith(':once') && new Date(r.createdAt).getTime() >= dayStart)) doneToday.add(r.taskId);
+    }
     for (const task of dailyTasks) {
       if (yesterdayCounts && yesterdayCounts[task.trigger] >= task.target) {
         await this.credit(userId, `task:${task.id}:${yesterday}`, task.id, task.title, task.xp);
       }
+      if (doneToday.has(task.id)) continue;
       if (todayCounts && todayCounts[task.trigger] >= task.target && (await this.credit(userId, `task:${task.id}:${today}`, task.id, task.title, task.xp))) {
         justEarned.push({ title: task.title, xp: task.xp });
+        doneToday.add(task.id);
+        doneEver.add(task.id);
       }
     }
     for (const task of onceTasks) {
+      if (doneEver.has(task.id)) continue;
       if (allCounts && allCounts[task.trigger] >= task.target && (await this.credit(userId, `task:${task.id}:once`, task.id, task.title, task.xp))) {
         justEarned.push({ title: task.title, xp: task.xp });
+        doneEver.add(task.id);
       }
     }
 
@@ -218,14 +261,8 @@ export class RewardsService {
     }
     const position = streak.todayDone ? ((streak.days - 1) % 7) + 1 : streak.days % 7;
 
-    // Which tasks are done (for the check marks), from the ledger.
-    const claimed: Array<{ key: string }> = await this.db.query(
-      `SELECT "key" FROM "reward_xp" WHERE "userId" = $1 AND ("key" LIKE '%:once' OR "key" LIKE $2)`,
-      [userId, `%:${today}`],
-    );
-    const claimedKeys = new Set(claimed.map((r) => r.key));
-    const view = (task: TaskRow, counts: Record<RewardTrigger, number> | null, key: string): RewardTaskView => {
-      const done = claimedKeys.has(key);
+    const view = (task: TaskRow, counts: Record<RewardTrigger, number> | null): RewardTaskView => {
+      const done = task.period === 'daily' ? doneToday.has(task.id) : doneEver.has(task.id);
       return {
         id: task.id, title: task.title, description: task.description, trigger: task.trigger, target: task.target, xp: task.xp, period: task.period,
         progress: done ? task.target : Math.min(task.target, counts?.[task.trigger] ?? 0),
@@ -248,8 +285,8 @@ export class RewardsService {
       weekEndsAt,
       xp: { total: Number(totals.total), week: Number(totals.week), ...levelFor(Number(totals.total)) },
       streak: { days: streak.days, todayDone: streak.todayDone, position, bonusXp },
-      daily: dailyTasks.map((t) => view(t, todayCounts, `task:${t.id}:${today}`)),
-      achievements: onceTasks.map((t) => view(t, allCounts, `task:${t.id}:once`)),
+      daily: dailyTasks.map((t) => view(t, todayCounts)),
+      achievements: onceTasks.map((t) => view(t, allCounts)),
       leaderboard,
       me,
       prizes: await this.prizes(),

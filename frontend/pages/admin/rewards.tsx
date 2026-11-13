@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import type { AdminRewards, AdminRewardTask, RewardPeriod, RewardTrigger } from '@wavehub/shared-types'
-import { REWARD_TRIGGERS } from '@wavehub/shared-types'
+import { REWARD_AMOUNT_TRIGGERS, REWARD_TRIGGERS } from '@wavehub/shared-types'
 import AdminLayout from '../../components/AdminLayout'
 import { api, errorMessage } from '../../lib/api'
 import { kaDayMonth } from '../../lib/dates'
@@ -14,16 +14,33 @@ import { kaDayMonth } from '../../lib/dates'
 const TRIGGER_LABELS: Record<RewardTrigger, string> = {
   login: 'შესვლა საიტზე (დღეში ერთხელ)',
   visit_marketplace: 'მარკეტის გვერდის ნახვა',
+  visit_services: 'სერვისების გვერდის ნახვა',
+  visit_steam: 'Steam Keys გვერდის ნახვა',
   visit_tournaments: 'ტურნირების გვერდის ნახვა',
   visit_coaching: 'ქოუჩინგის გვერდის ნახვა',
-  purchase: 'პროდუქტის ყიდვა (შეკვეთა)',
-  topup: 'ბალანსის შევსება (BOG)',
+  purchase: 'ნებისმიერი ყიდვა (შეკვეთა)',
+  buy_skin: 'Skin-ის ყიდვა',
+  buy_account: 'ანგარიშის (Account) ყიდვა',
+  buy_game_item: 'ნივთის (Item) ყიდვა',
+  buy_steam_key: 'Steam Key-ის ყიდვა',
+  buy_service: 'სერვისის ყიდვა',
+  spend_amount: 'დახარჯე X GEL შენაძენებზე (ჯამში)',
+  complete_order: 'შეკვეთის დადასტურება (დასრულება)',
+  topup: 'ბალანსის შევსება (BOG) — რაოდენობა',
+  topup_amount: 'შეავსე ბალანსი X GEL-ით (ჯამში)',
+  redeem_promo: 'პრომო კოდის გააქტიურება',
+  favorite_listing: 'პროდუქტის დამატება Favorites-ში',
+  favorite_coach: 'ქოუჩის დამატება Favorites-ში',
   follow: 'ვინმეს Follow (გამყიდველი / ქოუჩი)',
   follow_coach: 'ქოუჩის Follow',
-  review: 'შეფასების დაწერა',
+  send_message: 'შეტყობინების გაგზავნა',
+  review: 'პროდუქტის შეფასების დაწერა',
+  review_coach: 'ქოუჩის შეფასების დაწერა',
   book_session: 'ქოუჩინგის სესიის დაჯავშნა',
+  complete_session: 'ქოუჩინგის სესიის დასრულება',
   tournament_join: 'ტურნირზე რეგისტრაცია',
   list_item: 'განცხადების დამატება',
+  sell: 'გაყიდვა (დასრულებული შეკვეთა გამყიდველად)',
 }
 
 type Draft = { title: string; description: string; trigger: RewardTrigger; target: string; xp: string; period: RewardPeriod; isActive: boolean; sortOrder: string }
@@ -75,7 +92,7 @@ function TaskFields({ draft, onChange }: { draft: Draft; onChange: (d: Draft) =>
         </select>
       </label>
       <label className="field">
-        რამდენჯერ ({draft.period === 'daily' ? 'ერთ დღეში' : 'სულ'})
+        {REWARD_AMOUNT_TRIGGERS.includes(draft.trigger) ? 'რამდენი GEL' : 'რამდენჯერ'} ({draft.period === 'daily' ? 'ერთ დღეში' : 'სულ'})
         <input inputMode="numeric" value={draft.target} onChange={(e) => onChange({ ...draft, target: e.target.value.replace(/\D/g, '') })} />
       </label>
       <label className="field">
@@ -197,7 +214,7 @@ export default function AdminRewardsPage() {
                 <strong>{t.title}</strong>
                 <span className="note" style={{ margin: 0 }}>
                   {TRIGGER_LABELS[t.trigger]}
-                  {t.target > 1 ? ` × ${t.target}` : ''} · {t.isActive ? 'აქტიური' : 'გამორთული'} · შესრულდა {t.completions}-ჯერ
+                  {REWARD_AMOUNT_TRIGGERS.includes(t.trigger) ? ` · ${t.target} GEL` : t.target > 1 ? ` × ${t.target}` : ''} · {t.isActive ? 'აქტიური' : 'გამორთული'} · შესრულდა {t.completions}-ჯერ
                 </span>
               </div>
               <div className="admin-row-actions">

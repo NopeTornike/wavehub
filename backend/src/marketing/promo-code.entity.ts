@@ -2,7 +2,8 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { User } from '../users/user.entity';
 
 // A promo code (marketing/CLAUDE.md): adds `amountWaveCoin` of spendable credit, once per account,
-// up to `maxRedemptions` times overall, inside an optional date window. Codes are stored uppercase.
+// up to `maxRedemptions` times overall, inside an optional date window, optionally for one account
+// only (`assignedUserId`). Codes are stored uppercase.
 @Entity('promo_codes')
 export class PromoCode {
   @PrimaryGeneratedColumn('uuid')
@@ -28,6 +29,14 @@ export class PromoCode {
 
   @Column({ type: 'boolean', default: true })
   active: boolean;
+
+  // Personal code (owner 2026-11-14): only this account can redeem it; null = anyone.
+  @Column({ type: 'uuid', nullable: true })
+  assignedUserId: string | null;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'assignedUserId' })
+  assignedUser?: User | null;
 
   // Internal note for staff (campaign name etc.) — never shown to users.
   @Column({ type: 'varchar', length: 200, nullable: true })

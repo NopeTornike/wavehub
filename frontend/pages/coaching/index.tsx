@@ -333,11 +333,6 @@ export default function CoachingDirectory() {
                     <div className="cl-card-top">
                       <div className={`cl-photo${coach.avatarUrl ? ' has-image' : ''}`} style={coach.avatarUrl ? { backgroundImage: `url("${coach.avatarUrl}")` } : undefined}>
                         {!coach.avatarUrl && <span aria-hidden="true">{`${coach.firstName[0] ?? ''}${coach.lastName[0] ?? ''}`.toUpperCase()}</span>}
-                        {coach.online && (
-                          <em className="cl-online">
-                            <i aria-hidden="true"></i>ონლაინ
-                          </em>
-                        )}
                       </div>
                       <div className="cl-info">
                         <div className="cl-name-row">

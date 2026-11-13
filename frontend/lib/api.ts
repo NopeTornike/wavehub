@@ -941,6 +941,8 @@ export const api = {
   adminUnbanUser: (id: string) => request<AdminUserSummary>(`/admin/users/${id}/unban`, { method: 'POST' }),
 
   // Super Admin only (backend/src/users/admin-users.controller.ts): +/- spendable WaveCoin, and staff roles.
+  adminZeroWallet: (id: string, reason: string) =>
+    request<AdminUserSummary>(`/admin/users/${id}/wallet-zero`, { method: 'POST', body: JSON.stringify({ reason }) }),
   adminAdjustWallet: (id: string, amountWaveCoin: number, reason: string) =>
     request<AdminUserSummary>(`/admin/users/${id}/wallet-adjustment`, { method: 'POST', body: JSON.stringify({ amountWaveCoin, reason }) }),
   adminRegistrationStats: () => request<{ total: number; verified: number; today: number; last7Days: number }>('/admin/users/registration-stats'),
@@ -961,7 +963,7 @@ export const api = {
   // --- User Hub rewards --- (backend/src/rewards/)
   getRewardHub: () => request<RewardHub>('/rewards/hub'),
   rewardCheckIn: () => request<{ ok: true }>('/rewards/checkin', { method: 'POST' }),
-  rewardVisit: (page: 'marketplace' | 'tournaments' | 'coaching') => request<{ ok: true }>('/rewards/visit', { method: 'POST', body: JSON.stringify({ page }) }),
+  rewardVisit: (page: 'marketplace' | 'services' | 'steam' | 'tournaments' | 'coaching') => request<{ ok: true }>('/rewards/visit', { method: 'POST', body: JSON.stringify({ page }) }),
   openRewardWin: (id: string) => request<RewardWinView>(`/rewards/wins/${id}/open`, { method: 'POST' }),
   adminGetRewards: () => request<AdminRewards>('/admin/rewards'),
   adminSaveRewardTask: (
@@ -1191,10 +1193,10 @@ export const api = {
 
   adminListPromoCodes: () => request<AdminPromoCode[]>('/admin/promo-codes'),
 
-  adminCreatePromoCode: (payload: { code: string; amountWaveCoin: number; maxRedemptions: number; startsAt?: string | null; expiresAt?: string | null; note?: string | null }) =>
+  adminCreatePromoCode: (payload: { code: string; amountWaveCoin: number; maxRedemptions: number; startsAt?: string | null; expiresAt?: string | null; note?: string | null; assignedUsername?: string | null }) =>
     request<AdminPromoCode>('/admin/promo-codes', { method: 'POST', body: JSON.stringify(payload) }),
 
-  adminUpdatePromoCode: (id: string, payload: Partial<{ amountWaveCoin: number; maxRedemptions: number; startsAt: string | null; expiresAt: string | null; active: boolean; note: string | null }>) =>
+  adminUpdatePromoCode: (id: string, payload: Partial<{ amountWaveCoin: number; maxRedemptions: number; startsAt: string | null; expiresAt: string | null; active: boolean; note: string | null; assignedUsername: string | null }>) =>
     request<AdminPromoCode>(`/admin/promo-codes/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
   listBanners: (placement?: BannerPlacement) => request<PublicBanner[]>(placement ? `/banners?placement=${placement}` : '/banners'),

@@ -8,8 +8,7 @@ import { useFeatures } from '../lib/features'
 
 // The sidebar's owner-defined navigation order plus the Marketplace flyout listing games. Real
 // data behind it: the game list is the games table (GET /stats/games), the Messages pill is the real
-// unread direct-message count, the Cart pill is the cart, and "N online" counts accounts seen in
-// the last few minutes (backend/src/community/) instead of the prototype's random number.
+// unread direct-message count and the Cart pill is the cart. No "N online" line (owner 2026-11-14).
 /* eslint-disable @next/next/no-img-element */
 
 type NavItem = {
@@ -51,7 +50,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const router = useRouter()
   const { user } = useAuth()
   const { count: cartCount } = useCart()
-  const { unreadMessages, onlineCount, games } = useShell()
+  const { unreadMessages, games } = useShell()
   const [gameMenuOpen, setGameMenuOpen] = useState(false)
   const gameMenuRef = useRef<HTMLDivElement>(null)
   const path = router.pathname
@@ -146,10 +145,8 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
           {/* Orders, Settings and Admin live in the profile menu (Tornike 2026-10-01 removed them here). */}
         </nav>
 
-        <div className="sidebar-status" aria-label="Platform activity">
-          <span className="status-dot" aria-hidden="true"></span>
-          <span id="onlineCount">{onlineCount === null ? '' : `${onlineCount} Online`}</span>
-        </div>
+        {/* The "N Online" line was removed at the owner's request (2026-11-14): no online
+            indicators anywhere on the public site. */}
       </aside>
       <div className="scrim" id="scrim" hidden={!open} onClick={onClose} />
     </>

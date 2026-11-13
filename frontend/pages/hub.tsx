@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import type { RewardHub, RewardTaskView, RewardTrigger, RewardWinView } from '@wavehub/shared-types'
+import { REWARD_AMOUNT_TRIGGERS } from '@wavehub/shared-types'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 import VerifiedMark from '../components/VerifiedMark'
@@ -35,6 +36,9 @@ const PATHS: Record<string, ReactNode> = {
   star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />,
   calendar: <path d="M4 6h16v14H4V6Zm0 4h16M8 3v4m8-4v4m-8 7 2.5 2.5L16 12" />,
   box: <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Zm-8 4.5 8 4.5 8-4.5M12 12v9" />,
+  gamepad: <path d="M6 9h12a4 4 0 0 1 4 4v1a3 3 0 0 1-5.4 1.8L15 14H9l-1.6 1.8A3 3 0 0 1 2 14v-1a4 4 0 0 1 4-4Zm2 2v4m-2-2h4m6-1h.01M18 14h.01" />,
+  heart: <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z" />,
+  chat: <path d="M4 5h16v11H9l-5 4V5Zm4 5h8M8 13h5" />,
   check: <path d="m5 12 4.5 4.5L19 7" />,
   lock: <path d="M6 11h12v9H6v-9Zm2 0V8a4 4 0 0 1 8 0v3" />,
   refresh: <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />,
@@ -56,16 +60,33 @@ function Icon({ name, className }: { name: string; className?: string }) {
 const TRIGGER: Record<RewardTrigger, { icon: string; href: string }> = {
   login: { icon: 'login', href: '/' },
   visit_marketplace: { icon: 'store', href: '/marketplace' },
+  visit_services: { icon: 'store', href: '/services' },
+  visit_steam: { icon: 'gamepad', href: '/steam-keys' },
   visit_tournaments: { icon: 'trophy', href: '/tournaments' },
   visit_coaching: { icon: 'cap', href: '/coaching' },
   purchase: { icon: 'cart', href: '/marketplace' },
+  buy_skin: { icon: 'cart', href: '/marketplace' },
+  buy_account: { icon: 'cart', href: '/marketplace' },
+  buy_game_item: { icon: 'cart', href: '/marketplace' },
+  buy_steam_key: { icon: 'gamepad', href: '/steam-keys' },
+  buy_service: { icon: 'cart', href: '/services' },
+  spend_amount: { icon: 'cart', href: '/marketplace' },
+  complete_order: { icon: 'check', href: '/orders' },
   topup: { icon: 'wallet', href: '/wallet' },
+  topup_amount: { icon: 'wallet', href: '/wallet' },
+  redeem_promo: { icon: 'gift', href: '/wallet' },
+  favorite_listing: { icon: 'heart', href: '/marketplace' },
+  favorite_coach: { icon: 'heart', href: '/coaching' },
   follow: { icon: 'users', href: '/marketplace' },
   follow_coach: { icon: 'users', href: '/coaching' },
+  send_message: { icon: 'chat', href: '/messages' },
   review: { icon: 'star', href: '/orders' },
+  review_coach: { icon: 'star', href: '/coaching-sessions' },
   book_session: { icon: 'calendar', href: '/coaching' },
+  complete_session: { icon: 'cap', href: '/coaching-sessions' },
   tournament_join: { icon: 'trophy', href: '/tournaments' },
   list_item: { icon: 'box', href: '/marketplace?sell=1' },
+  sell: { icon: 'box', href: '/orders' },
 }
 
 function Medal({ place }: { place: number }) {
@@ -107,9 +128,10 @@ function TaskRow({ task }: { task: RewardTaskView }) {
       <Icon name={t.icon} className="uh-task-icon" />
       <span className="uh-task-text">
         {task.done ? <span>{task.title}</span> : <Link href={t.href}>{task.title}</Link>}
-        {task.target > 1 && (
+        {(task.target > 1 || REWARD_AMOUNT_TRIGGERS.includes(task.trigger)) && (
           <small>
             {task.progress} / {task.target}
+            {REWARD_AMOUNT_TRIGGERS.includes(task.trigger) ? ' GEL' : ''}
           </small>
         )}
       </span>
@@ -205,10 +227,17 @@ export default function UserHubPage() {
     return () => window.clearInterval(timer)
   }, [])
 
-  // A new day while the page is open: fetch the fresh tasks.
+  // A new day while the page is open: fetch the fresh tasks — once per reset, then at most once a
+  // minute while the server still reports the old day. (A phone clock running ahead of the server
+  // used to refetch every second until the server's day turned over: hundreds of 429s, image 30.)
+  const resetsAt = hub?.resetsAt
+  const overdue = !!resetsAt && now >= Date.parse(resetsAt) + 2000
   useEffect(() => {
-    if (hub && now >= Date.parse(hub.resetsAt) + 2000) load()
-  }, [now, hub, load])
+    if (!overdue) return
+    load()
+    const timer = window.setInterval(load, 60_000)
+    return () => window.clearInterval(timer)
+  }, [overdue, resetsAt, load])
 
   useEffect(() => {
     if (!earned.length) return

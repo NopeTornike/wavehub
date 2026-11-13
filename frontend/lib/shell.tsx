@@ -13,14 +13,12 @@ import { pollWhileVisible } from './visible-poll'
 // The live stream (GET notifications/stream) brings new notifications at once; the poll is the
 // fallback when a proxy or phone drops it.
 const BADGE_POLL_MS = 30_000
-const ONLINE_POLL_MS = 60_000
 
 type ShellContextValue = {
   unreadNotifications: number
   // createdAt of the newest unread notification — changes whenever a new one arrives.
   latestNotificationAt: string | null
   unreadMessages: number
-  onlineCount: number | null
   waveRank: WaveRank | null
   games: GameListingCount[]
   refreshBadges: () => void
@@ -30,7 +28,6 @@ const ShellContext = createContext<ShellContextValue>({
   unreadNotifications: 0,
   latestNotificationAt: null,
   unreadMessages: 0,
-  onlineCount: null,
   waveRank: null,
   games: [],
   refreshBadges: () => undefined,
@@ -42,7 +39,6 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [latestNotificationAt, setLatestNotificationAt] = useState<string | null>(null)
   const [unreadMessages, setUnreadMessages] = useState(0)
-  const [onlineCount, setOnlineCount] = useState<number | null>(null)
   const [waveRank, setWaveRank] = useState<WaveRank | null>(null)
   const [games, setGames] = useState<GameListingCount[]>([])
 
@@ -98,8 +94,6 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   }, [userId, refreshBadges])
 
   useEffect(() => {
-    const loadOnline = () => api.getOnlineStats().then((r) => setOnlineCount(r.count)).catch(() => undefined)
-    loadOnline()
     api
       .getGameListingCounts()
       .then((list) => {
@@ -107,12 +101,11 @@ export function ShellProvider({ children }: { children: ReactNode }) {
         setGames(list)
       })
       .catch(() => undefined)
-    return pollWhileVisible(loadOnline, ONLINE_POLL_MS)
   }, [])
 
   const value = useMemo(
-    () => ({ unreadNotifications, latestNotificationAt, unreadMessages, onlineCount, waveRank, games, refreshBadges }),
-    [unreadNotifications, latestNotificationAt, unreadMessages, onlineCount, waveRank, games, refreshBadges],
+    () => ({ unreadNotifications, latestNotificationAt, unreadMessages, waveRank, games, refreshBadges }),
+    [unreadNotifications, latestNotificationAt, unreadMessages, waveRank, games, refreshBadges],
   )
   return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>
 }

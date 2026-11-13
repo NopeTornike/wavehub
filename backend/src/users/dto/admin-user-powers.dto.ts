@@ -15,6 +15,13 @@ export class WalletAdjustmentDto {
   reason: string;
 }
 
+// POST admin/users/:id/wallet-zero — Super Admin only: set the spendable balance to 0.
+export class WalletZeroDto {
+  @IsString()
+  @Length(5, 300)
+  reason: string;
+}
+
 // A Game Manager's games (owner 2026-11-06), per area.
 export class StaffGameScopesDto {
   @IsArray()

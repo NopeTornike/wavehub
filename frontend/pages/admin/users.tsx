@@ -111,6 +111,18 @@ function SuperAdminPanel({
     }, 'ბალანსი განახლდა.')
   }
 
+  // Super Admin: the whole spendable balance to exactly 0 (tetri included). Uses the reason field.
+  const zero = () => {
+    if (walletReason.trim().length < 5) return setMessage({ kind: 'error', text: 'ჯერ ჩაწერე მიზეზი (მინიმუმ 5 სიმბოლო).' })
+    if (!window.confirm(`@${item.username}-ის ბალანსი (${gel(item.wavecoinBalance)} GEL) გახდება 0. ესქროუში დაჭერილ თანხას არ ეხება. გავაგრძელოთ?`)) return
+    void run('zero', async () => {
+      const updated = await api.adminZeroWallet(item.id, walletReason.trim())
+      setAmount('')
+      setWalletReason('')
+      return updated
+    }, 'ბალანსი განულდა.')
+  }
+
   const saveRole = (event: FormEvent) => {
     event.preventDefault()
     if (roleReason.trim().length < 3) return setMessage({ kind: 'error', text: 'მიზეზი: მინიმუმ 3 სიმბოლო.' })
@@ -135,6 +147,11 @@ function SuperAdminPanel({
         <button type="submit" className="button" disabled={busy === 'wallet'}>
           ბალანსის შეცვლა
         </button>
+        {canSetRole && Number(item.wavecoinBalance) > 0 && (
+          <button type="button" className="button danger" disabled={busy === 'zero'} onClick={zero}>
+            ბალანსის განულება
+          </button>
+        )}
       </form>
       {walletMax !== null && <p className="au-note">შენი ლიმიტი: ±{walletMax} GEL ერთ ოპერაციაზე (Super Admin-ის მიერ დადგენილი).</p>}
       {canSetRole && (

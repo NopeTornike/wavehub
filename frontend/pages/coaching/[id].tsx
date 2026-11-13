@@ -167,11 +167,6 @@ export default function CoachProfile() {
               >
                 {coach.avatarUrl ? null : <span>{initials}</span>}
               </div>
-              {coach.online && (
-                <span className="coach-online-pill">
-                  <i aria-hidden="true"></i>ონლაინ
-                </span>
-              )}
             </div>
 
             <div className="coach-profile-intro">

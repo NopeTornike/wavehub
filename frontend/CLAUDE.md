@@ -1542,6 +1542,13 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
   subtitle on desktop (02); on phones the my-team "next action" and "place / points rule" rows stay
   side by side (07), and match cards keep stage + date and map / format / result / Details on one
   row each, dropping the fact icons below 420px so the values aren't cut (04).
+- **Owner batch 2026-11-14**: no online indicators anywhere on the public site (sidebar "N Online",
+  avatar dots, coach "ონლაინ" pills, profile online/offline box, profile-menu dot — `Avatar`'s
+  `online` prop is ignored; the staff dashboard's online-now KPI stays). `/hub` no longer refetches
+  every second after the daily reset while the server still reports the old day (a phone clock ahead
+  of the server caused hundreds of 429s): one refetch, then once a minute. More task triggers (see
+  `backend/src/rewards/CLAUDE.md`), GEL targets shown "12 / 40 GEL"; `/steam-keys` and `/services`
+  report visits. Admin → Users: "ბალანსის განულება"; Admin → Promo codes: personal codes.
 - **Home Rewards Center strip (2026-11-12, round-6/12)**: `components/rewards/RewardsCenterCard.tsx`
   (`rc-` CSS) sits right under the hero banner, above the countdown card: drawn gift box, "Rewards
   Center", one line about daily tasks, chevron. Opens `/hub`; signed out it opens the login window

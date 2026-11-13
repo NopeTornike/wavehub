@@ -81,7 +81,7 @@ export default function ReviewCard({
   return (
     <article className="rv-card">
       <Link className="rv-photo" href={`/u/${review.buyer.username}`} aria-label={buyerName}>
-        <Avatar name={buyerName} src={review.buyer.avatarUrl} size={72} online={review.buyer.online} />
+        <Avatar name={buyerName} src={review.buyer.avatarUrl} size={72} />
       </Link>
       <div className="rv-body">
         <div className="rv-top">

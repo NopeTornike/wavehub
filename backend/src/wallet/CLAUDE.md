@@ -179,6 +179,9 @@ locks the user row, refuses a result below 0 (`INSUFFICIENT_BALANCE`), writes on
 the same transaction. Added credit is spendable balance, **not** withdrawable earnings (withdrawals
 only count cleared sales). `test/flows.ts#assertConserved` counts `admin_adjustment` rows as an
 inflow. Called only from `POST admin/users/:id/wallet-adjustment` (Super Admin).
+`adminZero(userId, adminId, reference)` (2026-11-14) writes one `AdminAdjustment` row for minus the
+whole balance (tetri included) and sets it to 0 under the same row lock; `ALREADY_ZERO` when there is
+nothing to remove. Called only from `POST admin/users/:id/wallet-zero` (Super Admin).
 
 ## Production data fix (2026-10-07)
 - `lifecycletest`, an early test account, had a balance of 85 against a −15 ledger: it was credited

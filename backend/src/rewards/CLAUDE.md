@@ -11,15 +11,29 @@ winner opens on `/hub`.
   (`daily` = repeats each day, `once` = an achievement over all time), `isActive`, `sortOrder`.
   Staff choose *what* counts, never *who* did it. Triggers and the rows they count
   (`RewardsService.counts`, one SQL per window):
-  - `login` / `visit_marketplace` / `visit_tournaments` / `visit_coaching` — `reward_visits`, written by
-    `POST rewards/checkin` (the shell, once a day per browser — `lib/rewards.ts`) and
-    `POST rewards/visit {page}` (those three pages). Opening `/hub` counts as the check-in too.
-    These are the only self-reported ones; each pays at most once a day.
-  - `purchase` — orders as buyer, not pending/cancelled/refunded/expired; `topup` — positive `topup`
-    ledger rows; `follow` / `follow_coach` — `user_follows` (coach = verified coach);
-    `review` — reviews written; `book_session` — coaching sessions booked, not cancelled;
-    `tournament_join` — teams the user captains or is a member of (team `createdAt`);
-    `list_item` — listings created.
+  - `login` / `visit_marketplace` / `visit_services` / `visit_steam` / `visit_tournaments` /
+    `visit_coaching` — `reward_visits`, written by `POST rewards/checkin` (the shell, once a day per
+    browser — `lib/rewards.ts`) and `POST rewards/visit {page}` (those pages; `/services` counts as
+    both marketplace and services). Opening `/hub` counts as the check-in too. These are the only
+    self-reported ones; each pays at most once a day.
+  - Buying (orders as buyer, not pending/cancelled/refunded/expired, by order `createdAt`):
+    `purchase` (any), `buy_skin` / `buy_account` / `buy_game_item` (listing category slug `skins` /
+    `accounts` / `items`), `buy_steam_key` / `buy_service` (order `listingType`), `spend_amount`
+    (**GEL**, sum of `buyerTotalWaveCoin`), `complete_order` (completed, by `completedAt`).
+  - Money in: `topup` (count of positive `topup` ledger rows), `topup_amount` (**GEL**, their sum —
+    "top up 40 GEL" = `topup_amount`, target 40), `redeem_promo` (`promo_redemptions`).
+  - Social: `favorite_listing` / `favorite_coach` (`listing_favorites` / `coach_favorites`),
+    `follow` / `follow_coach` (`user_follows`, coach = verified coach), `send_message` (`messages`
+    sent), `review` (product reviews), `review_coach` (`coaching_session_reviews`).
+  - `book_session` (not cancelled), `complete_session` (completed, by `completedAt`),
+    `tournament_join` (teams the user captains or is a member of), `list_item` (listings created),
+    `sell` (orders as seller completed).
+  - `REWARD_AMOUNT_TRIGGERS` (shared-types) marks the GEL ones; the hub shows "12 / 40 GEL" and the
+    admin form asks "how many GEL". `target` is 1–100000.
+- **Done = by task id** (2026-11-14): a daily task is done when the user has a credit for it with
+  today's key; an achievement when any credit for it exists. Editing a task (title, target, trigger,
+  daily ↔ once) keeps it done for people who finished it and never pays twice. **Deleting and
+  re-creating a task does reset it** (new id; the old XP stays) — edit instead.
 - **Crediting**: `GET rewards/hub` checks today's and yesterday's daily tasks and all achievements,
   and inserts `reward_xp` rows with a per-user unique `key` (`task:<id>:<day>`, `task:<id>:once`,
   `streak:<day>`) using `ON CONFLICT DO NOTHING` — a task pays once however many requests race. XP is

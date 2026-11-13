@@ -15,9 +15,10 @@ export class RewardTaskDto {
   @IsIn(REWARD_TRIGGERS)
   trigger!: RewardTrigger;
 
+  // A count, or GEL for the amount triggers (topup_amount, spend_amount).
   @IsInt()
   @Min(1)
-  @Max(1000)
+  @Max(100000)
   target!: number;
 
   @IsInt()
@@ -63,7 +64,7 @@ export class RewardSettingsDto {
 }
 
 export class RewardVisitDto {
-  @IsIn(['marketplace', 'tournaments', 'coaching'])
+  @IsIn(['marketplace', 'services', 'steam', 'tournaments', 'coaching'])
   page!: string;
 }
 
