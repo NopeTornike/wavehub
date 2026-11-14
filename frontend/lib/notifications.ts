@@ -61,6 +61,7 @@ export function notificationIcon(type: NotificationType): string {
     case NotificationType.TournamentTeamRejected:
     case NotificationType.TournamentMatchLost:
       return icon('warning')
+    case NotificationType.TournamentMatchResult:
     case NotificationType.TournamentMatchScheduled:
     case NotificationType.TournamentMatchReminder:
     case NotificationType.TournamentRoomOpen:

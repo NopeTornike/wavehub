@@ -3182,5 +3182,12 @@
   "Top N (Battle Royale)": "Top N (Battle Royale)",
   "Battle Royale: ერთი ლობი მატჩის ყველა გუნდისთვის — ჩართეთ „ხელმისაწვდომია“ და შეავსეთ Room ID და პაროლი. ცარიელი ან გამორთული = „დაბლოკილია“.": "Battle Royale: one lobby for every team in the match — switch on \"Available\" and fill in the Room ID and password. Empty or off = \"Locked\".",
   "ლობი — ყველა გუნდი": "Lobby — all teams",
-  "ავტომატური გადანაწილება": "Assign automatically"
+  "ავტომატური გადანაწილება": "Assign automatically",
+  "გილოცავთ, 1-ლი ადგილი! 🏆": "Congratulations, 1st place! 🏆",
+  "მატჩის შედეგი: {0} ადგილი": "Match result: {0} place",
+  "მატჩის შედეგი: ადგილი არ არის": "Match result: no place",
+  "{0} · {1} ადგილი · {2} kills · +{3} ქულა · „{4}“": "{0} · {1} place · {2} kills · +{3} points · “{4}”",
+  "{0} · ადგილი არ არის · {1} kills · +{2} ქულა · „{3}“": "{0} · no place · {1} kills · +{2} points · “{3}”",
+  "Room ID, პაროლი და შენი ადგილი უკვე ხელმისაწვდომია — {0}.": "Room ID, password and your seat are available now — {0}.",
+  "{0} · {1}. Room ID და პაროლი გამოჩნდება, როცა ადმინისტრაცია ოთახს გახსნის.": "{0} · {1}. The Room ID and password will appear when staff open the room."
 }

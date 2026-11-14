@@ -240,6 +240,8 @@ export enum NotificationType {
   TournamentRoomOpen = 'tournament_room_open',
   TournamentMatchWon = 'tournament_match_won',
   TournamentMatchLost = 'tournament_match_lost',
+  // Battle royale: a team's place / kills / points in a lobby match (not 1st — 1st is TournamentMatchWon).
+  TournamentMatchResult = 'tournament_match_result',
   TournamentStarted = 'tournament_started',
   // User Hub rewards (owner 2026-11-10).
   RewardStreak = 'reward_streak',

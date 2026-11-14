@@ -30,11 +30,47 @@ type MatchRow = {
   scoreA: number | null;
   scoreB: number | null;
   pointsPerWin: number;
+  format: string;
+  groupName: string | null;
+  roundLabel: string | null;
 };
+
+// Who plays a battle-royale match (its results, else the group's / qualified teams) — answered by
+// TournamentsService, which owns the bracket (registered there to avoid a circular injection).
+export type BrTeamsResolver = (matchId: string) => Promise<string[]>;
+
+const STAGE_LABEL: Record<string, string> = {
+  group: 'Group Stage',
+  semifinal: 'Semifinal',
+  final: 'Final',
+  quarterfinal: 'Quarterfinal',
+  round: 'Round',
+};
+
+// "Group A · Match 2/5" / "ნახევარფინალი · Match 1/3".
+function brLabel(m: Pick<MatchRow, 'stage' | 'groupName' | 'roundLabel'>): string {
+  const stage = m.stage === 'group' && m.groupName ? `Group ${m.groupName}` : (STAGE_LABEL[m.stage] ?? m.stage);
+  return m.roundLabel ? `${stage} · ${m.roundLabel}` : stage;
+}
+
+function ordinal(n: number): string {
+  const s = n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  return `${n}${s}`;
+}
 
 @Injectable()
 export class TournamentNotifier {
   private readonly logger = new Logger(TournamentNotifier.name);
+  private brTeams: BrTeamsResolver | null = null;
+
+  setBrTeamsResolver(resolver: BrTeamsResolver) {
+    this.brTeams = resolver;
+  }
+
+  private async brPlayers(matchId: string): Promise<string[]> {
+    const teamIds = this.brTeams ? await this.brTeams(matchId) : [];
+    return [...(await this.playersByTeam(teamIds)).values()].flat();
+  }
 
   constructor(
     private readonly dataSource: DataSource,
@@ -69,7 +105,8 @@ export class TournamentNotifier {
   private async matchRow(matchId: string): Promise<MatchRow | null> {
     const [row] = await this.dataSource.query(
       `SELECT m."id", m."tournamentId", t."name" AS "tournamentName", m."scheduledAt", m."teamAId", m."teamBId",
-              a."name" AS "teamAName", b."name" AS "teamBName", m."stage", m."scoreA", m."scoreB", t."pointsPerWin"
+              a."name" AS "teamAName", b."name" AS "teamBName", m."stage", m."scoreA", m."scoreB", t."pointsPerWin",
+              t."format", m."groupName", m."roundLabel"
        FROM "tournament_matches" m JOIN "tournaments" t ON t."id" = m."tournamentId"
        LEFT JOIN "tournament_teams" a ON a."id" = m."teamAId" LEFT JOIN "tournament_teams" b ON b."id" = m."teamBId"
        WHERE m."id" = $1 AND t."status" <> 'draft'`,
@@ -103,7 +140,19 @@ export class TournamentNotifier {
   async matchScheduled(matchId: string) {
     await this.safely('match scheduled', async () => {
       const m = await this.matchRow(matchId);
-      if (!m || !m.teamAId || !m.teamBId || !m.scheduledAt) return;
+      if (!m || !m.scheduledAt) return;
+      if (m.format === 'battle_royale') {
+        // A semifinal / final lobby with nobody qualified yet notifies no one; the reminders reach
+        // the qualified teams later.
+        const ids = await this.brPlayers(m.id);
+        await this.send(ids, NotificationType.TournamentMatchScheduled, 'მატჩი დაინიშნა 📅', `${brLabel(m)} · ${when(new Date(m.scheduledAt))} · „${m.tournamentName}“`, {
+          tournamentId: m.tournamentId,
+          matchId: m.id,
+          link: this.hubLink(m.tournamentId),
+        });
+        return;
+      }
+      if (!m.teamAId || !m.teamBId) return;
       const players = await this.playersByTeam([m.teamAId, m.teamBId]);
       const body = `${m.teamAName} vs ${m.teamBName} · ${when(new Date(m.scheduledAt))} · „${m.tournamentName}“`;
       const meta = { tournamentId: m.tournamentId, matchId: m.id, link: this.hubLink(m.tournamentId) };
@@ -117,6 +166,17 @@ export class TournamentNotifier {
     await this.safely('room open', async () => {
       const m = await this.matchRow(matchId);
       if (!m) return;
+      if (m.format === 'battle_royale') {
+        if (!sides.includes('a')) return;
+        await this.send(
+          await this.brPlayers(m.id),
+          NotificationType.TournamentRoomOpen,
+          'თამაშის ოთახი გაიხსნა 🔓',
+          `Room ID, პაროლი და შენი ადგილი უკვე ხელმისაწვდომია — ${brLabel(m)}.`,
+          { tournamentId: m.tournamentId, matchId: m.id, link: this.hubLink(m.tournamentId) },
+        );
+        return;
+      }
       const teamIds = sides.map((s) => (s === 'a' ? m.teamAId : m.teamBId)).filter((x): x is string => !!x);
       const players = await this.playersByTeam(teamIds);
       const meta = { tournamentId: m.tournamentId, matchId: m.id, link: this.hubLink(m.tournamentId) };
@@ -133,6 +193,7 @@ export class TournamentNotifier {
   // The recorded result, once per match: winners "won", losers "lost — winner: X".
   async result(match: Pick<TournamentMatch, 'id' | 'status' | 'scoreA' | 'scoreB' | 'resultNotifiedAt'>) {
     if (match.status !== TournamentMatchStatus.Completed || match.resultNotifiedAt) return;
+    if (match.scoreA === null && match.scoreB === null) return this.brResult(match.id);
     if (match.scoreA === null || match.scoreB === null || match.scoreA === match.scoreB) return;
     await this.safely('match result', async () => {
       // Claim the result first so two quick saves can't both notify.
@@ -153,6 +214,40 @@ export class TournamentNotifier {
       const meta = { tournamentId: m.tournamentId, matchId: m.id, link: `/tournaments/${m.tournamentId}/matches/${m.id}` };
       await this.send(players.get(winId) ?? [], NotificationType.TournamentMatchWon, 'გილოცავთ, გაიმარჯვეთ! 🏆', `${score}${points}`, meta);
       await this.send(players.get(loseId) ?? [], NotificationType.TournamentMatchLost, `წააგეთ — გამარჯვებული: ${winner}`, score, meta);
+    });
+  }
+
+  // Battle royale, once per match when it is completed: every team with a result gets its place,
+  // kills and points; 1st place is a win (TournamentMatchWon), the rest TournamentMatchResult.
+  async brResult(matchId: string) {
+    await this.safely('battle royale result', async () => {
+      const m = await this.matchRow(matchId);
+      if (!m || m.format !== 'battle_royale') return;
+      const results: Array<{ teamId: string; placement: number | null; kills: number; points: number }> = await this.dataSource.query(
+        `SELECT r."teamId", r."placement", r."kills", r."points" FROM "tournament_match_results" r
+         JOIN "tournament_matches" m ON m."id" = r."matchId" WHERE r."matchId" = $1 AND m."status" = 'completed'`,
+        [matchId],
+      );
+      if (results.length === 0) return;
+      const [claimed] = await this.dataSource.query(
+        `UPDATE "tournament_matches" SET "resultNotifiedAt" = now() WHERE "id" = $1 AND "resultNotifiedAt" IS NULL RETURNING "id"`,
+        [matchId],
+      );
+      if (!Array.isArray(claimed) || claimed.length === 0) return;
+      const players = await this.playersByTeam(results.map((r) => r.teamId));
+      const meta = { tournamentId: m.tournamentId, matchId: m.id, link: `/tournaments/${m.tournamentId}/matches/${m.id}` };
+      for (const r of results) {
+        const place = r.placement ? `${ordinal(r.placement)} ადგილი` : 'ადგილი არ არის';
+        const body = `${brLabel(m)} · ${place} · ${r.kills} kills · +${r.points} ქულა · „${m.tournamentName}“`;
+        const won = r.placement === 1;
+        await this.send(
+          players.get(r.teamId) ?? [],
+          won ? NotificationType.TournamentMatchWon : NotificationType.TournamentMatchResult,
+          won ? 'გილოცავთ, 1-ლი ადგილი! 🏆' : `მატჩის შედეგი: ${place}`,
+          body,
+          meta,
+        );
+      }
     });
   }
 
@@ -181,7 +276,8 @@ export class TournamentNotifier {
     let sent = 0;
     try {
       const base = `FROM "tournaments" t WHERE t."id" = m."tournamentId" AND t."status" NOT IN ('draft', 'completed')
-        AND m."status" = 'scheduled' AND m."teamAId" IS NOT NULL AND m."teamBId" IS NOT NULL AND m."scheduledAt" > now()`;
+        AND m."status" = 'scheduled' AND m."scheduledAt" > now()
+        AND ((m."teamAId" IS NOT NULL AND m."teamBId" IS NOT NULL) OR t."format" = 'battle_royale')`;
       const hour: Array<{ id: string }> = (
         await this.dataSource.query(
           `UPDATE "tournament_matches" m SET "remindedHourAt" = now(), "remindedDayAt" = coalesce(m."remindedDayAt", now())
@@ -206,15 +302,28 @@ export class TournamentNotifier {
     let count = 0;
     await this.safely('reminder', async () => {
       const m = await this.matchRow(matchId);
-      if (!m || !m.teamAId || !m.teamBId || !m.scheduledAt) return;
-      const players = await this.playersByTeam([m.teamAId, m.teamBId]);
-      const ids = [...(players.get(m.teamAId) ?? []), ...(players.get(m.teamBId) ?? [])];
+      if (!m || !m.scheduledAt) return;
+      const br = m.format === 'battle_royale';
+      let ids: string[];
+      if (br) {
+        ids = await this.brPlayers(m.id);
+        // Nobody plays it yet (groups not assigned / semifinal not decided): give the stamp back so
+        // a later sweep can remind the teams once they are known.
+        if (ids.length === 0) {
+          await this.dataSource.query(`UPDATE "tournament_matches" SET "${kind === 'hour' ? 'remindedHourAt' : 'remindedDayAt'}" = NULL WHERE "id" = $1`, [m.id]);
+          return;
+        }
+      } else {
+        if (!m.teamAId || !m.teamBId) return;
+        const players = await this.playersByTeam([m.teamAId, m.teamBId]);
+        ids = [...(players.get(m.teamAId) ?? []), ...(players.get(m.teamBId) ?? [])];
+      }
       count = new Set(ids).size;
       await this.send(
         ids,
         NotificationType.TournamentMatchReminder,
         kind === 'hour' ? 'მატჩი 1 საათში იწყება ⏰' : 'მატჩამდე 24 საათია ⏳',
-        `${m.teamAName} vs ${m.teamBName} · ${when(new Date(m.scheduledAt))}. Room ID და პაროლი გამოჩნდება, როცა ადმინისტრაცია ოთახს გახსნის.`,
+        `${br ? brLabel(m) : `${m.teamAName} vs ${m.teamBName}`} · ${when(new Date(m.scheduledAt))}. Room ID და პაროლი გამოჩნდება, როცა ადმინისტრაცია ოთახს გახსნის.`,
         { tournamentId: m.tournamentId, matchId: m.id, link: this.hubLink(m.tournamentId) },
       );
     });

@@ -88,7 +88,18 @@ export class TournamentsService {
     private readonly notifications: NotificationsService,
     // Optional so unit specs that build the service by hand keep working; Nest always injects it.
     private readonly notifier?: TournamentNotifier,
-  ) {}
+  ) {
+    this.notifier?.setBrTeamsResolver?.((matchId) => this.brTeamsOf(matchId));
+  }
+
+  // The teams a battle-royale match notifies (same rule as room access: brMatchTeams).
+  private async brTeamsOf(matchId: string): Promise<string[]> {
+    const match = await this.matches.findOne({ where: { id: matchId }, relations: { tournament: true } });
+    if (!match || match.tournament.format !== 'battle_royale') return [];
+    const { matches, teams, bracket } = await this.brState(match.tournament);
+    const pub = matches.find((m) => m.id === matchId);
+    return pub ? brMatchTeams(pub, bracket, teams) : [];
+  }
 
   // --- Mapping ---
 
@@ -784,6 +795,8 @@ export class TournamentsService {
       }
       if (dto.complete) await m.update(TournamentMatch, { id: matchId }, { status: TournamentMatchStatus.Completed });
     });
+    // Once per match, when it is (or already was) completed: place / kills / points to every team.
+    await this.notifier?.brResult(matchId);
     return this.getMatch(tournamentId, matchId).catch(async () => {
       const row = await this.matchQuery().where('m.id = :matchId', { matchId }).getOneOrFail();
       return this.toPublicMatch(row);
@@ -838,7 +851,8 @@ export class TournamentsService {
         stats: {},
       }),
     );
-    await this.matches.save(rows);
+    const saved = await this.matches.save(rows);
+    for (const m of saved) await this.notifier?.matchScheduled(m.id);
     return { created: rows.length };
   }
 

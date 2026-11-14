@@ -340,5 +340,16 @@ Migration `1784395000000-TournamentPointsRemindersLeaderboard`. Mockups: `docs/d
 - **Versus fix (round-7/39)**: a scheduled match given both scores without a status is completed
   (`applyMatchDto`); the match list / details pages also show "VS" instead of a score until a match is
   live or completed.
-- Known gap: the match-scheduled / result notifications still go to team A / B only, so battle-royale
-  matches send none yet. e2e: `test/battle-royale.e2e-spec.ts`.
+- **Notifications (same `TournamentNotifier`, branching on `tournaments.format`)**: the players of a
+  battle-royale match are `brMatchTeams` (results, else the group's teams / the qualified teams),
+  resolved by `TournamentsService.brTeamsOf` (registered on the notifier with `setBrTeamsResolver` —
+  the notifier can't inject the service, which already injects it).
+  - scheduled: `adminBrMatches` (and time changes) → `tournament_match_scheduled` "Group A · Match 1/5 ·
+    date · „tournament“". A semifinal / final lobby nobody has qualified for yet notifies no one.
+  - room: opening the lobby (side a) → `tournament_room_open` to every team in it, no details.
+  - reminders: the 5-minute sweep includes battle-royale matches; when nobody plays one yet, the
+    claimed stamp is given back so the teams are reminded once they are known.
+  - result: once per match (`resultNotifiedAt`), when it is completed with results → 1st place gets
+    `tournament_match_won` ("გილოცავთ, 1-ლი ადგილი! 🏆"), every other team `tournament_match_result`
+    ("მატჩის შედეგი: 3rd ადგილი", body place · kills · +points), linking the match page.
+  e2e: `test/battle-royale.e2e-spec.ts`.

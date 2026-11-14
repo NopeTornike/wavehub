@@ -1,4 +1,5 @@
 import { brMatchPoints } from '@wavehub/shared-types';
+import { TournamentNotifier } from '../src/tournaments/tournament-notifier.service';
 import { createApp, E2eApp, makeAdmin, registerUser, TestUser } from './helpers';
 
 // Battle-royale tournaments (owner 2026-11-14, Gio; docs/design-mockups/round-7): groups, one match
@@ -104,5 +105,79 @@ describe('battle-royale tournaments (e2e)', () => {
     const m = await admin.client.post(`/admin/tournaments/${vs.body.id}/matches`, { stage: 'quarterfinal' });
     const scored = await admin.client.post(`/admin/tournaments/${vs.body.id}/matches/${m.body.id}`, { scoreA: 1, scoreB: 0 });
     expect(scored.body.status).toBe('completed');
+  });
+  it('notifications: schedule, room, reminders and results reach every team in the lobby, once', async () => {
+    const games = (await admin.client.get('/games')).body as Array<{ id: string; slug: string }>;
+    const pubg = games.find((g) => g.slug === 'pubg-mobile') ?? games[0];
+    const t = await admin.client.post('/admin/tournaments', {
+      gameId: pubg.id, name: `BR Notify ${Date.now() % 100000}`, description: 'Battle royale notifications e2e.',
+      prize: '10 GEL', status: 'open', startDate, maxPlayers: 8, teamSize: 1, format: 'battle_royale', groupAdvance: 1, semifinalAdvance: 1,
+    });
+    const id = t.body.id as string;
+    const players = await Promise.all(['bn1', 'bn2', 'bn3', 'bn4'].map((p) => registerUser(ctx, p)));
+    for (const [i, p] of players.entries()) {
+      await p.client.post(`/tournaments/${id}/register`, { inGameName: `BN${i}`, inGameId: `8000${i}`, discord: 'brplayer' });
+    }
+    const teams = (await admin.client.get(`/admin/tournaments/${id}/teams`)).body as Array<{ id: string; players: Array<{ username: string }> }>;
+    for (const team of teams) await admin.client.post(`/admin/tournaments/${id}/teams/${team.id}/status`, { status: 'verified' });
+    await admin.client.post(`/admin/tournaments/${id}/groups/auto`, { groups: 2 });
+    const grouped = (await admin.client.get(`/admin/tournaments/${id}/teams`)).body as Array<{ id: string; groupName: string; players: Array<{ username: string }> }>;
+    const userOf = (teamId: string) => players.find((p) => grouped.find((g) => g.id === teamId)!.players.some((x) => x.username === p.username))!;
+    const inA = grouped.filter((g) => g.groupName === 'A').map((g) => g.id);
+    const inB = grouped.filter((g) => g.groupName === 'B').map((g) => g.id);
+    const notes = async (user: TestUser, type: string) =>
+      (await ctx.dataSource.query(
+        `SELECT n.title, n.body, n.metadata FROM notifications n JOIN users u ON u.id = n."userId" WHERE u.username = $1 AND n.type = $2 AND n.metadata->>'tournamentId' = $3 ORDER BY n."createdAt"`,
+        [user.username, type, id],
+      )) as Array<{ title: string; body: string; metadata: Record<string, string> }>;
+
+    // Scheduling group A's lobby notifies group A only, with "Group A · Match 1/2".
+    const at = new Date(Date.now() + 30 * 60_000).toISOString();
+    await admin.client.post(`/admin/tournaments/${id}/matches/battle-royale`, { stage: 'group', groupName: 'A', count: 2, startAt: at, intervalMinutes: 600 });
+    const a0 = userOf(inA[0]);
+    const b0 = userOf(inB[0]);
+    const scheduled = await notes(a0, 'tournament_match_scheduled');
+    expect(scheduled).toHaveLength(2);
+    expect(scheduled[0].body).toContain('Group A · Match 1/2');
+    expect(await notes(b0, 'tournament_match_scheduled')).toHaveLength(0);
+
+    // A semifinal lobby nobody has qualified for yet notifies no one, and its reminder waits.
+    await admin.client.post(`/admin/tournaments/${id}/matches/battle-royale`, { stage: 'semifinal', count: 1, startAt: at, intervalMinutes: 0 });
+    for (const p of players) expect((await notes(p, 'tournament_match_scheduled')).every((n) => !n.body.includes('Semifinal'))).toBe(true);
+
+    // Reminders: group A's first lobby (30 min out) → the 1-hour reminder, once; the semifinal's stamp
+    // is given back because nobody plays it yet.
+    const notifier = ctx.app.get(TournamentNotifier);
+    await notifier.sweepReminders();
+    await notifier.sweepReminders();
+    const reminders = await notes(a0, 'tournament_match_reminder');
+    // Match 1/2 (30 min out) → the 1-hour reminder; Match 2/2 (10 h out) → the 24-hour one.
+    expect(reminders.map((r) => r.title)).toEqual([expect.stringContaining('1 საათში'), expect.stringContaining('24 საათი')]);
+    expect(await notes(b0, 'tournament_match_reminder')).toHaveLength(0);
+    const matches = (await admin.client.get(`/tournaments/${id}/matches`)).body as Array<{ id: string; stage: string; roundLabel: string }>;
+    const semi = matches.find((m) => m.stage === 'semifinal')!;
+    const [semiRow] = await ctx.dataSource.query(`SELECT "remindedHourAt" FROM tournament_matches WHERE id = $1`, [semi.id]);
+    expect(semiRow.remindedHourAt).toBeNull();
+
+    // Opening the lobby room tells group A, never the room details.
+    const first = matches.find((m) => m.roundLabel === 'Match 1/2' && m.stage === 'group')!;
+    await admin.client.post(`/admin/tournaments/${id}/matches/${first.id}/room`, { a: { open: true, roomId: '5544', password: 'secretpw', slot: '' } });
+    const room = await notes(a0, 'tournament_room_open');
+    expect(room).toHaveLength(1);
+    expect(JSON.stringify(room)).not.toContain('secretpw');
+
+    // Results: 1st place = won, the other = its place / kills / points; once, even if saved again.
+    const results = { results: [{ teamId: inA[0], placement: 1, kills: 6 }, { teamId: inA[1], placement: 3, kills: 2 }], complete: true };
+    await admin.client.post(`/admin/tournaments/${id}/matches/${first.id}/results`, results);
+    await admin.client.post(`/admin/tournaments/${id}/matches/${first.id}/results`, results);
+    const won = await notes(a0, 'tournament_match_won');
+    expect(won).toHaveLength(1);
+    expect(won[0].body).toContain('1st ადგილი · 6 kills · +16 ქულა');
+    const other = await notes(userOf(inA[1]), 'tournament_match_result');
+    expect(other).toHaveLength(1);
+    expect(other[0].title).toContain('3rd ადგილი');
+    expect(other[0].body).toContain('+7 ქულა');
+    expect(other[0].metadata.link).toBe(`/tournaments/${id}/matches/${first.id}`);
+    expect(await notes(b0, 'tournament_match_result')).toHaveLength(0);
   });
 });
