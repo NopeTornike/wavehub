@@ -19,7 +19,7 @@ import { RegisterSoloDto, RegisterTeamDto } from './dto/register-team.dto';
 import { PlayerLookupDto } from './dto/player-lookup.dto';
 import { TeamStatusDto } from './dto/team-status.dto';
 import { AutoGroupsDto, BrMatchesDto, MatchDto, MatchResultsDto, MatchRoomDto, RoundRobinDto, TeamGroupDto } from './dto/match.dto';
-import { LeaderboardEntryDto, LeaderboardQueryDto, LeaderboardVisibilityDto } from './dto/leaderboard.dto';
+import { LeaderboardEntryDto, LeaderboardQueryDto, LeaderboardVisibilityDto, RankingQueryDto } from './dto/leaderboard.dto';
 import { TournamentLeaderboardService } from './tournament-leaderboard.service';
 
 // Same trio as backend/src/coaching/coaches.controller.ts's COACH_MANAGEMENT_ROLES — tournaments
@@ -62,6 +62,12 @@ export class TournamentsController {
   @Get('tournaments/leaderboard')
   publicLeaderboard(@Query() query: LeaderboardQueryDto) {
     return this.leaderboard.publicBoard(query.gameId);
+  }
+
+  // The Tournament Ranking page (owner 2026-11-19): top 10 players or teams.
+  @Get('tournaments/ranking')
+  ranking(@Query() query: RankingQueryDto) {
+    return this.leaderboard.ranking(query.kind, query.gameId);
   }
 
   @Get('tournaments/:id')

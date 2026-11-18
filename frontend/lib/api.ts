@@ -1338,7 +1338,7 @@ export const api = {
   // Battle royale (owner 2026-11-14): N matches for a group / stage, results, team groups.
   adminTournamentBrMatches: (id: string, payload: { stage: TournamentMatchStage; groupName?: string | null; count: number; startAt: string; intervalMinutes: number; map?: string | null }) =>
     request<{ created: number }>(`/admin/tournaments/${id}/matches/battle-royale`, { method: 'POST', body: JSON.stringify(payload) }),
-  adminSetTournamentMatchResults: (id: string, matchId: string, payload: { results: Array<{ teamId: string; placement: number | null; kills: number }>; complete?: boolean }) =>
+  adminSetTournamentMatchResults: (id: string, matchId: string, payload: { results: Array<{ teamId: string; placement: number | null; kills: number; players?: Array<{ name: string; kills: number; damage: number | null; assists: number | null; survival: number | null }> }>; complete?: boolean }) =>
     request<PublicTournamentMatch>(`/admin/tournaments/${id}/matches/${matchId}/results`, { method: 'POST', body: JSON.stringify(payload) }),
   adminSetTournamentTeamGroup: (id: string, teamId: string, groupName: string | null) =>
     request<PublicTournamentTeam>(`/admin/tournaments/${id}/teams/${teamId}/group`, { method: 'POST', body: JSON.stringify({ groupName }) }),
@@ -1348,8 +1348,13 @@ export const api = {
   // Hand-entered tournament leaderboard (owner 2026-11-10).
   getTournamentLeaderboard: (gameId?: string) =>
     request<TournamentLeaderboard>(`/tournaments/leaderboard${gameId ? `?gameId=${encodeURIComponent(gameId)}` : ''}`),
+  getTournamentRanking: (kind: 'player' | 'team', gameId?: string) =>
+    request<{ visible: boolean; entries: TournamentLeaderboardEntry[] }>(`/tournaments/ranking?kind=${kind}${gameId ? `&gameId=${encodeURIComponent(gameId)}` : ''}`),
   adminListLeaderboard: () => request<{ visible: boolean; entries: TournamentLeaderboardEntry[] }>('/admin/tournament-leaderboard'),
-  adminSaveLeaderboardEntry: (payload: { kind: 'player' | 'team'; gameId: string | null; name: string; wins: number; kills: number; points: number }, id?: string) =>
+  adminSaveLeaderboardEntry: (
+    payload: { kind: 'player' | 'team'; gameId: string | null; name: string; nickname: string | null; country: string | null; wins: number; losses: number; draws: number; kills: number; points: number },
+    id?: string,
+  ) =>
     request<TournamentLeaderboardEntry>(`/admin/tournament-leaderboard${id ? `/${id}` : ''}`, { method: 'POST', body: JSON.stringify(payload) }),
   adminUploadLeaderboardLogo: async (id: string, file: File) => upload<TournamentLeaderboardEntry>(`/admin/tournament-leaderboard/${id}/logo`, await shrinkPhoto(file)),
   adminDeleteLeaderboardEntry: (id: string) => request<{ ok: boolean }>(`/admin/tournament-leaderboard/${id}`, { method: 'DELETE' }),

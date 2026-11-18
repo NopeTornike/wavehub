@@ -1670,6 +1670,20 @@ export interface MatchTeamResult {
   placement: number | null;
   kills: number;
   points: number;
+  // Per-player lines staff entered (owner 2026-11-19, Match Results page); may be empty.
+  players: BrPlayerStat[];
+}
+// One player's line in a battle-royale result. `survival` is in seconds; null = not recorded.
+// A line typed as @username links the account (fresh username / photo on every read).
+export interface BrPlayerStat {
+  name: string;
+  userId: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  kills: number;
+  damage: number | null;
+  assists: number | null;
+  survival: number | null;
 }
 
 // GET admin/tournaments/:id/matches — the public match plus the game-room details staff entered.
@@ -1695,7 +1709,15 @@ export interface TournamentLeaderboardEntry {
   username: string | null;
   name: string;
   imageUrl: string | null;
+  // A player row: the account's first + last name (falls back to the username).
+  fullName: string | null;
+  // "The Tiger" — staff-typed, optional.
+  nickname: string | null;
+  // ISO 3166-1 alpha-2 ("GE"), optional.
+  country: string | null;
   wins: number;
+  losses: number;
+  draws: number;
   kills: number;
   points: number;
 }

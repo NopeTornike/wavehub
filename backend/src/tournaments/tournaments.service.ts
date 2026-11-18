@@ -182,6 +182,7 @@ export class TournamentsService {
   private async withPlayerAccounts(rows: TournamentMatch[]): Promise<PublicTournamentMatch[]> {
     const ids = new Set<string>();
     for (const row of rows) for (const side of [row.stats?.a, row.stats?.b]) for (const p of side?.players ?? []) if (p.userId) ids.add(p.userId);
+    for (const row of rows) for (const r of row.results ?? []) for (const p of r.players ?? []) if (p.userId) ids.add(p.userId);
     const users = ids.size
       ? await this.dataSource.getRepository(User).find({ where: { id: In([...ids]), status: UserStatus.Active }, select: { id: true, username: true, avatarUrl: true } })
       : [];
@@ -198,7 +199,15 @@ export class TournamentsService {
         : null;
     return rows.map((row) => {
       const pub = this.toPublicMatch(row);
-      return { ...pub, stats: { a: link(row.stats?.a), b: link(row.stats?.b) } };
+      // Battle-royale player lines: the linked account's current username / photo (else the name).
+      const results = pub.results.map((r) => ({
+        ...r,
+        players: r.players.map((p) => {
+          const u = p.userId ? byId.get(p.userId) : undefined;
+          return u ? { ...p, name: u.username, username: u.username, avatarUrl: u.avatarUrl ?? null } : { ...p, userId: null };
+        }),
+      }));
+      return { ...pub, results, stats: { a: link(row.stats?.a), b: link(row.stats?.b) } };
     });
   }
 
@@ -234,7 +243,13 @@ export class TournamentsService {
       stats: { a: match.stats?.a ?? null, b: match.stats?.b ?? null },
       results: (match.results ?? [])
         .filter((r) => r.team)
-        .map((r) => ({ team: this.teamRef(r.team)!, placement: r.placement, kills: r.kills, points: r.points }))
+        .map((r) => ({
+          team: this.teamRef(r.team)!,
+          placement: r.placement,
+          kills: r.kills,
+          points: r.points,
+          players: (r.players ?? []).map((p) => ({ ...p, userId: p.userId ?? null, username: null, avatarUrl: null })),
+        }))
         .sort((a, b) => b.points - a.points || (a.placement ?? 999) - (b.placement ?? 999) || a.team.name.localeCompare(b.team.name)),
     };
   }
@@ -785,12 +800,35 @@ export class TournamentsService {
       const found = await this.teams.count({ where: { tournamentId, id: In(teamIds) } });
       if (found !== teamIds.length) throw new BadRequestException('Every team must be registered in this tournament');
     }
+    // Player lines: "@username" links the account (refused if unknown), anything else is an in-game name.
+    const linked = new Map<string, User>();
+    for (const r of dto.results)
+      for (const p of r.players ?? []) {
+        const name = p.name.trim();
+        if (!name.startsWith('@') || linked.has(name.toLowerCase())) continue;
+        const user = await this.findPlayer(this.dataSource.manager, name);
+        if (!user) throw new BadRequestException(`No active WaveHub account "${name.slice(0, 40)}"`);
+        linked.set(name.toLowerCase(), user);
+      }
+    const playerLines = (r: MatchResultsDto['results'][number]) =>
+      (r.players ?? []).map((p) => {
+        const name = p.name.trim();
+        const user = linked.get(name.toLowerCase());
+        return {
+          name: user ? user.username : name,
+          userId: user?.id ?? null,
+          kills: p.kills,
+          damage: p.damage ?? null,
+          assists: p.assists ?? null,
+          survival: p.survival ?? null,
+        };
+      });
     await this.dataSource.transaction(async (m) => {
       await m.delete(TournamentMatchResult, { matchId });
       if (dto.results.length) {
         await m.insert(
           TournamentMatchResult,
-          dto.results.map((r) => ({ matchId, teamId: r.teamId, placement: r.placement ?? null, kills: r.kills, points: brMatchPoints(r.placement ?? null, r.kills) })),
+          dto.results.map((r) => ({ matchId, teamId: r.teamId, placement: r.placement ?? null, kills: r.kills, points: brMatchPoints(r.placement ?? null, r.kills), players: playerLines(r) })),
         );
       }
       if (dto.complete) await m.update(TournamentMatch, { id: matchId }, { status: TournamentMatchStatus.Completed });

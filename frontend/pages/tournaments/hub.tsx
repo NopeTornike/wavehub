@@ -230,10 +230,11 @@ export default function TournamentHub() {
               <VersusNext entry={entry} next={next} teamId={teamId} />
             )}
 
-            {/* The match's game room for its players (owner 2026-10-28). */}
-            {next && <GameRoomCard key={next.id} matchId={next.id} />}
-
             {entry && <MyTeamStatusCard entry={entry} matches={bracket.length ? bracket : mine} br={brSummary} dashboardHref={dashboardHref} />}
+
+            {/* The game room, always here under the team card (owner 2026-11-19): locked until staff
+                open the room of the next match (owner 2026-10-28). */}
+            <GameRoomCard key={next?.id ?? 'none'} matchId={next?.id ?? null} server={!br && /counter|cs2|cs:?go/i.test(tournament?.gameName ?? '')} />
             {entry && <TeamMembersCard entry={entry} myUsername={user?.username} onTeamChange={load} />}
           </>
         )}

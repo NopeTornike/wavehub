@@ -235,6 +235,40 @@ export class RoundRobinDto {
 
 // --- Battle royale (owner 2026-11-14) ---
 
+// One player's line under a battle-royale result (owner 2026-11-19). `name` is the in-game name, or
+// @username to link a WaveHub account. Survival is seconds (the admin types mm:ss).
+export class BrPlayerStatDto {
+  @IsString()
+  @Length(1, 40)
+  name: string;
+
+  @IsInt()
+  @Min(0)
+  @Max(99)
+  kills: number;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  damage?: number | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(0)
+  @Max(99)
+  assists?: number | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(0)
+  @Max(7200)
+  survival?: number | null;
+}
+
 export class MatchResultLineDto {
   @IsUUID()
   teamId: string;
@@ -251,6 +285,13 @@ export class MatchResultLineDto {
   @Min(0)
   @Max(999)
   kills: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  @ValidateNested({ each: true })
+  @Type(() => BrPlayerStatDto)
+  players?: BrPlayerStatDto[];
 }
 
 // PUT admin/tournaments/:id/matches/:matchId/results — replaces the match's results. Points are

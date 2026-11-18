@@ -130,6 +130,9 @@ const PATHS: Record<string, ReactNode> = {
   lock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
   bars: <path d="M5 20v-6m7 6V8m7 12V4" />,
   flag: <path d="M5 21V4m0 0h11l-2 4 2 4H5" />,
+  list: <path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01" />,
+  skull: <><path d="M12 3a8 8 0 0 0-8 8c0 2.6 1.2 4.4 3 5.6V20h10v-3.4c1.8-1.2 3-3 3-5.6a8 8 0 0 0-8-8Z" /><circle cx="9" cy="11" r="1.6" /><circle cx="15" cy="11" r="1.6" /><path d="M10 20v-2m4 2v-2" /></>,
+  heart: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" />,
   doubleChevron: <path d="m6 6 6 6-6 6m6-12 6 6-6 6" />,
   path: <path d="M4 4h5v5H4zM4 15h5v5H4zM9 6.5h4v11H9m4-5.5h4M17 9.5h3v5h-3z" />,
 }

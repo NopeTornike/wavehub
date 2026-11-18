@@ -14,6 +14,9 @@ import { STAGE_LABEL, TeamMark, TIcon, tournamentPrimaryHref } from '../../lib/t
 //      Room ID / password / seat from the game-room endpoint, locked (🔒) until staff open the room;
 //   2. the start of a tournament the player's team is registered in (their team vs "TBA");
 //   3. the start of the featured open / upcoming tournament, with a register button.
+// Owner 2026-11-19: versus (CS2) shows "UPCOMING MATCH" over Team X vs Team Y; a battle-royale
+// (PUBG) tournament has no "vs" — its card is the start / next lobby countdown, the game, stage and
+// teams, and a "სრულად ნახვა" (view full) button.
 // A tournament's start = its startDate + the "startTime" detail (Tbilisi time). A start that has
 // already passed on a tournament that hasn't begun shows "--" and "to be announced" (rule #6).
 const AFTER_START_MS = 2 * 3_600_000
@@ -22,7 +25,8 @@ const LIVE: TournamentStatus[] = [TournamentStatus.Open, TournamentStatus.Upcomi
 function nextMatch(matches: PublicTournamentMatch[], now: number): PublicTournamentMatch | null {
   return (
     matches
-      .filter((m) => m.status !== TournamentMatchStatus.Completed && m.scheduledAt && m.teamA && m.teamB)
+      // Versus matches need both teams; a battle-royale lobby has none (its teams come from results).
+      .filter((m) => m.status !== TournamentMatchStatus.Completed && m.scheduledAt && ((m.teamA && m.teamB) || (!m.teamA && !m.teamB)))
       .filter((m) => now - new Date(m.scheduledAt!).getTime() <= AFTER_START_MS)
       .sort((a, b) => a.scheduledAt!.localeCompare(b.scheduledAt!))[0] ?? null
   )
@@ -178,6 +182,78 @@ export default function MatchCountdownCard({ tournaments = [] }: { tournaments?:
     </span>
   )
   const myTeam = entry?.team ?? null
+  const br = tournament?.format === 'battle_royale' || (!!match && !match.teamA && !match.teamB)
+
+  if (br) {
+    const t = tournament
+    const where = match ? `${match.groupName ? `Group ${match.groupName}` : STAGE_LABEL[match.stage]}${match.roundLabel ? ` • ${match.roundLabel}` : ''}` : stage
+    const full = match || myTeam ? `/tournaments/hub?t=${match?.tournamentId ?? t!.id}` : t && t.status === TournamentStatus.InProgress ? `/tournaments/${t.id}/dashboard` : tournamentPrimaryHref(t!)
+    return (
+      <section className="mc-card mc-br" aria-label={match ? 'შენი მომავალი მატჩი' : 'ტურნირის დაწყება'}>
+        <header className="mc-head">
+          <span className="mc-brand">
+            {gameName ? <GameMark name={gameName} /> : <TIcon name="gamepad" />}
+            <span className="mc-wordmark">
+              <b>WAVEHUBX</b>
+              <em>TOURNAMENT</em>
+            </span>
+          </span>
+          <Link className="mc-name" href={href}>
+            <TIcon name="trophy" />
+            <span>{title}</span>
+          </Link>
+        </header>
+
+        <p className="mc-label">{match ? (at && at.getTime() <= now ? 'მატჩი დაიწყო — შედი ოთახში!' : 'შემდეგი მატჩის დაწყებამდე:') : label}</p>
+        <div className="mc-clock" role="timer" aria-live="off">
+          {clockUnits(left).map(([v, unit], i) => (
+            <span key={unit} className="mc-unit">
+              {i > 0 && <i aria-hidden="true">:</i>}
+              <span>
+                <b>{v}</b>
+                <small>{unit}</small>
+              </span>
+            </span>
+          ))}
+        </div>
+
+        <div className="mc-facts">
+          <span>
+            <TIcon name="calendar" />
+            <span>
+              <small>დაწყება:</small>
+              <b>{when ? `${kaDayMonth(when)}, ${kaTime(when)}` : 'მალე'}</b>
+            </span>
+          </span>
+          <span>
+            <TIcon name="bars" />
+            <span>
+              <small>ეტაპი:</small>
+              <b>{where}</b>
+            </span>
+          </span>
+          <span>
+            <TIcon name="users" />
+            <span>
+              <small>გუნდები:</small>
+              <b>{t ? `${t.teamCount} / ${t.maxTeams}` : '—'}</b>
+            </span>
+          </span>
+        </div>
+
+        <div className="mc-cta mc-br-cta">
+          <span>
+            <TIcon name="gamepad" />
+            <small>ფორმატი:</small>
+            <b>Battle Royale{myTeam ? ` · ${myTeam.name}` : ''}</b>
+          </span>
+          <Link className="mc-register" href={full}>
+            სრულად ნახვა <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="mc-card" aria-label={match ? 'შენი მომავალი მატჩი' : 'ტურნირის დაწყება'}>
@@ -234,6 +310,11 @@ export default function MatchCountdownCard({ tournaments = [] }: { tournaments?:
 
       {match || myTeam ? (
         <>
+          <p className="mc-vs-label">
+            <i aria-hidden="true"></i>
+            UPCOMING MATCH
+            <i aria-hidden="true"></i>
+          </p>
           <div className="mc-vs">
             <span className="mc-team">
               <TeamMark team={match ? match.teamA : myTeam} />

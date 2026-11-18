@@ -118,3 +118,6 @@ public shape's surface area the same across all three listing types.
   both sides always agree on who is in which stage (`backend/src/tournaments/CLAUDE.md`).
 - `NotificationType.TournamentMatchResult` (`tournament_match_result`, 2026-11-14): a battle-royale
   team's place / kills / points in a lobby match that it didn't win (1st place uses `TournamentMatchWon`).
+- **Round 8 (2026-11-19)**: `BrPlayerStat` (`name`, `userId`, `username`, `avatarUrl`, `kills`, `damage`,
+  `assists`, `survival` seconds — last three nullable) as `MatchTeamResult.players`;
+  `TournamentLeaderboardEntry` gains `fullName`, `nickname`, `country` (ISO alpha-2), `losses`, `draws`.

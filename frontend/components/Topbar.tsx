@@ -53,6 +53,8 @@ const ICONS = {
   tournaments: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z|M17 6h3v2a3 3 0 0 1-3 3M7 6H4v2a3 3 0 0 0 3 3',
   wallet: 'M4 7h16v12H4z|M4 10h16|M15 15h3',
   sell: 'M12 5v14M5 12h14',
+  team: 'M3 20v-1a6 6 0 0 1 12 0v1|M16 4.5a3 3 0 0 1 0 6|M18 14a5 5 0 0 1 3 4.6V20',
+  bracket: 'M4 5h5v4H4zM4 15h5v4H4zM15 10h5v4h-5z|M9 7h2.5v10H9M11.5 12H15',
 }
 
 function MenuIcon({ paths, circle }: { paths: string; circle?: [number, number, number] }) {
@@ -90,6 +92,8 @@ export default function Topbar({
   const { count: cartCount } = useCart()
   const { unreadMessages, unreadNotifications, waveRank } = useShell()
   const [profileOpen, setProfileOpen] = useState(false)
+  // "My Tournaments" opens two shortcuts in place (owner 2026-11-19): My Team / Tournament Dashboard.
+  const [tournamentsOpen, setTournamentsOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [search, setSearch] = useState('')
   // Phones (home page): the search box is a 40px icon; tapping it opens a full-width search field.
@@ -417,11 +421,33 @@ export default function Topbar({
                   <span>My Listings</span>
                   <i aria-hidden="true">›</i>
                 </Link>
-                <Link href={signedIn ? '/tournaments/mine' : loginHref} onClick={closeMenu}>
-                  <MenuIcon paths={ICONS.tournaments} />
-                  <span>My Tournaments</span>
-                  <i aria-hidden="true">›</i>
-                </Link>
+                {signedIn ? (
+                  <>
+                    <button type="button" className={`pm-toggle${tournamentsOpen ? ' open' : ''}`} aria-expanded={tournamentsOpen} aria-controls="pmTournaments" onClick={() => setTournamentsOpen((v) => !v)}>
+                      <MenuIcon paths={ICONS.tournaments} />
+                      <span>My Tournaments</span>
+                      <i aria-hidden="true">›</i>
+                    </button>
+                    <div className="pm-sub" id="pmTournaments" hidden={!tournamentsOpen}>
+                      <Link href="/tournaments/hub" onClick={closeMenu}>
+                        <MenuIcon paths={ICONS.team} circle={[9, 8, 3.2]} />
+                        <span>My Team</span>
+                        <i aria-hidden="true">›</i>
+                      </Link>
+                      <Link href="/tournaments/dashboard" onClick={closeMenu}>
+                        <MenuIcon paths={ICONS.bracket} />
+                        <span>Tournament Dashboard</span>
+                        <i aria-hidden="true">›</i>
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <Link href={loginHref} onClick={closeMenu}>
+                    <MenuIcon paths={ICONS.tournaments} />
+                    <span>My Tournaments</span>
+                    <i aria-hidden="true">›</i>
+                  </Link>
+                )}
                 <Link href={signedIn ? '/marketplace?sell=1' : loginHref} onClick={closeMenu}>
                   <MenuIcon paths={ICONS.sell} />
                   <span>Sell</span>

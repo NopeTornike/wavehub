@@ -180,4 +180,76 @@ describe('battle-royale tournaments (e2e)', () => {
     expect(other[0].metadata.link).toBe(`/tournaments/${id}/matches/${first.id}`);
     expect(await notes(b0, 'tournament_match_result')).toHaveLength(0);
   });
+  it('player stats under a result: @username links the account, unknown ones are refused', async () => {
+    const games = (await admin.client.get('/games')).body as Array<{ id: string; slug: string }>;
+    const pubg = games.find((g) => g.slug === 'pubg-mobile') ?? games[0];
+    const t = await admin.client.post('/admin/tournaments', {
+      gameId: pubg.id, name: `BR Stats ${Date.now() % 100000}`, description: 'Battle royale player stats e2e.',
+      prize: '10 GEL', status: 'open', startDate, maxPlayers: 8, teamSize: 1, format: 'battle_royale',
+    });
+    const id = t.body.id as string;
+    const p1 = await registerUser(ctx, 'bs1');
+    const p2 = await registerUser(ctx, 'bs2');
+    for (const [i, p] of [p1, p2].entries()) await p.client.post(`/tournaments/${id}/register`, { inGameName: `BS${i}`, inGameId: `9000${i}`, discord: 'brplayer' });
+    const teams = (await admin.client.get(`/admin/tournaments/${id}/teams`)).body as Array<{ id: string; players: Array<{ username: string }> }>;
+    const teamOf = (u: TestUser) => teams.find((x) => x.players.some((pl) => pl.username === u.username))!.id;
+    await admin.client.post(`/admin/tournaments/${id}/matches/battle-royale`, { stage: 'group', groupName: 'A', count: 1, startAt: new Date(Date.now() + 86_400_000).toISOString(), intervalMinutes: 0 });
+    const [match] = (await admin.client.get(`/tournaments/${id}/matches`)).body as Array<{ id: string }>;
+
+    const bad = await admin.client.post(`/admin/tournaments/${id}/matches/${match.id}/results`, {
+      results: [{ teamId: teamOf(p1), placement: 1, kills: 3, players: [{ name: '@no_such_user_zz', kills: 3 }] }],
+    });
+    expect(bad.status).toBe(400);
+    const tooLong = await admin.client.post(`/admin/tournaments/${id}/matches/${match.id}/results`, {
+      results: [{ teamId: teamOf(p1), placement: 1, kills: 3, players: [{ name: 'X', kills: 3, survival: 9000 }] }],
+    });
+    expect(tooLong.status).toBe(400);
+
+    const ok = await admin.client.post(`/admin/tournaments/${id}/matches/${match.id}/results`, {
+      results: [
+        { teamId: teamOf(p1), placement: 1, kills: 9, players: [{ name: `@${p1.username}`, kills: 9, damage: 4623, assists: 3, survival: 1662 }] },
+        { teamId: teamOf(p2), placement: 2, kills: 2, players: [{ name: 'Ghost', kills: 2, damage: null, assists: null, survival: null }] },
+      ],
+      complete: true,
+    });
+    expect(ok.status).toBe(200);
+    const pub = (await p2.client.get(`/tournaments/${id}/matches/${match.id}`)).body as { results: Array<{ team: { id: string }; players: Array<Record<string, unknown>> }> };
+    const first = pub.results.find((r) => r.team.id === teamOf(p1))!;
+    expect(first.players).toEqual([{ name: p1.username, userId: expect.any(String), username: p1.username, avatarUrl: null, kills: 9, damage: 4623, assists: 3, survival: 1662 }]);
+    const second = pub.results.find((r) => r.team.id === teamOf(p2))!;
+    expect(second.players).toEqual([{ name: 'Ghost', userId: null, username: null, avatarUrl: null, kills: 2, damage: null, assists: null, survival: null }]);
+  });
+
+  it('Tournament Ranking: top 10 players / teams with nickname, country and W-L-D', async () => {
+    await admin.client.post('/admin/tournament-leaderboard/visibility', { visible: true });
+    const star = await registerUser(ctx, 'rankstar');
+    expect((await admin.client.post('/admin/tournament-leaderboard', { kind: 'team', name: 'Bad Country', country: 'GEO', wins: 1, kills: 0, points: 1 })).status).toBe(400);
+    const player = await admin.client.post('/admin/tournament-leaderboard', {
+      kind: 'player', name: `@${star.username}`, nickname: 'The Tiger', country: 'ge', wins: 32, losses: 0, draws: 0, kills: 400, points: 99999901,
+    });
+    expect(player.status).toBe(201);
+    expect(player.body).toMatchObject({ nickname: 'The Tiger', country: 'GE', wins: 32, losses: 0, draws: 0 });
+    const team = await admin.client.post('/admin/tournament-leaderboard', { kind: 'team', name: 'Ranking Wolves', country: 'US', wins: 29, losses: 4, draws: 1, kills: 0, points: 99999900 });
+    expect(team.status).toBe(201);
+
+    const players = (await star.client.get('/tournaments/ranking?kind=player')).body as { visible: boolean; entries: Array<Record<string, unknown>> };
+    expect(players.visible).toBe(true);
+    expect(players.entries.length).toBeLessThanOrEqual(10);
+    expect(players.entries[0]).toMatchObject({ kind: 'player', username: star.username, nickname: 'The Tiger', country: 'GE', wins: 32 });
+    expect(players.entries[0].fullName).toEqual(expect.any(String));
+    expect(JSON.stringify(players)).not.toMatch(/email|wavecoinBalance|passwordHash/);
+    const teams = (await star.client.get('/tournaments/ranking?kind=team')).body as { entries: Array<Record<string, unknown>> };
+    expect(teams.entries[0]).toMatchObject({ name: 'Ranking Wolves', losses: 4, draws: 1, country: 'US' });
+    expect(teams.entries.every((e) => e.kind === 'team')).toBe(true);
+    expect((await star.client.get('/tournaments/ranking?kind=other')).status).toBe(400);
+
+    // Editing clears the nickname; hiding the leaderboard empties the page.
+    const edited = await admin.client.post(`/admin/tournament-leaderboard/${team.body.id}`, { kind: 'team', name: 'Ranking Wolves', nickname: '', country: '', wins: 30, losses: 4, draws: 1, kills: 0, points: 99999900 });
+    expect(edited.body).toMatchObject({ nickname: null, country: null, wins: 30 });
+    await admin.client.post('/admin/tournament-leaderboard/visibility', { visible: false });
+    expect((await star.client.get('/tournaments/ranking?kind=team')).body).toEqual({ visible: false, entries: [] });
+    await admin.client.post('/admin/tournament-leaderboard/visibility', { visible: true });
+    await admin.client.request('DELETE', `/admin/tournament-leaderboard/${team.body.id}`);
+    await admin.client.request('DELETE', `/admin/tournament-leaderboard/${player.body.id}`);
+  });
 });

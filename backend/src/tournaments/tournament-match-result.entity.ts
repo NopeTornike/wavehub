@@ -1,3 +1,4 @@
+import type { BrPlayerStat } from '@wavehub/shared-types';
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { TournamentMatch } from './tournament-match.entity';
 import { TournamentTeam } from './tournament-team.entity';
@@ -32,6 +33,10 @@ export class TournamentMatchResult {
 
   @Column({ type: 'integer', default: 0 })
   points: number;
+
+  // Per-player lines (owner 2026-11-19). Stored with userId only; username / photo are read fresh.
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  players: Array<Omit<BrPlayerStat, 'username' | 'avatarUrl'>>;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

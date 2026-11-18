@@ -121,6 +121,12 @@ export default function MatchDetails() {
       .catch((err) => setError(errorMessage(err, 'მატჩი ვერ მოიძებნა.')))
   }, [id, matchId])
 
+  // Battle royale: the Match Results page (owner 2026-11-19) is this match's page.
+  const brRedirect = tournament?.format === 'battle_royale' && match ? `/tournaments/${match.tournamentId}/results?match=${match.id}` : null
+  useEffect(() => {
+    if (brRedirect) void router.replace(brRedirect)
+  }, [brRedirect, router])
+
   if (!match) {
     return (
       <Layout title="მატჩი" noIndex={!!error}>

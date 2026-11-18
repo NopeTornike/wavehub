@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { AdminTournamentMatch, PublicTournamentSummary, PublicTournamentTeam } from '@wavehub/shared-types'
+import type { AdminTournamentMatch, MatchTeamResult, PublicTournamentSummary, PublicTournamentTeam } from '@wavehub/shared-types'
 import { brBracket, brMatchPoints, brMatchTeams, TournamentMatchStage, TournamentMatchStatus, TournamentTeamStatus } from '@wavehub/shared-types'
 import { api, errorMessage } from '../../lib/api'
 
@@ -172,6 +172,42 @@ export function BrPanel({ tournament, teams, matches, onDone }: { tournament: Pu
 }
 
 // One battle-royale match's results: place + kills for every team in it.
+// Per-player lines of one team (owner 2026-11-19, Match Results page): one player per line,
+// "name | kills | damage | assists | survival mm:ss" — @username links the account; only the name
+// and kills are required.
+type PlayerLine = { name: string; kills: number; damage: number | null; assists: number | null; survival: number | null }
+
+function secondsText(s: number | null): string {
+  return s === null ? '' : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+export function playersToText(players: MatchTeamResult['players']): string {
+  return players
+    .map((p) => [p.userId && p.username ? `@${p.username}` : p.name, p.kills, p.damage ?? '', p.assists ?? '', secondsText(p.survival)].join(' | ').replace(/( \| )+$/, ''))
+    .join('\n')
+}
+
+export function parsePlayers(text: string): { players: PlayerLine[]; error: string | null } {
+  const players: PlayerLine[] = []
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
+  for (const [i, line] of lines.entries()) {
+    const [name = '', kills = '', damage = '', assists = '', survival = ''] = line.split('|').map((x) => x.trim())
+    const num = (v: string, max: number) => (v === '' ? null : /^\d+$/.test(v) && Number(v) <= max ? Number(v) : NaN)
+    const k = num(kills, 99)
+    const d = num(damage.replace(/[,\s]/g, ''), 100000)
+    const a = num(assists, 99)
+    const m = survival === '' ? null : /^(\d{1,3}):([0-5]\d)$/.exec(survival)
+    const sv = survival === '' ? null : m ? Number(m[1]) * 60 + Number(m[2]) : NaN
+    if (!name || name.length > 40) return { players, error: `ხაზი ${i + 1}: მოთამაშის სახელი (1–40 სიმბოლო).` }
+    if (k === null || Number.isNaN(k)) return { players, error: `ხაზი ${i + 1}: Kills — რიცხვი 0–99.` }
+    if (Number.isNaN(d) || Number.isNaN(a)) return { players, error: `ხაზი ${i + 1}: Damage / Assists — მხოლოდ რიცხვი.` }
+    if (Number.isNaN(sv) || (sv !== null && sv > 7200)) return { players, error: `ხაზი ${i + 1}: Survival — წთ:წმ, მაგ. 27:42.` }
+    players.push({ name, kills: k, damage: d, assists: a, survival: sv })
+  }
+  if (players.length > 8) return { players, error: 'მაქსიმუმ 8 მოთამაშე გუნდში.' }
+  return { players, error: null }
+}
+
 export function BrResultsEditor({
   tournament,
   match,
@@ -195,6 +231,8 @@ export function BrResultsEditor({
       on: playing.includes(id),
       placement: initial.get(id)?.placement ? String(initial.get(id)!.placement) : '',
       kills: initial.has(id) ? String(initial.get(id)!.kills) : '',
+      players: playersToText(initial.get(id)?.players ?? []),
+      showPlayers: false,
     })),
   )
   const [complete, setComplete] = useState(match.status !== TournamentMatchStatus.Completed)
@@ -203,10 +241,27 @@ export function BrResultsEditor({
   const name = (id: string) => live.find((t) => t.id === id)?.name ?? match.results.find((r) => r.team.id === id)?.team.name ?? id
   const extra = live.filter((t) => !rows.some((r) => r.teamId === t.id))
 
+  const teamOf = (id: string) => live.find((t) => t.id === id) ?? null
+  const setRow = (i: number, patch: Partial<(typeof rows)[number]>) => setRows((list) => list.map((x, j) => (j === i ? { ...x, ...patch } : x)))
+  // Typing player lines keeps the team's kills = their sum (still editable afterwards).
+  const setPlayers = (i: number, text: string) => {
+    const parsed = parsePlayers(text)
+    const sum = parsed.players.reduce((n, p) => n + p.kills, 0)
+    setRow(i, parsed.players.length && !parsed.error ? { players: text, kills: String(sum) } : { players: text })
+  }
+
   const save = async () => {
-    const lines = rows
-      .filter((r) => r.on)
-      .map((r) => ({ teamId: r.teamId, placement: r.placement ? Number(r.placement) : null, kills: r.kills ? Number(r.kills) : 0 }))
+    const active = rows.filter((r) => r.on)
+    for (const r of active) {
+      const { error } = parsePlayers(r.players)
+      if (error) return setNote(`${name(r.teamId)} — ${error}`)
+    }
+    const lines = active.map((r) => ({
+      teamId: r.teamId,
+      placement: r.placement ? Number(r.placement) : null,
+      kills: r.kills ? Number(r.kills) : 0,
+      players: parsePlayers(r.players).players,
+    }))
     const places = lines.map((l) => l.placement).filter((p): p is number => p !== null)
     if (new Set(places).size !== places.length) return setNote('ორ გუნდს ერთი და იგივე ადგილი აქვს.')
     setBusy(true)
@@ -251,6 +306,32 @@ export function BrResultsEditor({
             onChange={(e) => setRows((list) => list.map((x, j) => (j === i ? { ...x, kills: e.target.value.replace(/\D/g, '').slice(0, 3) } : x)))}
           />
           <b>{r.on ? brMatchPoints(r.placement ? Number(r.placement) : null, r.kills ? Number(r.kills) : 0) : '—'}</b>
+          {r.on && (
+            <button type="button" className="to-br-players-toggle" aria-expanded={r.showPlayers} onClick={() => setRow(i, { showPlayers: !r.showPlayers })}>
+              მოთამაშეები{r.players.trim() ? ` (${r.players.split('\n').filter((l) => l.trim()).length})` : ''} {r.showPlayers ? '▴' : '▾'}
+            </button>
+          )}
+          {r.on && r.showPlayers && (
+            <div className="to-br-players">
+              <small>ერთი მოთამაშე ერთ ხაზზე: სახელი | Kills | Damage | Assists | Survival (წთ:წმ). @username აკავშირებს ანგარიშს.</small>
+              {(teamOf(r.teamId)?.players ?? []).length > 0 && (
+                <span className="to-br-chips">
+                  {teamOf(r.teamId)!.players.map((p) => (
+                    <button
+                      key={p.username + p.inGameName}
+                      type="button"
+                      className="to-chip"
+                      onClick={() => setPlayers(i, `${r.players.trim() ? `${r.players.trim()}\n` : ''}@${p.username} | 0`)}
+                    >
+                      + @{p.username}
+                    </button>
+                  ))}
+                </span>
+              )}
+              <textarea rows={4} value={r.players} placeholder={'@AlphaGio | 9 | 4623 | 3 | 27:42\nAlphaNika | 6 | 3218 | 2 | 27:10'} aria-label={`${name(r.teamId)} — მოთამაშეები`} onChange={(e) => setPlayers(i, e.target.value)} />
+              {parsePlayers(r.players).error && <em className="to-br-error">{parsePlayers(r.players).error}</em>}
+            </div>
+          )}
         </div>
       ))}
       {extra.length > 0 && (
@@ -260,7 +341,7 @@ export function BrResultsEditor({
             value=""
             onChange={(e) => {
               const id = e.target.value
-              if (id) setRows((list) => [...list, { teamId: id, on: true, placement: '', kills: '' }])
+              if (id) setRows((list) => [...list, { teamId: id, on: true, placement: '', kills: '', players: '', showPlayers: false }])
             }}
           >
             <option value="">—</option>

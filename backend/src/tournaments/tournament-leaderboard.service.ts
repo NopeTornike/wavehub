@@ -14,6 +14,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const TOP_PLAYERS = 3;
 const TOP_TEAMS = 5;
+const RANKING_SIZE = 10;
 const PUBLIC_CACHE_MS = 30_000;
 
 type UploadedImage = { buffer: Buffer; originalname: string; mimetype: string; size: number };
@@ -23,6 +24,7 @@ type UploadedImage = { buffer: Buffer; originalname: string; mimetype: string; s
 @Injectable()
 export class TournamentLeaderboardService {
   private cache = new Map<string, { value: TournamentLeaderboard; expiresAt: number }>();
+  private rankCache = new Map<string, { value: { visible: boolean; entries: EntryView[] }; expiresAt: number }>();
 
   constructor(
     @InjectRepository(TournamentLeaderboardEntry) private readonly entries: Repository<TournamentLeaderboardEntry>,
@@ -41,7 +43,12 @@ export class TournamentLeaderboardService {
       username: player?.username ?? null,
       name: player?.username ?? row.name,
       imageUrl: row.kind === 'player' ? (player?.avatarUrl ?? null) : row.logoUrl,
+      fullName: player ? [player.firstName, player.lastName].filter(Boolean).join(' ').trim() || player.username : null,
+      nickname: row.nickname,
+      country: row.country,
       wins: row.wins,
+      losses: row.losses,
+      draws: row.draws,
       kills: row.kills,
       points: row.points,
     };
@@ -72,6 +79,21 @@ export class TournamentLeaderboardService {
     };
     const value: TournamentLeaderboard = { visible: true, players: await top('player', TOP_PLAYERS), teams: await top('team', TOP_TEAMS) };
     this.cache.set(key, { value, expiresAt: Date.now() + PUBLIC_CACHE_MS });
+    return value;
+  }
+
+  // The Tournament Ranking page (owner 2026-11-19): the top 10 of one kind, same order and switch.
+  async ranking(kind: 'player' | 'team', gameId?: string): Promise<{ visible: boolean; entries: EntryView[] }> {
+    const { tournamentLeaderboard } = await this.settings.getFeatures();
+    if (!tournamentLeaderboard) return { visible: false, entries: [] };
+    const key = `rank:${kind}:${gameId ?? '*'}`;
+    const hit = this.rankCache.get(key);
+    if (hit && hit.expiresAt > Date.now()) return hit.value;
+    const q = this.query().where('e.kind = :kind', { kind });
+    if (kind === 'player') q.andWhere('user.status = :active', { active: UserStatus.Active });
+    if (gameId) q.andWhere('e.gameId = :gameId', { gameId });
+    const value = { visible: true, entries: (await q.take(RANKING_SIZE).getMany()).map((r) => this.view(r)) };
+    this.rankCache.set(key, { value, expiresAt: Date.now() + PUBLIC_CACHE_MS });
     return value;
   }
 
@@ -114,6 +136,10 @@ export class TournamentLeaderboardService {
     row.kind = dto.kind;
     row.gameId = gameId;
     row.wins = dto.wins;
+    row.losses = dto.losses ?? 0;
+    row.draws = dto.draws ?? 0;
+    row.nickname = dto.nickname?.trim() || null;
+    row.country = dto.country ? dto.country.toUpperCase() : null;
     row.kills = dto.kills;
     row.points = dto.points;
     if (dto.kind === 'player') {
@@ -126,6 +152,7 @@ export class TournamentLeaderboardService {
     }
     const saved = await this.entries.save(row);
     this.cache.clear();
+    this.rankCache.clear();
     return this.view(await this.getOrThrow(saved.id));
   }
 
@@ -138,6 +165,7 @@ export class TournamentLeaderboardService {
     const stored = await this.storage.save(file.buffer, file.originalname, 'image');
     await this.entries.update(id, { logoUrl: stored.url });
     this.cache.clear();
+    this.rankCache.clear();
     return this.view(await this.getOrThrow(id));
   }
 
@@ -146,12 +174,14 @@ export class TournamentLeaderboardService {
     this.assertScope(scope, row.gameId);
     await this.entries.delete(id);
     this.cache.clear();
+    this.rankCache.clear();
     return { ok: true };
   }
 
   async setVisible(visible: boolean): Promise<{ visible: boolean }> {
     await this.settings.setFeatures({ tournamentLeaderboard: visible });
     this.cache.clear();
+    this.rankCache.clear();
     return { visible };
   }
 }

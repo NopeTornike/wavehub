@@ -162,6 +162,10 @@ export default function TournamentLeaderboard() {
         </section>
       </div>
 
+      <Link className="tl-more" href="/tournaments/ranking">
+        <TIcon name="list" /> Tournament Ranking — Top 10 მოთამაშე და გუნდი <TIcon name="chevron" className="tl-more-arrow" />
+      </Link>
+
       <footer className="tl-legend">
         <span>
           <TIcon name="trophy" />

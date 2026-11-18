@@ -67,12 +67,16 @@ const InfoIcon = () => (
   </svg>
 )
 
-export default function GameRoomCard({ matchId }: { matchId: string }) {
+// `matchId` null = no upcoming match yet: the card still shows, locked (owner 2026-11-19: "the card
+// must always be there; the details show only once staff open the room"). `server` picks the
+// CS2-style wording for that empty state.
+export default function GameRoomCard({ matchId, server: serverStyle = false }: { matchId: string | null; server?: boolean }) {
   const [room, setRoom] = useState<MatchRoomView | null>(null)
   const [hidden, setHidden] = useState(false)
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
+    if (!matchId) return
     let alive = true
     const load = () =>
       api
@@ -87,7 +91,7 @@ export default function GameRoomCard({ matchId }: { matchId: string }) {
     }
   }, [matchId])
 
-  if (hidden || !room) return null
+  if (!matchId || hidden || !room) return <LockedRoom server={serverStyle} loading={!!matchId && !hidden && !room} />
   const available = room.status === 'available' && !!room.room
   const server = available && room.room?.serverUrl && SAFE_LINK.test(room.room.serverUrl) ? room.room.serverUrl : null
   const launch = room.launchUrl && SAFE_LINK.test(room.launchUrl) ? room.launchUrl : null
@@ -187,6 +191,49 @@ export default function GameRoomCard({ matchId }: { matchId: string }) {
             )}
           </>
         )}
+      </div>
+    </section>
+  )
+}
+
+// No match (or no access to it) yet: the same card, locked, with nothing to reveal.
+function LockedRoom({ server, loading }: { server: boolean; loading: boolean }) {
+  const checks = server ? ['სერვერის ბმული'] : ['Room ID', 'პაროლი', 'თქვენი ადგილი']
+  return (
+    <section className="wt-panel gr-card is-locked" aria-busy={loading || undefined}>
+      <div className="gr-head" role="presentation">
+        <span className="gr-icon">
+          <PadIcon />
+        </span>
+        <strong>{server ? 'თამაშის სერვერი' : 'თამაშის ოთახი'}</strong>
+        <em className="gr-pill">
+          <LockIcon />
+          დაბლოკილია
+        </em>
+      </div>
+      <div className="gr-body">
+        <p className="gr-lead">აქ იხილავთ მატჩის ოთახის ინფორმაციას:</p>
+        <ul className="gr-checks">
+          {checks.map((label) => (
+            <li key={label}>
+              <span aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m6.5 12.5 3.5 3.5 7.5-8" />
+                </svg>
+              </span>
+              {label}
+            </li>
+          ))}
+        </ul>
+        <div className="gr-locked">
+          <span className="gr-lock-tile" aria-hidden="true">
+            <LockIcon />
+          </span>
+          <p>
+            <strong>ოთახის ინფორმაცია ჯერ არ არის ხელმისაწვდომი</strong>
+            <small>როცა თქვენი მატჩი დაინიშნება და ორგანიზატორი ოთახს გახსნის, აქ გამოჩნდება {server ? 'სერვერის ბმული' : 'Room ID, პაროლი და თქვენი ადგილი'}.</small>
+          </p>
+        </div>
       </div>
     </section>
   )

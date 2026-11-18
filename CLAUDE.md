@@ -159,6 +159,11 @@ Baseline hardening that exists today (added Phase 2 after a dedicated pass — s
   version, annotated "overridden" but not actually reinstalled) — `npm update sharp` was needed to
   force the actual reinstall. If a future override edit doesn't show up in `npm audit`, try `npm
   update <package>` before assuming the override itself is broken.
+- **`next` ^16.4.5 (2026-11-19)**: Next 16.4.3 hit GHSA-mfr8-8qww-v76h / GHSA-vc7v-qv4w-wrv8 (`'use cache'`, unused
+  here), and `next build` itself now exits 1 after building when its version has a known advisory —
+  which would fail the Docker build. `npm install next@x -w frontend` silently kept the old nested
+  `frontend/node_modules/next` lock entry; deleting that entry (and `frontend/node_modules/@next/*`)
+  from `package-lock.json` before `npm install` was needed. Lock now has 16.4.6.
 - **`glob`/`minimatch` under `typeorm`** are pinned by a root override scoped to `typeorm`
   (`glob ^14.0.2`, its `minimatch ^11.0.1`; since 2026-11-01) past GHSA-3g3m-2fjr-6pw4 and
   GHSA-g3hv-75wg-m249 — `typeorm@0.3.31` asks for `glob@^10`, and npm's suggested fix is a breaking

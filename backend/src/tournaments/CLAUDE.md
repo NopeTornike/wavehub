@@ -353,3 +353,23 @@ Migration `1784395000000-TournamentPointsRemindersLeaderboard`. Mockups: `docs/d
     `tournament_match_won` ("გილოცავთ, 1-ლი ადგილი! 🏆"), every other team `tournament_match_result`
     ("მატჩის შედეგი: 3rd ადგილი", body place · kills · +points), linking the match page.
   e2e: `test/battle-royale.e2e-spec.ts`.
+
+## 2026-11-19 Tournament Ranking + per-player battle-royale stats (owner round 8)
+
+Migration `1784399000000-TournamentRankingAndPlayerStats`.
+- **Leaderboard rows** gain `nickname` (≤40, shown as “The Tiger”), `country` (ISO alpha-2, stored
+  upper-case), `losses`, `draws` — all hand-entered in Admin → Tournaments → Leaderboard (Players /
+  Teams tabs). An empty string clears nickname / country. The public view adds `fullName` (first +
+  last name, else the username) for player rows.
+- **`GET tournaments/ranking?kind=player|team&gameId=`** (declared before `tournaments/:id`): the Top 10
+  of one kind (`RANKING_SIZE`), ordered like the leaderboard, cached 30 s alongside it (every save /
+  delete / visibility change clears both caches). Same show/hide switch: hidden →
+  `{ visible: false, entries: [] }`. No PII (public projection only).
+- **Per-player stats in a battle-royale match result**: `tournament_match_results.players` jsonb
+  (default `[]`), lines `{ name, userId, kills, damage, assists, survival (seconds) }` (≤8 per team;
+  kills 0–99, damage 0–100000, assists 0–99, survival 0–7200, each of the last three nullable).
+  `POST admin/tournaments/:id/matches/:matchId/results` takes `results[].players`; a name written
+  `@username` is linked to that account (unknown → 400). The public match carries the lines with the
+  account's current `username` / `avatarUrl` filled in by `withPlayerAccounts`. Team kills stay their
+  own field (the admin editor fills it with the sum of the lines).
+e2e: `test/battle-royale.e2e-spec.ts` (player stats, ranking).

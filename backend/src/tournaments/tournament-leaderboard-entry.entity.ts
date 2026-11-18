@@ -33,8 +33,20 @@ export class TournamentLeaderboardEntry {
   @Column({ type: 'varchar', nullable: true })
   logoUrl: string | null;
 
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  nickname: string | null;
+
+  @Column({ type: 'varchar', length: 2, nullable: true })
+  country: string | null;
+
   @Column({ type: 'integer', default: 0 })
   wins: number;
+
+  @Column({ type: 'integer', default: 0 })
+  losses: number;
+
+  @Column({ type: 'integer', default: 0 })
+  draws: number;
 
   @Column({ type: 'integer', default: 0 })
   kills: number;

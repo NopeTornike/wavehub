@@ -133,6 +133,19 @@ export default function TournamentDashboard() {
         {active === 'group' && (
           <>
             <GroupStage dash={dash} tournament={tournament} mine={mine} index={Math.min(groupIndex, Math.max(0, dash.groups.length - 1))} onIndex={setGroupPick} />
+            {/* Matches & Results (owner 2026-11-19): battle royale → the placement / kills results
+                page, versus (CS2) → the Team X vs Team Y match list. */}
+            <Link className="td-link-card td-results-link" href={versus ? `/tournaments/${tournament.id}/matches` : `/tournaments/${tournament.id}/results`}>
+              <TIcon name="list" className="td-link-icon" />
+              <span>
+                <strong>მატჩები და შედეგები</strong>
+                <small>{versus ? 'Team vs Team — ანგარიში, რუკა და სტატისტიკა' : 'ადგილი, Kills, ქულები და მოთამაშეების სტატისტიკა'}</small>
+              </span>
+              <span className="td-pill plain">
+                {matches.filter((m) => m.status === TournamentMatchStatus.Completed).length}/{matches.length}
+              </span>
+              <TIcon name="chevron" className="td-link-arrow" />
+            </Link>
             <button type="button" className="td-link-card" onClick={() => select('semifinal')}>
               <TIcon name="trophy" className="td-link-icon" />
               <span>
@@ -204,6 +217,7 @@ function GroupStage({ dash, tournament, mine, index, onIndex }: { dash: Dashboar
         <p className="td-empty">ჯგუფები გამოჩნდება, როცა ადმინისტრაცია გუნდებს ჯგუფებში გაანაწილებს.</p>
       ) : (
         <>
+          {dash.groups.length > 1 && (
           <div className="td-tabs" role="tablist" aria-label="ჯგუფები">
             {dash.groups.map((g, i) => (
               <button key={g.name} type="button" role="tab" aria-selected={i === index} className={i === index ? 'active' : undefined} onClick={() => onIndex(i)}>
@@ -211,6 +225,7 @@ function GroupStage({ dash, tournament, mine, index, onIndex }: { dash: Dashboar
               </button>
             ))}
           </div>
+          )}
           <div className="td-group">
             <header>
               <h3>

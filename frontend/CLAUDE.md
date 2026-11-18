@@ -1577,3 +1577,24 @@ frontend has no dedicated banner; `GET /health` exposes `maintenance` for a futu
     ops panel has auto groups, a per-team group select, a lobby-match generator (all groups at once),
     a per-match results editor (place + kills, live points preview) and a one-lobby room editor
     (`components/admin/BattleRoyaleOps.tsx`). `teamInitials` now uses word initials ("Team Alpha" → TA).
+- **Tournament round 8 (2026-11-19, owner images 1–7)**:
+  - **`/tournaments/ranking`** (`trk-` CSS — not `tr-`, which is Admin → Translations): WAVEHUBX
+    ESPORTS "Tournament Ranking" Top 10, Players / Teams tabs (`?kind=team`), game filter (`?game=`);
+    rows show place (gold / silver / bronze), photo or team logo, name, “nickname”, flag emoji + ISO3
+    code (`lib/countries.ts`), W-L-D and points. The `/tournaments` leaderboard links to it.
+  - Profile menu: "My Tournaments" expands (`pm-toggle` / `pm-sub`) into **My Team** (`/tournaments/hub`)
+    and **Tournament Dashboard** (`/tournaments/dashboard`, which redirects to the user's current
+    tournament's dashboard, else the first live / open / upcoming one).
+  - Dashboard: group tabs only when there are 2+ groups; a "მატჩები და შედეგები" card under the group
+    stage → battle royale `/tournaments/[id]/results`, versus the existing match list.
+  - **`/tournaments/[id]/results`** (`mr-` CSS): match chips (`?match=`), date / time / group / match,
+    table # | Team | Players | Kills | Place Pts | Total Pts; tapping a team opens its player stats
+    (Kills, Damage, Assists, Survival) below — default the user's own team. A battle-royale match's
+    details page redirects here.
+  - Hub: the game room card always sits under the team status card — locked until staff open the room
+    (also with no next match).
+  - Home countdown card: versus shows "UPCOMING MATCH" over Team X vs Team Y; battle royale gets its own
+    card (`mc-br`): countdown, start / stage / teams, format and "სრულად ნახვა".
+  - Admin: Leaderboard has Players / Teams tabs + nickname, country, losses, draws; the battle-royale
+    results editor has per-team player lines `name | kills | damage | assists | mm:ss` (`@username`
+    links the account; team kills follow the sum).
